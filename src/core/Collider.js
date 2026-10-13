@@ -7,6 +7,13 @@ const CORRIDOR_K_START = -0.08;
 const CORRIDOR_K_END = 1.25;
 const WORLD_LIMIT = SITE.groundSize / 2 - 20;
 const LAKE_RADIUS = 70;
+const BIKE_CLEARANCE = 0.6;
+
+/** Rintangan lingkaran padat di plaza/kawasan: kolam tugu Lancang Kuning & tugu tanjak. */
+export const OBSTACLES = Object.freeze([
+  Object.freeze({ name: 'tuguLancangKuning', x: 0, z: -(STADIUM.outerSemiZ + 45), r: 11.5 + BIKE_CLEARANCE }),
+  Object.freeze({ name: 'tuguTanjak', x: SITE.tanjakMonument.x, z: SITE.tanjakMonument.z, r: 1.6 + BIKE_CLEARANCE }),
+]);
 
 /** Koridor gate utama sebagai segmen garis dunia (dari luar cangkang ke apron lintasan). */
 const CORRIDORS = GATES.filter((g) => g.main).map((g) => {
@@ -41,6 +48,7 @@ export function isWalkable(x, z) {
   if (Math.abs(x) > WORLD_LIMIT || Math.abs(z) > WORLD_LIMIT) return false;
   const lake = SITE.lakeCenter;
   if (Math.hypot(x - lake.x, z - lake.z) < LAKE_RADIUS) return false;
+  if (OBSTACLES.some((o) => Math.hypot(x - o.x, z - o.z) < o.r)) return false;
   if (inGateCorridor(x, z)) return true;
   const inner = ellipseRadius(x, z, STADIUM.innerSemiX - 2, STADIUM.innerSemiZ - 2);
   const outer = ellipseRadius(x, z, STADIUM.outerSemiX + 1.5, STADIUM.outerSemiZ + 1.5);
