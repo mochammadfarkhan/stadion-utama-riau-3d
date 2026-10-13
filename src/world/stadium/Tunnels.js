@@ -96,14 +96,14 @@ function signMaterial(sign) {
     ctx.fillText(sign.text, w / 2, h / 2);
   });
   return map
-    ? new THREE.MeshBasicMaterial({ map, side: THREE.DoubleSide })
-    : new THREE.MeshBasicMaterial({ color: sign.color, side: THREE.DoubleSide });
+    ? new THREE.MeshBasicMaterial({ map })
+    : new THREE.MeshBasicMaterial({ color: sign.color });
 }
 
 /** Rambu kecil menggantung di bawah langit-langit dekat mulut terowongan. */
 function signMesh(sign, length) {
   const g = new THREE.PlaneGeometry(SIGN_SIZE.w, SIGN_SIZE.h);
-  if (!sign.atInner) g.rotateY(Math.PI); // menghadap −Z lokal (ke luar/plaza)
+  g.rotateY(Math.PI); // menghadap −Z lokal: dibaca oleh yang bergerak searah +Z (masuk) / dari dalam terowongan (keluar)
   g.translate(0, TUNNEL.clearance - SIGN_DROP, sign.atInner ? length - SIGN_INSET : SIGN_INSET);
   const mesh = new THREE.Mesh(g, signMaterial(sign));
   mesh.name = `rambu${sign.text}`;

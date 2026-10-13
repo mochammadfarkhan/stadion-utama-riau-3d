@@ -8,7 +8,7 @@ import {
   createEllipseArcTable, ellipseAngleAtArc, ellipsePoint, mergeFlat, createCanvasTexture, createDataTexture,
 } from './ovalMath.js';
 
-const STATUE_POS = Object.freeze({ x: 0, z: -(STADIUM.innerSemiZ - 6) });
+const STATUE_POS = Object.freeze({ x: 22, z: -(STADIUM.innerSemiZ - 8) }); // di samping mulut terowongan utara
 const COLOR_SERINDIT = 0x2e8b3d;
 const COLOR_GOLD = 0xd4af37;
 const COLOR_BEAK = 0xe8711c;
