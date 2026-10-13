@@ -41,9 +41,11 @@ function main() {
 
   hud.setWallet(wallet);
   hud.setCameraMode(rig.mode);
+  // Pedagang bisa berjalan menjauh saat dialog terbuka; kunci id pedagang saat dibuka.
+  const shop = { vendorId: null };
   hud.onBuy = (itemId) => {
-    if (!ents.vendors.promptVendor) return;
-    const res = ents.vendors.tryBuy(itemId);
+    if (!shop.vendorId) return;
+    const res = ents.vendors.tryBuy(itemId, shop.vendorId);
     wallet = res.wallet;
     hud.setWallet(wallet);
     hud.toast(res.ok ? `Beli ${res.item.name} ✔` : res.error, res.ok);
@@ -52,7 +54,7 @@ function main() {
   const bikePos = new THREE.Vector3();
   app.addUpdatable({
     update(dt, ctx) {
-      handleKeys(input, rig, hud, ents, app);
+      handleKeys(input, rig, hud, ents, app, shop);
       rig.update(ents.bike.state, dt);
       hud.setSpeed(ents.bike.speedKmh);
       hud.setScore(ents.match.score);
@@ -90,7 +92,7 @@ function exposeDevTools(app, ents, rig) {
   };
 }
 
-function handleKeys(input, rig, hud, ents, app) {
+function handleKeys(input, rig, hud, ents, app, shop) {
   if (input.consumePress('KeyV')) {
     rig.toggleMode();
     hud.setCameraMode(rig.mode);
@@ -99,8 +101,10 @@ function handleKeys(input, rig, hud, ents, app) {
   if (input.consumePress('KeyE') || input.consumePress('Escape')) {
     if (hud.shopOpen) {
       hud.closeShop();
+      shop.vendorId = null;
       rig.requestLock();
     } else if (ents.vendors.promptVendor) {
+      shop.vendorId = ents.vendors.promptVendor.id;
       hud.openShop(shopInfo(ents.vendors.promptVendor));
       document.exitPointerLock?.();
     }
