@@ -91,6 +91,7 @@ export class HUD {
   #onShopClick(e) {
     const btn = e.target.closest('button[data-id]');
     if (!btn || !this.onBuy) return;
+    btn.blur(); // cegah Space/Enter memicu pembelian ulang
     this.onBuy(btn.dataset.id);
   }
 }

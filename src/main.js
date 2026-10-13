@@ -10,7 +10,6 @@ import { HUD } from './ui/HUD.js';
 import { createWallet } from './sim/vendorSim.js';
 
 const START_POS = { x: 0, z: -275, yaw: 0 }; // plaza utara, menghadap stadion
-const INTERACT_DIST = 3.5;
 
 function showFatal(msg) {
   const panel = document.querySelector('#overlay .panel');
@@ -33,7 +32,7 @@ function main() {
   app.scene.add(world.group);
   app.addUpdatable({ update: (dt, ctx) => world.update(dt, ctx.time) });
 
-  let wallet = createWallet();
+  const wallet = createWallet();
   const ents = buildEntities({ start: START_POS, world, wallet });
   app.scene.add(ents.group);
   ents.bike.setCollider(createCollider(START_POS));
@@ -46,8 +45,7 @@ function main() {
   hud.onBuy = (itemId) => {
     if (!shop.vendorId) return;
     const res = ents.vendors.tryBuy(itemId, shop.vendorId);
-    wallet = res.wallet;
-    hud.setWallet(wallet);
+    hud.setWallet(ents.vendors.wallet);
     hud.toast(res.ok ? `Beli ${res.item.name} ✔` : res.error, res.ok);
   };
 
@@ -72,7 +70,6 @@ function main() {
   document.getElementById('start').addEventListener('click', () => {
     document.getElementById('overlay').classList.add('hidden');
     rig.requestLock();
-    ents.bike.resumeAudio?.();
   });
   app.renderer.domElement.addEventListener('click', () => {
     if (!hud.shopOpen) rig.requestLock();
@@ -113,9 +110,8 @@ function handleKeys(input, rig, hud, ents, app, shop) {
 
 function updatePrompt(hud, ents, ctx) {
   if (hud.shopOpen) return hud.setPrompt(null);
-  const near = ents.vendors.nearest(ctx.bikePos);
-  const show = near && near.dist < INTERACT_DIST;
-  hud.setPrompt(show ? `Tekan E — ${near.vendor.name}` : null);
+  const pv = ents.vendors.promptVendor; // satu sumber kebenaran jarak interaksi (VendorGroup)
+  hud.setPrompt(pv ? `Tekan E — ${pv.name}` : null);
 }
 
 /** Bentuk data untuk dialog HUD dari info pedagang. */

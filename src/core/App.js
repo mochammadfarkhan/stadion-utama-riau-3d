@@ -104,10 +104,13 @@ export class App {
     const r = this.renderer;
     this.minimapCamera.position.set(focus.x, MINIMAP_HEIGHT, focus.z);
     this.minimapCamera.lookAt(focus.x, 0, focus.z);
+    const fog = this.scene.fog; // tanpa kabut agar peta tidak pudar
+    this.scene.fog = null;
     r.setRenderTarget(this.minimapTarget);
     r.clear();
     r.render(this.scene, this.minimapCamera);
     r.setRenderTarget(null);
+    this.scene.fog = fog;
   }
 }
 

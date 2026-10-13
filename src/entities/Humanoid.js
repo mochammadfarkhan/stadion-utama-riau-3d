@@ -121,7 +121,7 @@ function buildSpine(body, parts, o) {
   const headPivot = new THREE.Group();
   headPivot.position.y = DIM.neckY;
   spine.add(headPivot);
-  const head = partMesh(headPieces(o), { castShadow: true, doubleSided: o.hijab != null });
+  const head = partMesh(headPieces(o), { castShadow: false, doubleSided: o.hijab != null });
   headPivot.add(head);
   Object.assign(parts, { spine, torso, headPivot, head });
   if (o.apron != null) parts.apron = torso;
@@ -180,7 +180,7 @@ function buildLeg(body, parts, o, side, sx) {
   const shin = partMesh([
     colored(GEO.shin, o.pants, 0, -DIM.shin / 2, 0),
     colored(GEO.foot, o.shoes, 0, -DIM.shin + 0.01, 0.05),
-  ], { castShadow: true });
+  ], { castShadow: false });
   knee.add(shin);
   parts[`hip${side}`] = hip;
   parts[`knee${side}`] = knee;

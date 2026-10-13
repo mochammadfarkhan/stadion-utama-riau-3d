@@ -22,6 +22,9 @@ export class CameraRig {
     this.locked = false;
     this._target = new THREE.Vector3();
     this._desired = new THREE.Vector3();
+    this._eye = new THREE.Vector3();
+    this._dir = new THREE.Vector3();
+    this._offset = new THREE.Vector3();
     this.#bindPointer();
   }
 
@@ -58,10 +61,10 @@ export class CameraRig {
   }
 
   #updateFirst(bike) {
-    const eye = FIRST_PERSON_EYE.clone().applyAxisAngle(THREE.Object3D.DEFAULT_UP, bike.yaw);
+    const eye = this._eye.copy(FIRST_PERSON_EYE).applyAxisAngle(THREE.Object3D.DEFAULT_UP, bike.yaw);
     this.camera.position.set(bike.x + eye.x, eye.y, bike.z + eye.z);
     const yaw = bike.yaw + this.yawOffset;
-    const dir = new THREE.Vector3(Math.sin(yaw) * Math.cos(this.pitch), -Math.sin(this.pitch), Math.cos(yaw) * Math.cos(this.pitch));
+    const dir = this._dir.set(Math.sin(yaw) * Math.cos(this.pitch), -Math.sin(this.pitch), Math.cos(yaw) * Math.cos(this.pitch));
     this._target.copy(this.camera.position).add(dir);
     this.camera.lookAt(this._target);
   }
@@ -70,7 +73,7 @@ export class CameraRig {
     // Orbit perlahan kembali ke belakang sepeda bila mouse diam
     this.yawOffset *= Math.exp(-ORBIT_RETURN_RATE * dt);
     const yaw = bike.yaw + this.yawOffset;
-    const offset = THIRD_PERSON_OFFSET.clone();
+    const offset = this._offset.copy(THIRD_PERSON_OFFSET);
     offset.y += this.pitch * 4;
     offset.applyAxisAngle(THREE.Object3D.DEFAULT_UP, yaw);
     this._desired.set(bike.x + offset.x, offset.y, bike.z + offset.z);

@@ -172,9 +172,8 @@ export function createCanvasTexture(width, height, draw) {
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
     return tex;
-  } catch (err) {
-    console.warn('createCanvasTexture gagal, pakai fallback:', err);
-    return null;
+  } catch {
+    return null; // fallback diam: pemanggil memakai material polos
   }
 }
 

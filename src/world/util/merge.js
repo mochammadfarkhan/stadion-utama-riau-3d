@@ -35,12 +35,8 @@ function groupKey(mesh) {
  * Pindahkan objek (beserta anak-anaknya, transform lokal tetap) ke root baru
  * dengan transform dunianya agar posisi akhirnya tidak berubah.
  */
-function reparentWithWorldTransform(obj, root, deep = true) {
-  const clone = obj.clone(deep);
-  clone.matrix.copy(obj.matrixWorld);
-  clone.matrix.decompose(clone.position, clone.quaternion, clone.scale);
-  clone.matrixWorldNeedsUpdate = true;
-  root.add(clone);
+function reparentWithWorldTransform(obj, root) {
+  root.attach(obj); // memindahkan objek asli (referensi & userData.update tetap), transform dunia dipertahankan
 }
 
 /** Kumpulkan mesh yang bisa digabung per kunci; objek lain dipindah apa adanya. */
@@ -57,7 +53,7 @@ function collect(group, root) {
       if (!buckets.has(key)) buckets.set(key, []);
       buckets.get(key).push(obj);
     }
-    for (const child of obj.children) visit(child);
+    for (const child of [...obj.children]) visit(child); // salinan: attach() memutasi children
   };
   visit(group);
   return buckets;
