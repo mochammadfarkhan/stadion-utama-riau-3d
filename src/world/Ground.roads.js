@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { SITE } from '../config/constants.js';
 import { ellipseRingGeometry, distributeOnEllipse } from './siteutil/ellipseGeo.js';
 import { instancePart, localMatrix } from './siteutil/instanceParts.js';
-import { groundMaterials, LAYER_Y } from './Ground.materials.js';
+import { groundMaterials, LAYER_Y, uvToMeters } from './Ground.materials.js';
 
 /**
  * Jalan lingkar, Jl. Naga Sakti, jalan penghubung, parkir, jogging track.
@@ -17,6 +17,11 @@ const PARKING = Object.freeze({
 });
 
 const dashGeometry = new THREE.BoxGeometry(DASH.length, DASH.thickness, DASH.width);
+
+/** PlaneGeometry w × h dengan UV bersatuan meter (selaras ShapeGeometry jalan lingkar). */
+function meterPlane(w, h) {
+  return uvToMeters(new THREE.PlaneGeometry(w, h), w, h);
+}
 
 function flatMesh(geometry, material, y, name) {
   const mesh = new THREE.Mesh(geometry, material);
@@ -75,7 +80,7 @@ export function createNagaSakti() {
   const len = SITE.groundSize * 0.98;
   const width = SITE.nagaSaktiLanes * SITE.laneWidth;
   const z = SITE.nagaSaktiZ;
-  const road = flatMesh(new THREE.PlaneGeometry(len, width), m.asphalt, LAYER_Y.road, 'aspal');
+  const road = flatMesh(meterPlane(len, width), m.asphalt, LAYER_Y.road, 'aspal');
   road.rotation.x = -Math.PI / 2;
   road.position.z = z;
   g.add(road);
@@ -109,7 +114,7 @@ export function createConnectorRoads() {
     const zFrom = SITE.nagaSaktiZ;
     const zTo = ringRoadZAt(x) + SITE.ringRoadWidth / 2;
     const len = zTo - zFrom;
-    const road = flatMesh(new THREE.PlaneGeometry(CONNECTOR_WIDTH, len), m.asphalt, LAYER_Y.road + 0.005, 'aspal');
+    const road = flatMesh(meterPlane(CONNECTOR_WIDTH, len), m.asphalt, LAYER_Y.road + 0.005, 'aspal');
     road.rotation.x = -Math.PI / 2;
     road.position.set(x, road.position.y, (zFrom + zTo) / 2);
     g.add(road);
@@ -126,7 +131,7 @@ export function createParkingLot(kind = 'car') {
   const bayD = kind === 'car' ? PARKING.carBayD : PARKING.motoBayD;
   const g = new THREE.Group();
   g.name = kind === 'car' ? 'parkirMobil' : 'parkirMotor';
-  const lot = flatMesh(new THREE.PlaneGeometry(cfg.w, cfg.d), m.asphalt, LAYER_Y.road, 'aspal');
+  const lot = flatMesh(meterPlane(cfg.w, cfg.d), m.asphalt, LAYER_Y.road, 'aspal');
   lot.rotation.x = -Math.PI / 2;
   lot.position.set(cfg.x, LAYER_Y.road, cfg.z);
   g.add(lot);

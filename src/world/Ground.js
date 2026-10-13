@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { SITE, STADIUM } from '../config/constants.js';
 import { ellipseRingGeometry } from './siteutil/ellipseGeo.js';
-import { groundMaterials, GROUND_COLORS, LAYER_Y } from './Ground.materials.js';
+import { groundMaterials, GROUND_COLORS, LAYER_Y, uvToMeters } from './Ground.materials.js';
 import {
   createRingRoad, createNagaSakti, createConnectorRoads,
   createParkingLot, createJoggingTrack, createSkateTrack,
@@ -14,10 +14,11 @@ import {
 const HELIPAD = Object.freeze({ ringInner: 10.5, ringOuter: 11.5, hBar: 6, hWidth: 1.1, hGap: 2.4 });
 const AMPHI = Object.freeze({ steps: 6, innerR: 6, stepR: 2.6, stepH: 0.45, stageR: 5.5 });
 
-/** Tanah rumput besar. */
+/** Tanah rumput besar (UV dalam meter agar tekstur rumput berulang tiap 4 m). */
 function createGrassPlane() {
   const m = groundMaterials();
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(SITE.groundSize, SITE.groundSize, 8, 8), m.grass);
+  const geo = uvToMeters(new THREE.PlaneGeometry(SITE.groundSize, SITE.groundSize, 8, 8), SITE.groundSize, SITE.groundSize);
+  const mesh = new THREE.Mesh(geo, m.grass);
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.y = LAYER_Y.ground;
   mesh.receiveShadow = true;
@@ -25,7 +26,7 @@ function createGrassPlane() {
   return mesh;
 }
 
-/** Plaza paving oval di antara cangkang stadion dan batas plaza. */
+/** Plaza paving oval di antara cangkang stadion dan batas plaza (UV ShapeGeometry = meter). */
 function createPlaza() {
   const m = groundMaterials();
   const geo = ellipseRingGeometry(SITE.plazaSemiX, SITE.plazaSemiZ, STADIUM.outerSemiX, STADIUM.outerSemiZ);
@@ -42,7 +43,7 @@ export function createHelipad() {
   const { x, z, r } = SITE.helipadCenter;
   const g = new THREE.Group();
   g.name = 'helipad';
-  const pad = new THREE.Mesh(new THREE.CircleGeometry(r, 48), m.concrete);
+  const pad = new THREE.Mesh(uvToMeters(new THREE.CircleGeometry(r, 48), r * 2, r * 2), m.concrete);
   pad.rotation.x = -Math.PI / 2;
   pad.position.y = LAYER_Y.road;
   pad.receiveShadow = true;

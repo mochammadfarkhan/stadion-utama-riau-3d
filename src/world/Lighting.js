@@ -25,45 +25,68 @@ const SHADOW_BIAS = -0.0005;        // VSM: bias negatif kecil, cukup untuk menc
 const SHADOW_NORMAL_BIAS = 0.05;
 const SKY_TURBIDITY = 2.5;          // langit biru bersih
 const SKY_RAYLEIGH = 1.6;
+const CLOUD_COVERAGE = 0.35;
+const CLOUD_DENSITY = 0.45;
 const FOG_NEAR = 220;
 const FOG_FAR = 1100;
 const SKY_SCALE = 450000;
+const ENV_SIGMA = 0.04;
 
 const _center = new THREE.Vector3();
 const _lightSpace = new THREE.Vector3();
+const _up = new THREE.Vector3(0, 1, 0);
+const _origin = new THREE.Vector3();
+const _lookAt = new THREE.Matrix4();
+
+/** Arah satuan dari elevasi & azimut (derajat). */
+export function directionFromAngles(elevationDeg, azimuthDeg, out = new THREE.Vector3()) {
+  const phi = THREE.MathUtils.degToRad(90 - elevationDeg);
+  const theta = THREE.MathUtils.degToRad(azimuthDeg);
+  return out.setFromSphericalCoords(1, phi, theta);
+}
 
 /**
  * Langit prosedural, matahari sore tropis, cahaya hemisphere, kabut, dan env map.
- * @returns {THREE.Group} group berisi semua cahaya; userData.update(dt, t, focus?)
- *   menganimasikan awan dan menggeser frustum bayangan mengikuti titik fokus (sepeda).
+ * @returns {THREE.Group} group berisi semua cahaya; userData berisi:
+ *   update(dt, t, focus?)  — animasi awan + geser frustum bayangan mengikuti titik fokus (sepeda)
+ *   sun, hemi, sky, skyUniforms, envSky — objek cahaya untuk diubah modul TimeOfDay/Weather
+ *   setSunDirection(dir)   — ubah arah matahari (bayangan + Sky)
+ *   setSkyDirection(dir)   — ubah posisi matahari di Sky saja (saat lampu arah = bulan)
+ *   rebuildEnvironment()   — regenerasi PMREM env map dari Sky saat ini
+ *   defaults               — nilai awal (env intensity, kabut, awan)
  */
 export function createLighting(scene, renderer) {
   const group = new THREE.Group();
   group.name = 'lighting';
 
-  const sunDir = sunDirection();
+  const sunDir = directionFromAngles(SUN_ELEVATION_DEG, SUN_AZIMUTH_DEG);
   const sky = createSky(sunDir);
   const sun = createSun(sunDir);
   const hemi = new THREE.HemisphereLight(HEMI_SKY, HEMI_GROUND, HEMI_INTENSITY);
-  const follow = createShadowFollower(sun, sunDir);
+  const follower = createShadowFollower(sun, sunDir);
+  const env = createEnvironment(scene, renderer, sunDir);
 
   group.add(sky, sun, sun.target, hemi);
   renderer.shadowMap.type = THREE.VSMShadowMap; // bayangan lembut (blur variance)
   scene.fog = new THREE.Fog(COLORS.fog, FOG_NEAR, FOG_FAR);
   scene.background = new THREE.Color(COLORS.sky);
-  applyEnvironment(scene, renderer, sunDir);
+  env.rebuild();
 
-  group.userData.update = (dt, t, focus) => {
-    sky.material.uniforms.time.value = t * 0.02;
-    if (focus) follow(focus);
-  };
+  Object.assign(group.userData, {
+    sun, hemi, sky, skyUniforms: sky.material.uniforms, envSky: env.envSky,
+    defaults: Object.freeze({ envIntensity: ENV_INTENSITY, fogNear: FOG_NEAR, fogFar: FOG_FAR, cloudCoverage: CLOUD_COVERAGE, cloudDensity: CLOUD_DENSITY }),
+    update: (dt, t, focus) => {
+      sky.material.uniforms.time.value = t * 0.02;
+      if (focus) follower.follow(focus);
+    },
+    setSunDirection: (dir) => {
+      follower.setDirection(dir);
+      sky.material.uniforms.sunPosition.value.copy(dir);
+    },
+    setSkyDirection: (dir) => sky.material.uniforms.sunPosition.value.copy(dir),
+    rebuildEnvironment: env.rebuild,
+  });
   return group;
-}
-
-function sunDirection() {
-  const phi = THREE.MathUtils.degToRad(90 - SUN_ELEVATION_DEG);
-  const theta = THREE.MathUtils.degToRad(SUN_AZIMUTH_DEG);
-  return new THREE.Vector3().setFromSphericalCoords(1, phi, theta);
 }
 
 function createSky(sunDir) {
@@ -75,8 +98,8 @@ function createSky(sunDir) {
   u.rayleigh.value = SKY_RAYLEIGH;
   u.mieCoefficient.value = 0.006;
   u.mieDirectionalG.value = 0.82;
-  if (u.cloudCoverage) u.cloudCoverage.value = 0.35;
-  if (u.cloudDensity) u.cloudDensity.value = 0.45;
+  if (u.cloudCoverage) u.cloudCoverage.value = CLOUD_COVERAGE;
+  if (u.cloudDensity) u.cloudDensity.value = CLOUD_DENSITY;
   return sky;
 }
 
@@ -102,36 +125,53 @@ function createSun(sunDir) {
 }
 
 /**
- * Pembuat fungsi yang menggeser matahari + target agar frustum bayangan berpusat
+ * Pengikut bayangan: menggeser matahari + target agar frustum bayangan berpusat
  * di titik fokus. Pergeseran dibulatkan ke kelipatan texel di ruang cahaya
- * supaya tepi bayangan tidak bergetar saat sepeda bergerak.
+ * supaya tepi bayangan tidak bergetar saat sepeda bergerak. setDirection(dir)
+ * memperbarui arah cahaya (dipanggil TimeOfDay hanya saat jam berubah).
  */
-function createShadowFollower(sun, sunDir) {
-  const toLight = new THREE.Quaternion().setFromRotationMatrix(
-    new THREE.Matrix4().lookAt(sunDir, new THREE.Vector3(), new THREE.Vector3(0, 1, 0)),
-  );
-  const fromLight = toLight.clone().invert();
-  return (focus) => {
+function createShadowFollower(sun, initialDir) {
+  const dir = initialDir.clone();
+  const toLight = new THREE.Quaternion();
+  const fromLight = new THREE.Quaternion();
+  const setDirection = (d) => {
+    dir.copy(d).normalize();
+    toLight.setFromRotationMatrix(_lookAt.lookAt(dir, _origin, _up));
+    fromLight.copy(toLight).invert();
+    sun.position.copy(dir).multiplyScalar(SUN_DISTANCE).add(sun.target.position);
+  };
+  const follow = (focus) => {
     _lightSpace.set(focus.x, 0, focus.z).applyQuaternion(fromLight);
     _lightSpace.x = Math.round(_lightSpace.x / SHADOW_TEXEL) * SHADOW_TEXEL;
     _lightSpace.y = Math.round(_lightSpace.y / SHADOW_TEXEL) * SHADOW_TEXEL;
     _center.copy(_lightSpace).applyQuaternion(toLight);
     sun.target.position.copy(_center);
-    sun.position.copy(sunDir).multiplyScalar(SUN_DISTANCE).add(_center);
+    sun.position.copy(dir).multiplyScalar(SUN_DISTANCE).add(_center);
   };
+  setDirection(initialDir);
+  return { setDirection, follow };
 }
 
-function applyEnvironment(scene, renderer, sunDir) {
-  try {
-    const pmrem = new THREE.PMREMGenerator(renderer);
-    const envScene = new THREE.Scene();
-    const envSky = createSky(sunDir);
-    envSky.material.uniforms.showSunDisc && (envSky.material.uniforms.showSunDisc.value = 0);
-    envScene.add(envSky);
-    scene.environment = pmrem.fromScene(envScene, 0.04).texture;
-    scene.environmentIntensity = ENV_INTENSITY;
-    pmrem.dispose();
-  } catch {
-    // Env map opsional: tanpa env map, pencahayaan hemisphere sudah cukup.
-  }
+/**
+ * Env map PMREM dari salinan Sky (tanpa cakram matahari). envSky dibagikan agar
+ * TimeOfDay dapat menyamakan uniform-nya sebelum rebuild(). Tekstur lama dibuang.
+ */
+function createEnvironment(scene, renderer, sunDir) {
+  const envScene = new THREE.Scene();
+  const envSky = createSky(sunDir);
+  if (envSky.material.uniforms.showSunDisc) envSky.material.uniforms.showSunDisc.value = 0;
+  envScene.add(envSky);
+  const rebuild = () => {
+    try {
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      const previous = scene.environment;
+      scene.environment = pmrem.fromScene(envScene, ENV_SIGMA).texture;
+      if (previous) previous.dispose();
+      scene.environmentIntensity = ENV_INTENSITY;
+      pmrem.dispose();
+    } catch {
+      // Env map opsional: tanpa env map, pencahayaan hemisphere sudah cukup.
+    }
+  };
+  return { envSky, rebuild };
 }

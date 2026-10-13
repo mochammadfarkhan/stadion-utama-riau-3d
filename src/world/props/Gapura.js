@@ -15,6 +15,8 @@ export const GAPURA = Object.freeze({
   missingLetters: [3, 11, 24, 33, 40],
   colors: { keramik: 0xe9e4d6, balok: 0x7a1f1f, emas: 0xd4a017, tanjak: 0xb5891d, bercak: 0x5a5247 },
 });
+/** Kanvas papan: 2048×160 (aspek ≈ 13:1 sesuai signW:signH), font tebal kontras tinggi. */
+const SIGN_TEXT = Object.freeze({ bg: '#7a1f1f', fg: '#f6e3a1', width: 2048, height: 160, font: 'bold 124px sans-serif', padding: 48 });
 
 const tileMat = new THREE.MeshLambertMaterial({ color: GAPURA.colors.keramik });
 const beamMat = new THREE.MeshLambertMaterial({ color: GAPURA.colors.balok });
@@ -74,7 +76,7 @@ function createTopBeam() {
 /** Papan tulisan dua sisi (utara menghadap Naga Sakti). */
 function createSign(damaged) {
   const text = damaged ? dropLetters(GAPURA.text, GAPURA.missingLetters) : GAPURA.text;
-  const mat = makeTextMaterial(text, { bg: '#7a1f1f', fg: '#f6e3a1', width: 2048, height: 160, font: 'bold 96px sans-serif' });
+  const mat = makeTextMaterial(text, SIGN_TEXT);
   const geo = new THREE.PlaneGeometry(GAPURA.signW, GAPURA.signH);
   const g = new THREE.Group();
   g.name = 'papanNama';

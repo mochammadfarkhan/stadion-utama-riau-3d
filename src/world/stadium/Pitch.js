@@ -6,13 +6,17 @@
 import * as THREE from 'three';
 import { PITCH, TRACK, COLORS } from '../../config/constants.js';
 import {
-  createDataTexture, stadiumShape, flatShapeGeometry, mergeFlat, mulberry32, createCanvasTexture,
+  stadiumShape, flatShapeGeometry, mergeFlat, mulberry32, createCanvasTexture,
 } from './ovalMath.js';
 import { createMarkings, createGoals, createCornerFlags } from './Pitch.markings.js';
+import { fillCanvas } from '../textures/noise.js';
+import { groundMaterials } from '../Ground.materials.js';
 
 const STRIPE_COUNT = 14;
-const TEX_W = 64;
-const TEX_H = 128;
+const TEX_W = 512;
+const TEX_H = 768;
+const GRASS_ROUGHNESS = 0.92;
+const GRASS_NOISE = Object.freeze({ blades: { freq: 48, octaves: 3, seed: 31 }, clumps: { freq: 6, octaves: 2, seed: 32 } });
 const PATCH_COUNT = 9;
 const PATCH_COLOR = [150, 160, 60]; // kuning samar (rumput kering)
 const DZONE_Y = -0.02;
@@ -42,44 +46,61 @@ function hexToCss(hex) {
   return '#' + hex.toString(16).padStart(6, '0');
 }
 
-/** Tekstur rumput: strip bergantian + patch kuning samar deterministik. */
+/** Campuran warna piksel dengan patch kuning samar (koordinat u, v ∈ 0..1). */
+function applyPatches(c, u, v, patches) {
+  let out = c;
+  for (const p of patches) {
+    const d = Math.hypot(u - p.u, v - p.v) / p.r;
+    if (d < 1) {
+      const f = p.k * (1 - d);
+      out = out.map((val, i) => val + (PATCH_COLOR[i] - val) * f);
+    }
+  }
+  return out;
+}
+
+/**
+ * Tekstur rumput: strip mowing bergantian + noise halus dua tingkat hijau
+ * + patch kuning samar deterministik. Browser: CanvasTexture 512×768; Node: DataTexture kecil.
+ */
 function createGrassTexture(seed) {
   const rng = mulberry32(seed);
   const base = hexToRgb(COLORS.grass);
   const stripe = hexToRgb(COLORS.grassStripe);
   const patches = Array.from({ length: PATCH_COUNT }, () => ({
-    x: rng() * TEX_W, y: rng() * TEX_H, r: 4 + rng() * 8, k: 0.25 + rng() * 0.35,
+    u: rng(), v: rng(), r: 0.04 + rng() * 0.07, k: 0.25 + rng() * 0.35,
   }));
-  return createDataTexture(TEX_W, TEX_H, (x, y) => {
-    const even = Math.floor((y / TEX_H) * STRIPE_COUNT) % 2 === 0;
-    let c = even ? base : stripe;
-    for (const p of patches) {
-      const d = Math.hypot(x - p.x, y - p.y) / p.r;
-      if (d < 1) {
-        const f = p.k * (1 - d);
-        c = c.map((v, i) => v + (PATCH_COLOR[i] - v) * f);
-      }
-    }
-    return c;
+  const tex = fillCanvas(TEX_W, TEX_H, (u, v, noise) => {
+    const even = Math.floor(v * STRIPE_COUNT) % 2 === 0;
+    const blades = noise(u, v, GRASS_NOISE.blades);
+    const clumps = noise(u, v, GRASS_NOISE.clumps);
+    const k = 0.94 + blades * 0.08 + clumps * 0.04;
+    const c = (even ? base : stripe).map((val) => val * k);
+    return applyPatches(c, u, v, patches);
   });
+  tex.wrapS = THREE.ClampToEdgeWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  return tex;
 }
 
 function createGrass(seed) {
   const g = new THREE.PlaneGeometry(PITCH.width, PITCH.length);
   g.rotateX(-Math.PI / 2);
-  const mat = new THREE.MeshLambertMaterial({ map: createGrassTexture(seed) });
+  const mat = new THREE.MeshStandardMaterial({ map: createGrassTexture(seed), roughness: GRASS_ROUGHNESS, metalness: 0 });
+  mat.name = 'grass';
+  mat.userData.baseRoughness = GRASS_ROUGHNESS;
   const mesh = new THREE.Mesh(g, mat);
   mesh.name = 'rumput';
   mesh.receiveShadow = true;
   return mesh;
 }
 
-/** Rumput luar (D-zone) sampai kerb dalam lintasan. */
+/** Rumput luar (D-zone) sampai kerb dalam lintasan; berbagi material rumput kawasan. */
 function createDZone() {
   const kerbR = TRACK.innerRadius - TRACK.kerbOffset;
   const g = flatShapeGeometry(stadiumShape(TRACK.straightLength / 2, kerbR), [], 48);
   g.translate(0, DZONE_Y, 0);
-  const mesh = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: COLORS.grass }));
+  const mesh = new THREE.Mesh(g, groundMaterials().grass);
   mesh.name = 'dzone';
   mesh.receiveShadow = true;
   return mesh;

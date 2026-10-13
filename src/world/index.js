@@ -12,7 +12,7 @@ import { createTunnels } from './stadium/Tunnels.js';
 import { createFlagpoles } from './props/Flagpole.js';
 import { createGuardPosts } from './props/GuardPost.js';
 import { createFence } from './props/Fence.js';
-import { createRoadSign, createBanner } from './props/Signage.js';
+import { createRoadSign, createBanner, createBillboard } from './props/Signage.js';
 import { createBenches } from './props/Bench.js';
 import { createTrashBins } from './props/TrashBin.js';
 import { createLampPosts } from './props/LampPost.js';
@@ -108,6 +108,7 @@ function addStadiumSurroundings(add) {
   signs.name = 'signage';
   for (const s of LAYOUT.roadSigns) signs.add(placed(createRoadSign({ text: s.text, kind: s.kind }), s));
   for (const b of LAYOUT.banners) signs.add(placed(createBanner({ text: b.text }), b));
+  for (const b of LAYOUT.billboards) signs.add(placed(createBillboard({ text: b.text }), b));
   add(signs);
 }
 

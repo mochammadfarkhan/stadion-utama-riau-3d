@@ -59,9 +59,17 @@ export function createFloodlights(opts = {}) {
   const body = new THREE.BoxGeometry(FLOOD_BODY.w, FLOOD_BODY.h, FLOOD_BODY.d);
   const lens = new THREE.BoxGeometry(FLOOD_BODY.w - 0.1, FLOOD_BODY.h - 0.1, 0.05).translate(0, 0, FLOOD_BODY.d / 2 + 0.02);
   group.add(instanced(body, new THREE.MeshLambertMaterial({ color: 0x2b2f33 }), matrices, 'floodBody'));
-  group.add(instanced(lens, new THREE.MeshBasicMaterial({ color: LENS_COLOR }), matrices, 'floodLens'));
+  group.add(instanced(lens, createLensMaterial(), matrices, 'floodLens'));
   group.userData.count = count;
   return group;
+}
+
+/** Lensa floodlight: emissive putih; TimeOfDay menaikkan emissiveIntensity saat malam (userData.nightEmissive). */
+function createLensMaterial() {
+  const mat = new THREE.MeshStandardMaterial({ color: LENS_COLOR, emissive: LENS_COLOR, emissiveIntensity: 0.3, roughness: 0.4, metalness: 0 });
+  mat.name = 'lensaFloodlight';
+  mat.userData.nightEmissive = { on: 8.0, off: 0.3 };
+  return mat;
 }
 
 /** Speaker line array tiap 20 m, digantung di bawah lingkar atap. */

@@ -1,14 +1,19 @@
 /**
  * Papan tanda: plane dengan CanvasTexture (fallback plane polos tanpa document),
- * rambu jalan bertiang, dan spanduk suporter melengkung.
+ * rambu jalan bertiang, spanduk suporter melengkung, dan papan iklan (billboard).
+ * Kanvas teks selalu 1024 px lebar (tinggi proporsional) agar tulisan tajam.
  */
 import {
-  CylinderGeometry, DoubleSide, Group, Mesh, MeshLambertMaterial, PlaneGeometry,
+  BoxGeometry, CylinderGeometry, DoubleSide, Group, Mesh, MeshLambertMaterial, PlaneGeometry,
 } from 'three';
 import { Materials } from '../materials.js';
 import { createTextTexture } from './canvasText.js';
 
-const TEX_PX_PER_M = 160;
+const TEX_WIDTH_PX = 1024;
+const BILLBOARD = Object.freeze({
+  width: 4, height: 2, poleHeight: 3, postRadius: 0.07, frame: 0.08, frameDepth: 0.1,
+  bg: 0xfaf6ee, fg: 0x1b3f8f, border: 0x1b3f8f,
+});
 const SIGN_KINDS = Object.freeze({
   info: { bg: 0x1b3f8f, fg: 0xffffff, border: 0xffffff },
   warning: { bg: 0xf2c200, fg: 0x111111, border: 0x111111 },
@@ -22,8 +27,8 @@ const BANNER_SEGMENTS = 16;
 function createSignMaterial({ text, width, height, bg, fg, border, doubleSided }) {
   const tex = createTextTexture({
     text,
-    width: Math.round(width * TEX_PX_PER_M),
-    height: Math.round(height * TEX_PX_PER_M),
+    width: TEX_WIDTH_PX,
+    height: Math.max(64, Math.round((TEX_WIDTH_PX * height) / width)),
     bg,
     fg,
     border,
@@ -96,6 +101,54 @@ export function createBanner({ text = '', width = 8, height = 1.2, bg = 0xc8102e
     group.add(pole);
   });
   group.add(cloth);
+  group.userData = { text, width, height };
+  return group;
+}
+
+/** Bingkai gelap tipis keliling panel (satu mesh) pada ketinggian pusat cy. */
+function createBillboardFrame(width, height, cy) {
+  const { frame, frameDepth } = BILLBOARD;
+  const group = new Group();
+  group.name = 'frame';
+  const bars = [
+    { w: width + frame * 2, h: frame, x: 0, y: height / 2 + frame / 2 },
+    { w: width + frame * 2, h: frame, x: 0, y: -height / 2 - frame / 2 },
+    { w: frame, h: height, x: -width / 2 - frame / 2, y: 0 },
+    { w: frame, h: height, x: width / 2 + frame / 2, y: 0 },
+  ];
+  bars.forEach((b) => {
+    const bar = new Mesh(new BoxGeometry(b.w, b.h, frameDepth), Materials.dark());
+    bar.position.set(b.x, cy + b.y, 0);
+    group.add(bar);
+  });
+  return group;
+}
+
+/**
+ * Papan iklan kecil: dua tiang baja + bingkai gelap + panel teks dua sisi, menghadap +Z.
+ * @param {{text?:string,width?:number,height?:number,bg?:number|string,fg?:number|string,border?:number|string|null,poleHeight?:number}} opts
+ * @returns {Group} userData.text
+ */
+export function createBillboard({
+  text = '', width = BILLBOARD.width, height = BILLBOARD.height, bg = BILLBOARD.bg, fg = BILLBOARD.fg,
+  border = BILLBOARD.border, poleHeight = BILLBOARD.poleHeight,
+} = {}) {
+  const group = new Group();
+  group.name = `billboard:${text}`;
+  const cy = poleHeight + height / 2;
+  const postGeom = new CylinderGeometry(BILLBOARD.postRadius, BILLBOARD.postRadius, cy, 10);
+  [-1, 1].forEach((side) => {
+    const post = new Mesh(postGeom, Materials.steel());
+    post.position.set((side * width) / 2 - side * 0.3, cy / 2, -BILLBOARD.frameDepth);
+    post.castShadow = true;
+    post.name = 'post';
+    group.add(post);
+  });
+  group.add(createBillboardFrame(width, height, cy));
+  const panel = createSign({ text, width, height, bg, fg, border, doubleSided: true });
+  panel.position.set(0, cy, BILLBOARD.frameDepth / 2 + 0.01);
+  panel.children[0].castShadow = true;
+  group.add(panel);
   group.userData = { text, width, height };
   return group;
 }

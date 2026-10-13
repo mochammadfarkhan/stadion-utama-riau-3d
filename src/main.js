@@ -4,6 +4,9 @@ import { Input } from './core/Input.js';
 import { CameraRig } from './core/CameraRig.js';
 import { createCollider } from './core/Collider.js';
 import { createLighting } from './world/Lighting.js';
+import { createTimeOfDay } from './world/TimeOfDay.js';
+import { createWeather } from './world/Weather.js';
+import { formatHour } from './sim/dayCycle.js';
 import { buildWorld } from './world/index.js';
 import { buildEntities } from './entities/index.js';
 import { HUD } from './ui/HUD.js';
@@ -38,6 +41,12 @@ function main() {
   ents.bike.setCollider(createCollider(START_POS));
   for (const e of ents.updatables) app.addUpdatable(e);
 
+  // Siklus waktu & cuaca: dibuat setelah dunia + entitas ada (mencari material emissive & permukaan basah).
+  const time = createTimeOfDay(lighting, app.scene, app.renderer, app);
+  const weather = createWeather(app.scene, app, lighting);
+  app.addUpdatable({ update: (dt, ctx) => time.update(dt, ctx, ents.bike.state) });
+  app.addUpdatable(weather); // setelah TimeOfDay: mengalikan nilai pencahayaan frame ini
+
   hud.setWallet(wallet);
   hud.setCameraMode(rig.mode);
   // Pedagang bisa berjalan menjauh saat dialog terbuka; kunci id pedagang saat dibuka.
@@ -52,9 +61,10 @@ function main() {
   const bikePos = new THREE.Vector3();
   app.addUpdatable({
     update(dt, ctx) {
-      handleKeys(input, rig, hud, ents, app, shop);
+      handleKeys(input, rig, hud, ents, app, shop, time, weather);
       rig.update(ents.bike.state, dt);
       hud.setSpeed(ents.bike.speedKmh);
+      hud.setTime(formatHour(time.hour), time.presetName, weather.weatherName);
       hud.setScore(ents.match.score);
       hud.tickFps(dt);
       updatePrompt(hud, ents, ctx);
@@ -74,13 +84,13 @@ function main() {
   app.renderer.domElement.addEventListener('click', () => {
     if (!hud.shopOpen) rig.requestLock();
   });
-  if (import.meta.env.DEV) exposeDevTools(app, ents, rig);
+  if (import.meta.env.DEV) exposeDevTools(app, ents, rig, time, weather);
 }
 
-/** Alat debug hanya di mode dev: teleport & statistik renderer. */
-function exposeDevTools(app, ents, rig) {
+/** Alat debug hanya di mode dev: teleport, statistik renderer, kontrol waktu & cuaca. */
+function exposeDevTools(app, ents, rig, time, weather) {
   window.__sim = {
-    app, ents, rig,
+    app, ents, rig, time, weather,
     teleport(x, z, yaw = 0) {
       ents.bike.state = { ...ents.bike.state, x, z, yaw, v: 0 };
       ents.bike.setCollider(createCollider({ x, z }));
@@ -89,13 +99,14 @@ function exposeDevTools(app, ents, rig) {
   };
 }
 
-function handleKeys(input, rig, hud, ents, app, shop) {
+function handleKeys(input, rig, hud, ents, app, shop, time, weather) {
   if (input.consumePress('KeyV')) {
     rig.toggleMode();
     hud.setCameraMode(rig.mode);
   }
   if (input.consumePress('KeyM')) app.minimapVisible = !app.minimapVisible;
   if (input.consumePress('KeyO')) app.setAO(!app.aoEnabled); // matikan AO bila FPS rendah
+  handleTimeWeatherKeys(input, hud, time, weather);
   if (input.consumePress('KeyE') || input.consumePress('Escape')) {
     if (hud.shopOpen) {
       hud.closeShop();
@@ -107,6 +118,15 @@ function handleKeys(input, rig, hud, ents, app, shop) {
       document.exitPointerLock?.();
     }
   }
+}
+
+/** R hujan, N preset waktu berikutnya, T jalankan/hentikan jam, [ / ] mundur/maju 1 jam. */
+function handleTimeWeatherKeys(input, hud, time, weather) {
+  if (input.consumePress('KeyR')) hud.toast(weather.toggleRain() ? 'Hujan turun' : 'Hujan reda', true);
+  if (input.consumePress('KeyN')) hud.toast(`Waktu: ${time.nextPreset()}`, true);
+  if (input.consumePress('KeyT')) hud.toast(time.toggleSpeed() ? 'Jam berjalan' : 'Jam berhenti', true);
+  if (input.consumePress('BracketLeft')) time.setHour(time.hour - 1);
+  if (input.consumePress('BracketRight')) time.setHour(time.hour + 1);
 }
 
 function updatePrompt(hud, ents, ctx) {

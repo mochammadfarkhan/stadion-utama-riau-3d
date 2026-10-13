@@ -27,6 +27,9 @@ const bulbGeo = new THREE.SphereGeometry(LAMP_POST.headR * 0.62, 8, 5).scale(1, 
 const poleMat = new THREE.MeshLambertMaterial({ color: LAMP_POST.colors.tiang });
 const headMat = new THREE.MeshLambertMaterial({ color: LAMP_POST.colors.rumah });
 const bulbMat = new THREE.MeshStandardMaterial({ color: LAMP_POST.colors.bohlam, emissive: LAMP_POST.colors.bohlam, emissiveIntensity: 1.2 });
+bulbMat.name = 'bohlamPJU';
+// Dibaca TimeOfDay: emissiveIntensity dinaikkan ke `on` saat lampu malam menyala, `off` saat siang.
+bulbMat.userData.nightEmissive = { on: 6.0, off: 0 };
 
 /** Matriks lengan pada sisi s (+1 kanan, -1 kiri), sedikit naik ke ujung. */
 function armMatrix(s) {

@@ -1,9 +1,12 @@
 import * as THREE from 'three';
 import { COLORS } from '../config/constants.js';
-import { grassTexture, pavingTexture, asphaltTexture } from './siteutil/proceduralTextures.js';
+import { surfaceMaps } from './textures/surfaces.js';
 
 /**
  * Material bersama untuk tanah, jalan, plaza (dibuat sekali, dipakai ulang).
+ * Permukaan utama (rumput, paving, aspal, beton) memakai tekstur prosedural
+ * dengan UV bersatuan meter; material diberi nama + userData.baseRoughness
+ * agar modul cuaca bisa mencarinya dan mengubah roughness saat hujan.
  */
 // Palet pastel hangat (selaras COLORS di constants.js); semua Lambert = matte penuh.
 export const GROUND_COLORS = Object.freeze({
@@ -28,19 +31,46 @@ export const LAYER_Y = Object.freeze({
   parkingLine: 0.045,
 });
 
+const SURFACE_ROUGHNESS = 0.92;
+const NORMAL_SCALE = 0.4;
+
+/**
+ * Material permukaan bertekstur (MeshStandardMaterial matte) bernama `name`.
+ * @param {string} name nama tekstur sekaligus material ('asphalt' | 'paving' | 'grass' | 'concrete')
+ * @param {{color?:number, tileM?:number, roughness?:number, normalScale?:number}} opts
+ */
+export function surfaceMaterial(name, { color = 0xffffff, tileM, roughness = SURFACE_ROUGHNESS, normalScale = NORMAL_SCALE } = {}) {
+  const mat = new THREE.MeshStandardMaterial({
+    color, roughness, metalness: 0, ...surfaceMaps(name, tileM),
+    normalScale: new THREE.Vector2(normalScale, normalScale),
+  });
+  mat.name = name;
+  mat.userData.baseRoughness = roughness;
+  return mat;
+}
+
+/** Ubah UV geometri 0..1 menjadi satuan meter (w × h) agar repeat tekstur konsisten. */
+export function uvToMeters(geometry, w, h) {
+  const uv = geometry.attributes.uv;
+  for (let i = 0; i < uv.count; i += 1) uv.setXY(i, uv.getX(i) * w, uv.getY(i) * h);
+  uv.needsUpdate = true;
+  return geometry;
+}
+
 let cache = null;
 
 /** Buat (sekali) dan kembalikan set material bersama. */
 export function groundMaterials() {
   if (cache) return cache;
+  const asphalt = surfaceMaterial('asphalt');
   cache = {
-    grass: new THREE.MeshLambertMaterial({ color: 0xffffff, map: grassTexture(COLORS.grass, 70) }),
-    paving: new THREE.MeshLambertMaterial({ color: 0xffffff, map: pavingTexture(COLORS.concrete, 45) }),
-    asphalt: new THREE.MeshLambertMaterial({ color: 0xffffff, map: asphaltTexture(COLORS.asphalt, 40) }),
-    asphaltPlain: new THREE.MeshLambertMaterial({ color: COLORS.asphalt }),
-    concrete: new THREE.MeshLambertMaterial({ color: COLORS.concrete }),
+    grass: surfaceMaterial('grass'),
+    paving: surfaceMaterial('paving', { color: COLORS.concrete }),
+    asphalt,
+    asphaltPlain: asphalt,
+    concrete: surfaceMaterial('concrete', { color: COLORS.concrete }),
     kerb: new THREE.MeshLambertMaterial({ color: GROUND_COLORS.kerb }),
-    sidewalk: new THREE.MeshLambertMaterial({ color: GROUND_COLORS.sidewalk }),
+    sidewalk: surfaceMaterial('concrete', { color: GROUND_COLORS.sidewalk }),
     lineWhite: new THREE.MeshBasicMaterial({ color: GROUND_COLORS.lineWhite }),
     lineYellow: new THREE.MeshBasicMaterial({ color: GROUND_COLORS.lineYellow }),
     joggingTrack: new THREE.MeshLambertMaterial({ color: GROUND_COLORS.joggingTrack }),

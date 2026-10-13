@@ -45,6 +45,12 @@ export class HUD {
 
   setScore(score) { this.#set('score', `PSPS ${score.a} – ${score.b} TAMU`); }
 
+  /** Indikator jam & cuaca, mis. "16:30 · Sore · Cerah". */
+  setTime(hourText, presetName, weatherName) {
+    const preset = presetName ? presetName.charAt(0).toUpperCase() + presetName.slice(1) : '';
+    this.#set('time', [hourText, preset, weatherName].filter(Boolean).join(' · '));
+  }
+
   setCameraMode(mode) {
     this.#set('cam', mode === 'first' ? 'Kamera: orang pertama (V)' : 'Kamera: orang ketiga (V)');
   }
@@ -106,6 +112,7 @@ function buildLayout(root) {
   const speed = el('div', { id: 'hud-speed', className: 'big' }, '0 km/j');
   const cam = el('div', { id: 'hud-cam', className: 'muted' }, 'Kamera: orang ketiga (V)');
   const fps = el('div', { id: 'hud-fps', className: 'muted' }, '– fps');
+  const time = el('div', { id: 'hud-time' }, '16:30 · Sore · Cerah');
   const wallet = el('div', { id: 'hud-wallet', className: 'big' }, 'Rp 0');
   const items = el('div', { id: 'hud-items', className: 'muted' }, 'Belum beli apa-apa');
   const score = el('div', { id: 'hud-score', className: 'pill' }, 'PSPS 0 – 0 TAMU');
@@ -117,9 +124,9 @@ function buildLayout(root) {
   const shop = el('div', { id: 'hud-shop', className: 'hidden' }, shopTitle, shopList, shopHint);
 
   root.replaceChildren(
-    el('div', { id: 'hud-top-left' }, speed, cam, fps),
+    el('div', { id: 'hud-top-left' }, speed, time, cam, fps),
     el('div', { id: 'hud-top-right' }, el('div', { className: 'label' }, 'Dompet'), wallet, items),
     score, prompt, toast, shop,
   );
-  return { speed, cam, fps, wallet, items, score, prompt, toast, shop, shopTitle, shopList };
+  return { speed, time, cam, fps, wallet, items, score, prompt, toast, shop, shopTitle, shopList };
 }

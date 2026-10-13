@@ -8,6 +8,7 @@ import { TRACK, STADIUM, COLORS } from '../../config/constants.js';
 import {
   stadiumShape, stadiumPath, ellipseShape, flatShapeGeometry, mergeFlat, createCanvasTexture,
 } from './ovalMath.js';
+import { surfaceMaterial, uvToMeters } from '../Ground.materials.js';
 
 const HALF_STRAIGHT = TRACK.straightLength / 2;
 const KERB_R = TRACK.innerRadius - TRACK.kerbOffset; // tepi dalam lane 1
@@ -118,7 +119,7 @@ function createExtraStraight(tartanMat, lineMat) {
   group.name = 'lurus100';
   const span = EXTRA_LANES * TRACK.laneWidth;
   const cz = FINISH_Z - 100 / 2 - 3; // start di z = FINISH_Z−100, run-off setelah finish
-  const surf = new THREE.PlaneGeometry(span + OUTER_MARGIN, EXTRA_LEN);
+  const surf = uvToMeters(new THREE.PlaneGeometry(span + OUTER_MARGIN, EXTRA_LEN), span + OUTER_MARGIN, EXTRA_LEN);
   surf.rotateX(-Math.PI / 2);
   surf.translate(-(OUTER_R + (span + OUTER_MARGIN) / 2), 0.004, cz);
   group.add(new THREE.Mesh(surf, tartanMat));
@@ -133,7 +134,7 @@ function createExtraStraight(tartanMat, lineMat) {
   return group;
 }
 
-/** Apron beton dari tepi lintasan ke elips kaki tribun. */
+/** Apron beton bertekstur (material 'apron') dari tepi lintasan ke elips kaki tribun. */
 function createApron() {
   const g = flatShapeGeometry(
     ellipseShape(STADIUM.innerSemiX, STADIUM.innerSemiZ),
@@ -141,7 +142,9 @@ function createApron() {
     96,
   );
   g.translate(0, APRON_Y, 0);
-  const mesh = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: COLOR_APRON }));
+  const apronMat = surfaceMaterial('concrete', { color: COLOR_APRON });
+  apronMat.name = 'apron';
+  const mesh = new THREE.Mesh(g, apronMat);
   mesh.name = 'apron';
   mesh.receiveShadow = true;
   return mesh;
@@ -167,7 +170,7 @@ function createDrain() {
  */
 export function createTrack(opts = {}) {
   void opts;
-  const tartanMat = new THREE.MeshLambertMaterial({ color: TRACK.color });
+  const tartanMat = surfaceMaterial('tartan'); // warna salmon sudah di tekstur (UV ShapeGeometry = meter)
   const lineMat = new THREE.MeshBasicMaterial({ color: TRACK.lineColor, polygonOffset: true, polygonOffsetFactor: -1 });
   const kerbMat = new THREE.MeshLambertMaterial({ color: TRACK.lineColor });
   const group = new THREE.Group();

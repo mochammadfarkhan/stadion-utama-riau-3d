@@ -60,6 +60,12 @@ export const LAYOUT = Object.freeze({
     { x: -60, z: -236, rotY: Math.PI, text: 'SELAMAT DATANG DI STADION UTAMA RIAU' },
     { x: 60, z: -236, rotY: Math.PI, text: 'AYO PSPS RIAU — ASKAR BERTUAH' },
   ],
+  billboards: [
+    { x: -150, z: NAGA_SAKTI_SIDEWALK_Z + 14, rotY: Math.PI, text: 'RIAU BANGKIT' },
+    { x: 150, z: NAGA_SAKTI_SIDEWALK_Z + 14, rotY: Math.PI, text: 'PON XVIII 2012' },
+    { x: 250, z: -60, rotY: -Math.PI / 2, text: 'PEKANBARU SMART CITY' },
+    { x: -250, z: 60, rotY: Math.PI / 2, text: 'AYO OLAHRAGA' },
+  ],
   plazaCenter: { x: 0, z: -180 },
   plazaSpots: {
     exercise: { x: -45, z: -178, yaw: 0 },

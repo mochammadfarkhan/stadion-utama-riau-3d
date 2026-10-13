@@ -182,3 +182,43 @@ export const VENDOR = Object.freeze({
   arriveEpsilon: 0.05,
   startBalance: 50000,
 });
+
+// Siklus waktu (sim/dayCycle.js, world/TimeOfDay.js)
+export const DAY = Object.freeze({
+  startHour: 16.5,         // jam awal (sore, sesuai pencahayaan default)
+  timeSpeed: 0.25,         // jam per detik nyata saat tombol T aktif
+  sunriseHour: 6.0,
+  sunsetHour: 18.3,
+  maxElevationDeg: 75,     // puncak matahari (tropis dekat khatulistiwa)
+  nightDepthDeg: 40,       // kedalaman matahari di bawah horizon tengah malam
+  lampsOnHour: 17.8,       // lampu PJU menyala
+  lampsOffHour: 6.2,       // lampu PJU padam
+  maxPointLights: 8,       // PointLight nyata di sekitar sepeda (malam)
+  pointLightRange: 60,     // jarak maksimum PJU yang dinyalakan (m)
+  pointLightInterval: 0.5, // detik antar pemilihan ulang PJU terdekat
+  starCount: 1500,
+  envRebuildInterval: 1,   // detik minimum antar regenerasi env map
+});
+
+// Cuaca (world/Weather.js, world/Weather.rain.js)
+export const WEATHER = Object.freeze({
+  transitionSeconds: 2,
+  dropCount: 4000,
+  rainBox: { x: 40, y: 30, z: 40 }, // kotak hujan mengikuti kamera (m)
+  fallSpeedMin: 9,
+  fallSpeedMax: 12,
+  wind: { x: 1.2, z: 0.4 },         // m/s
+  streakLength: 0.35,               // panjang goresan tetes (m)
+  splashCount: 200,
+  splashRadius: 14,                 // radius cipratan di sekitar sepeda (m)
+  splashLife: 0.45,                 // detik
+  fogScale: 0.6,                    // near/far kabut saat hujan
+  lightScale: 0.65,                 // matahari & hemisphere saat hujan
+  exposureScale: 0.92,
+  cloudCoverage: 0.9,
+  cloudDensity: 0.7,
+  wetRoughness: 0.25,
+  wetEnvIntensity: 1.5,
+  wetDarken: 0.8,
+  puddleCount: 14,
+});
