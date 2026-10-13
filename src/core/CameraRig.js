@@ -38,9 +38,10 @@ export class CameraRig {
 
   requestLock() {
     try {
-      this.dom.requestPointerLock?.();
+      const p = this.dom.requestPointerLock?.();
+      p?.catch?.(() => { this.locked = false; }); // ditolak (mis. iframe): tetap third-person
     } catch {
-      this.locked = false; // pointer lock ditolak: tetap third-person
+      this.locked = false;
     }
   }
 

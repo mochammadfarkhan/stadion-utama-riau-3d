@@ -9,7 +9,7 @@ import { buildEntities } from './entities/index.js';
 import { HUD } from './ui/HUD.js';
 import { createWallet } from './sim/vendorSim.js';
 
-const START_POS = { x: 0, z: -275, yaw: Math.PI }; // plaza utara, menghadap stadion
+const START_POS = { x: 0, z: -275, yaw: 0 }; // plaza utara, menghadap stadion
 const INTERACT_DIST = 3.5;
 
 function showFatal(msg) {
@@ -42,9 +42,8 @@ function main() {
   hud.setWallet(wallet);
   hud.setCameraMode(rig.mode);
   hud.onBuy = (itemId) => {
-    const vendor = ents.vendors.promptVendor;
-    if (!vendor) return;
-    const res = ents.vendors.tryBuy(vendor, itemId);
+    if (!ents.vendors.promptVendor) return;
+    const res = ents.vendors.tryBuy(itemId);
     wallet = res.wallet;
     hud.setWallet(wallet);
     hud.toast(res.ok ? `Beli ${res.item.name} ✔` : res.error, res.ok);
@@ -76,6 +75,19 @@ function main() {
   app.renderer.domElement.addEventListener('click', () => {
     if (!hud.shopOpen) rig.requestLock();
   });
+  if (import.meta.env.DEV) exposeDevTools(app, ents, rig);
+}
+
+/** Alat debug hanya di mode dev: teleport & statistik renderer. */
+function exposeDevTools(app, ents, rig) {
+  window.__sim = {
+    app, ents, rig,
+    teleport(x, z, yaw = 0) {
+      ents.bike.state = { ...ents.bike.state, x, z, yaw, v: 0 };
+      ents.bike.setCollider(createCollider({ x, z }));
+    },
+    stats: () => ({ ...app.renderer.info.render, fps: document.getElementById('hud-fps').textContent }),
+  };
 }
 
 function handleKeys(input, rig, hud, ents, app) {
@@ -89,7 +101,7 @@ function handleKeys(input, rig, hud, ents, app) {
       hud.closeShop();
       rig.requestLock();
     } else if (ents.vendors.promptVendor) {
-      hud.openShop(ents.vendors.shopInfo(ents.vendors.promptVendor));
+      hud.openShop(shopInfo(ents.vendors.promptVendor));
       document.exitPointerLock?.();
     }
   }
@@ -99,7 +111,12 @@ function updatePrompt(hud, ents, ctx) {
   if (hud.shopOpen) return hud.setPrompt(null);
   const near = ents.vendors.nearest(ctx.bikePos);
   const show = near && near.dist < INTERACT_DIST;
-  hud.setPrompt(show ? `Tekan E — ${ents.vendors.shopInfo(near.vendor).name}` : null);
+  hud.setPrompt(show ? `Tekan E — ${near.vendor.name}` : null);
+}
+
+/** Bentuk data untuk dialog HUD dari info pedagang. */
+function shopInfo(vendor) {
+  return { name: vendor.name, items: vendor.catalog };
 }
 
 main();
