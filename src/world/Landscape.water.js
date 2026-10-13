@@ -11,28 +11,29 @@ import { ZONES } from './Landscape.zones.js';
 const WATER_Y = 0.035;
 const BANK_Y = 0.025;
 const RIVER = Object.freeze({ length: 620, bankWidth: 10, ditchOffset: 16, ditchWidth: 2.2, ditchDepth: 0.8 });
-const BRIDGE = Object.freeze({ length: 14, width: 3.2, deckH: 0.3, trussH: 2.4, bays: 6, color: 0x4b5563 });
+const BRIDGE = Object.freeze({ length: 14, width: 3.2, deckH: 0.3, trussH: 2.4, bays: 6, color: 0x7b8394 });
 
-const bankMat = new THREE.MeshLambertMaterial({ color: 0x6b5a3e });
-const steelMat = new THREE.MeshStandardMaterial({ color: BRIDGE.color, roughness: 0.6, metalness: 0.5 });
-const ditchMat = new THREE.MeshLambertMaterial({ color: 0x8a8a84 });
+const WATER = Object.freeze({ roughness: 0.3, opacity: 0.85, opacityWave: 0.02, riverTint: 0x6fc4c2 });
+const bankMat = new THREE.MeshLambertMaterial({ color: 0xcdb98f });
+const steelMat = new THREE.MeshStandardMaterial({ color: BRIDGE.color, roughness: 0.85, metalness: 0 });
+const ditchMat = new THREE.MeshLambertMaterial({ color: 0xbdb9ae });
 
-/** Material air standar (roughness rendah) dengan tekstur riak. */
+/** Material air toska pastel (matte, agak transparan) dengan tekstur riak. */
 export function createWaterMaterial(tint = COLORS.water) {
   return new THREE.MeshStandardMaterial({
     color: tint,
-    roughness: 0.15,
-    metalness: 0.08,
+    roughness: WATER.roughness,
+    metalness: 0,
     transparent: true,
-    opacity: 0.86,
+    opacity: WATER.opacity,
     map: rippleTexture(8),
   });
 }
 
-/** Fungsi animasi: geser offset riak & modulasi opacity. */
+/** Fungsi animasi: geser offset riak & modulasi opacity tipis. */
 export function animateWater(material, dt, t) {
   if (material.map) material.map.offset.set(t * 0.012, t * 0.008);
-  material.opacity = 0.84 + Math.sin(t * 0.9) * 0.025;
+  material.opacity = WATER.opacity + Math.sin(t * 0.9) * WATER.opacityWave;
 }
 
 /** Danau: cakram elips biru + tepi tanah. */
@@ -56,7 +57,7 @@ export function createLake() {
 }
 
 /** Sungai kecil memanjang sumbu Z + parit beton paralel. */
-export function createRiver(waterMat = createWaterMaterial(0x3a6f82)) {
+export function createRiver(waterMat = createWaterMaterial(WATER.riverTint)) {
   const g = new THREE.Group();
   g.name = 'sungai';
   const bank = new THREE.Mesh(new THREE.PlaneGeometry(RIVER.bankWidth, RIVER.length), bankMat);

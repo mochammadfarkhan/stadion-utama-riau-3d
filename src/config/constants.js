@@ -26,7 +26,7 @@ export const TRACK = Object.freeze({
   straightLength: 84.39,
   innerRadius: 36.5, // radius garis ukur lane 1 (0.3 m dari kerb)
   kerbOffset: 0.3,
-  color: 0xb5413a, // merah bata tartan
+  color: 0xe07a5f, // tartan salmon (pastel hangat)
   lineColor: 0xffffff,
 });
 
@@ -91,25 +91,41 @@ export const SITE = Object.freeze({
 // Layer render (THREE.Layers): 0 = kamera utama, 1 = objek besar yang ikut tampil di minimap
 export const RENDER_LAYERS = Object.freeze({ main: 0, minimap: 1 });
 
+// Palet "cozy stylized": pastel hangat, kontras lembut (gaya Dinkum/Overcooked).
 export const COLORS = Object.freeze({
-  grass: 0x2f8f3a,
-  grassStripe: 0x3aa346,
-  concrete: 0xb8b4aa,
-  asphalt: 0x3c3c3c,
-  louvre: 0x8a5a2b,
-  roofWhite: 0xeef0f2,
-  sky: 0x9fc9ea,
-  water: 0x3b7ea1,
-  acp: 0xf1ede4,          // rib putih-krem (ACP)
-  roofSilver: 0xe6e8ea,
-  louvreGold: 0xb8862d,
-  gold: 0xd4af37,
-  steel: 0x6b6f75,
-  concreteDark: 0x8d8a82,
-  terracotta: 0x9c4a2a,
-  glass: 0x9fd0e8,
-  ironDark: 0x2b2b2b,
-  navy: 0x1b2a4a,
+  grass: 0xa8d26b,        // rumput kuning-hijau
+  grassStripe: 0xb6dc7a,  // strip rumput sedikit lebih terang
+  concrete: 0xe8e0d0,     // beton krem
+  asphalt: 0x6b7280,      // aspal abu kebiruan
+  louvre: 0xc8956a,       // bilah louvre cokelat hangat lembut
+  roofWhite: 0xfbf7ef,    // atap putih hangat
+  sky: 0xbfe0f7,          // langit biru muda
+  water: 0x7fcfc9,        // air toska lembut
+  acp: 0xf7f2e8,          // rib putih-krem (ACP)
+  roofSilver: 0xf0efea,
+  louvreGold: 0xdcb46e,   // emas lembut
+  gold: 0xe6c874,
+  steel: 0x8e94a6,
+  concreteDark: 0xcdc4b2,
+  terracotta: 0xd48c6c,
+  glass: 0xc2e4f2,
+  ironDark: 0x4b5160,
+  navy: 0x3d4c78,
+  shadowTint: 0xa9c4ea,   // warna cahaya langit (hemisphere) -> bayangan kebiruan
+  fog: 0xd9e8f6,          // kabut sewarna langit
+});
+
+// Pengaturan render & post-processing (core/App.js)
+export const RENDER = Object.freeze({
+  ao: true,               // GTAO (ambient occlusion); runtime: app.setAO(false) / tombol O
+  vignette: true,
+  pixelRatio: 1.25,       // batas atas devicePixelRatio
+  exposure: 1.05,         // tone mapping exposure (AgX, diterapkan sekali di OutputPass)
+  aoRadius: 1.5,          // radius AO dalam meter (skala dunia)
+  aoBlend: 0.7,           // intensitas blend AO
+  aoScale: 0.5,           // resolusi buffer AO relatif terhadap layar (hemat GPU; AO tetap halus)
+  vignetteOffset: 0.9,    // VignetteShader: jangkauan dari pusat
+  vignetteDarkness: 1.0,  // VignetteShader: 1 = sudut menuju hitam (tipis karena offset < 1)
 });
 
 export const BIKE = Object.freeze({

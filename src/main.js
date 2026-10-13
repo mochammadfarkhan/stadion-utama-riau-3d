@@ -95,6 +95,7 @@ function handleKeys(input, rig, hud, ents, app, shop) {
     hud.setCameraMode(rig.mode);
   }
   if (input.consumePress('KeyM')) app.minimapVisible = !app.minimapVisible;
+  if (input.consumePress('KeyO')) app.setAO(!app.aoEnabled); // matikan AO bila FPS rendah
   if (input.consumePress('KeyE') || input.consumePress('Escape')) {
     if (hud.shopOpen) {
       hud.closeShop();

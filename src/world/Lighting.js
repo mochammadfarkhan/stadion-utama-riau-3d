@@ -4,13 +4,27 @@ import { COLORS } from '../config/constants.js';
 
 const SUN_ELEVATION_DEG = 28; // sore ±16.30 WIB
 const SUN_AZIMUTH_DEG = 250;  // matahari di barat-barat daya
-const SUN_INTENSITY = 4.5;
-const SUN_COLOR = 0xffe6c4;
+// Satuan fisik (r155+): matahari dominan agar bayangan terbaca, ambient kebiruan dari hemisphere.
+const SUN_INTENSITY = 4.0;
+const SUN_COLOR = 0xfff1dc;            // matahari sore hangat (pastel)
+const HEMI_SKY = COLORS.shadowTint;    // cahaya langit kebiruan -> bayangan lembut biru
+const HEMI_GROUND = 0xd8d2ad;          // pantulan tanah krem-hijau
+const HEMI_INTENSITY = 1.8;
+// Env map dari Sky bersifat HDR sangat terang (~13x kontribusi matahari per unit intensitas);
+// nilai kecil ini setara "±0.9" pada env map LDR dan menjaga bayangan tetap terlihat.
+const ENV_INTENSITY = 0.12;
 const SUN_DISTANCE = 600;
 const SHADOW_EXTENT = 200;          // setengah lebar frustum bayangan (m), mengikuti sepeda
 const SHADOW_MAP_SIZE = 2048;
 const SHADOW_DEPTH_PAD = 300;       // ±jarak sepanjang arah cahaya yang dicakup near/far
 const SHADOW_TEXEL = (SHADOW_EXTENT * 2) / SHADOW_MAP_SIZE;
+// VSM r186: radius >= 3 pada frustum +-200 m menghapus bayangan (kontras turun >50%); 1.5 = lembut tapi terbaca.
+const SHADOW_RADIUS = 1.5;
+const SHADOW_BLUR_SAMPLES = 8;
+const SHADOW_BIAS = -0.0005;        // VSM: bias negatif kecil, cukup untuk mencegah acne
+const SHADOW_NORMAL_BIAS = 0.05;
+const SKY_TURBIDITY = 2.5;          // langit biru bersih
+const SKY_RAYLEIGH = 1.6;
 const FOG_NEAR = 220;
 const FOG_FAR = 1100;
 const SKY_SCALE = 450000;
@@ -30,11 +44,12 @@ export function createLighting(scene, renderer) {
   const sunDir = sunDirection();
   const sky = createSky(sunDir);
   const sun = createSun(sunDir);
-  const hemi = new THREE.HemisphereLight(0xcfe3ff, 0x6f8f4a, 0.9);
+  const hemi = new THREE.HemisphereLight(HEMI_SKY, HEMI_GROUND, HEMI_INTENSITY);
   const follow = createShadowFollower(sun, sunDir);
 
   group.add(sky, sun, sun.target, hemi);
-  scene.fog = new THREE.Fog(0xd6e6f5, FOG_NEAR, FOG_FAR);
+  renderer.shadowMap.type = THREE.VSMShadowMap; // bayangan lembut (blur variance)
+  scene.fog = new THREE.Fog(COLORS.fog, FOG_NEAR, FOG_FAR);
   scene.background = new THREE.Color(COLORS.sky);
   applyEnvironment(scene, renderer, sunDir);
 
@@ -56,8 +71,8 @@ function createSky(sunDir) {
   sky.scale.setScalar(SKY_SCALE);
   const u = sky.material.uniforms;
   u.sunPosition.value.copy(sunDir);
-  u.turbidity.value = 5;
-  u.rayleigh.value = 1.8;
+  u.turbidity.value = SKY_TURBIDITY;
+  u.rayleigh.value = SKY_RAYLEIGH;
   u.mieCoefficient.value = 0.006;
   u.mieDirectionalG.value = 0.82;
   if (u.cloudCoverage) u.cloudCoverage.value = 0.35;
@@ -65,7 +80,7 @@ function createSky(sunDir) {
   return sky;
 }
 
-/** Matahari dengan frustum bayangan ketat (±SHADOW_EXTENT, near/far pas). */
+/** Matahari dengan frustum bayangan ketat (±SHADOW_EXTENT, near/far pas) dan blur VSM. */
 function createSun(sunDir) {
   const sun = new THREE.DirectionalLight(SUN_COLOR, SUN_INTENSITY);
   sun.position.copy(sunDir).multiplyScalar(SUN_DISTANCE);
@@ -79,8 +94,10 @@ function createSun(sunDir) {
   s.camera.near = SUN_DISTANCE - SHADOW_DEPTH_PAD;
   s.camera.far = SUN_DISTANCE + SHADOW_DEPTH_PAD;
   s.camera.updateProjectionMatrix();
-  s.bias = -0.0004;
-  s.normalBias = 0.2;
+  s.radius = SHADOW_RADIUS;
+  s.blurSamples = SHADOW_BLUR_SAMPLES;
+  s.bias = SHADOW_BIAS;
+  s.normalBias = SHADOW_NORMAL_BIAS;
   return sun;
 }
 
@@ -112,7 +129,7 @@ function applyEnvironment(scene, renderer, sunDir) {
     envSky.material.uniforms.showSunDisc && (envSky.material.uniforms.showSunDisc.value = 0);
     envScene.add(envSky);
     scene.environment = pmrem.fromScene(envScene, 0.04).texture;
-    scene.environmentIntensity = 0.6;
+    scene.environmentIntensity = ENV_INTENSITY;
     pmrem.dispose();
   } catch {
     // Env map opsional: tanpa env map, pencahayaan hemisphere sudah cukup.

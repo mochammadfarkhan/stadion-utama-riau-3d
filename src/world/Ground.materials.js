@@ -5,15 +5,16 @@ import { grassTexture, pavingTexture, asphaltTexture } from './siteutil/procedur
 /**
  * Material bersama untuk tanah, jalan, plaza (dibuat sekali, dipakai ulang).
  */
+// Palet pastel hangat (selaras COLORS di constants.js); semua Lambert = matte penuh.
 export const GROUND_COLORS = Object.freeze({
-  kerb: 0xd9d6cf,
-  sidewalk: 0xc9c5bb,
-  lineWhite: 0xf4f4f0,
-  lineYellow: 0xe8c230,
-  joggingTrack: 0xa8463b,
-  dirt: 0x6b5236,
-  helipadRing: 0xfafafa,
-  amphitheater: 0xaaa69c,
+  kerb: 0xf1ece2,
+  sidewalk: 0xded7c9,
+  lineWhite: 0xfbfaf6,
+  lineYellow: 0xf2d16a,
+  joggingTrack: 0xe39a84,
+  dirt: 0xb2956d,
+  helipadRing: 0xfcfcfa,
+  amphitheater: 0xd8d0bf,
 });
 
 /** Ketinggian lapisan agar tidak z-fighting (meter). */

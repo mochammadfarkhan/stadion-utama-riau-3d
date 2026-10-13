@@ -1,9 +1,17 @@
 import * as THREE from 'three';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
-import { RENDER_LAYERS } from '../config/constants.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
+import { RENDER, RENDER_LAYERS } from '../config/constants.js';
 
 const MAX_DT = 0.05;
-const MAX_PIXEL_RATIO = 1.25;
+const MAX_PIXEL_RATIO = RENDER.pixelRatio;
+const AO_SAMPLES = 12;            // sampel GTAO per piksel (default 16; lebih ringan)
+const AO_DISTANCE_FALLOFF = 1.0;
 const MINIMAP_SIZE = 200;
 const MINIMAP_MARGIN = 12;
 const MINIMAP_HALF_EXTENT = 160;
@@ -14,8 +22,10 @@ const MINIMAP_MARKER_Y = 150;      // di atas atap stadion
 const MINIMAP_MARKER_COLOR = 0xe53935;
 
 /**
- * App: renderer, scene, kamera utama, minimap, loop waktu.
+ * App: renderer, scene, kamera utama, post-processing, minimap, loop waktu.
  * Modul lain mendaftar lewat addUpdatable({ update(dt, ctx) }).
+ * Render utama lewat EffectComposer (RenderPass -> GTAO -> Vignette -> OutputPass;
+ * tone mapping + sRGB hanya di OutputPass), lalu label CSS2D, lalu minimap.
  * Minimap hanya merender objek di RENDER_LAYERS.minimap, ke render target
  * tiap MINIMAP_INTERVAL frame, lalu di-blit ke pojok layar setiap frame.
  */
@@ -30,6 +40,7 @@ export class App {
     this.minimapMarker = createMinimapMarker();
     this.minimapTarget = createMinimapTarget(this.renderer.getPixelRatio());
     this.minimapBlit = createBlit(this.minimapTarget.texture);
+    this.post = createComposer(this.renderer, this.scene, this.camera);
     this.timer = new THREE.Timer();
     this.updatables = [];
     this.minimapVisible = true;
@@ -48,12 +59,25 @@ export class App {
     return obj;
   }
 
+  /** Aktif/nonaktifkan ambient occlusion saat runtime (mis. bila FPS rendah). */
+  setAO(enabled) {
+    this.post.gtaoPass.enabled = Boolean(enabled);
+    return this.post.gtaoPass.enabled;
+  }
+
+  get aoEnabled() {
+    return this.post.gtaoPass.enabled;
+  }
+
   resize() {
     const w = window.innerWidth;
     const h = window.innerHeight;
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
+    this.post.composer.setSize(w, h); // meneruskan ukuran efektif ke semua pass
+    const pr = this.renderer.getPixelRatio(); // GTAO dihitung pada resolusi lebih rendah (RENDER.aoScale)
+    this.post.gtaoPass.setSize(Math.round(w * pr * RENDER.aoScale), Math.round(h * pr * RENDER.aoScale));
     this.labelRenderer.setSize(w, h);
   }
 
@@ -78,9 +102,8 @@ export class App {
     r.autoClear = false;
     r.info.reset(); // info.render dihitung per frame (semua pass), bukan per pass
     r.shadowMap.needsUpdate = true; // satu shadow pass per frame (hanya untuk kamera utama)
-    r.clear();
     r.setViewport(0, 0, w, h);
-    r.render(this.scene, this.camera);
+    this.post.composer.render(); // pass pertama membersihkan buffer; OutputPass menulis ke layar
     this.labelRenderer.render(this.scene, this.camera);
     if (this.minimapVisible) this.renderMinimap(ctx, w);
   }
@@ -117,13 +140,48 @@ export class App {
 function createRenderer() {
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.shadowMap.enabled = true;     // tipe (VSM) diatur di world/Lighting.js
   renderer.shadowMap.autoUpdate = false; // dipicu manual lewat needsUpdate sekali per frame
   renderer.info.autoReset = false;       // di-reset manual di App.render agar statistik per frame
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.75;
+  // Tone mapping dieksekusi sekali oleh OutputPass (render ke target tidak di-tone-map).
+  // AgX dipilih karena menjaga warna pastel (ACES menaikkan saturasi hijau/merah).
+  renderer.toneMapping = THREE.AgXToneMapping;
+  renderer.toneMappingExposure = RENDER.exposure;
   return renderer;
+}
+
+/**
+ * Rantai post-processing: RenderPass -> GTAOPass (AO halus) -> Vignette -> OutputPass.
+ * @returns {{composer: EffectComposer, gtaoPass: GTAOPass, vignettePass: ShaderPass}}
+ */
+function createComposer(renderer, scene, camera) {
+  const composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  const gtaoPass = createGtaoPass(scene, camera);
+  composer.addPass(gtaoPass);
+  const vignettePass = new ShaderPass(VignetteShader);
+  vignettePass.uniforms.offset.value = RENDER.vignetteOffset;
+  vignettePass.uniforms.darkness.value = RENDER.vignetteDarkness;
+  vignettePass.enabled = RENDER.vignette;
+  composer.addPass(vignettePass);
+  composer.addPass(new OutputPass());
+  return { composer, gtaoPass, vignettePass };
+}
+
+/** GTAO dengan radius skala dunia (meter) dan blend lembut. */
+function createGtaoPass(scene, camera) {
+  const size = { w: window.innerWidth, h: window.innerHeight };
+  const aoParams = {
+    radius: RENDER.aoRadius,
+    distanceFallOff: AO_DISTANCE_FALLOFF,
+    samples: AO_SAMPLES,
+    screenSpaceRadius: false,
+  };
+  const pass = new GTAOPass(scene, camera, size.w, size.h, undefined, aoParams);
+  pass.output = GTAOPass.OUTPUT.Default;
+  pass.blendIntensity = RENDER.aoBlend;
+  pass.enabled = RENDER.ao;
+  return pass;
 }
 
 function createLabelRenderer() {
