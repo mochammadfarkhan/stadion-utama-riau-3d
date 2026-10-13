@@ -3,10 +3,10 @@
  * Semua garis digabung menjadi satu mesh putih (1 draw call).
  */
 import * as THREE from 'three';
-import { PITCH } from '../../config/constants.js';
+import { PITCH, SURFACE_Y } from '../../config/constants.js';
 import { mergeFlat } from './ovalMath.js';
 
-const LINE_Y = 0.015;
+const LINE_Y = SURFACE_Y.pitchLine;
 const SPOT_RADIUS = 0.2;
 const CORNER_ARC_RADIUS = 1.0;
 const ARC_SEGMENTS = 48;

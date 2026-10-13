@@ -4,7 +4,7 @@
  * Origin = pusat lapangan, sumbu panjang = Z, barat = −X.
  */
 import * as THREE from 'three';
-import { PITCH, TRACK, COLORS } from '../../config/constants.js';
+import { PITCH, TRACK, COLORS, SURFACE_Y } from '../../config/constants.js';
 import {
   stadiumShape, flatShapeGeometry, mergeFlat, mulberry32, createCanvasTexture,
 } from './ovalMath.js';
@@ -19,7 +19,7 @@ const GRASS_ROUGHNESS = 0.92;
 const GRASS_NOISE = Object.freeze({ blades: { freq: 48, octaves: 3, seed: 31 }, clumps: { freq: 6, octaves: 2, seed: 32 } });
 const PATCH_COUNT = 9;
 const PATCH_COLOR = [150, 160, 60]; // kuning samar (rumput kering)
-const DZONE_Y = -0.02;
+const DZONE_Y = SURFACE_Y.dzone;
 const BOARD_OFFSET = 4.5;
 const BOARD_LEN = 5;
 const BOARD_H = 0.9;
@@ -86,6 +86,7 @@ function createGrassTexture(seed) {
 function createGrass(seed) {
   const g = new THREE.PlaneGeometry(PITCH.width, PITCH.length);
   g.rotateX(-Math.PI / 2);
+  g.translate(0, SURFACE_Y.pitch, 0);
   const mat = new THREE.MeshStandardMaterial({ map: createGrassTexture(seed), roughness: GRASS_ROUGHNESS, metalness: 0 });
   mat.name = 'grass';
   mat.userData.baseRoughness = GRASS_ROUGHNESS;

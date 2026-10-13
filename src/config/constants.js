@@ -246,3 +246,20 @@ export const GRASS = Object.freeze({
   envAmbient: 0.9,         // perkiraan kontribusi env map pada rumput (setara LDR)
   lightPad: 0.08,          // radiansi minimum agar tidak hitam pekat saat malam
 });
+
+/**
+ * Ketinggian lapisan permukaan datar di dalam stadion (m). Lapisan yang saling
+ * bertumpuk WAJIB berbeda ≥ 1 cm agar tidak z-fighting. Tanah kawasan (y=0)
+ * dilubangi di bawah stadion (groundHoleInset) sehingga tidak berimpit dengan ini.
+ * Urutan bawah → atas: apron/D-zone/tartan → parit → lapangan → garis.
+ */
+export const SURFACE_Y = Object.freeze({
+  groundHoleInset: 0.5,   // lubang tanah = elips kaki tribun dikurangi ini (overlap tertutup apron)
+  apron: 0.01,
+  dzone: 0.01,            // tidak bertumpuk dengan apron (dipisah tartan)
+  tartan: 0.01,           // berbagi tepi dengan apron & D-zone, tidak bertumpuk
+  drain: 0.02,            // di atas apron
+  pitch: 0.02,            // di atas D-zone
+  trackLine: 0.03,
+  pitchLine: 0.035,
+});

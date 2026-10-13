@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SITE, STADIUM } from '../config/constants.js';
+import { SITE, STADIUM, SURFACE_Y } from '../config/constants.js';
 import { ellipseRingGeometry } from './siteutil/ellipseGeo.js';
 import { groundMaterials, GROUND_COLORS, LAYER_Y, uvToMeters } from './Ground.materials.js';
 import {
@@ -14,12 +14,31 @@ import {
 const HELIPAD = Object.freeze({ ringInner: 10.5, ringOuter: 11.5, hBar: 6, hWidth: 1.1, hGap: 2.4 });
 const AMPHI = Object.freeze({ steps: 6, innerR: 6, stepR: 2.6, stepH: 0.45, stageR: 5.5 });
 
+/**
+ * Bidang tanah persegi dengan lubang elips di bawah stadion agar tidak berimpit
+ * (z-fighting) dengan apron, lintasan, dan lapangan. UV ShapeGeometry = meter.
+ */
+function createGroundWithHole() {
+  const half = SITE.groundSize / 2;
+  const shape = new THREE.Shape();
+  shape.moveTo(-half, -half);
+  shape.lineTo(half, -half);
+  shape.lineTo(half, half);
+  shape.lineTo(-half, half);
+  shape.closePath();
+  const hole = new THREE.Path();
+  const inset = SURFACE_Y.groundHoleInset;
+  hole.absellipse(0, 0, STADIUM.innerSemiX - inset, STADIUM.innerSemiZ - inset, 0, Math.PI * 2, true);
+  shape.holes.push(hole);
+  const geo = new THREE.ShapeGeometry(shape, 96);
+  geo.rotateX(-Math.PI / 2);
+  return geo;
+}
+
 /** Tanah rumput besar (UV dalam meter agar tekstur rumput berulang tiap 4 m). */
 function createGrassPlane() {
   const m = groundMaterials();
-  const geo = uvToMeters(new THREE.PlaneGeometry(SITE.groundSize, SITE.groundSize, 8, 8), SITE.groundSize, SITE.groundSize);
-  const mesh = new THREE.Mesh(geo, m.grass);
-  mesh.rotation.x = -Math.PI / 2;
+  const mesh = new THREE.Mesh(createGroundWithHole(), m.grass);
   mesh.position.y = LAYER_Y.ground;
   mesh.receiveShadow = true;
   mesh.name = 'rumput';

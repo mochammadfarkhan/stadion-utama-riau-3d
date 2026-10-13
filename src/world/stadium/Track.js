@@ -4,7 +4,7 @@
  * apron beton sampai kaki tribun, dan parit drainase keliling.
  */
 import * as THREE from 'three';
-import { TRACK, STADIUM, COLORS } from '../../config/constants.js';
+import { TRACK, STADIUM, COLORS, SURFACE_Y } from '../../config/constants.js';
 import {
   stadiumShape, stadiumPath, ellipseShape, flatShapeGeometry, mergeFlat, createCanvasTexture,
 } from './ovalMath.js';
@@ -18,8 +18,8 @@ const LINE_W = 0.05;
 const KERB_W = 0.15;
 const KERB_H = 0.05;
 const CURVE_SEG = 48;
-const LINE_Y = 0.01;
-const APRON_Y = -0.01;
+const LINE_Y = SURFACE_Y.trackLine;
+const APRON_Y = SURFACE_Y.apron;
 const DRAIN_W = 0.35;
 const EXTRA_LANES = 2;
 const EXTRA_LEN = 117; // 100 m + run-off
@@ -35,6 +35,7 @@ function createSurface(mat) {
     [stadiumPath(HALF_STRAIGHT, KERB_R)],
     CURVE_SEG,
   );
+  g.translate(0, SURFACE_Y.tartan, 0);
   const mesh = new THREE.Mesh(g, mat);
   mesh.name = 'tartan';
   mesh.receiveShadow = true;
@@ -69,6 +70,7 @@ function createKerb(mat) {
   s.holes = [stadiumPath(HALF_STRAIGHT, KERB_R - KERB_W)];
   const g = new THREE.ExtrudeGeometry(s, { depth: KERB_H, bevelEnabled: false, curveSegments: CURVE_SEG });
   g.rotateX(-Math.PI / 2);
+  g.translate(0, SURFACE_Y.tartan, 0);
   const mesh = new THREE.Mesh(g, mat);
   mesh.name = 'kerb';
   return mesh;
@@ -158,6 +160,7 @@ function createDrain() {
     [stadiumPath(HALF_STRAIGHT, r0)],
     CURVE_SEG,
   );
+  g.translate(0, SURFACE_Y.drain, 0);
   const mesh = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: COLOR_DRAIN }));
   mesh.name = 'drainase';
   return mesh;
