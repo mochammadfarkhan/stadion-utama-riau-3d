@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 /**
  * Helper InstancedMesh dari "bagian" (part) yang sama untuk banyak posisi.
@@ -38,12 +39,32 @@ export function instancePart(part, positions) {
   return mesh;
 }
 
-/** Bangun Group berisi InstancedMesh untuk setiap part. */
+/**
+ * Gabungkan part yang berbagi material & flag bayangan menjadi satu part
+ * (matrix lokal dibakar ke geometri) agar satu InstancedMesh per material.
+ */
+function mergePartsByMaterial(parts) {
+  const buckets = new Map();
+  parts.forEach((p) => {
+    const key = `${p.material.uuid}|${Number(p.castShadow ?? false)}`;
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(p);
+  });
+  return [...buckets.values()].map((list) => {
+    if (list.length === 1) return list[0];
+    const geos = list.map((p) => (p.matrix ? p.geometry.clone().applyMatrix4(p.matrix) : p.geometry));
+    const merged = mergeGeometries(geos, false);
+    if (!merged) return list; // atribut tak kompatibel → biarkan terpisah
+    return { geometry: merged, material: list[0].material, castShadow: list[0].castShadow, name: list.map((p) => p.name).filter(Boolean).join('+') };
+  }).flat();
+}
+
+/** Bangun Group berisi InstancedMesh per material (part digabung bila bisa). */
 export function instanceParts(parts, positions, name = 'instanced') {
   const group = new THREE.Group();
   group.name = name;
   if (!positions || positions.length === 0) return group;
-  parts.forEach((part) => group.add(instancePart(part, positions)));
+  mergePartsByMaterial(parts).forEach((part) => group.add(instancePart(part, positions)));
   return group;
 }
 

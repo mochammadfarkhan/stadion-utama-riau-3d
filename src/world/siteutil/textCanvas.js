@@ -49,8 +49,20 @@ export function makeTextTexture(text, opts = {}) {
   return tex;
 }
 
-/** Material plane bertulisan; fallback warna polos jika kanvas tak tersedia. */
+const materialCache = new Map();
+
+/**
+ * Material plane bertulisan; fallback warna polos jika kanvas tak tersedia.
+ * Di-cache per (teks + opsi) agar papan dengan tulisan sama berbagi material
+ * dan bisa digabung menjadi satu draw call.
+ */
 export function makeTextMaterial(text, opts = {}) {
+  const key = `${text}|${JSON.stringify(opts)}`;
+  if (!materialCache.has(key)) materialCache.set(key, buildTextMaterial(text, opts));
+  return materialCache.get(key);
+}
+
+function buildTextMaterial(text, opts) {
   const tex = makeTextTexture(text, opts);
   const mat = new THREE.MeshLambertMaterial({
     color: tex ? 0xffffff : new THREE.Color(opts.bg ?? '#ffffff'),

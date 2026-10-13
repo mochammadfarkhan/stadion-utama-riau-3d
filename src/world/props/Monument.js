@@ -21,6 +21,8 @@ const sailMat = new THREE.MeshLambertMaterial({ color: LANCANG.colors.layar, sid
 const pedestalMat = new THREE.MeshLambertMaterial({ color: LANCANG.colors.pedestal });
 const poolMat = new THREE.MeshLambertMaterial({ color: LANCANG.colors.kolam });
 const goldMat = new THREE.MeshStandardMaterial({ color: TANJAK.colors.emas, metalness: 0.6, roughness: 0.35 });
+const hornMat = new THREE.MeshStandardMaterial({ color: LANCANG.colors.naga });
+const nozzleMat = new THREE.MeshLambertMaterial({ color: 0x6b6f72 });
 
 /** Profil samping lambung (XY): buritan kiri, haluan naik di kanan. */
 function hullShape() {
@@ -78,7 +80,7 @@ function createDragonHead() {
   const neck = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 6), whiteMat);
   const hornGeo = new THREE.ConeGeometry(0.06, 0.5, 5);
   [-0.15, 0.15].forEach((z) => {
-    const horn = new THREE.Mesh(hornGeo, new THREE.MeshStandardMaterial({ color: LANCANG.colors.naga }));
+    const horn = new THREE.Mesh(hornGeo, hornMat);
     horn.position.set(-0.1, 0.45, z);
     horn.rotation.z = -0.4;
     g.add(horn);
@@ -149,7 +151,7 @@ function createFountainPool() {
   const nozzleGeo = new THREE.CylinderGeometry(0.05, 0.07, 0.35, 6);
   for (let i = 0; i < nozzles; i += 1) {
     const a = (i / nozzles) * Math.PI * 2;
-    const n = new THREE.Mesh(nozzleGeo, new THREE.MeshLambertMaterial({ color: 0x6b6f72 }));
+    const n = new THREE.Mesh(nozzleGeo, nozzleMat);
     n.position.set(Math.cos(a) * nozzleR, waterY + 0.12, Math.sin(a) * nozzleR);
     g.add(n);
   }

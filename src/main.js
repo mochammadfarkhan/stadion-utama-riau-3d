@@ -27,7 +27,7 @@ function main() {
 
   const lighting = createLighting(app.scene, app.renderer);
   app.scene.add(lighting);
-  app.addUpdatable({ update: (dt, ctx) => lighting.userData.update?.(dt, ctx.time) });
+  app.addUpdatable({ update: (dt, ctx) => lighting.userData.update?.(dt, ctx.time, ctx.bikePos) });
 
   const world = buildWorld();
   app.scene.add(world.group);

@@ -18,6 +18,21 @@ const woodMat = new THREE.MeshLambertMaterial({ color: CART.colors.kayu });
 const zincMat = new THREE.MeshLambertMaterial({ color: CART.colors.seng });
 const glassMat = new THREE.MeshStandardMaterial({ color: CART.colors.kaca, transparent: true, opacity: 0.3, roughness: 0.1 });
 const wheelMat = new THREE.MeshLambertMaterial({ color: CART.colors.roda });
+const whiteMat = new THREE.MeshLambertMaterial({ color: 0xf4f4f4 });
+const thermosMat = new THREE.MeshLambertMaterial({ color: 0x1d4ed8 });
+const stallMats = Object.freeze({
+  table: new THREE.MeshLambertMaterial({ color: FOOD_STALL.colors.meja }),
+  grill: new THREE.MeshLambertMaterial({ color: 0x2b2b2b }),
+  coal: new THREE.MeshStandardMaterial({ color: 0x3a1a0a, emissive: FOOD_STALL.colors.arang, emissiveIntensity: 1.6, roughness: 0.9 }),
+  corn: new THREE.MeshLambertMaterial({ color: FOOD_STALL.colors.jagung }),
+});
+const matCache = new Map();
+
+/** Material Lambert di-cache per warna agar banyak lapak berbagi material (bisa digabung). */
+function lambert(color) {
+  if (!matCache.has(color)) matCache.set(color, new THREE.MeshLambertMaterial({ color }));
+  return matCache.get(color);
+}
 
 /** Rangka gerobak: badan kayu, dua roda besar, gagang, etalase kaca, atap seng + tiang. */
 function cartFrameParts() {
@@ -43,9 +58,9 @@ function drinkContentParts() {
   const y = CART.wheelR + CART.bodyH - 0.1;
   const bottle = new THREE.CylinderGeometry(0.05, 0.05, 0.28, 8);
   const parts = [0x8b4513, 0xf39c12, 0x3498db, 0x27ae60, 0xe74c3c].map((c, i) => ({
-    geometry: bottle, material: new THREE.MeshStandardMaterial({ color: c, roughness: 0.3 }), matrix: localMatrix(-0.6 + i * 0.22, y + 0.14, 0.2), name: 'botol',
+    geometry: bottle, material: lambert(c), matrix: localMatrix(-0.6 + i * 0.22, y + 0.14, 0.2), name: 'botol',
   }));
-  parts.push({ geometry: new THREE.CylinderGeometry(0.14, 0.14, 0.5, 10), material: new THREE.MeshLambertMaterial({ color: 0x1d4ed8 }), matrix: localMatrix(0.5, y + 0.25, -0.15), name: 'termos' });
+  parts.push({ geometry: new THREE.CylinderGeometry(0.14, 0.14, 0.5, 10), material: thermosMat, matrix: localMatrix(0.5, y + 0.25, -0.15), name: 'termos' });
   parts.push({ geometry: new THREE.CylinderGeometry(0.06, 0.05, 0.4, 8), material: glassMat, matrix: localMatrix(-0.1, y + 0.2, -0.2), name: 'gelasTumpuk' });
   return parts;
 }
@@ -53,7 +68,7 @@ function drinkContentParts() {
 /** Isi gerobak buah: potongan buah warna-warni. */
 function fruitContentParts() {
   const y = CART.wheelR + CART.bodyH - 0.1;
-  const mat = (c) => new THREE.MeshLambertMaterial({ color: c });
+  const mat = lambert;
   return [
     { geometry: new THREE.BoxGeometry(0.35, 0.12, 0.2), material: mat(0xf47c20), matrix: localMatrix(-0.55, y + 0.06, 0.15), name: 'pepaya' },
     { geometry: new THREE.SphereGeometry(0.18, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), material: mat(0xd62828), matrix: localMatrix(-0.1, y, 0.15), name: 'semangka' },
@@ -96,7 +111,7 @@ function umbrellaCanopy() {
 
 /** Kursi plastik: dudukan, sandaran, 4 kaki. */
 function plasticChair(color) {
-  const mat = new THREE.MeshLambertMaterial({ color });
+  const mat = lambert(color);
   const legGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.45, 5);
   const parts = [
     { geometry: new THREE.BoxGeometry(0.42, 0.04, 0.42), material: mat, matrix: localMatrix(0, 0.45, 0), name: 'dudukan' },
@@ -117,7 +132,7 @@ export function createUmbrellaSet(opts = {}) {
   const canopy = umbrellaCanopy();
   canopy.position.y = UMBRELLA.height - 0.2;
   canopy.castShadow = true;
-  const table = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.04, 12), new THREE.MeshLambertMaterial({ color: 0xf4f4f4 }));
+  const table = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.04, 12), whiteMat);
   table.position.y = 0.7;
   g.add(pole, canopy, table);
   for (let i = 0; i < 4; i += 1) {
@@ -132,10 +147,7 @@ export function createUmbrellaSet(opts = {}) {
 
 /** Lapak jagung bakar: meja kayu, pemanggang, arang merah emissive, jagung kuning. */
 export function createFoodStall(opts = {}) {
-  const tableMat = new THREE.MeshLambertMaterial({ color: FOOD_STALL.colors.meja });
-  const grillMat = new THREE.MeshLambertMaterial({ color: 0x2b2b2b });
-  const coalMat = new THREE.MeshStandardMaterial({ color: 0x3a1a0a, emissive: FOOD_STALL.colors.arang, emissiveIntensity: 1.6, roughness: 0.9 });
-  const cornMat = new THREE.MeshLambertMaterial({ color: FOOD_STALL.colors.jagung });
+  const { table: tableMat, grill: grillMat, coal: coalMat, corn: cornMat } = stallMats;
   const legGeo = new THREE.BoxGeometry(0.06, 0.78, 0.06);
   const parts = [
     { geometry: new THREE.BoxGeometry(1.6, 0.05, 0.7), material: tableMat, matrix: localMatrix(0, 0.8, 0), castShadow: true, name: 'meja' },

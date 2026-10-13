@@ -43,7 +43,7 @@ export function createTrashBins(positions = [], opts = {}) {
   if (positions.length === 0) return g;
   const rnd = createRandom(opts.seed ?? 7);
   const mat = new THREE.MeshLambertMaterial({ color: 0xffffff });
-  const body = instancePart({ geometry: bodyGeo, material: mat, castShadow: true, name: 'badan' }, positions);
+  const body = instancePart({ geometry: bodyGeo, material: mat, name: 'badan' }, positions); // tanpa bayangan: kecil
   const lid = instancePart({ geometry: lidGeo, material: mat, name: 'tutup' }, positions);
   const post = instancePart({ geometry: postGeo, material: postMat, matrix: localMatrix(0, 0, -TRASH_BIN.radius - 0.05), name: 'tiang' }, positions);
   const c = new THREE.Color();

@@ -23,7 +23,7 @@ export function buildEntities({ start, world, wallet }) {
     seatSamples: world.seatSamples,
     plazaCenter: layout.plazaCenter,
     plazaSpots: layout.plazaSpots,
-    count: 30,
+    count: 20,
   });
 
   const updatables = [bike, runners, ...walkers, match, vendors, crowd];

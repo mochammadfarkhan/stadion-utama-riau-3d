@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { instancePart, instanceParts, localMatrix, placeObject } from '../siteutil/instanceParts.js';
 import { createRandom } from '../siteutil/rng.js';
 
@@ -24,7 +25,7 @@ function leafParts() {
     localMatrix(0, PLANTER.height + 0.25, 0),
     localMatrix(0.25, PLANTER.height + 0.15, 0.15, 0, 0, 0, 0.8),
     localMatrix(-0.22, PLANTER.height + 0.18, -0.12, 0, 0, 0, 0.75),
-  ].map((matrix, i) => ({ geometry: leafGeo, material: leafMat, matrix, castShadow: true, name: `daun-${i}` }));
+  ].map((matrix, i) => ({ geometry: leafGeo, material: leafMat, matrix, name: `daun-${i}` }));
 }
 
 /** Posisi bunga kecil di atas tajuk (deterministik). */
@@ -54,25 +55,28 @@ export function createPlanter(opts = {}) {
   return placeObject(g, opts);
 }
 
-/** Banyak pot instanced; bunga diberi warna per-instance acak. positions: [{x,z,rotY?}] */
+/** Geometri lima bunga digabung (satu draw call untuk semua pot). */
+function mergedFlowerGeometry() {
+  return mergeGeometries(flowerMatrices().map((m) => flowerGeo.clone().applyMatrix4(m)), false);
+}
+
+/** Banyak pot instanced (tanpa bayangan: kecil); bunga diberi warna per-instance acak. positions: [{x,z,rotY?}] */
 export function createPlanters(positions = [], opts = {}) {
   const g = new THREE.Group();
   g.name = 'potBunga';
   if (!positions.length) return g;
   const rnd = createRandom(opts.seed ?? 5);
   g.add(instanceParts([
-    { geometry: potGeo, material: potMat, castShadow: true, name: 'pot' },
+    { geometry: potGeo, material: potMat, name: 'pot' },
     { geometry: soilGeo, material: soilMat, name: 'tanah' },
     ...leafParts(),
   ], positions, 'potDanDaun'));
   const fMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
   const c = new THREE.Color();
-  flowerMatrices().forEach((mtx, k) => {
-    const mesh = instancePart({ geometry: flowerGeo, material: fMat, matrix: mtx, name: `bunga-${k}` }, positions);
-    positions.forEach((_, i) => mesh.setColorAt(i, c.setHex(rnd.pick(PLANTER.colors.bunga))));
-    mesh.instanceColor.needsUpdate = true;
-    g.add(mesh);
-  });
+  const flowers = instancePart({ geometry: mergedFlowerGeometry(), material: fMat, name: 'bunga' }, positions);
+  positions.forEach((_, i) => flowers.setColorAt(i, c.setHex(rnd.pick(PLANTER.colors.bunga))));
+  flowers.instanceColor.needsUpdate = true;
+  g.add(flowers);
   g.userData.count = positions.length;
   return g;
 }

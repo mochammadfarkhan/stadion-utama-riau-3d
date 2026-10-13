@@ -75,9 +75,9 @@ export const LAYOUT = Object.freeze({
     { id: 'v-jerukbuah', kind: 'buah', waypoints: [{ x: 60, z: NAGA_SAKTI_SIDEWALK_Z + 4 }, { x: 130, z: NAGA_SAKTI_SIDEWALK_Z + 4 }] },
   ],
   loopWalkers: [
-    { count: 14, semiX: SITE.ringRoadSemiX + 7, semiZ: SITE.ringRoadSemiZ + 7, speedRange: [1.2, 4.5] },
-    { count: 10, semiX: SITE.ringRoadSemiX + SITE.joggingTrackOffset, semiZ: SITE.ringRoadSemiZ + SITE.joggingTrackOffset, speedRange: [2.5, 4.8] },
-    { count: 8, semiX: PLAZA_RING.semiX - 8, semiZ: PLAZA_RING.semiZ - 8, speedRange: [1.0, 2.0] },
+    { count: 10, semiX: SITE.ringRoadSemiX + 7, semiZ: SITE.ringRoadSemiZ + 7, speedRange: [1.2, 4.5] },
+    { count: 7, semiX: SITE.ringRoadSemiX + SITE.joggingTrackOffset, semiZ: SITE.ringRoadSemiZ + SITE.joggingTrackOffset, speedRange: [2.5, 4.8] },
+    { count: 6, semiX: PLAZA_RING.semiX - 8, semiZ: PLAZA_RING.semiZ - 8, speedRange: [1.0, 2.0] },
   ],
   spectatorCount: 3200,
 });

@@ -7,7 +7,7 @@ import { isFreeForBigTree, isFreeInPlazaBelt } from './Landscape.zones.js';
 
 /**
  * Vegetasi prosedural: pohon besar (4 jenis, InstancedMesh per bagian),
- * pohon muda berajir, semak, dan ilalang.
+ * pohon muda berajir, semak, dan ilalang. Hanya pohon besar yang memancarkan bayangan.
  */
 export const TREE_TYPES = Object.freeze({
   trembesi: { trunkH: 5, trunkR: 0.5, crown: 'umbrella', crownR: 9, crownY: 7.5, color: 0x2d6b2a },
@@ -140,7 +140,7 @@ export function createYoungTrees(seed = 23) {
   const crown = new THREE.SphereGeometry(0.75, 7, 6).scale(1, 1.2, 1);
   const parts = [
     { geometry: trunk, material: trunkMat, name: 'batangMuda' },
-    { geometry: crown, material: new THREE.MeshLambertMaterial({ color: 0x55a63f }), matrix: localMatrix(0, 2.5, 0), castShadow: true, name: 'tajukMuda' },
+    { geometry: crown, material: new THREE.MeshLambertMaterial({ color: 0x55a63f }), matrix: localMatrix(0, 2.5, 0), name: 'tajukMuda' },
     ...stakeParts(),
   ];
   const g = instanceParts(parts, spots, 'pohonMuda');
@@ -162,7 +162,7 @@ export function createShrubs(seed = 31) {
     if (ok) spots.push({ x, z, rotY: rnd.range(0, 6.28), scale: rnd.range(0.6, 1.5) });
   }
   const geo = new THREE.SphereGeometry(1.1, 7, 5).scale(1, 0.6, 1).translate(0, 0.5, 0);
-  return instanceParts([{ geometry: geo, material: shrubMat, castShadow: true, name: 'semak' }], spots, 'semak');
+  return instanceParts([{ geometry: geo, material: shrubMat, name: 'semak' }], spots, 'semak'); // tanpa bayangan
 }
 
 /** Ilalang: rumpun kerucut tipis di beberapa area (tepi danau, sungai, dll). */

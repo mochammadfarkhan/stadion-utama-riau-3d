@@ -27,8 +27,13 @@ function distToSegment(px, pz, s) {
   return Math.hypot(px - (s.ax + dx * t), pz - (s.az + dz * t));
 }
 
+/** Jarak terdekat titik ke garis tengah koridor gate utama. */
+export function distanceToGateCorridor(x, z) {
+  return Math.min(...CORRIDORS.map((s) => distToSegment(x, z, s)));
+}
+
 export function inGateCorridor(x, z) {
-  return CORRIDORS.some((s) => distToSegment(x, z, s) < GATE_HALF_WIDTH);
+  return distanceToGateCorridor(x, z) < GATE_HALF_WIDTH;
 }
 
 /** Posisi valid: di dalam mangkuk, di luar cangkang, atau di koridor gate; tidak di danau; dalam batas dunia. */

@@ -88,6 +88,9 @@ export const SITE = Object.freeze({
   gapuraZ: -372,
 });
 
+// Layer render (THREE.Layers): 0 = kamera utama, 1 = objek besar yang ikut tampil di minimap
+export const RENDER_LAYERS = Object.freeze({ main: 0, minimap: 1 });
+
 export const COLORS = Object.freeze({
   grass: 0x2f8f3a,
   grassStripe: 0x3aa346,
