@@ -117,10 +117,10 @@ export const COLORS = Object.freeze({
 
 // Pengaturan render & post-processing (core/App.js)
 export const RENDER = Object.freeze({
-  ao: true,               // GTAO (ambient occlusion); runtime: app.setAO(false) / tombol O
+  ao: false,              // GTAO (ambient occlusion); runtime: app.setAO(false) / tombol O
   vignette: true,
   pixelRatio: 1.25,       // batas atas devicePixelRatio
-  exposure: 1.05,         // tone mapping exposure (AgX, diterapkan sekali di OutputPass)
+  exposure: 0.9,          // tone mapping exposure (AgX, diterapkan sekali di OutputPass)
   aoRadius: 1.5,          // radius AO dalam meter (skala dunia)
   aoBlend: 0.7,           // intensitas blend AO
   aoScale: 0.5,           // resolusi buffer AO relatif terhadap layar (hemat GPU; AO tetap halus)

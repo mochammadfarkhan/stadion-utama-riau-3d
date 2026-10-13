@@ -5,11 +5,11 @@ import { COLORS } from '../config/constants.js';
 const SUN_ELEVATION_DEG = 28; // sore ±16.30 WIB
 const SUN_AZIMUTH_DEG = 250;  // matahari di barat-barat daya
 // Satuan fisik (r155+): matahari dominan agar bayangan terbaca, ambient kebiruan dari hemisphere.
-const SUN_INTENSITY = 4.0;
+const SUN_INTENSITY = 4.5;
 const SUN_COLOR = 0xfff1dc;            // matahari sore hangat (pastel)
 const HEMI_SKY = COLORS.shadowTint;    // cahaya langit kebiruan -> bayangan lembut biru
 const HEMI_GROUND = 0xd8d2ad;          // pantulan tanah krem-hijau
-const HEMI_INTENSITY = 1.8;
+const HEMI_INTENSITY = 1.0;
 // Env map dari Sky bersifat HDR sangat terang (~13x kontribusi matahari per unit intensitas);
 // nilai kecil ini setara "±0.9" pada env map LDR dan menjaga bayangan tetap terlihat.
 const ENV_INTENSITY = 0.12;
