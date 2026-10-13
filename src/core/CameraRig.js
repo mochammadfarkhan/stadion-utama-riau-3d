@@ -3,8 +3,9 @@ import * as THREE from 'three';
 const THIRD_PERSON_OFFSET = new THREE.Vector3(0, 2.4, -6.5);
 const THIRD_PERSON_LOOK_HEIGHT = 1.3;
 const FIRST_PERSON_EYE = new THREE.Vector3(0, 1.55, 0.15);
-const FOLLOW_SMOOTHING = 6;
-const MOUSE_SENSITIVITY = 0.0022;
+const FOLLOW_SMOOTHING = 6;        // default; dapat diubah lewat rig.followSmoothing
+const MOUSE_SENSITIVITY = 0.0022;  // rad/piksel pada sensitivity = 1
+const CAMERA_MODES = Object.freeze(['third', 'first']);
 const PITCH_LIMIT = Math.PI / 2.4;
 const ORBIT_RETURN_RATE = 1.5;
 
@@ -20,6 +21,8 @@ export class CameraRig {
     this.yawOffset = 0;
     this.pitch = 0.12;
     this.locked = false;
+    this.sensitivity = 1;                    // pengali MOUSE_SENSITIVITY (settings camera.sensitivity)
+    this.followSmoothing = FOLLOW_SMOOTHING; // 1/s (settings camera.followSmoothing)
     this._target = new THREE.Vector3();
     this._desired = new THREE.Vector3();
     this._eye = new THREE.Vector3();
@@ -34,8 +37,9 @@ export class CameraRig {
     });
     document.addEventListener('mousemove', (e) => {
       if (!this.locked) return;
-      this.yawOffset -= e.movementX * MOUSE_SENSITIVITY;
-      this.pitch = THREE.MathUtils.clamp(this.pitch + e.movementY * MOUSE_SENSITIVITY, -PITCH_LIMIT, PITCH_LIMIT);
+      const k = MOUSE_SENSITIVITY * this.sensitivity;
+      this.yawOffset -= e.movementX * k;
+      this.pitch = THREE.MathUtils.clamp(this.pitch + e.movementY * k, -PITCH_LIMIT, PITCH_LIMIT);
     });
   }
 
@@ -49,9 +53,16 @@ export class CameraRig {
   }
 
   toggleMode() {
-    this.mode = this.mode === 'third' ? 'first' : 'third';
+    this.setMode(this.mode === 'third' ? 'first' : 'third');
+    return this.mode;
+  }
+
+  /** Set mode kamera ('third' | 'first'); mode tak dikenal diabaikan. */
+  setMode(mode) {
+    if (!CAMERA_MODES.includes(mode) || mode === this.mode) return;
+    this.mode = mode;
     this.yawOffset = 0;
-    this.pitch = this.mode === 'first' ? 0 : 0.12;
+    this.pitch = mode === 'first' ? 0 : 0.12;
   }
 
   /** @param {{x:number,z:number,yaw:number}} bike  @param {number} dt */
@@ -77,7 +88,7 @@ export class CameraRig {
     offset.y += this.pitch * 4;
     offset.applyAxisAngle(THREE.Object3D.DEFAULT_UP, yaw);
     this._desired.set(bike.x + offset.x, offset.y, bike.z + offset.z);
-    const k = 1 - Math.exp(-FOLLOW_SMOOTHING * dt);
+    const k = 1 - Math.exp(-this.followSmoothing * dt);
     this.camera.position.lerp(this._desired, k);
     this.camera.lookAt(bike.x, THIRD_PERSON_LOOK_HEIGHT, bike.z);
   }

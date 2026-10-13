@@ -85,6 +85,14 @@ class Spectators {
   }
 
   get count() { return this.#seats.length; }
+
+  /** Jumlah instance yang dirender proporsional density 0..1 (kursi diisi dari indeks awal). */
+  setDensity(density) {
+    const d = clamp(Number(density) || 0, 0, 1);
+    const n = Math.round(this.#seats.length * d);
+    this.#torso.count = n;
+    this.#head.count = n;
+  }
 }
 
 export class Crowd {
@@ -121,6 +129,9 @@ export class Crowd {
     this.#spectators?.update(time);
     this.#plaza?.update(step, time);
   }
+
+  /** Kepadatan penonton tribun 0..1 (settings graphics.crowdDensity). */
+  setDensity(density) { this.#spectators?.setDensity(density); }
 
   get spectatorCount() { return this.#spectators?.count ?? 0; }
   get humanoidCount() { return this.#plaza?.humanoidCount ?? 0; }

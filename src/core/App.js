@@ -46,6 +46,9 @@ export class App {
     this.minimapVisible = true;
     this.elapsed = 0;
     this.frame = 0;
+    this.lastCtx = null;              // ctx frame terakhir (dipakai renderFrame untuk screenshot)
+    this.baseExposure = RENDER.exposure; // dari preset TimeOfDay (ditulis tiap frame)
+    this.exposureScale = 1;           // pengali dari settings (sky.exposure / RENDER.exposure)
 
     this.scene.add(this.minimapMarker);
     container.appendChild(this.renderer.domElement);
@@ -59,6 +62,11 @@ export class App {
     return obj;
   }
 
+  /** Hapus updatable yang didaftarkan lewat addUpdatable (salinan baru, tanpa mutasi array). */
+  removeUpdatable(obj) {
+    this.updatables = this.updatables.filter((u) => u !== obj);
+  }
+
   /** Aktif/nonaktifkan ambient occlusion saat runtime (mis. bila FPS rendah). */
   setAO(enabled) {
     this.post.gtaoPass.enabled = Boolean(enabled);
@@ -67,6 +75,50 @@ export class App {
 
   get aoEnabled() {
     return this.post.gtaoPass.enabled;
+  }
+
+  /** Aktif/nonaktifkan pass vignette. */
+  setVignette(enabled) {
+    this.post.vignettePass.enabled = Boolean(enabled);
+    return this.post.vignettePass.enabled;
+  }
+
+  get vignetteEnabled() {
+    return this.post.vignettePass.enabled;
+  }
+
+  /**
+   * Exposure = baseExposure (preset TimeOfDay) × exposureScale (settings).
+   * setExposure(v) menerima nilai absolut dari settings; pengali = v / RENDER.exposure,
+   * sehingga nilai default settings (0.9) berarti "tanpa perubahan" terhadap preset.
+   */
+  setExposure(value) {
+    const v = Number(value);
+    this.exposureScale = Number.isFinite(v) && v > 0 ? v / RENDER.exposure : 1;
+    this.applyExposure();
+  }
+
+  /** Dipanggil TimeOfDay tiap frame dengan exposure preset; Weather boleh mengalikan sesudahnya. */
+  setBaseExposure(base) {
+    this.baseExposure = base;
+    this.applyExposure();
+  }
+
+  applyExposure() {
+    this.renderer.toneMappingExposure = this.baseExposure * this.exposureScale;
+  }
+
+  /** Ubah pixel ratio render (resolusi internal) lalu sesuaikan semua target. */
+  setPixelRatio(ratio) {
+    const r = Number(ratio);
+    if (!Number.isFinite(r) || r <= 0) return;
+    this.renderer.setPixelRatio(r);
+    this.minimapTarget.setSize(Math.round(MINIMAP_SIZE * r), Math.round(MINIMAP_SIZE * r));
+    this.resize();
+  }
+
+  get pixelRatio() {
+    return this.renderer.getPixelRatio();
   }
 
   resize() {
@@ -88,11 +140,17 @@ export class App {
       const dt = Math.min(this.timer.getDelta(), MAX_DT);
       this.elapsed += dt;
       const ctx = makeContext(dt, this.elapsed);
+      this.lastCtx = ctx;
       for (const u of this.updatables) u.update(dt, ctx);
       this.render(ctx);
       this.frame += 1;
     };
     this.renderer.setAnimationLoop(loop);
+  }
+
+  /** Render satu frame tanpa memajukan simulasi (screenshot). */
+  renderFrame() {
+    this.render(this.lastCtx);
   }
 
   render(ctx) {

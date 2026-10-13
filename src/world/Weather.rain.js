@@ -140,7 +140,7 @@ function updateSplashes(sp, dt, intensity, center) {
 }
 
 /**
- * @returns {{ update(dt, intensity, camera, bikePos): void, group: THREE.Group }}
+ * @returns {{ update(dt, intensity, camera, bikePos): void, setWind(scale): void, group: THREE.Group }}
  */
 export function createRain(scene) {
   const group = new THREE.Group();
@@ -153,6 +153,11 @@ export function createRain(scene) {
 
   return {
     group,
+    /** Skala angin relatif WEATHER.wind (1 = default). */
+    setWind(scale) {
+      const k = Math.max(0, Number(scale) || 0);
+      drops.material.uniforms.uWind.value.set(WEATHER.wind.x * k, WEATHER.wind.z * k);
+    },
     update(dt, intensity, camera, bikePos) {
       const on = intensity > 0.001;
       drops.visible = on;

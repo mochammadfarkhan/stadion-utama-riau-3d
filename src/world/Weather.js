@@ -13,15 +13,21 @@ const RAIN_TURBIDITY_ADD = 4;      // langit lebih kabur saat hujan
 const AUDIO_GAIN = 0.18;
 const AUDIO_FILTER_HZ = 1400;
 const AUDIO_BUFFER_SECONDS = 2;
+const WIND_DEFAULT = 0.3;          // nilai settings weather.wind yang berarti angin = WEATHER.wind
 
-/** Suara hujan dari derau terfilter (Web Audio); dibuat setelah gesture pengguna. */
-function createRainAudio() {
+/**
+ * Suara hujan dari derau terfilter (Web Audio); dibuat setelah gesture pengguna.
+ * Bila audioBus ada, memakai konteks bersama dan kanal 'ambience' (volume dari settings).
+ */
+function createRainAudio(audioBus) {
   let ctx = null;
   let gain = null;
   const start = () => {
     const Ctor = window.AudioContext ?? window.webkitAudioContext;
-    if (ctx || !Ctor) return;
-    ctx = new Ctor();
+    if (ctx) return;
+    ctx = audioBus?.ensure?.() ?? (Ctor ? new Ctor() : null);
+    if (!ctx) return;
+    const out = audioBus?.channel?.('ambience') ?? ctx.destination;
     const frames = ctx.sampleRate * AUDIO_BUFFER_SECONDS;
     const buffer = ctx.createBuffer(1, frames, ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -39,7 +45,7 @@ function createRainAudio() {
     filter.frequency.value = AUDIO_FILTER_HZ;
     gain = ctx.createGain();
     gain.gain.value = 0;
-    src.connect(filter).connect(gain).connect(ctx.destination);
+    src.connect(filter).connect(gain).connect(out);
     src.start();
   };
   const onGesture = () => start();
@@ -62,14 +68,19 @@ function createRainAudio() {
  * @param {THREE.Scene} scene
  * @param {import('../core/App.js').App} app
  * @param {THREE.Group} lighting hasil createLighting
- * @returns {{update(dt, ctx):void, toggleRain():boolean, isRaining:boolean, intensity:number, weatherName:string}}
+ * @param {{audioBus?: object}} opts
+ * @returns {{update(dt, ctx):void, toggleRain():boolean, setRaining(b):void, setIntensity(v):void,
+ *   setWetness(v):void, setWind(v):void, setSoundEnabled(b):void,
+ *   isRaining:boolean, intensity:number, weatherName:string}}
  */
-export function createWeather(scene, app, lighting) {
+export function createWeather(scene, app, lighting, { audioBus = null } = {}) {
   const L = lighting.userData;
   const rain = createRain(scene);
   const wet = createWetSurfaces(scene);
-  const audio = createRainAudio();
-  let target = 0;
+  const audio = createRainAudio(audioBus);
+  let raining = false;
+  // Parameter settings (immutable; objek baru tiap perubahan).
+  let params = Object.freeze({ maxIntensity: 0.7, wetness: 1, soundEnabled: true });
   let intensity = 0;
 
   /** Kalikan nilai pencahayaan yang sudah ditulis TimeOfDay frame ini. */
@@ -84,26 +95,38 @@ export function createWeather(scene, app, lighting) {
     app.renderer.toneMappingExposure *= 1 - (1 - WEATHER.exposureScale) * k;
     const u = L.skyUniforms;
     u.turbidity.value += RAIN_TURBIDITY_ADD * k;
-    if (u.cloudCoverage) u.cloudCoverage.value = THREE.MathUtils.lerp(L.defaults.cloudCoverage, WEATHER.cloudCoverage, k);
+    // cloudCoverage dasar sudah ditulis TimeOfDay frame ini (override settings) -> lerap dari nilai itu
+    if (u.cloudCoverage) u.cloudCoverage.value = THREE.MathUtils.lerp(u.cloudCoverage.value, WEATHER.cloudCoverage, k);
     if (u.cloudDensity) u.cloudDensity.value = THREE.MathUtils.lerp(L.defaults.cloudDensity, WEATHER.cloudDensity, k);
   };
 
+  const setParams = (patch) => { params = Object.freeze({ ...params, ...patch }); };
+
   return {
-    get isRaining() { return target > 0; },
+    get isRaining() { return raining; },
     get intensity() { return intensity; },
-    get weatherName() { return target > 0 ? 'Hujan' : 'Cerah'; },
+    get weatherName() { return raining ? 'Hujan' : 'Cerah'; },
     toggleRain() {
-      target = target > 0 ? 0 : 1;
-      return target > 0;
+      raining = !raining;
+      return raining;
     },
+    setRaining(on) { raining = Boolean(on); },
+    /** Intensitas maksimum hujan 0..1 (settings weather.intensity). */
+    setIntensity(v) { setParams({ maxIntensity: THREE.MathUtils.clamp(Number(v) || 0, 0, 1) }); },
+    /** Skala efek permukaan basah 0..1 (settings weather.wetness). */
+    setWetness(v) { setParams({ wetness: THREE.MathUtils.clamp(Number(v) || 0, 0, 1) }); },
+    /** Angin 0..1; WIND_DEFAULT = angin konstanta WEATHER.wind. */
+    setWind(v) { rain.setWind(THREE.MathUtils.clamp(Number(v) || 0, 0, 1) / WIND_DEFAULT); },
+    setSoundEnabled(on) { setParams({ soundEnabled: Boolean(on) }); },
     update(dt, ctx) {
+      const target = raining ? params.maxIntensity : 0;
       const step = dt / WEATHER.transitionSeconds;
       intensity = THREE.MathUtils.clamp(intensity + Math.sign(target - intensity) * step, 0, 1);
       if (Math.abs(target - intensity) < step) intensity = target;
       applyAtmosphere(intensity);
       rain.update(dt, intensity, app.camera, ctx.bikePos);
-      wet.update(dt, intensity);
-      audio.setLevel(intensity);
+      wet.update(dt, intensity * params.wetness);
+      audio.setLevel(params.soundEnabled ? intensity : 0);
     },
   };
 }

@@ -3,6 +3,13 @@
  * hemisphere, kabut, Sky, exposure, env map, bintang, dan lampu malam tiap frame.
  * Nilai ditulis absolut setiap frame sehingga modul Weather (dijalankan sesudahnya)
  * boleh mengalikannya tanpa akumulasi.
+ *
+ * Override dari settings (diterapkan SETELAH preset, tiap frame):
+ * - haze          -> turbidity = preset.skyTurbidity + (haze - HAZE_DEFAULT), min 1 (offset)
+ * - cloudCover    -> cloudCoverage dasar (Weather melerapkannya ke nilai hujan)
+ * - fogDistance   -> fog.far = preset.fogFar * (fogDistance / FOG_DEFAULT), near proporsional (pengali)
+ * - exposure      -> App.baseExposure = preset.exposure; pengali disimpan lewat App.setExposure
+ * - azimuthOffset -> arah matahari diputar pada sumbu Y (derajat) sebelum dipakai
  */
 import * as THREE from 'three';
 import { DAY } from '../config/constants.js';
@@ -22,6 +29,9 @@ const STAR_RADIUS = 1800;
 const STAR_MIN_Y = 0.06;
 const STAR_SIZE = 2.2;
 const STAR_FADE_DEG = 8;           // bintang penuh saat matahari ≥ 8° di bawah horizon
+const HAZE_DEFAULT = 2.5;          // nilai haze settings yang berarti "sama dengan preset"
+const FOG_DEFAULT = 1100;          // nilai fogDistance settings yang berarti "sama dengan preset"
+const TURBIDITY_MIN = 1;
 
 const _sunDir = new THREE.Vector3();
 const _moonDir = directionFromAngles(MOON_ELEVATION_DEG, MOON_AZIMUTH_DEG);
@@ -52,7 +62,8 @@ function createStars(count) {
 /**
  * @param {THREE.Group} lightingGroup hasil createLighting (userData: sun, hemi, sky, ...)
  * @returns {{update(dt, ctx, bikeState?):void, setHour(h):void, nextPreset():string, toggleSpeed():boolean,
- *   hour:number, presetName:string, speed:number, preset:object}}
+ *   setSpeed(v):void, setAzimuthOffset(deg):void, setCloudCover(v):void, setHaze(v):void, setFogDistance(m):void,
+ *   hour:number, presetName:string, speed:number, preset:object, overrides:object}}
  */
 export function createTimeOfDay(lightingGroup, scene, renderer, app) {
   const L = lightingGroup.userData;
@@ -64,12 +75,18 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
   const stars = createStars(DAY.starCount);
   scene.add(stars);
   const night = createNightLights(scene);
+  // Override settings (lihat komentar modul); objek baru tiap perubahan (immutable).
+  let over = Object.freeze({ azimuthOffset: 0, cloudCover: L.defaults.cloudCoverage, haze: HAZE_DEFAULT, fogDistance: FOG_DEFAULT });
+  const setOverride = (patch) => {
+    over = Object.freeze({ ...over, ...patch });
+    lastDirHour = NaN; // paksa hitung ulang arah (azimut) pada frame berikutnya
+  };
 
   /** Arah cahaya: matahari di atas horizon, bulan tetap saat malam; Sky selalu ikut matahari. */
   const applyDirection = (sun) => {
     if (state.hour === lastDirHour) return;
     lastDirHour = state.hour;
-    directionFromAngles(sun.elevationDeg, sun.azimuthDeg, _sunDir);
+    directionFromAngles(sun.elevationDeg, sun.azimuthDeg + over.azimuthOffset, _sunDir);
     L.setSunDirection(sun.elevationDeg > 0 ? _sunDir : _moonDir);
     L.setSkyDirection(_sunDir);
   };
@@ -81,13 +98,16 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
     L.hemi.intensity = p.hemiIntensity;
     L.hemi.color.setHex(p.hemiSky);
     L.hemi.groundColor.setHex(p.hemiGround);
+    const fogScale = over.fogDistance / FOG_DEFAULT;
     scene.fog.color.setHex(p.fogColor);
-    scene.fog.near = p.fogNear;
-    scene.fog.far = p.fogFar;
+    scene.fog.near = p.fogNear * fogScale;
+    scene.fog.far = p.fogFar * fogScale;
     scene.background.setHex(p.fogColor);
-    renderer.toneMappingExposure = p.exposure;
-    L.skyUniforms.turbidity.value = p.skyTurbidity;
+    if (app.setBaseExposure) app.setBaseExposure(p.exposure);
+    else renderer.toneMappingExposure = p.exposure;
+    L.skyUniforms.turbidity.value = Math.max(TURBIDITY_MIN, p.skyTurbidity + (over.haze - HAZE_DEFAULT));
     L.skyUniforms.rayleigh.value = p.skyRayleigh;
+    if (L.skyUniforms.cloudCoverage) L.skyUniforms.cloudCoverage.value = over.cloudCover;
     scene.environmentIntensity = L.defaults.envIntensity * Math.max(ENV_MIN_FACTOR, Math.min(1, p.hemiIntensity));
   };
 
@@ -107,7 +127,7 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
     envTimer = 0;
     const u = L.envSky.material.uniforms;
     u.sunPosition.value.copy(L.skyUniforms.sunPosition.value);
-    u.turbidity.value = p.skyTurbidity;
+    u.turbidity.value = L.skyUniforms.turbidity.value;
     u.rayleigh.value = p.skyRayleigh;
     if (u.cloudCoverage) u.cloudCoverage.value = L.skyUniforms.cloudCoverage.value;
     L.rebuildEnvironment();
@@ -128,6 +148,16 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
       state = createDayState({ hour: state.hour, speed: state.speed > 0 ? 0 : DAY.timeSpeed });
       return state.speed > 0;
     },
+    /** Kecepatan jam (jam per detik nyata); 0 = berhenti. */
+    setSpeed(speed) {
+      state = createDayState({ hour: state.hour, speed: Math.max(0, Number(speed) || 0) });
+    },
+    /** Putar arah matahari pada sumbu Y (derajat) - override settings sky.azimuthOffset. */
+    setAzimuthOffset(deg) { setOverride({ azimuthOffset: Number(deg) || 0 }); },
+    setCloudCover(v) { setOverride({ cloudCover: THREE.MathUtils.clamp(Number(v) || 0, 0, 1) }); },
+    setHaze(v) { setOverride({ haze: Number.isFinite(Number(v)) ? Number(v) : HAZE_DEFAULT }); },
+    setFogDistance(m) { setOverride({ fogDistance: Number(m) > 0 ? Number(m) : FOG_DEFAULT }); },
+    get overrides() { return over; },
     update(dt, ctx, bikeState) {
       state = stepDay(state, dt);
       preset = lightingPreset(state.hour);

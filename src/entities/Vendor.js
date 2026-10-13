@@ -67,6 +67,7 @@ export class VendorGroup {
   promptVendor = null;
   #vendors = [];   // { sim, h, root, cartSlot, name, yaw }
   #labels = new Map(); // id → CSS2DObject
+  #labelsEnabled = true;
   #wallet;
 
   /**
@@ -119,7 +120,8 @@ export class VendorGroup {
     for (const e of this.#vendors) {
       const label = this.#labels.get(e.sim.id);
       if (!label) continue;
-      const visible = Boolean(bikePos) && Math.hypot(e.sim.pos.x - bikePos.x, e.sim.pos.z - bikePos.z) < LABEL_DISTANCE;
+      const near = Boolean(bikePos) && Math.hypot(e.sim.pos.x - bikePos.x, e.sim.pos.z - bikePos.z) < LABEL_DISTANCE;
+      const visible = this.#labelsEnabled && near;
       label.visible = visible;
       label.element.style.display = visible ? '' : 'none';
     }
@@ -190,6 +192,11 @@ export class VendorGroup {
     if (result.ok) this.#wallet = result.wallet;
     return result;
   }
+
+  /** Tampilkan/sembunyikan label nama pedagang (settings performance.labels). */
+  setLabelsEnabled(enabled) { this.#labelsEnabled = Boolean(enabled); }
+
+  get labelsEnabled() { return this.#labelsEnabled; }
 
   get wallet() { return this.#wallet; }
   get vendors() { return this.#vendors.map((e) => this.#info(e)); }

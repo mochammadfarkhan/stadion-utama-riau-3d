@@ -24,6 +24,8 @@ export class HUD {
     this._last = {};
     this._fpsAcc = 0;
     this._fpsFrames = 0;
+    this._fps = 0;
+    this._frameMs = 0;
     this.shopOpen = false;
     this.onBuy = null;
     this.el.shopList.addEventListener('click', (e) => this.#onShopClick(e));
@@ -60,14 +62,26 @@ export class HUD {
     this.el.prompt.classList.toggle('hidden', !text);
   }
 
+  /** Tampilkan/sembunyikan baris FPS (settings performance.showStats). */
+  setStatsVisible(visible) {
+    this.el.fps.classList.toggle('hidden', !visible);
+  }
+
   tickFps(dt) {
     this._fpsAcc += dt;
     this._fpsFrames += 1;
     if (this._fpsAcc < FPS_SAMPLE_INTERVAL) return;
-    this.#set('fps', `${Math.round(this._fpsFrames / this._fpsAcc)} fps`);
+    this._fps = Math.round(this._fpsFrames / this._fpsAcc);
+    this._frameMs = (this._fpsAcc / this._fpsFrames) * 1000;
+    this.#set('fps', `${this._fps} fps`);
     this._fpsAcc = 0;
     this._fpsFrames = 0;
   }
+
+  /** FPS rata-rata sampel terakhir (untuk Info panel Performa). */
+  get fps() { return this._fps ?? 0; }
+  get fpsText() { return `${this.fps} fps`; }
+  get frameMs() { return this._frameMs ?? 0; }
 
   /** @param {{name:string, items:{id:string,name:string,price:number}[]}} vendor */
   openShop(vendor) {

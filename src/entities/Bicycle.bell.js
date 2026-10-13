@@ -16,8 +16,8 @@ function getAudioCtor() {
   return globalThis.AudioContext ?? globalThis.webkitAudioContext ?? null;
 }
 
-/** Satu nada sinus pendek dengan decay eksponensial. */
-function playTone(ctx, { freq, at, dur }) {
+/** Satu nada sinus pendek dengan decay eksponensial; output ke node tujuan (bus atau destination). */
+function playTone(ctx, out, { freq, at, dur }) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   const t0 = ctx.currentTime + at;
@@ -25,34 +25,48 @@ function playTone(ctx, { freq, at, dur }) {
   osc.frequency.setValueAtTime(freq, t0);
   gain.gain.setValueAtTime(GAIN, t0);
   gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
-  osc.connect(gain).connect(ctx.destination);
+  osc.connect(gain).connect(out);
   osc.start(t0);
   osc.stop(t0 + dur + 0.02);
 }
 
 /**
- * @returns {{ring: () => boolean, dispose: () => void}} ring() mengembalikan
- *   true bila suara benar-benar dimainkan.
+ * @param {{audioBus?: import('../core/AudioBus.js').AudioBus}} opts bila ada, bel memakai
+ *   AudioContext bersama dan kanal 'bell' dari bus (volume diatur settings audio).
+ * @returns {{ring: () => boolean, dispose: () => void, setAudioBus: (bus) => void}}
+ *   ring() mengembalikan true bila suara benar-benar dimainkan.
  */
-export function createBell() {
+export function createBell({ audioBus = null } = {}) {
   const Ctor = getAudioCtor();
-  let ctx = null;
+  let bus = audioBus;
+  let ownCtx = null;
   let lastRing = -Infinity;
 
+  /** Konteks + node keluaran: dari bus bila tersedia, bila tidak buat sendiri. */
+  const resolveOutput = () => {
+    const busCtx = bus?.ensure?.();
+    if (busCtx) return { ctx: busCtx, out: bus.channel('bell') ?? busCtx.destination };
+    if (!Ctor) return null;
+    ownCtx ??= new Ctor();
+    return { ctx: ownCtx, out: ownCtx.destination };
+  };
+
   const ring = () => {
-    if (!Ctor) return false;
     try {
-      ctx ??= new Ctor();
+      const target = resolveOutput();
+      if (!target) return false;
+      const { ctx, out } = target;
       if (ctx.state === 'suspended') ctx.resume().catch(() => {});
       if (ctx.currentTime - lastRing < MIN_INTERVAL_S) return false;
       lastRing = ctx.currentTime;
-      for (const tone of TONES) playTone(ctx, tone);
+      for (const tone of TONES) playTone(ctx, out, tone);
       return true;
     } catch {
       return false; // audio tidak tersedia (mis. kebijakan autoplay); abaikan diam-diam
     }
   };
 
-  const dispose = () => { ctx?.close?.(); ctx = null; };
-  return { ring, dispose };
+  const setAudioBus = (b) => { bus = b ?? null; };
+  const dispose = () => { ownCtx?.close?.(); ownCtx = null; };
+  return { ring, dispose, setAudioBus };
 }

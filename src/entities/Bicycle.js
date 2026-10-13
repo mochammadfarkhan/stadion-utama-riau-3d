@@ -89,6 +89,9 @@ export class Bicycle {
   /** Bunyikan bel (Space). */
   ring() { return this.#bell.ring(); }
 
+  /** Arahkan bel ke AudioBus bersama (kanal 'bell'); null = konteks sendiri. */
+  setAudioBus(bus) { this.#bell.setAudioBus(bus); }
+
   get position() { return this.#posVec.set(this.state.x, 0, this.state.z); }
   get yaw() { return this.state.yaw; }
   get speedKmh() { return Math.abs(this.state.v) * 3.6; }
