@@ -1,0 +1,21 @@
+{
+  "name": "stadion-utama-riau-3d",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Simulator 3D Stadion Utama Riau (Pekanbaru) dengan Three.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "vite": "^8.3.4",
+    "vitest": "^5.0.4"
+  }
+}
