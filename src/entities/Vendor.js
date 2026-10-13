@@ -12,6 +12,7 @@ import { randomVendorOutfit } from './Humanoid.outfits.js';
 import { createFallbackCart } from './Vendor.cart.js';
 import { makeRng, isFiniteXZ, lerpAngle, clamp, HAS_DOM } from './util.js';
 
+const LABEL_DISTANCE = 45;
 export const PROMPT_DISTANCE = 3.5;   // meter; jarak munculnya prompt beli
 const CART_OFFSET_Z = 1.35;           // gerobak fallback di depan pedagang
 const REAL_CART_EXTRA_Z = 0.55;       // Cart.js lebih panjang (gagang 1 m): geser lagi ke depan
@@ -65,6 +66,7 @@ export class VendorGroup {
   /** Pedagang terdekat dalam jarak prompt (null bila tidak ada). */
   promptVendor = null;
   #vendors = [];   // { sim, h, root, cartSlot, name, yaw }
+  #labels = new Map(); // id → CSS2DObject
   #wallet;
 
   /**
@@ -105,7 +107,22 @@ export class VendorGroup {
       entry.cartSlot.clear();
       entry.cartSlot.add(cart);
     }).catch(() => {});
-    createLabel(name).then((label) => { if (label) entry.root.add(label); }).catch(() => {});
+    createLabel(name).then((label) => {
+      if (!label) return;
+      this.#labels.set(entry.sim.id, label); // entry dibuat ulang tiap frame, simpan di Map
+      entry.root.add(label);
+    }).catch(() => {});
+  }
+
+  /** Label hanya tampak bila sepeda cukup dekat (CSS2D tidak kena depth test). */
+  #updateLabels(bikePos) {
+    for (const e of this.#vendors) {
+      const label = this.#labels.get(e.sim.id);
+      if (!label) continue;
+      const visible = Boolean(bikePos) && Math.hypot(e.sim.pos.x - bikePos.x, e.sim.pos.z - bikePos.z) < LABEL_DISTANCE;
+      label.visible = visible;
+      label.element.style.display = visible ? '' : 'none';
+    }
   }
 
   #place(entry, time) {
@@ -129,6 +146,7 @@ export class VendorGroup {
     });
     for (const e of this.#vendors) this.#place(e, time);
     this.#updatePrompt(ctx.bikePos);
+    this.#updateLabels(ctx.bikePos);
   }
 
   #updatePrompt(bikePos) {
