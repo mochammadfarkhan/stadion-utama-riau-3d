@@ -1,10 +1,13 @@
 /**
  * Beton tribun: undakan per baris sebagai cincin elips terekstrusi,
  * digabung per tier (2 draw call) + concourse, parapet balkon, dinding belakang.
+ * Baris yang berada di volume terowongan gate utama (lihat tunnelLayout.js)
+ * dibangun sebagai cincin bercelah sehingga koridor kendaraan menembus tribun.
  */
 import * as THREE from 'three';
 import { COLORS } from '../../config/constants.js';
-import { ellipseRingExtrude, mergeFlat } from './ovalMath.js';
+import { ellipseRingExtrude, ellipseRingExtrudeGapped, mergeFlat } from './ovalMath.js';
+import { corridorGapsOnRing, isRowCut } from './tunnelLayout.js';
 import { BASE_A, BASE_B, ROW_DEPTH, CONCOURSE_W, UPPER_LIFT, CURVE_SEG } from './Tribune.layout.js';
 
 const SLAB_T = 0.4;        // tebal pelat concourse
@@ -15,9 +18,13 @@ const BACK_WALL_H = 2.5;
 const BACK_WALL_DROP = 6;  // dinding belakang turun di bawah baris terakhir
 const COLOR_UPPER = 0xaeaaa0;
 
-/** Satu undakan: cincin offset→offset+rowDepth, tinggi rise, dasar y. */
+/** Satu undakan: cincin offset→offset+rowDepth, tinggi rise, dasar y; bercelah bila kena terowongan. */
 function rowRing(offset, rise, y) {
-  return ellipseRingExtrude(BASE_A + offset, BASE_B + offset, ROW_DEPTH, rise, y, CURVE_SEG);
+  const a = BASE_A + offset;
+  const b = BASE_B + offset;
+  if (!isRowCut(y)) return ellipseRingExtrude(a, b, ROW_DEPTH, rise, y, CURVE_SEG);
+  const gaps = corridorGapsOnRing(a + ROW_DEPTH / 2, b + ROW_DEPTH / 2);
+  return ellipseRingExtrudeGapped(a, b, ROW_DEPTH, rise, y, gaps, CURVE_SEG);
 }
 
 function tierRows(tier) {

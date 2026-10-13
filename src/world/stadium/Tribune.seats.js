@@ -2,6 +2,7 @@
  * Kursi tribun: InstancedMesh per sektor (16) + 1 InstancedMesh VIP.
  * Penempatan merata lewat tabel panjang busur elips per baris; satu Object3D dummy.
  * Warna blok "pixel" dari palet dengan variasi pudar; sektor utara ~3% kursi hilang.
+ * Kursi yang jatuh di koridor terowongan gate utama (baris rendah) dilewati.
  */
 import * as THREE from 'three';
 import { STADIUM } from '../../config/constants.js';
@@ -11,6 +12,7 @@ import {
 import {
   BASE_A, BASE_B, ROW_DEPTH, SECTOR_COUNT, VOMITORY_W, WEST_THETA, sectorIndexOf,
 } from './Tribune.layout.js';
+import { GAP_HALF, arcInRanges, corridorArcRanges, isRowCut } from './tunnelLayout.js';
 
 export const DEFAULT_PALETTE = Object.freeze([0xf2b705, 0xe8711c, 0xd62828, 0x1f7a3a, 0x1d4e89]);
 export const SEAT_PITCH = 0.75;      // 0.5 m kursi + celah; menghasilkan ±38 rb kursi
@@ -59,18 +61,24 @@ function nearVomitory(arcs, s) {
   return arcs.some((b) => Math.abs(s - b) < VOMITORY_W / 2);
 }
 
+/** Rentang busur koridor terowongan pada baris ini (kosong bila baris di atas terowongan). */
+function tunnelRanges(table, rowBaseY) {
+  return isRowCut(rowBaseY) ? corridorArcRanges(table, GAP_HALF + SEAT_W / 2) : [];
+}
+
 /** Tempatkan satu baris kursi ke bucket sektor / VIP. */
 function placeRow(ctx, tier, tierIdx, row) {
   const offset = tier.offset0 + row * ROW_DEPTH + SEAT_INSET;
   const table = createEllipseArcTable(BASE_A + offset, BASE_B + offset);
   const arcs = vomitoryArcs(table);
+  const tunnels = tunnelRanges(table, tier.y0 + row * tier.rise);
   const sWest = ellipseArcAtAngle(table, WEST_THETA);
   const y = tier.y0 + (row + 1) * tier.rise;
   const vipRow = tierIdx === 0 && row >= VIP_ROWS.from && row <= VIP_ROWS.to;
   const n = Math.floor(table.total / ctx.pitch);
   for (let j = 0; j < n; j++) {
     const s = (j + 0.5) * ctx.pitch;
-    if (nearVomitory(arcs, s)) continue;
+    if (nearVomitory(arcs, s) || arcInRanges(tunnels, s, table.total)) continue;
     const theta = ellipseAngleAtArc(table, s);
     const sector = sectorIndexOf(theta);
     const isVip = vipRow && Math.abs(s - sWest) < VIP_HALF_ARC;

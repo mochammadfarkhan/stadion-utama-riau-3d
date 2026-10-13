@@ -106,6 +106,39 @@ export function ellipseRingExtrude(a, b, w, h, y0, segments = 96) {
   return g;
 }
 
+/** Satu potongan cincin (busur luar from→to ccw, busur dalam kembali) sebagai Shape. */
+function ringArcShape(a, b, w, from, to) {
+  const s = new THREE.Shape();
+  s.absellipse(0, 0, a + w, b + w, from, to, false, 0);
+  s.absellipse(0, 0, a, b, to, from, true, 0);
+  s.closePath();
+  return s;
+}
+
+/**
+ * Cincin elips seperti ellipseRingExtrude tetapi dengan celah sudut.
+ * `gaps` = [{thetaStart, thetaEnd}] dalam θ ruang dunia (x = a·cosθ, z = b·sinθ);
+ * dikonversi ke ruang shape (y_shape = −z ⇒ θ_shape = −θ_dunia).
+ */
+export function ellipseRingExtrudeGapped(a, b, w, h, y0, gaps, segments = 96) {
+  if (!gaps || gaps.length === 0) return ellipseRingExtrude(a, b, w, h, y0, segments);
+  const shapeGaps = gaps.map((g) => {
+    const start = ((-g.thetaEnd % TWO_PI) + TWO_PI) % TWO_PI;
+    return { start, end: start + (g.thetaEnd - g.thetaStart) };
+  }).sort((p, q) => p.start - q.start);
+  const shapes = shapeGaps.map((g, i) => {
+    const last = i === shapeGaps.length - 1;
+    const next = shapeGaps[last ? 0 : i + 1];
+    return ringArcShape(a, b, w, g.end, last ? next.start + TWO_PI : next.start);
+  });
+  const g = new THREE.ExtrudeGeometry(shapes, {
+    depth: h, bevelEnabled: false, curveSegments: segments, steps: 1,
+  });
+  g.rotateX(-Math.PI / 2);
+  g.translate(0, y0, 0);
+  return g;
+}
+
 /** Gabungkan geometri (dipaksa non-indexed agar kompatibel) menjadi satu. */
 export function mergeFlat(geoms) {
   const list = geoms.filter(Boolean).map((g) => (g.index ? g.toNonIndexed() : g));

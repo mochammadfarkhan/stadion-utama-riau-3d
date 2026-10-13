@@ -1,14 +1,19 @@
 /**
  * Pelengkap tribun: tangga vomitory per sektor, railing tepi depan tiap tier,
  * dan VIP box tribun barat (kanopi kaca + tiang + railing).
+ * Tangga/railing/tiang yang jatuh di koridor terowongan gate utama dilewati.
  */
 import * as THREE from 'three';
 import {
-  createEllipseArcTable, ellipseAngleAtArc, ellipsePoint, ellipseRingExtrude, mergeFlat,
+  createEllipseArcTable, ellipseAngleAtArc, ellipsePoint, ellipseRingExtrude, ellipseRingExtrudeGapped,
+  mergeFlat,
 } from './ovalMath.js';
 import {
   BASE_A, BASE_B, ROW_DEPTH, SECTOR_COUNT, VOMITORY_W, WEST_THETA, CURVE_SEG,
 } from './Tribune.layout.js';
+import {
+  GAP_HALF, arcInRanges, corridorArcRanges, corridorGapsOnRing, isRowCut, thetaInGaps,
+} from './tunnelLayout.js';
 
 const STAIR_COLOR = 0x9a968c;
 const RAIL_COLOR = 0x4a4f55;
@@ -32,7 +37,9 @@ export function createVomitoryStairs(layout) {
     for (let row = 0; row < tier.rows; row++) {
       const offset = tier.offset0 + row * ROW_DEPTH;
       const y = tier.y0 + row * tier.rise;
+      const gaps = stairGaps(offset, y);
       for (let k = 0; k < SECTOR_COUNT; k++) {
+        if (thetaInGaps(gaps, k * step)) continue;
         geoms.push(stairBox(dummy, offset + ROW_DEPTH * 0.25, y, k * step, tier.rise));
       }
     }
@@ -41,6 +48,12 @@ export function createVomitoryStairs(layout) {
   mesh.name = 'tanggaVomitory';
   mesh.receiveShadow = true;
   return mesh;
+}
+
+/** Celah koridor terowongan untuk tangga baris ini (dilebarkan selebar anak tangga). */
+function stairGaps(offset, y) {
+  if (!isRowCut(y)) return [];
+  return corridorGapsOnRing(BASE_A + offset, BASE_B + offset, GAP_HALF + VOMITORY_W);
 }
 
 function stairBox(dummy, offset, y, theta, rise) {
@@ -62,8 +75,8 @@ export function createRailings(layout) {
   const posts = [];
   for (const tier of layout.tiers) {
     const railY = tier.y0 + RAIL_H; // tier atas: setara puncak parapet balkon
-    rails.push(ellipseRingExtrude(BASE_A + tier.offset0 - RAIL_W, BASE_B + tier.offset0 - RAIL_W, RAIL_W, RAIL_W, railY, CURVE_SEG));
-    posts.push(...postTransforms(tier.offset0, railY - RAIL_H / 2));
+    rails.push(railRing(tier, railY));
+    posts.push(...postTransforms(tier.offset0, railY - RAIL_H / 2, isRowCut(tier.y0)));
   }
   group.add(new THREE.Mesh(mergeFlat(rails), new THREE.MeshLambertMaterial({ color: RAIL_COLOR })));
   const postGeom = new THREE.CylinderGeometry(POST_R, POST_R, RAIL_H, 6);
@@ -76,14 +89,25 @@ export function createRailings(layout) {
   return group;
 }
 
-function postTransforms(offset, yCenter) {
+/** Rel atas tier: cincin penuh, atau bercelah bila tier bawah dilalui terowongan. */
+function railRing(tier, railY) {
+  const a = BASE_A + tier.offset0 - RAIL_W;
+  const b = BASE_B + tier.offset0 - RAIL_W;
+  if (!isRowCut(tier.y0)) return ellipseRingExtrude(a, b, RAIL_W, RAIL_W, railY, CURVE_SEG);
+  return ellipseRingExtrudeGapped(a, b, RAIL_W, RAIL_W, railY, corridorGapsOnRing(a, b), CURVE_SEG);
+}
+
+function postTransforms(offset, yCenter, cut) {
   const a = BASE_A + offset;
   const b = BASE_B + offset;
   const table = createEllipseArcTable(a, b);
+  const ranges = cut ? corridorArcRanges(table, GAP_HALF + POST_R) : [];
   const n = Math.floor(table.total / POST_SPACING);
   const list = [];
   for (let i = 0; i < n; i++) {
-    const p = ellipsePoint(a, b, ellipseAngleAtArc(table, i * POST_SPACING));
+    const s = i * POST_SPACING;
+    if (arcInRanges(ranges, s, table.total)) continue;
+    const p = ellipsePoint(a, b, ellipseAngleAtArc(table, s));
     list.push(new THREE.Matrix4().makeTranslation(p.x, yCenter, p.z));
   }
   return list;
