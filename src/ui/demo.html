@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo Panel Pengaturan — Stadion Utama Riau</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, sans-serif; }
+      body {
+        background: radial-gradient(1200px 700px at 20% 10%, #1f6fb2 0%, #0d3b6b 45%, #06182e 100%);
+        color: #e8f1f8;
+      }
+      #hud { position: fixed; left: 16px; top: 16px; padding: 10px 14px; border-radius: 10px; background: rgba(10, 18, 28, 0.6); font-size: 13px; }
+      #demo-state { position: fixed; left: 16px; bottom: 16px; max-width: 420px; padding: 10px 14px; border-radius: 10px; background: rgba(10, 18, 28, 0.6); font: 11px/1.5 ui-monospace, monospace; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <div id="hud">HUD palsu — tekan <b>H</b> panel, <b>F1</b> bantuan, <b>P</b> mode foto</div>
+    <pre id="demo-state"></pre>
+    <script type="module" src="./demo.js"></script>
+  </body>
+</html>
