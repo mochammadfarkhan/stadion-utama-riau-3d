@@ -1,77 +1,96 @@
 import * as THREE from 'three';
-import { instancePart, localMatrix, groupFromParts, placeObject, colorizeInstances } from '../siteutil/instanceParts.js';
+import { instanceParts, localMatrix, groupFromParts, placeObject, colorizeInstances } from '../siteutil/instanceParts.js';
 import { createRandom } from '../siteutil/rng.js';
+import { roundedBox, mergeAll } from '../siteutil/rounded.js';
 
 /**
- * Kendaraan low-poly (box + silinder): mobil, motor, angkot hijau, bus Trans Metro.
- * Versi parkir memakai InstancedMesh per bagian dengan warna body acak.
+ * Kendaraan gaya cozy (proporsi mainan): mobil gemuk berkabin membulat & roda
+ * tebal, motor sederhana membulat, angkot hijau, bus Trans Metro.
+ * Versi parkir memakai InstancedMesh per material dengan warna body acak.
  */
 export const VEHICLE_COLORS = Object.freeze({
-  car: [0xd9d9d9, 0x1c1c1c, 0x8a8f94, 0xb22222, 0x1f4e9c, 0xf2f2f2, 0x6b4f2a],
-  moto: [0x1c1c1c, 0xc0392b, 0x2e86de, 0xf1c40f, 0x7f8c8d],
-  angkot: 0x1f8a3b,
-  transMetro: { body: 0x1e5aa8, stripe: 0xf4f4f4 },
-  glass: 0x1f2a36,
-  tire: 0x161616,
+  car: [0xf5f5f5, 0x455a64, 0x90a4ae, 0xef5350, 0x5c8dd6, 0xffd54f, 0x80cbc4],
+  moto: [0x37474f, 0xef5350, 0x42a5f5, 0xffee58, 0x9e9e9e],
+  angkot: 0x66bb6a,
+  transMetro: { body: 0x4a8fe0, stripe: 0xfafafa },
+  glass: 0x90caf9,
+  tire: 0x37474f,
 });
+const EDGE = Object.freeze({ body: 0.1, cabin: 0.16, small: 0.04, bus: 0.2 });
 
 const glassMat = new THREE.MeshLambertMaterial({ color: VEHICLE_COLORS.glass });
 const tireMat = new THREE.MeshLambertMaterial({ color: VEHICLE_COLORS.tire });
-const wheelGeo = new THREE.CylinderGeometry(0.33, 0.33, 0.22, 10).rotateX(Math.PI / 2);
-const motoWheelGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.1, 10).rotateX(Math.PI / 2);
 
-/** Part mobil penumpang (panjang di sumbu X). */
+/** Roda tebal: silinder + bola kecil sebagai velg, sumbu sepanjang Z. */
+function wheel(r, width) {
+  const tire = new THREE.CylinderGeometry(r, r, width, 12).rotateX(Math.PI / 2);
+  const hub = new THREE.SphereGeometry(r * 0.45, 6, 4).scale(1, 1, width * 1.3 / r);
+  return mergeAll([tire, hub]);
+}
+
+/** Gabungan beberapa roda pada posisi [x, z] (y = radius) jadi satu geometri. */
+function wheelSet(r, width, spots) {
+  return mergeAll(spots.map(([x, z]) => wheel(r, width).translate(x, r, z)));
+}
+
+const CAR_WHEELS = [[1.35, 0.92], [1.35, -0.92], [-1.35, 0.92], [-1.35, -0.92]];
+const carWheelGeo = wheelSet(0.38, 0.32, CAR_WHEELS);
+const busWheelGeo = wheelSet(0.55, 0.4, [[4.2, 1.25], [4.2, -1.25], [-3.6, 1.25], [-3.6, -1.25], [-2.4, 1.25], [-2.4, -1.25]]);
+
+/** Part mobil penumpang gemuk (panjang di sumbu X): body + kabin membulat, kaca, roda. */
 function carParts(bodyMat) {
-  const parts = [
-    { geometry: new THREE.BoxGeometry(4.2, 0.6, 1.8), material: bodyMat, matrix: localMatrix(0, 0.65, 0), castShadow: true, name: 'body' },
-    { geometry: new THREE.BoxGeometry(2.2, 0.6, 1.6), material: glassMat, matrix: localMatrix(-0.2, 1.25, 0), castShadow: true, name: 'kabin' },
-  ];
-  [[1.4, 0.9], [1.4, -0.9], [-1.4, 0.9], [-1.4, -0.9]].forEach(([x, z]) => parts.push({
-    geometry: wheelGeo, material: tireMat, matrix: localMatrix(x, 0.33, z), name: 'roda',
-  }));
-  return parts;
-}
-
-/** Part sepeda motor. */
-function motorcycleParts(bodyMat) {
+  const body = roundedBox(4.1, 0.75, 1.85, EDGE.body).clone().translate(0, 0.72, 0);
+  const cabin = roundedBox(2.3, 0.75, 1.65, EDGE.cabin).clone().translate(-0.2, 1.3, 0);
   return [
-    { geometry: new THREE.BoxGeometry(1.1, 0.3, 0.3), material: bodyMat, matrix: localMatrix(0, 0.62, 0), castShadow: true, name: 'body' },
-    { geometry: new THREE.BoxGeometry(0.65, 0.1, 0.32), material: tireMat, matrix: localMatrix(-0.15, 0.82, 0), name: 'jok' },
-    { geometry: new THREE.BoxGeometry(0.05, 0.05, 0.6), material: tireMat, matrix: localMatrix(0.55, 1.0, 0), name: 'stang' },
-    { geometry: new THREE.BoxGeometry(0.05, 0.5, 0.05), material: tireMat, matrix: localMatrix(0.6, 0.55, 0, 0, 0, -0.35), name: 'garpu' },
-    { geometry: motoWheelGeo, material: tireMat, matrix: localMatrix(0.7, 0.3, 0), name: 'rodaDepan' },
-    { geometry: motoWheelGeo, material: tireMat, matrix: localMatrix(-0.65, 0.3, 0), name: 'rodaBelakang' },
+    { geometry: mergeAll([body, cabin]), material: bodyMat, castShadow: true, name: 'body' },
+    { geometry: roundedBox(2.0, 0.42, 1.7, EDGE.cabin), material: glassMat, matrix: localMatrix(-0.2, 1.38, 0), name: 'kaca' },
+    { geometry: carWheelGeo, material: tireMat, name: 'roda' },
   ];
 }
 
-/** Part angkot (minibus hijau). */
+/** Part sepeda motor membulat: badan kapsul, jok, stang, roda tebal. */
+function motorcycleParts(bodyMat) {
+  const dark = mergeAll([
+    roundedBox(0.6, 0.12, 0.34, EDGE.small).clone().translate(-0.15, 0.86, 0),
+    new THREE.CapsuleGeometry(0.03, 0.56, 2, 6).rotateX(Math.PI / 2).translate(0.55, 1.02, 0),
+    new THREE.CapsuleGeometry(0.035, 0.42, 2, 6).rotateZ(-0.35).translate(0.6, 0.6, 0),
+    wheel(0.32, 0.14).translate(0.7, 0.32, 0),
+    wheel(0.32, 0.14).translate(-0.65, 0.32, 0),
+  ]);
+  return [
+    { geometry: new THREE.CapsuleGeometry(0.18, 0.75, 2, 8).rotateZ(Math.PI / 2).translate(0, 0.64, 0), material: bodyMat, castShadow: true, name: 'body' },
+    { geometry: dark, material: tireMat, name: 'rangka' },
+  ];
+}
+
+/** Part angkot (minibus hijau membulat). */
 function angkotParts() {
   const bodyMat = new THREE.MeshLambertMaterial({ color: VEHICLE_COLORS.angkot });
-  const parts = [
-    { geometry: new THREE.BoxGeometry(4.2, 1.7, 1.7), material: bodyMat, matrix: localMatrix(0, 1.2, 0), castShadow: true, name: 'body' },
-    { geometry: new THREE.BoxGeometry(3.4, 0.55, 1.74), material: glassMat, matrix: localMatrix(-0.2, 1.65, 0), name: 'jendela' },
-    { geometry: new THREE.BoxGeometry(0.1, 0.5, 1.5), material: glassMat, matrix: localMatrix(2.12, 1.65, 0), name: 'kacaDepan' },
+  const glass = mergeAll([
+    roundedBox(3.3, 0.6, 1.8, EDGE.small).clone().translate(-0.2, 1.75, 0),
+    roundedBox(0.16, 0.6, 1.5, EDGE.small).clone().translate(2.1, 1.75, 0),
+  ]);
+  return [
+    { geometry: roundedBox(4.2, 1.8, 1.75, EDGE.cabin), material: bodyMat, matrix: localMatrix(0, 1.3, 0), castShadow: true, name: 'body' },
+    { geometry: glass, material: glassMat, name: 'jendela' },
+    { geometry: carWheelGeo, material: tireMat, name: 'roda' },
   ];
-  [[1.4, 0.9], [1.4, -0.9], [-1.4, 0.9], [-1.4, -0.9]].forEach(([x, z]) => parts.push({
-    geometry: wheelGeo, material: tireMat, matrix: localMatrix(x, 0.33, z), name: 'roda',
-  }));
-  return parts;
 }
 
-/** Part bus Trans Metro Pekanbaru (biru-putih). */
+/** Part bus Trans Metro Pekanbaru (biru-putih, badan membulat, roda tebal). */
 function transMetroParts() {
   const bodyMat = new THREE.MeshLambertMaterial({ color: VEHICLE_COLORS.transMetro.body });
   const stripeMat = new THREE.MeshLambertMaterial({ color: VEHICLE_COLORS.transMetro.stripe });
-  const parts = [
-    { geometry: new THREE.BoxGeometry(11, 2.6, 2.5), material: bodyMat, matrix: localMatrix(0, 1.9, 0), castShadow: true, name: 'body' },
-    { geometry: new THREE.BoxGeometry(11.02, 0.7, 2.52), material: stripeMat, matrix: localMatrix(0, 1.1, 0), name: 'strip' },
-    { geometry: new THREE.BoxGeometry(10.2, 0.9, 2.54), material: glassMat, matrix: localMatrix(0, 2.5, 0), name: 'jendela' },
-    { geometry: new THREE.BoxGeometry(0.1, 1.6, 2.2), material: glassMat, matrix: localMatrix(5.52, 2.1, 0), name: 'kacaDepan' },
+  const glass = mergeAll([
+    roundedBox(10.2, 1.0, 2.6, EDGE.small).clone().translate(0, 2.65, 0),
+    roundedBox(0.16, 1.6, 2.2, EDGE.small).clone().translate(5.55, 2.2, 0),
+  ]);
+  return [
+    { geometry: roundedBox(11, 2.7, 2.55, EDGE.bus), material: bodyMat, matrix: localMatrix(0, 2.05, 0), castShadow: true, name: 'body' },
+    { geometry: roundedBox(11.04, 0.7, 2.6, EDGE.small), material: stripeMat, matrix: localMatrix(0, 1.2, 0), name: 'strip' },
+    { geometry: glass, material: glassMat, name: 'jendela' },
+    { geometry: busWheelGeo, material: tireMat, name: 'roda' },
   ];
-  [[4.2, 1.2], [4.2, -1.2], [-3.6, 1.2], [-3.6, -1.2], [-2.4, 1.2], [-2.4, -1.2]].forEach(([x, z]) => parts.push({
-    geometry: new THREE.CylinderGeometry(0.5, 0.5, 0.3, 12).rotateX(Math.PI / 2), material: tireMat, matrix: localMatrix(x, 0.5, z), name: 'roda',
-  }));
-  return parts;
 }
 
 /** Mobil tunggal. opts: { color, x, z, rotY } */
@@ -96,17 +115,13 @@ export function createTransMetroBus(opts = {}) {
   return placeObject(groupFromParts(transMetroParts(), 'busTransMetro'), opts);
 }
 
-/** Instanced per bagian; part 'body' diberi warna per-instance dari palet. */
+/** Instanced per material; mesh 'body' diberi warna per-instance dari palet. */
 function instancedVehicles(parts, positions, palette, seed, name) {
-  const g = new THREE.Group();
-  g.name = name;
+  const g = instanceParts(parts, positions, name);
   if (!positions.length) return g;
   const rnd = createRandom(seed);
-  parts.forEach((p) => {
-    const mesh = instancePart(p, positions);
-    if (p.name === 'body') colorizeInstances(mesh, palette, rnd);
-    g.add(mesh);
-  });
+  const body = g.children.find((m) => m.isInstancedMesh && m.name.includes('body'));
+  if (body) colorizeInstances(body, palette, rnd);
   g.userData.count = positions.length;
   return g;
 }

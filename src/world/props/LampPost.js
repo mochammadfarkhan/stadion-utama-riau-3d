@@ -1,20 +1,29 @@
 import * as THREE from 'three';
 import { instanceParts, localMatrix, placeObject, groupFromParts } from '../siteutil/instanceParts.js';
+import { chubbyCylinder, dome, mergeAll } from '../siteutil/rounded.js';
 
 /**
- * Tiang PJU 9 m: tiang galvanis, lengan lengkung, rumah lampu + bohlam emissive.
+ * Tiang PJU 9 m gaya cozy: tiang silinder gemuk, pondasi membulat, lengan bulat,
+ * kepala lampu kubah + bohlam emissive membulat.
  * opts: { double: dua lengan, broken: lampu hilang (dicuri) }.
  */
 export const LAMP_POST = Object.freeze({
-  height: 9, radius: 0.1, baseH: 0.5, armLen: 1.8, armDrop: 0.4, headLen: 0.7,
-  colors: { tiang: 0x8e949a, rumah: 0x3b3f44, bohlam: 0xfff2c2 },
+  height: 9, radius: 0.13, baseH: 0.5, armLen: 1.8, armDrop: 0.4, headR: 0.38,
+  colors: { tiang: 0xb0bec5, rumah: 0x546e7a, bohlam: 0xfff3c4 },
 });
 
-const poleGeo = new THREE.CylinderGeometry(LAMP_POST.radius * 0.7, LAMP_POST.radius, LAMP_POST.height, 8).translate(0, LAMP_POST.height / 2, 0);
-const baseGeo = new THREE.CylinderGeometry(0.25, 0.3, LAMP_POST.baseH, 8).translate(0, LAMP_POST.baseH / 2, 0);
-const armGeo = new THREE.CylinderGeometry(0.05, 0.06, LAMP_POST.armLen, 6).rotateZ(Math.PI / 2);
-const headGeo = new THREE.BoxGeometry(LAMP_POST.headLen, 0.16, 0.3);
-const bulbGeo = new THREE.BoxGeometry(LAMP_POST.headLen * 0.8, 0.04, 0.22);
+/** Tiang + bola kecil di ujung agar sambungan lengan terlihat membulat. */
+function poleGeometry() {
+  const pole = new THREE.CylinderGeometry(LAMP_POST.radius * 0.7, LAMP_POST.radius, LAMP_POST.height, 8).translate(0, LAMP_POST.height / 2, 0);
+  const cap = new THREE.SphereGeometry(LAMP_POST.radius * 0.95, 8, 5).translate(0, LAMP_POST.height, 0);
+  return mergeAll([pole, cap]);
+}
+
+const poleGeo = poleGeometry();
+const baseGeo = chubbyCylinder(0.26, 0.32, LAMP_POST.baseH, 10).translate(0, LAMP_POST.baseH / 2, 0);
+const armGeo = new THREE.CapsuleGeometry(0.06, LAMP_POST.armLen - 0.12, 2, 6).rotateZ(Math.PI / 2);
+const headGeo = dome(LAMP_POST.headR, 0.55, 10).rotateX(Math.PI).translate(0, 0.21, 0); // kubah menghadap ke bawah
+const bulbGeo = new THREE.SphereGeometry(LAMP_POST.headR * 0.62, 8, 5).scale(1, 0.45, 1);
 const poleMat = new THREE.MeshLambertMaterial({ color: LAMP_POST.colors.tiang });
 const headMat = new THREE.MeshLambertMaterial({ color: LAMP_POST.colors.rumah });
 const bulbMat = new THREE.MeshStandardMaterial({ color: LAMP_POST.colors.bohlam, emissive: LAMP_POST.colors.bohlam, emissiveIntensity: 1.2 });
@@ -29,7 +38,7 @@ function headMatrix(s) {
 }
 
 function bulbMatrix(s) {
-  return localMatrix(s * (LAMP_POST.armLen - 0.1), LAMP_POST.height - LAMP_POST.armDrop + 0.11, 0);
+  return localMatrix(s * (LAMP_POST.armLen - 0.1), LAMP_POST.height - LAMP_POST.armDrop + 0.14, 0);
 }
 
 /** Part tiang + lengan sesuai konfigurasi (tanpa kepala lampu). */
@@ -42,7 +51,7 @@ function structureParts(double) {
   ];
 }
 
-/** Part kepala lampu (rumah + bohlam) untuk sisi tertentu. */
+/** Part kepala lampu (rumah kubah + bohlam) untuk sisi tertentu. */
 function lampParts(double) {
   const sides = double ? [1, -1] : [1];
   return sides.flatMap((s) => [
