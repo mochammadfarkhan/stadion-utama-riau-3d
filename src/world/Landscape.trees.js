@@ -5,6 +5,7 @@ import { instanceParts, localMatrix, colorizeInstances } from './siteutil/instan
 import { blobCluster, mergeAll } from './siteutil/rounded.js';
 import { distributeOnEllipse } from './siteutil/ellipseGeo.js';
 import { isFreeForBigTree, isFreeInPlazaBelt } from './Landscape.zones.js';
+import { applyWind, createWindDepthMaterial } from './shaders/wind.js';
 
 /**
  * Vegetasi prosedural gaya "cozy stylized": tajuk = gabungan 5-9 bola low-poly
@@ -29,11 +30,24 @@ const GRASS_CLUMP = Object.freeze({ clusters: 6, perCluster: 120, radius: 28 });
 const PALM = Object.freeze({ leaves: 7, len: 3.4, width: 0.55, lift: 0.55, droop: 0.95 });
 const GRASS_BLADES = 5;
 
+/**
+ * Parameter angin per jenis vegetasi (koordinat lokal geometri; tajuk berpusat di origin
+ * sehingga rentang tinggi memakai ±radius). Batang/ajir memakai material tanpa angin → diam.
+ */
+const WIND = Object.freeze({
+  bigCrown: { weightMode: 'height', heightMin: -4, heightMax: 4, weightMin: 0.2, amplitude: 1 },
+  youngCrown: { weightMode: 'height', heightMin: -0.7, heightMax: 0.7, weightMin: 0.3, amplitude: 0.15 },
+  shrub: { weightMode: 'height', heightMin: 0, heightMax: 1.3, amplitude: 0.12 },
+  grass: { weightMode: 'height', heightMin: 0.1, heightMax: 1.4, amplitude: 0.35 },
+});
+
 const trunkMat = new THREE.MeshLambertMaterial({ color: 0x8d6e63 });
 const stakeMat = new THREE.MeshLambertMaterial({ color: 0xd7b98e });
-const leafMat = new THREE.MeshLambertMaterial({ color: 0xffffff }); // warna via instanceColor
-const shrubMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
-const grassMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+const leafMat = applyWind(new THREE.MeshLambertMaterial({ color: 0xffffff }), WIND.bigCrown); // warna via instanceColor
+const leafDepthMat = createWindDepthMaterial(WIND.bigCrown); // bayangan tajuk besar ikut bergoyang
+const youngLeafMat = applyWind(new THREE.MeshLambertMaterial({ color: 0xffffff }), WIND.youngCrown);
+const shrubMat = applyWind(new THREE.MeshLambertMaterial({ color: 0xffffff }), WIND.shrub);
+const grassMat = applyWind(new THREE.MeshLambertMaterial({ color: 0xffffff }), WIND.grass);
 
 /** Satu pelepah palem: dua kapsul pipih (pangkal naik, ujung menjuntai) pada sudut a. */
 function palmLeaf(a) {
@@ -130,6 +144,13 @@ function colorizeNamed(group, prefix, palette, rnd) {
   return group;
 }
 
+/** Pasang material kedalaman berangin pada tajuk pohon besar agar bayangannya ikut bergoyang. */
+function attachCrownShadow(group) {
+  const crown = group.children.find((m) => m.isInstancedMesh && m.material === leafMat);
+  if (crown) crown.customDepthMaterial = leafDepthMat;
+  return group;
+}
+
 /** Semua pohon besar (sekitar 400) sebagai InstancedMesh per jenis (batang + tajuk). */
 export function createBigTrees(seed = 11) {
   const rnd = createRandom(seed);
@@ -140,7 +161,7 @@ export function createBigTrees(seed = 11) {
   g.name = 'pohonBesar';
   Object.keys(TREE_TYPES).forEach((type) => {
     const spots = [...random[type], ...ringSplit[type], ...(type === 'palem' ? road.naga : [])];
-    g.add(colorizeNamed(instanceParts(treeParts(type), spots, `pohon-${type}`), 'tajuk', LEAF_PALETTE, rnd));
+    g.add(attachCrownShadow(colorizeNamed(instanceParts(treeParts(type), spots, `pohon-${type}`), 'tajuk', LEAF_PALETTE, rnd)));
   });
   g.userData.count = Object.values(random).flat().length + road.ring.length + road.naga.length;
   return g;
@@ -182,7 +203,7 @@ export function createYoungTrees(seed = 23) {
   const crown = blobCluster({ count: 3, radius: 0.7, spread: 0.55, flat: 1.1, vertical: 0.3 }, createRandom(seed + 500));
   const parts = [
     { geometry: trunkGeometry(0.09, 2.0, 6), material: trunkMat, name: 'batangMuda' },
-    { geometry: crown, material: leafMat, matrix: localMatrix(0, 2.45, 0), name: 'tajukMuda' },
+    { geometry: crown, material: youngLeafMat, matrix: localMatrix(0, 2.45, 0), name: 'tajukMuda' },
     ...stakeParts(),
   ];
   const g = colorizeNamed(instanceParts(parts, spots, 'pohonMuda'), 'tajuk', LEAF_PALETTE, rnd);

@@ -222,3 +222,27 @@ export const WEATHER = Object.freeze({
   wetDarken: 0.8,
   puddleCount: 14,
 });
+
+// Rumput bilah instanced mengikuti pemain (world/Grass.js)
+export const GRASS = Object.freeze({
+  count: 24000,            // pool bilah (3 bilah per rumpun → 8000 instance)
+  bladesPerClump: 3,
+  cellSize: 8,             // sisi sel grid (m)
+  radius: 60,              // jarak maksimum bilah dari fokus (m)
+  fadeStart: 40,           // mulai memudar (skala bilah → 0 di radius)
+  moveThreshold: 4,        // fokus berpindah > ini → hitung ulang sel keluar/masuk (m)
+  clumpsPerCell: 36,       // rumpun per sel 8×8 m (±1 rumpun / 1,8 m²)
+  heightMin: 0.25,
+  heightMax: 0.45,
+  bladeWidth: 0.07,        // lebar pangkal bilah (m)
+  clumpSpread: 0.12,       // jarak bilah dari pusat rumpun (m)
+  bendMin: 0.05,           // lengkung ujung bilah (m)
+  bendMax: 0.14,
+  windScale: 0.22,         // pengali windOffset (angin pohon terlalu besar untuk bilah 0,4 m)
+  flutter: 0.015,          // getar halus per rumpun (m)
+  colorBase: 0x5e8a36,     // pangkal (lebih gelap dari COLORS.grass 0xa8d26b)
+  colorTip: 0x9fcb5c,      // ujung (lebih terang, selaras grassStripe)
+  tintVariance: 0.12,      // variasi warna per rumpun (±)
+  envAmbient: 0.9,         // perkiraan kontribusi env map pada rumput (setara LDR)
+  lightPad: 0.08,          // radiansi minimum agar tidak hitam pekat saat malam
+});

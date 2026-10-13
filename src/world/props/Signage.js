@@ -8,6 +8,7 @@ import {
 } from 'three';
 import { Materials } from '../materials.js';
 import { createTextTexture } from './canvasText.js';
+import { applyWind } from '../shaders/wind.js';
 
 const TEX_WIDTH_PX = 1024;
 const BILLBOARD = Object.freeze({
@@ -22,6 +23,8 @@ const SIGN_KINDS = Object.freeze({
 });
 const POLE_RADIUS = 0.04;
 const BANNER_SEGMENTS = 16;
+/** Angin spanduk: kedua ujung terpancang di tiang (uvArc → tengah bergelombang), kibaran kecil. */
+const BANNER_WIND = Object.freeze({ weightMode: 'uvArc', amplitude: 0.08, flutter: 0.04 });
 
 /** Material plane teks: bertekstur bila ada document, kalau tidak warna bg polos. */
 function createSignMaterial({ text, width, height, bg, fg, border, doubleSided }) {
@@ -90,7 +93,8 @@ function createSaggedPlane(width, height, sag) {
 export function createBanner({ text = '', width = 8, height = 1.2, bg = 0xc8102e, fg = 0xffffff, poleHeight = 2.6, sag = 0.25 } = {}) {
   const group = new Group();
   group.name = `banner:${text}`;
-  const cloth = new Mesh(createSaggedPlane(width, height, sag), createSignMaterial({ text, width, height, bg, fg, border: null, doubleSided: true }));
+  const clothMat = applyWind(createSignMaterial({ text, width, height, bg, fg, border: null, doubleSided: true }), BANNER_WIND);
+  const cloth = new Mesh(createSaggedPlane(width, height, sag), clothMat);
   cloth.position.y = poleHeight - height / 2;
   cloth.name = 'cloth';
   const poleGeom = new CylinderGeometry(POLE_RADIUS, POLE_RADIUS, poleHeight, 8);

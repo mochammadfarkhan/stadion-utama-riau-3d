@@ -12,6 +12,7 @@ import { Materials } from '../materials.js';
 import { instancedFromMatrices } from '../util/instancing.js';
 import { createRng } from '../util/random.js';
 import { createEllipse } from '../stadium/ovalFrame.js';
+import { applyWind } from '../shaders/wind.js';
 
 const POLE_HEIGHT = 12;
 const POLE_R_TOP = 0.07;
@@ -24,6 +25,8 @@ const TILT_CHANCE = 0.2;
 const TILT_MAX = 0.06;
 const WIND_YAW = 0.6;
 const DEFAULT_OFFSET = 30; // jarak elips tiang dari tepi luar stadion
+/** Angin bendera: geometri tanpa uv → bobot dari x lokal (x=0 menempel tiang → diam, x=W ujung bebas). */
+const FLAG_WIND = Object.freeze({ weightMode: 'localX', xMin: 0, xMax: FLAG_W, amplitude: 0.25, flutter: 0.08 });
 
 export const FLAG_INDONESIA = Object.freeze([0xd62828, 0xffffff]);
 export const FLAG_RIAU = Object.freeze([0x1f7a3a, 0xf2c200, 0xd62828]);
@@ -117,7 +120,7 @@ export function createFlagpoles({
   group.add(poleMesh);
   group.add(instancedFromMatrices(new BoxGeometry(FOOTING.w, FOOTING.h, FOOTING.w), Materials.concrete(), footingMatrices(poles), 'footings'));
   group.add(instancedFromMatrices(new SphereGeometry(0.15, 8, 6), Materials.gold(), finialMatrices(poles, height), 'finials'));
-  const flagMat = new MeshLambertMaterial({ vertexColors: true, side: DoubleSide });
+  const flagMat = applyWind(new MeshLambertMaterial({ vertexColors: true, side: DoubleSide }), FLAG_WIND);
   group.add(instancedFromMatrices(buildStripedFlagGeometry(FLAG_INDONESIA), flagMat, flagMatrices(poles, height, flagEvery, 0), 'flags-indonesia'));
   group.add(instancedFromMatrices(buildStripedFlagGeometry(FLAG_RIAU), flagMat, flagMatrices(poles, height, flagEvery, 1), 'flags-riau'));
   group.userData = { count, semiX, semiZ, height };

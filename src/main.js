@@ -9,6 +9,7 @@ import { createTimeOfDay } from './world/TimeOfDay.js';
 import { createWeather } from './world/Weather.js';
 import { formatHour, nextPresetAfter, PRESET_HOURS } from './sim/dayCycle.js';
 import { buildWorld } from './world/index.js';
+import { updateWind } from './world/shaders/windState.js';
 import { buildEntities } from './entities/index.js';
 import { HUD } from './ui/HUD.js';
 import { createWallet } from './sim/vendorSim.js';
@@ -41,7 +42,7 @@ function main() {
 
   const world = buildWorld();
   app.scene.add(world.group);
-  app.addUpdatable({ update: (dt, ctx) => world.update(dt, ctx.time) });
+  app.addUpdatable({ update: (dt, ctx) => { updateWind(dt); world.update(dt, ctx.time, ctx.bikePos); } }); // angin global tiap frame
 
   const wallet = createWallet();
   const ents = buildEntities({ start: START_POS, world, wallet });

@@ -3,6 +3,7 @@
  * store -> weather.setRaining, dan sinkronisasi balik bila modul lain
  * memanggil weather.toggleRain() langsung (diperiksa tiap frame, tanpa alokasi).
  */
+import { setWindStrength } from '../../world/shaders/windState.js';
 
 /**
  * @param {object} store
@@ -18,7 +19,7 @@ export function bindWeather(store, { weather, app = null }) {
   });
   on('weather.intensity', (v) => weather.setIntensity(v));
   on('weather.wetness', (v) => weather.setWetness(v));
-  on('weather.wind', (v) => weather.setWind(v));
+  on('weather.wind', (v) => { weather.setWind(v); setWindStrength(v); }); // hujan miring + shader angin
   on('weather.sound', (v) => weather.setSoundEnabled(v));
 
   // Tulis-balik: bila state hujan diubah di luar store (mis. toggleRain lama), samakan store.

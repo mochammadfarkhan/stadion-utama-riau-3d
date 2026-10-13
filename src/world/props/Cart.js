@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { makeTextMaterial } from '../siteutil/textCanvas.js';
 import { groupFromParts, localMatrix, placeObject } from '../siteutil/instanceParts.js';
 import { roundedBox, mergeAll } from '../siteutil/rounded.js';
+import { applyWind } from '../shaders/wind.js';
 
 /**
  * Gerobak PKL gaya cozy (badan membulat, roda tebal, atap sedikit melengkung),
@@ -22,6 +23,11 @@ const zincMat = new THREE.MeshLambertMaterial({ color: CART.colors.seng, side: T
 const glassMat = new THREE.MeshStandardMaterial({ color: CART.colors.kaca, transparent: true, opacity: 0.3, roughness: 0.1 });
 const wheelMat = new THREE.MeshLambertMaterial({ color: CART.colors.roda });
 const whiteMat = new THREE.MeshLambertMaterial({ color: 0xfafafa });
+/** Kubah payung: satu material bersama (vertex color) + goyangan konstan kecil. */
+const canopyMat = applyWind(
+  new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }),
+  { weightMode: 'constant', weight: 0.3, amplitude: 0.12 },
+);
 const thermosMat = new THREE.MeshLambertMaterial({ color: 0x5c8dd6 });
 const stallMats = Object.freeze({
   table: new THREE.MeshLambertMaterial({ color: FOOD_STALL.colors.meja }),
@@ -128,7 +134,7 @@ function umbrellaCanopy() {
     for (let k = 0; k < 3; k += 1) colors.push(c.r, c.g, c.b);
   }
   geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  return new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+  return new THREE.Mesh(geo, canopyMat);
 }
 
 /** Kursi plastik membulat: dudukan tebal, sandaran, 4 kaki bulat. */

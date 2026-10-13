@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { RENDER_LAYERS, STADIUM } from '../config/constants.js';
 import { createGround } from './Ground.js';
 import { createLandscape } from './Landscape.js';
+import { createGrass } from './Grass.js';
 import { createShell } from './stadium/Shell.js';
 import { createFacade } from './stadium/Facade.js';
 import { createTribune } from './stadium/Tribune.js';
@@ -55,6 +56,7 @@ export function buildWorld() {
   const lots = collectParkingLots(ground);
   add(ground, { minimap: true });
   add(withMinimapParts(createLandscape(), MINIMAP_LANDSCAPE_PARTS));
+  add(createGrass(), { merge: false });
   add(withMinimapParts(createShell(), MINIMAP_SHELL_PARTS));
   add(createFacade());
   const tribune = add(withMinimapParts(createTribune(), MINIMAP_TRIBUNE_PARTS), { merge: false });
@@ -72,7 +74,7 @@ export function buildWorld() {
     group,
     seatSamples,
     layout: LAYOUT,
-    update: (dt, t) => updatables.forEach((fn) => fn(dt, t)),
+    update: (dt, t, focus) => updatables.forEach((fn) => fn(dt, t, focus)),
   };
 }
 
