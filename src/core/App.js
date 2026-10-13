@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
 import { RENDER, RENDER_LAYERS } from '../config/constants.js';
+import { DepthRenderPass, OutlinePass } from './postprocessing/OutlinePass.js';
 
 const MAX_DT = 0.05;
 const MAX_PIXEL_RATIO = RENDER.pixelRatio;
@@ -24,7 +24,7 @@ const MINIMAP_MARKER_COLOR = 0xe53935;
 /**
  * App: renderer, scene, kamera utama, post-processing, minimap, loop waktu.
  * Modul lain mendaftar lewat addUpdatable({ update(dt, ctx) }).
- * Render utama lewat EffectComposer (RenderPass -> GTAO -> Vignette -> OutputPass;
+ * Render utama lewat EffectComposer (RenderPass -> GTAO -> Outline -> Vignette -> OutputPass;
  * tone mapping + sRGB hanya di OutputPass), lalu label CSS2D, lalu minimap.
  * Minimap hanya merender objek di RENDER_LAYERS.minimap, ke render target
  * tiap MINIMAP_INTERVAL frame, lalu di-blit ke pojok layar setiap frame.
@@ -87,6 +87,16 @@ export class App {
     return this.post.vignettePass.enabled;
   }
 
+  /** Aktif/nonaktifkan garis tepi tipis (outline screen-space). */
+  setOutline(enabled) {
+    this.post.outlinePass.enabled = Boolean(enabled);
+    return this.post.outlinePass.enabled;
+  }
+
+  get outlineEnabled() {
+    return this.post.outlinePass.enabled;
+  }
+
   /**
    * Exposure = baseExposure (preset TimeOfDay) × exposureScale (settings).
    * setExposure(v) menerima nilai absolut dari settings; pengali = v / RENDER.exposure,
@@ -113,6 +123,7 @@ export class App {
     const r = Number(ratio);
     if (!Number.isFinite(r) || r <= 0) return;
     this.renderer.setPixelRatio(r);
+    this.post.composer.setPixelRatio(r); // resize() di bawah memakai rasio baru
     this.minimapTarget.setSize(Math.round(MINIMAP_SIZE * r), Math.round(MINIMAP_SIZE * r));
     this.resize();
   }
@@ -122,13 +133,15 @@ export class App {
   }
 
   resize() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+    // min 1 px: jendela tersembunyi (0×0) tidak boleh membuat target/depthTexture berukuran nol
+    const w = Math.max(1, window.innerWidth);
+    const h = Math.max(1, window.innerHeight);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
-    this.post.composer.setSize(w, h); // meneruskan ukuran efektif ke semua pass
-    const pr = this.renderer.getPixelRatio(); // GTAO dihitung pada resolusi lebih rendah (RENDER.aoScale)
+    const pr = this.renderer.getPixelRatio();
+    this.post.outlinePass.setPixelRatio(pr);
+    this.post.composer.setSize(w, h); // ukuran efektif (+ depthTexture) ke semua target & pass // GTAO dihitung pada resolusi lebih rendah (RENDER.aoScale)
     this.post.gtaoPass.setSize(Math.round(w * pr * RENDER.aoScale), Math.round(h * pr * RENDER.aoScale));
     this.labelRenderer.setSize(w, h);
   }
@@ -209,21 +222,51 @@ function createRenderer() {
 }
 
 /**
- * Rantai post-processing: RenderPass -> GTAOPass (AO halus) -> Vignette -> OutputPass.
- * @returns {{composer: EffectComposer, gtaoPass: GTAOPass, vignettePass: ShaderPass}}
+ * Rantai post-processing: RenderPass -> GTAOPass (AO halus) -> Outline -> Vignette -> OutputPass.
+ * Target composer memakai DepthTexture agar OutlinePass dapat membaca kedalaman adegan.
+ * @returns {{composer: EffectComposer, gtaoPass: GTAOPass, outlinePass: OutlinePass, vignettePass: ShaderPass}}
  */
 function createComposer(renderer, scene, camera) {
-  const composer = new EffectComposer(renderer);
-  composer.addPass(new RenderPass(scene, camera));
+  const composer = new EffectComposer(renderer, createComposerTarget(renderer));
+  const scenePass = new DepthRenderPass(scene, camera);
+  composer.addPass(scenePass);
   const gtaoPass = createGtaoPass(scene, camera);
   composer.addPass(gtaoPass);
+  const outlinePass = createOutlinePass(camera, scenePass, renderer.getPixelRatio());
+  composer.addPass(outlinePass);
   const vignettePass = new ShaderPass(VignetteShader);
   vignettePass.uniforms.offset.value = RENDER.vignetteOffset;
   vignettePass.uniforms.darkness.value = RENDER.vignetteDarkness;
   vignettePass.enabled = RENDER.vignette;
   composer.addPass(vignettePass);
   composer.addPass(new OutputPass());
-  return { composer, gtaoPass, vignettePass };
+  return { composer, gtaoPass, outlinePass, vignettePass };
+}
+
+/** Render target HDR composer + DepthTexture (ukuran fisik; diperbarui composer.setSize). */
+function createComposerTarget(renderer) {
+  const pr = renderer.getPixelRatio();
+  const w = Math.max(1, Math.round(window.innerWidth * pr));
+  const h = Math.max(1, Math.round(window.innerHeight * pr));
+  const target = new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType, depthTexture: new THREE.DepthTexture(w, h) });
+  target.texture.name = 'EffectComposer.rt1';
+  return target;
+}
+
+/** Garis tepi tipis gelap (parameter dari RENDER). */
+function createOutlinePass(camera, scenePass, pixelRatio) {
+  const pass = new OutlinePass(camera, scenePass, {
+    color: RENDER.outlineColor,
+    intensity: RENDER.outlineIntensity,
+    thickness: RENDER.outlineThickness,
+    fadeStart: RENDER.outlineFadeStart,
+    fadeEnd: RENDER.outlineFadeEnd,
+    threshold: RENDER.outlineThreshold,
+    softness: RENDER.outlineSoftness,
+  });
+  pass.setPixelRatio(pixelRatio);
+  pass.enabled = RENDER.outline;
+  return pass;
 }
 
 /** GTAO dengan radius skala dunia (meter) dan blend lembut. */

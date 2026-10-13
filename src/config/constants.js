@@ -126,6 +126,14 @@ export const RENDER = Object.freeze({
   aoScale: 0.5,           // resolusi buffer AO relatif terhadap layar (hemat GPU; AO tetap halus)
   vignetteOffset: 0.9,    // VignetteShader: jangkauan dari pusat
   vignetteDarkness: 1.0,  // VignetteShader: 1 = sudut menuju hitam (tipis karena offset < 1)
+  outline: true,          // garis tepi tipis screen-space (core/postprocessing/OutlinePass.js)
+  outlineColor: 0x1b2a33, // biru-arang gelap (sRGB)
+  outlineIntensity: 0.55, // opasitas garis maksimum
+  outlineThickness: 1,    // lebar garis dalam piksel CSS (dikali pixelRatio)
+  outlineFadeStart: 60,   // mulai memudar (m)
+  outlineFadeEnd: 120,    // tidak ada garis lebih jauh dari ini (m)
+  outlineThreshold: 0.0025, // ambang turunan-kedua kedalaman relatif (mulai tampak)
+  outlineSoftness: 0.01,  // lebar transisi ambang → garis penuh
 });
 
 export const BIKE = Object.freeze({

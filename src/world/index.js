@@ -3,6 +3,7 @@ import { RENDER_LAYERS, STADIUM } from '../config/constants.js';
 import { createGround } from './Ground.js';
 import { createLandscape } from './Landscape.js';
 import { createGrass } from './Grass.js';
+import { createDecals } from './Decals.js';
 import { createShell } from './stadium/Shell.js';
 import { createFacade } from './stadium/Facade.js';
 import { createTribune } from './stadium/Tribune.js';
@@ -62,6 +63,7 @@ export function buildWorld() {
   const tribune = add(withMinimapParts(createTribune(), MINIMAP_TRIBUNE_PARTS), { merge: false });
   add(createPitch(), { minimap: true });
   add(createTrack(), { minimap: true });
+  add(createDecals(), { merge: false }); // dekal permukaan: 1 InstancedMesh, bukan layer minimap
   add(createFixtures());
   add(createTunnels());
   addStadiumSurroundings(add);

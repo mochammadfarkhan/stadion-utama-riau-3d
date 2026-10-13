@@ -62,6 +62,7 @@ export const SETTINGS_SCHEMA = Object.freeze({
           pixelRatio: range('Resolusi render', 1.25, 0.5, 2, 0.05, { unit: '×' }),
           ao: toggle('Ambient occlusion', false),
           vignette: toggle('Vignette', true),
+          outline: toggle('Garis tepi', true),
           crowdDensity: range('Kepadatan penonton', 1, 0, 1, 0.05, { format: 'percent' }),
         }),
       }),
