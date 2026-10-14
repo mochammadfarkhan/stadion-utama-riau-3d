@@ -201,8 +201,8 @@ export const DAY = Object.freeze({
   nightDepthDeg: 40,       // kedalaman matahari di bawah horizon tengah malam
   lampsOnHour: 17.8,       // lampu PJU menyala
   lampsOffHour: 6.2,       // lampu PJU padam
-  maxPointLights: 8,       // PointLight nyata di sekitar sepeda (malam)
-  pointLightRange: 60,     // jarak maksimum PJU yang dinyalakan (m)
+  maxPointLights: 12,       // PointLight nyata di sekitar sepeda (malam)
+  pointLightRange: 80,     // jarak maksimum PJU yang dinyalakan (m)
   pointLightInterval: 0.5, // detik antar pemilihan ulang PJU terdekat
   starCount: 1500,
   envRebuildInterval: 1,   // detik minimum antar regenerasi env map

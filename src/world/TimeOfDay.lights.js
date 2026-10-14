@@ -22,6 +22,9 @@ const FLOOD_COLOR = 0xfff1dc;
 const FLOOD_POWER = 40000;        // candela per sorot (jarak ±100 m → ±4 lux di lapangan)
 const FLOOD_ANGLE = 0.62;
 const FLOOD_DISTANCE = 260;
+const POOL_RADIUS = 9;            // kolam cahaya palsu di bawah setiap PJU (m)
+const POOL_OPACITY = 0.5;
+const POOL_Y = 0.14;
 const EMISSIVE_AUTO_BOOST = 1.8;  // material emissive tanpa tag: on = off × boost
 const FADE_RATE = 1.5;            // 1/s, transisi intensitas
 // Aturan PJU rusak harus sama dengan world/index.js (plaza i%7==3, jalan lingkar i%9==4).
@@ -72,6 +75,39 @@ function createHeadlight(scene) {
   return spot;
 }
 
+/** Tekstur gradasi radial lembut untuk kolam cahaya. */
+function poolTexture() {
+  if (typeof document === 'undefined') return null;
+  const c = document.createElement('canvas');
+  c.width = 64;
+  c.height = 64;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(0.45, 'rgba(255,255,255,0.4)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+}
+
+/** Kolam cahaya hangat aditif di tanah untuk SEMUA PJU (PointLight nyata hanya segelintir). */
+function createLightPools(scene, lamps) {
+  const mat = new THREE.MeshBasicMaterial({
+    color: LAMP_COLOR, map: poolTexture(), transparent: true, opacity: 0,
+    blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2,
+  });
+  const geo = new THREE.PlaneGeometry(POOL_RADIUS * 2, POOL_RADIUS * 2).rotateX(-Math.PI / 2);
+  const mesh = new THREE.InstancedMesh(geo, mat, lamps.length);
+  const m = new THREE.Matrix4();
+  lamps.forEach((l, i) => mesh.setMatrixAt(i, m.makeTranslation(l.x, POOL_Y, l.z)));
+  mesh.name = 'kolamCahayaPJU';
+  mesh.frustumCulled = false;
+  mesh.visible = false;
+  scene.add(mesh);
+  return mesh;
+}
+
 /** Empat sorot floodlight di sudut atap, mengarah ke tengah lapangan dan tribun seberang. */
 function createFloodSpots(scene) {
   const x = STADIUM.innerSemiX * 0.85;
@@ -96,6 +132,7 @@ export function createNightLights(scene) {
   const points = createPointLights(scene);
   const headlight = createHeadlight(scene);
   const floods = createFloodSpots(scene);
+  const pools = createLightPools(scene, lamps);
   const order = lamps.map((_, i) => i);
   const dist2 = new Float32Array(lamps.length);
   let lampsOn = false;
@@ -141,6 +178,8 @@ export function createNightLights(scene) {
         pickNearest(focus);
       }
       for (const light of points) light.intensity = light.userData.active ? LAMP_POWER * level : 0;
+      pools.material.opacity = POOL_OPACITY * level;
+      pools.visible = level > 0.01;
       for (const f of floods) f.intensity = FLOOD_POWER * level;
       updateHeadlight(bikePos, bikeYaw);
     },

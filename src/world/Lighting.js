@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
+import { createStylizedClouds } from './StylizedClouds.js';
 import { COLORS } from '../config/constants.js';
 
 const SUN_ELEVATION_DEG = 28; // sore ±16.30 WIB
@@ -49,7 +50,7 @@ export function directionFromAngles(elevationDeg, azimuthDeg, out = new THREE.Ve
  * Langit prosedural, matahari sore tropis, cahaya hemisphere, kabut, dan env map.
  * @returns {THREE.Group} group berisi semua cahaya; userData berisi:
  *   update(dt, t, focus?)  — animasi awan + geser frustum bayangan mengikuti titik fokus (sepeda)
- *   sun, hemi, sky, skyUniforms, envSky — objek cahaya untuk diubah modul TimeOfDay/Weather
+ *   sun, hemi, sky, clouds, skyUniforms, envSky — objek cahaya untuk diubah modul TimeOfDay/Weather
  *   setSunDirection(dir)   — ubah arah matahari (bayangan + Sky)
  *   setSkyDirection(dir)   — ubah posisi matahari di Sky saja (saat lampu arah = bulan)
  *   rebuildEnvironment()   — regenerasi PMREM env map dari Sky saat ini
@@ -66,7 +67,8 @@ export function createLighting(scene, renderer) {
   const follower = createShadowFollower(sun, sunDir);
   const env = createEnvironment(scene, renderer, sunDir);
 
-  group.add(sky, sun, sun.target, hemi);
+  const clouds = createStylizedClouds();
+  group.add(sky, clouds, sun, sun.target, hemi);
   renderer.shadowMap.type = THREE.VSMShadowMap; // bayangan lembut (blur variance)
   scene.fog = new THREE.Fog(COLORS.fog, FOG_NEAR, FOG_FAR);
   scene.background = new THREE.Color(COLORS.sky);
@@ -77,6 +79,8 @@ export function createLighting(scene, renderer) {
     defaults: Object.freeze({ envIntensity: ENV_INTENSITY, fogNear: FOG_NEAR, fogFar: FOG_FAR, cloudCoverage: CLOUD_COVERAGE, cloudDensity: CLOUD_DENSITY }),
     update: (dt, t, focus) => {
       sky.material.uniforms.time.value = t * 0.02;
+      const su = sky.material.uniforms;
+      clouds.userData.update(t, su.cloudCoverage ? su.cloudCoverage.value : CLOUD_COVERAGE, su.sunPosition.value);
       if (focus) follower.follow(focus);
     },
     setSunDirection: (dir) => {
@@ -99,7 +103,7 @@ function createSky(sunDir) {
   u.mieCoefficient.value = 0.006;
   u.mieDirectionalG.value = 0.82;
   if (u.cloudCoverage) u.cloudCoverage.value = CLOUD_COVERAGE;
-  if (u.cloudDensity) u.cloudDensity.value = CLOUD_DENSITY;
+  if (u.cloudDensity) u.cloudDensity.value = 0; // awan digambar StylizedClouds; cloudCoverage tetap jadi penggerak
   return sky;
 }
 
