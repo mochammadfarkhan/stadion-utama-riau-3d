@@ -16,6 +16,7 @@ const SIM_HELP_ITEMS = Object.freeze([
   { group: 'Dunia' },
   { keys: ['E'], text: 'Beli dari pedagang' },
   { keys: ['V'], text: 'Ganti kamera / keluar dari POV' },
+  { keys: ['J'], text: 'Jurnal cerita & misi' },
   { group: 'Sudut pandang (POV)' },
   { keys: ['1'], text: 'Udara' },
   { keys: ['2'], text: 'Tribun' },

@@ -110,3 +110,17 @@ describe('wallet', () => {
     expect(r.wallet.balance).toBe(0);
   });
 });
+
+describe('consumeItem & credit', () => {
+  it('mengeluarkan satu item dan tidak memutasi dompet', async () => {
+    const { createWallet, buy, consumeItem, credit } = await import('../src/sim/vendorSim.js');
+    const w = buy(buy(createWallet(50000), 'minuman', 'es-teh').wallet, 'minuman', 'es-teh').wallet;
+    const r = consumeItem(w, 'es-teh');
+    expect(r.ok).toBe(true);
+    expect(r.wallet.items).toHaveLength(1);
+    expect(w.items).toHaveLength(2);
+    expect(consumeItem(createWallet(0), 'es-teh').ok).toBe(false);
+    expect(credit(w, 500).balance).toBe(w.balance + 500);
+    expect(credit(w, -5).balance).toBe(w.balance);
+  });
+});

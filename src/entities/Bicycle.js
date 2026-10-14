@@ -87,7 +87,10 @@ export class Bicycle {
   setCollider(fn) { this.#collider = typeof fn === 'function' ? fn : null; }
 
   /** Bunyikan bel (Space). */
-  ring() { return this.#bell.ring(); }
+  ring() {
+    this.onRing?.();
+    return this.#bell.ring();
+  }
 
   /** Arahkan bel ke AudioBus bersama (kanal 'bell'); null = konteks sendiri. */
   setAudioBus(bus) { this.#bell.setAudioBus(bus); }

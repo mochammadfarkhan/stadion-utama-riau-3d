@@ -28,7 +28,12 @@
           <li><b>N</b> ganti waktu (siang/sore/magrib/malam) &nbsp; <b>T</b> jalankan jam &nbsp; <b>[ / ]</b> ±1 jam</li>
           <li><b>R</b> hujan / cerah</li>
         </ul>
-        <button id="start">Klik untuk mulai</button>
+        <div id="loading" role="status" aria-live="polite">
+          <div class="loading-head"><span id="loading-label">Menyiapkan…</span><span id="loading-percent">0%</span></div>
+          <div class="loading-bar"><div id="loading-fill"></div></div>
+          <p class="loading-note">Pertama kali memuat butuh beberapa detik, mohon tunggu.</p>
+        </div>
+        <button id="start" disabled>Memuat aset…</button>
       </div>
     </div>
     <script type="module" src="/src/main.js"></script>
