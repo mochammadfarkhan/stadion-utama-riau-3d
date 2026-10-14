@@ -46,7 +46,7 @@ function main() {
   app.scene.add(world.group);
   const blenderModels = createModelGroup();
   app.scene.add(blenderModels);
-  loadBlenderModels(blenderModels, hud);
+  loadBlenderModels(blenderModels, world.group, hud);
   app.addUpdatable({ update: (dt, ctx) => { updateWind(dt); world.update(dt, ctx.time, ctx.bikePos); } }); // angin global tiap frame
 
   const wallet = createWallet();
@@ -191,8 +191,8 @@ function shopInfo(vendor) {
  * Muat model GLB hasil Blender (LAYOUT.blenderModels) tanpa menahan start aplikasi.
  * Model yang gagal dimuat hanya dilewati; dunia prosedural tetap lengkap.
  */
-async function loadBlenderModels(group, hud) {
-  const { failed } = await placeModels(group, LAYOUT.blenderModels ?? []);
+async function loadBlenderModels(group, worldGroup, hud) {
+  const { failed } = await placeModels(group, LAYOUT.blenderModels ?? [], { world: worldGroup });
   if (failed.length) hud.toast(`${failed.length} model 3D gagal dimuat`, false);
 }
 

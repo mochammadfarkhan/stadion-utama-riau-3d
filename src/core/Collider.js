@@ -11,7 +11,7 @@ const BIKE_CLEARANCE = 0.6;
 
 /** Rintangan lingkaran padat di plaza/kawasan: kolam tugu Lancang Kuning & tugu tanjak. */
 export const OBSTACLES = Object.freeze([
-  Object.freeze({ name: 'tuguLancangKuning', x: 0, z: -(STADIUM.outerSemiZ + 45), r: 11.5 + BIKE_CLEARANCE }),
+  Object.freeze({ name: 'tuguLancangKuning', x: 0, z: -(STADIUM.outerSemiZ + 45), r: 8.0 + BIKE_CLEARANCE }),
   Object.freeze({ name: 'tuguTanjak', x: SITE.tanjakMonument.x, z: SITE.tanjakMonument.z, r: 1.6 + BIKE_CLEARANCE }),
 ]);
 

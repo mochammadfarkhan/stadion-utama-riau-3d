@@ -47,17 +47,29 @@ function prepare(root) {
 /**
  * Tempatkan daftar model ke group secara asinkron. Kegagalan satu model tidak
  * menghentikan yang lain; dikembalikan ringkasan agar pemanggil bisa melapor.
+ * Item dengan `replaces` menyembunyikan objek prosedural bernama itu di `world`
+ * HANYA bila model berhasil dimuat (versi prosedural tetap jadi cadangan).
  * @param {THREE.Object3D} group
- * @param {{path:string, x?:number, y?:number, z?:number, rotY?:number, scale?:number}[]} items
+ * @param {{path:string, x?:number, y?:number, z?:number, rotY?:number, scale?:number, replaces?:string}[]} items
+ * @param {{world?: THREE.Object3D}} [opts]
  */
-export async function placeModels(group, items) {
+export async function placeModels(group, items, { world = null } = {}) {
   const results = await Promise.allSettled(items.map((it) => instantiateModel(it.path, it)));
   const failed = [];
+  const replaced = [];
   results.forEach((r, i) => {
-    if (r.status === 'fulfilled') group.add(r.value);
-    else failed.push({ path: items[i].path, error: String(r.reason?.message ?? r.reason) });
+    if (r.status !== 'fulfilled') {
+      failed.push({ path: items[i].path, error: String(r.reason?.message ?? r.reason) });
+      return;
+    }
+    group.add(r.value);
+    const target = items[i].replaces && world?.getObjectByName(items[i].replaces);
+    if (target) {
+      target.visible = false;
+      replaced.push(items[i].replaces);
+    }
   });
-  return { placed: results.length - failed.length, failed };
+  return { placed: results.length - failed.length, failed, replaced };
 }
 
 export const MODEL_GROUP_NAME = 'modelBlender';
