@@ -21,6 +21,7 @@ import { createSettingsStore } from './settings/store.js';
 import { safeLocalStorage } from './settings/safeStorage.js';
 import { bindAll } from './ui/bindings/index.js';
 import { mountSettingsPanel } from './ui/mountSettingsPanel.js';
+import { createLoadingScreen } from './ui/LoadingScreen.js';
 
 const START_POS = { x: 0, z: -275, yaw: 0 }; // plaza utara, menghadap stadion
 const HOURS = 24;
@@ -30,8 +31,10 @@ function showFatal(msg) {
   panel.replaceChildren(Object.assign(document.createElement('p'), { textContent: msg }));
 }
 
-function main() {
+async function main() {
   if (!hasWebGL()) return showFatal('Browser ini tidak mendukung WebGL. Coba Chrome/Edge terbaru.');
+  const loading = createLoadingScreen();
+  await loading.step(0.05, 'Menyiapkan mesin grafis…');
 
   const app = new App(document.getElementById('app'));
   const input = new Input();
@@ -40,17 +43,20 @@ function main() {
   const audioBus = createAudioBus();
   const store = createSettingsStore({ storage: safeLocalStorage() });
 
+  await loading.step(0.12, 'Menyiapkan langit dan pencahayaan…');
   const lighting = createLighting(app.scene, app.renderer);
   app.scene.add(lighting);
   app.addUpdatable({ update: (dt, ctx) => lighting.userData.update?.(dt, ctx.time, ctx.focus) });
 
+  await loading.step(0.2, 'Membangun stadion, tribun, dan lingkungan…');
   const world = buildWorld();
   app.scene.add(world.group);
   const blenderModels = createModelGroup();
   app.scene.add(blenderModels);
-  loadBlenderModels(blenderModels, world.group, hud);
+  const modelsReady = loadBlenderModels(blenderModels, world.group, hud);
   app.addUpdatable({ update: (dt, ctx) => { updateWind(dt); world.update(dt, ctx.time, ctx.focus); } }); // angin global tiap frame
 
+  await loading.step(0.55, 'Menyiapkan pemain, pelari, pedagang, dan penonton…');
   const wallet = createWallet();
   const ents = buildEntities({ start: START_POS, world, wallet });
   app.scene.add(ents.group);
@@ -59,6 +65,7 @@ function main() {
   ents.bike.setAudioBus(audioBus);
   for (const e of ents.updatables) app.addUpdatable(e);
 
+  await loading.step(0.8, 'Menyiapkan siklus waktu dan cuaca…');
   // Siklus waktu & cuaca: dibuat setelah dunia + entitas ada (mencari material emissive & permukaan basah).
   const time = createTimeOfDay(lighting, app.scene, app.renderer, app);
   const weather = createWeather(app.scene, app, lighting, { audioBus });
@@ -98,6 +105,10 @@ function main() {
   });
 
   setupPointerLock(app, rig, hud, store);
+  await loading.step(0.9, 'Memuat model 3D (tugu, bangku)…');
+  await modelsReady;
+  await loading.step(1, 'Siap!');
+  loading.done();
   if (import.meta.env.DEV) exposeDevTools({ app, ents, rig, time, weather, store, audioBus });
 }
 
@@ -218,4 +229,9 @@ async function loadBlenderModels(group, worldGroup, hud) {
   if (failed.length) hud.toast(`${failed.length} model 3D gagal dimuat`, false);
 }
 
-main();
+main().catch((err) => {
+  console.error(err);
+  document.getElementById('loading-fill')?.classList.add('failed');
+  const label = document.getElementById('loading-label');
+  if (label) label.textContent = 'Gagal memuat. Muat ulang halaman.';
+});

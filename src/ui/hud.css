@@ -71,6 +71,13 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1016; fon
   color: #1a1a1a; font: inherit; font-weight: 700; font-size: 16px; cursor: pointer;
 }
 #overlay button:hover { filter: brightness(1.08); }
+#loading { margin-bottom: 14px; }
+#loading .loading-head { display: flex; justify-content: space-between; font-size: 13px; color: var(--hud-fg); margin-bottom: 6px; }
+#loading .loading-bar { height: 8px; border-radius: 99px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+#loading-fill { height: 100%; width: 0; border-radius: 99px; background: var(--hud-accent); transition: width 0.25s ease; }
+#loading-fill.failed { background: #e5484d; }
+#loading .loading-note { margin: 8px 0 0; font-size: 12px; }
+#overlay button:disabled { opacity: 0.45; cursor: progress; filter: none; }
 #overlay .loading { font-size: 13px; color: var(--hud-muted); margin-top: 10px; }
 
 .vendor-label {
