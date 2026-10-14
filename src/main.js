@@ -9,6 +9,8 @@ import { createTimeOfDay } from './world/TimeOfDay.js';
 import { createWeather } from './world/Weather.js';
 import { formatHour, nextPresetAfter, PRESET_HOURS } from './sim/dayCycle.js';
 import { buildWorld } from './world/index.js';
+import { createModelGroup, placeModels } from './world/assets/models.js';
+import { LAYOUT } from './world/layout.js';
 import { updateWind } from './world/shaders/windState.js';
 import { buildEntities } from './entities/index.js';
 import { HUD } from './ui/HUD.js';
@@ -42,6 +44,9 @@ function main() {
 
   const world = buildWorld();
   app.scene.add(world.group);
+  const blenderModels = createModelGroup();
+  app.scene.add(blenderModels);
+  loadBlenderModels(blenderModels, hud);
   app.addUpdatable({ update: (dt, ctx) => { updateWind(dt); world.update(dt, ctx.time, ctx.bikePos); } }); // angin global tiap frame
 
   const wallet = createWallet();
@@ -180,6 +185,15 @@ function updatePrompt(hud, ents) {
 /** Bentuk data untuk dialog HUD dari info pedagang. */
 function shopInfo(vendor) {
   return { name: vendor.name, items: vendor.catalog };
+}
+
+/**
+ * Muat model GLB hasil Blender (LAYOUT.blenderModels) tanpa menahan start aplikasi.
+ * Model yang gagal dimuat hanya dilewati; dunia prosedural tetap lengkap.
+ */
+async function loadBlenderModels(group, hud) {
+  const { failed } = await placeModels(group, LAYOUT.blenderModels ?? []);
+  if (failed.length) hud.toast(`${failed.length} model 3D gagal dimuat`, false);
 }
 
 main();

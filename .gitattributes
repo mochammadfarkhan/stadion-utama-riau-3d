@@ -2,3 +2,5 @@
 *.png binary
 *.jpg binary
 *.webp binary
+*.blend binary
+*.glb binary

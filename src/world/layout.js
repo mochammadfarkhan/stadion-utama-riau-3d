@@ -66,6 +66,10 @@ export const LAYOUT = Object.freeze({
     { x: 250, z: -60, rotY: -Math.PI / 2, text: 'PEKANBARU SMART CITY' },
     { x: -250, z: 60, rotY: Math.PI / 2, text: 'AYO OLAHRAGA' },
   ],
+  // Model GLB hasil Blender (public/models/...). Posisi dunia, Y ke atas.
+  blenderModels: [
+    { path: 'models/uji/bangku-taman.glb', x: 7, z: -186, rotY: Math.PI },
+  ],
   plazaCenter: { x: 0, z: -180 },
   plazaSpots: {
     exercise: { x: -45, z: -178, yaw: 0 },
