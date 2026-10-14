@@ -87,3 +87,33 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1016; fon
 
 /* Mode foto (screenshot): sembunyikan label pedagang CSS2D. */
 body.is-photo .vendor-label { display: none !important; }
+
+/* --- Cerita / misi --- */
+#story-card {
+  position: fixed; left: 16px; top: 200px; width: 270px; padding: 12px 14px; border-radius: 12px;
+  background: rgba(10, 18, 28, 0.78); color: var(--hud-fg); z-index: 5; pointer-events: none;
+  border-left: 4px solid var(--hud-accent);
+}
+#story-card .story-title { font-weight: 700; color: var(--hud-accent); }
+#story-card .story-rank { font-size: 12px; color: var(--hud-muted); margin: 2px 0 8px; }
+#story-card .story-goal { font-size: 14px; line-height: 1.4; }
+#story-card .story-timer { margin-top: 8px; font-weight: 700; font-variant-numeric: tabular-nums; }
+#story-dialog {
+  position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); width: min(620px, 90vw);
+  padding: 16px 20px; border-radius: 14px; background: rgba(10, 18, 28, 0.92); color: var(--hud-fg);
+  border: 1px solid var(--hud-accent); z-index: 9; cursor: pointer; font-size: 16px; line-height: 1.5;
+}
+#story-dialog .story-dialog-hint { margin-top: 8px; font-size: 12px; color: var(--hud-muted); text-align: right; }
+#story-journal {
+  position: fixed; inset: 0; margin: auto; width: min(560px, 92vw); height: fit-content; max-height: 80vh; overflow: auto;
+  padding: 20px 24px; border-radius: 16px; background: rgba(10, 18, 28, 0.96); color: var(--hud-fg); z-index: 11;
+}
+#story-journal h2 { margin: 0 0 8px; color: var(--hud-accent); }
+#story-journal h3 { margin: 14px 0 4px; font-size: 14px; color: var(--hud-muted); }
+#story-journal ul { margin: 0; padding-left: 18px; line-height: 1.6; font-size: 14px; }
+#story-journal li.done { color: #9be28f; }
+#story-journal li.current { color: var(--hud-accent); }
+#story-journal .journal-actions { display: flex; gap: 8px; margin-top: 16px; }
+#story-journal button { flex: 1; padding: 10px; border: 0; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; }
+#story-journal .journal-reset { background: #3a2226; color: #ffb4bb; }
+#story-journal .journal-close { background: var(--hud-accent); color: #1a1a1a; }

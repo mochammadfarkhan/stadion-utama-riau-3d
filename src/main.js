@@ -22,6 +22,11 @@ import { safeLocalStorage } from './settings/safeStorage.js';
 import { bindAll } from './ui/bindings/index.js';
 import { mountSettingsPanel } from './ui/mountSettingsPanel.js';
 import { createLoadingScreen } from './ui/LoadingScreen.js';
+import { StoryDirector } from './core/StoryDirector.js';
+import { StoryNpcs } from './entities/StoryNpcs.js';
+import { createStoryMarkers } from './world/StoryMarkers.js';
+import { StoryHUD } from './ui/StoryHUD.js';
+import { StoryJournal } from './ui/StoryJournal.js';
 
 const START_POS = { x: 0, z: -275, yaw: 0 }; // plaza utara, menghadap stadion
 const HOURS = 24;
@@ -74,12 +79,14 @@ async function main() {
 
   hud.setWallet(wallet);
   hud.setCameraMode(rig.mode);
-  const shop = setupShop(hud, ents);
+  const story = setupStory({ app, ents, hud, rig });
+  const shop = setupShop(hud, ents, story);
 
   const bikePos = new THREE.Vector3();
   app.addUpdatable({
     update(dt, ctx) {
-      handleKeys(input, { rig, hud, ents, shop, time, store });
+      handleKeys(input, { rig, hud, ents, shop, time, store, story });
+      story.update(dt, { time: ctx.time, bikePos: ents.bike.state, hour: time.hour, raining: Boolean(store.get('weather.raining')) });
       rig.update(ents.bike.state, dt, ctx.time);
       hud.setCameraView(rig.mode, rig.povLabel, rig.freezesBike);
       // POV beku: sepeda berhenti seketika (bukan meluncur karena momentum)
@@ -88,7 +95,7 @@ async function main() {
       hud.setTime(formatHour(time.hour), time.presetName, weather.weatherName);
       hud.setScore(ents.match.score);
       hud.tickFps(dt);
-      updatePrompt(hud, ents);
+      updatePrompt(hud, ents, story, ents.bike.state);
       input.endFrame();
     },
   });
@@ -109,17 +116,33 @@ async function main() {
   await modelsReady;
   await loading.step(1, 'Siap!');
   loading.done();
-  if (import.meta.env.DEV) exposeDevTools({ app, ents, rig, time, weather, store, audioBus });
+  if (import.meta.env.DEV) exposeDevTools({ app, ents, rig, time, weather, store, audioBus, story });
+}
+
+/** Cerita: NPC, penanda tujuan, HUD, jurnal; progres dimuat dari localStorage. */
+function setupStory({ app, ents, hud, rig }) {
+  const root = document.getElementById('hud');
+  const npcs = new StoryNpcs();
+  const markers = createStoryMarkers();
+  app.scene.add(npcs.group, markers.group);
+  let story = null;
+  const storyHud = new StoryHUD(root, { onAdvance: () => story.advanceDialog() });
+  const journal = new StoryJournal(root, { onReset: () => story.reset(), onClose: () => story.toggleJournal() });
+  story = new StoryDirector({ storage: safeLocalStorage(), vendors: ents.vendors, hud, storyHud, journal, markers });
+  ents.bike.onRing = () => story.onBell();
+  story.start();
+  return story;
 }
 
 /** Dialog beli: pedagang bisa berjalan menjauh saat dialog terbuka; kunci id pedagang saat dibuka. */
-function setupShop(hud, ents) {
+function setupShop(hud, ents, story) {
   const shop = { vendorId: null };
   hud.onBuy = (itemId) => {
     if (!shop.vendorId) return;
     const res = ents.vendors.tryBuy(itemId, shop.vendorId);
     hud.setWallet(ents.vendors.wallet);
     hud.toast(res.ok ? `Beli ${res.item.name} ✔` : res.error, res.ok);
+    if (res.ok) story.onBought(res.item.id);
   };
   return shop;
 }
@@ -139,9 +162,9 @@ function setupPointerLock(app, rig, hud, store) {
 }
 
 /** Alat debug hanya di mode dev: teleport, statistik renderer, store settings. */
-function exposeDevTools({ app, ents, rig, time, weather, store, audioBus }) {
+function exposeDevTools({ app, ents, rig, time, weather, store, audioBus, story }) {
   window.__sim = {
-    app, ents, rig, time, weather, store, audioBus,
+    app, ents, rig, time, weather, store, audioBus, story,
     teleport(x, z, yaw = 0) {
       ents.bike.state = { ...ents.bike.state, x, z, yaw, v: 0 };
       ents.bike.setCollider(createCollider({ x, z }));
@@ -151,13 +174,17 @@ function exposeDevTools({ app, ents, rig, time, weather, store, audioBus }) {
 }
 
 /** Hotkey lama menulis ke store (binding menerapkan ke scene). */
-function handleKeys(input, { rig, hud, ents, shop, time, store }) {
+function handleKeys(input, { rig, hud, ents, shop, time, store, story }) {
   const toggle = (key) => store.set(key, !store.get(key));
   handleCameraKeys(input, { rig, hud, store });
   if (input.consumePress('KeyM')) toggle('performance.minimap');
   if (input.consumePress('KeyO')) toggle('graphics.ao'); // matikan AO bila FPS rendah
   handleTimeWeatherKeys(input, hud, time, store);
-  if (input.consumePress('KeyE') || input.consumePress('Escape')) handleShopKey(rig, hud, ents, shop);
+  if (input.consumePress('KeyJ')) story.toggleJournal();
+  if (input.consumePress('Escape') && story.journal.open) story.journal.hide();
+  if (input.consumePress('KeyE')) {
+    if (hud.shopOpen || !story.tryInteract(ents.bike.state)) handleShopKey(rig, hud, ents, shop);
+  } else if (input.consumePress('Escape')) handleShopKey(rig, hud, ents, shop);
 }
 
 /** V: ganti mode kamera pemain, atau keluar dari POV. Digit1..7 masuk POV, Digit0 keluar. */
@@ -209,10 +236,10 @@ function handleTimeWeatherKeys(input, hud, time, store) {
   if (input.consumePress('BracketRight')) setHour(time.hour + 1);
 }
 
-function updatePrompt(hud, ents) {
+function updatePrompt(hud, ents, story, bikePos) {
   if (hud.shopOpen) return hud.setPrompt(null);
   const pv = ents.vendors.promptVendor; // satu sumber kebenaran jarak interaksi (VendorGroup)
-  hud.setPrompt(pv ? `Tekan E — ${pv.name}` : null);
+  hud.setPrompt(story.promptFor(bikePos) ?? (pv ? `Tekan E — ${pv.name}` : null));
 }
 
 /** Bentuk data untuk dialog HUD dari info pedagang. */

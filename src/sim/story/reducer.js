@@ -46,6 +46,7 @@ export function createStory({ chapters, eggs }) {
 
   const runObjective = (s, event) => {
     const r = applyObjective(stepOf(s).objective, s.progress, event);
+    if (!r.done && r.progress === s.progress && !r.effects.length) return [s, []];
     const next = { ...s, progress: r.progress };
     return r.done ? completeStep(next, r.effects) : [next, r.effects];
   };
