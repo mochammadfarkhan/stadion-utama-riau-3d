@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "stadion-dev",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:/Users/mocha/Documents/stadion-utama-riau-3d/node_modules/vite/bin/vite.js",
+        "C:/Users/mocha/Documents/stadion-utama-riau-3d",
+        "--port",
+        "5173",
+        "--strictPort"
+      ],
+      "port": 5173
+    }
+  ]
+}

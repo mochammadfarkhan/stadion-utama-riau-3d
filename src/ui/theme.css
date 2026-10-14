@@ -1,0 +1,136 @@
+/* Tema UI gaya Tidewater: kaca gelap, aksen aqua (interaktif) & oranye (waktu/modified). */
+:root {
+  /* unit responsif: ~4px di layar kecil, ~5px di layar lebar */
+  --ui-u: clamp(3.5px, 0.3vw + 2.6px, 5px);
+  --ui-fs: clamp(12px, 0.25vw + 11.2px, 13.5px);
+  --ui-fs-sm: calc(var(--ui-fs) * 0.86);
+  --ui-fs-lg: calc(var(--ui-fs) * 1.2);
+
+  --ui-font: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --ui-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+
+  --ui-fg: #eef3f6;
+  --ui-muted: #9fb0bd;
+  --ui-dim: #66798a;
+  --ui-bg: rgba(9, 15, 22, 0.78);
+  --ui-bg-2: rgba(17, 26, 36, 0.92);
+  --ui-bg-3: rgba(255, 255, 255, 0.045);
+  --ui-bg-hover: rgba(255, 255, 255, 0.08);
+  --ui-border: rgba(255, 255, 255, 0.09);
+  --ui-border-strong: rgba(255, 255, 255, 0.18);
+
+  --ui-accent: #5fe3d4;
+  --ui-accent-rgb: 95, 227, 212;
+  --ui-accent-soft: rgba(95, 227, 212, 0.18);
+  --ui-warm: #ffb86b;
+  --ui-warm-rgb: 255, 184, 107;
+  --ui-warm-soft: rgba(255, 184, 107, 0.18);
+  --ui-danger: #ff7a7a;
+  --ui-ok: #7ee787;
+
+  --ui-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ui-ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ui-dur: 180ms;
+  --ui-dur-slow: 320ms;
+
+  --ui-radius: calc(var(--ui-u) * 3);
+  --ui-radius-sm: calc(var(--ui-u) * 1.75);
+  --ui-radius-pill: 999px;
+  --ui-shadow: 0 18px 50px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+  --ui-glow: 0 0 0 3px rgba(var(--ui-accent-rgb), 0.28);
+  --ui-z: 30;
+}
+
+.ui-root {
+  position: fixed;
+  inset: 0;
+  z-index: var(--ui-z);
+  pointer-events: none; /* hanya anak interaktif yang menerima pointer */
+  font-family: var(--ui-font);
+  font-size: var(--ui-fs);
+  line-height: 1.4;
+  color: var(--ui-fg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.ui-root *,
+.ui-root *::before,
+.ui-root *::after { box-sizing: border-box; }
+
+.ui-root button,
+.ui-root input {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.ui-root button { cursor: pointer; }
+.ui-root button:disabled { cursor: default; }
+
+.ui-glass {
+  background: var(--ui-bg);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid var(--ui-border);
+  box-shadow: var(--ui-shadow);
+}
+
+/* Elemen interaktif generik: hover halus + fokus keyboard jelas */
+.ui-interactive {
+  transition: background-color var(--ui-dur) var(--ui-ease), color var(--ui-dur) var(--ui-ease),
+    border-color var(--ui-dur) var(--ui-ease), box-shadow var(--ui-dur) var(--ui-ease),
+    transform var(--ui-dur) var(--ui-ease);
+}
+.ui-interactive:hover { background-color: var(--ui-bg-hover); color: var(--ui-fg); }
+.ui-interactive:active { transform: scale(0.97); }
+.ui-root :focus { outline: none; }
+.ui-root :focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 2px;
+  border-radius: var(--ui-radius-sm);
+}
+
+.ui-ico {
+  width: 1.25em;
+  height: 1.25em;
+  flex: 0 0 auto;
+  display: block;
+}
+
+.ui-root kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0.1em 0.45em;
+  font-family: var(--ui-mono);
+  font-size: var(--ui-fs-sm);
+  line-height: 1.5;
+  text-align: center;
+  color: var(--ui-fg);
+  background: var(--ui-bg-3);
+  border: 1px solid var(--ui-border-strong);
+  border-bottom-width: 2px;
+  border-radius: calc(var(--ui-u) * 1.2);
+}
+
+.ui-mono { font-family: var(--ui-mono); font-variant-numeric: tabular-nums; }
+.ui-muted { color: var(--ui-muted); }
+.ui-sr-only {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* Scrollbar tipis untuk area yang bisa digulir */
+.ui-root ::-webkit-scrollbar { width: 8px; }
+.ui-root ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 8px;
+}
+.ui-root ::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.22); }
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --ui-dur: 1ms; --ui-dur-slow: 1ms; }
+}

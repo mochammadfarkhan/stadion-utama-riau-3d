@@ -1,0 +1,233 @@
+/* Gaya kontrol Waktu (busur matahari + track gradien). Mandiri: semua variabel tema punya fallback. */
+
+.ui-ctl-time {
+  --tod-sun: var(--ui-sun, #ffb86b);
+  --tod-mono: var(--ui-mono, ui-monospace, 'SF Mono', Menlo, Consolas, monospace);
+  --tod-sans: var(--ui-sans, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
+  --tod-text: var(--ui-text, #e8ebf2);
+  --tod-muted: var(--ui-muted, #9aa3b5);
+  --tod-ring: var(--ui-bg-strong, #15181f);
+  --tod-focus: var(--ui-focus, rgba(255, 184, 107, 0.65));
+  --tod-radius: var(--ui-radius, 10px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0 4px;
+  color: var(--tod-text);
+  font-family: var(--tod-sans);
+}
+
+.ui-ctl-time .ui-ctl-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 22px;
+}
+
+.ui-ctl-time .ui-ctl-label {
+  font-size: 12.5px;
+  color: var(--tod-text);
+}
+
+.ui-ctl-time .ui-ctl-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ui-tod-clock,
+.ui-tod-clock-input {
+  font-family: var(--tod-mono);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--tod-sun);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 1px 6px;
+  line-height: 18px;
+  width: 58px;
+  text-align: right;
+  box-sizing: border-box;
+}
+
+.ui-tod-clock {
+  cursor: text;
+}
+
+.ui-tod-clock:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.ui-tod-clock-input {
+  outline: none;
+  border-color: var(--tod-sun);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.ui-ctl-value.is-invalid .ui-tod-clock {
+  animation: ui-tod-shake 0.3s ease;
+  border-color: #ff6b6b;
+}
+
+@keyframes ui-tod-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+.ui-ctl-time .ui-ctl-reset {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--tod-muted);
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.ui-ctl-time .ui-ctl-reset:hover {
+  color: var(--tod-text);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ---------- Dial ---------- */
+
+.ui-tod-dial-wrap {
+  border-radius: var(--tod-radius);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.ui-tod-dial {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: grab;
+  outline: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ui-tod-dial:focus-visible {
+  box-shadow: 0 0 0 2px var(--tod-focus);
+}
+
+.ui-ctl-time.is-dragging .ui-tod-dial {
+  cursor: grabbing;
+}
+
+.ui-tod-star {
+  fill: #fff;
+}
+
+.ui-tod-arc {
+  fill: none;
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.ui-tod-arc-day {
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-dasharray: 3 4;
+}
+
+.ui-tod-arc-night {
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-dasharray: 2 5;
+}
+
+.ui-tod-horizon {
+  stroke: rgba(255, 255, 255, 0.32);
+  stroke-width: 1;
+}
+
+.ui-tod-tick {
+  stroke: rgba(255, 255, 255, 0.45);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.ui-tod-lbl {
+  font-family: var(--tod-mono);
+  font-size: 8.5px;
+  fill: rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+}
+
+.ui-tod-phase {
+  font-family: var(--tod-sans);
+  font-size: 11px;
+  font-weight: 700;
+  fill: #fff;
+  paint-order: stroke fill;
+  stroke: rgba(0, 0, 0, 0.5);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.ui-tod-moon-disc {
+  fill: #dfe6f5;
+  filter: drop-shadow(0 0 3px rgba(223, 230, 245, 0.6));
+}
+
+.ui-tod-sun-disc {
+  fill: var(--tod-sun);
+  filter: drop-shadow(0 0 4px rgba(255, 184, 107, 0.9));
+  transition: r 0.15s ease;
+}
+
+.ui-tod-dial:hover .ui-tod-sun-disc,
+.ui-ctl-time.is-dragging .ui-tod-sun-disc {
+  r: 9;
+}
+
+/* ---------- Track gradien ---------- */
+
+.ui-tod-track {
+  position: relative;
+  height: 24px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.ui-ctl-time.is-dragging .ui-tod-track {
+  cursor: grabbing;
+}
+
+.ui-tod-bar {
+  position: absolute;
+  inset: 7px 0;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.ui-tod-knob {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--tod-sun);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 2px var(--tod-ring), 0 0 8px rgba(255, 184, 107, 0.85);
+  pointer-events: none;
+}
+
+.ui-tod-scale {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--tod-mono);
+  font-size: 8.5px;
+  color: var(--tod-muted);
+  padding: 0 2px;
+  margin-top: -4px;
+}
