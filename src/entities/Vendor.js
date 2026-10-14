@@ -6,7 +6,7 @@
  * bila gagal (belum ada / Node), dipakai gerobak fallback lokal.
  */
 import * as THREE from 'three';
-import { VENDOR_CATALOG, createVendor, stepVendor, createWallet, buy } from '../sim/vendorSim.js';
+import { VENDOR_CATALOG, createVendor, stepVendor, createWallet, buy, consumeItem, credit } from '../sim/vendorSim.js';
 import { createHumanoid, animateWalk, animateSellIdle } from './Humanoid.js';
 import { randomVendorOutfit } from './Humanoid.outfits.js';
 import { createFallbackCart } from './Vendor.cart.js';
@@ -200,5 +200,15 @@ export class VendorGroup {
   get labelsEnabled() { return this.#labelsEnabled; }
 
   get wallet() { return this.#wallet; }
+
+  /** Keluarkan satu item dari dompet (antar pesanan). @returns {boolean} */
+  consume(itemId) {
+    const r = consumeItem(this.#wallet, itemId);
+    if (r.ok) this.#wallet = r.wallet;
+    return r.ok;
+  }
+
+  /** Tambah saldo dompet (hadiah misi). */
+  credit(amount) { this.#wallet = credit(this.#wallet, amount); }
   get vendors() { return this.#vendors.map((e) => this.#info(e)); }
 }

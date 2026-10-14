@@ -95,3 +95,17 @@ export function buy(wallet, kind, itemId) {
   const item = { ...entry, kind };
   return { ok: true, wallet: { balance: w.balance - entry.price, items: [...w.items, item] }, item };
 }
+
+/** Keluarkan satu item (id sama) dari dompet; item lain tetap. Tidak memutasi masukan. */
+export function consumeItem(wallet, itemId) {
+  const w = safeWallet(wallet);
+  const idx = w.items.findIndex((i) => i.id === itemId);
+  if (idx < 0) return { ok: false, wallet: w };
+  return { ok: true, wallet: { balance: w.balance, items: [...w.items.slice(0, idx), ...w.items.slice(idx + 1)] } };
+}
+
+/** Tambah saldo (hadiah misi); jumlah negatif/NaN diabaikan. */
+export function credit(wallet, amount) {
+  const w = safeWallet(wallet);
+  return { balance: w.balance + (Number.isFinite(amount) && amount > 0 ? amount : 0), items: w.items };
+}
