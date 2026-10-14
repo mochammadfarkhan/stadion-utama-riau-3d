@@ -124,7 +124,7 @@ export function createWeather(scene, app, lighting, { audioBus = null } = {}) {
       intensity = THREE.MathUtils.clamp(intensity + Math.sign(target - intensity) * step, 0, 1);
       if (Math.abs(target - intensity) < step) intensity = target;
       applyAtmosphere(intensity);
-      rain.update(dt, intensity, app.camera, ctx.bikePos);
+      rain.update(dt, intensity, app.camera, ctx.focus ?? ctx.bikePos);
       wet.update(dt, intensity * params.wetness);
       audio.setLevel(params.soundEnabled ? intensity : 0);
     },

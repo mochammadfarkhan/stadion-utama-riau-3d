@@ -167,7 +167,7 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
       applyPreset(preset, sun);
       applyStars(sun);
       night.setLampsOn(preset.lampsOn);
-      night.update(dt, ctx.bikePos, bikeState?.yaw ?? 0);
+      night.update(dt, ctx.bikePos, bikeState?.yaw ?? 0, ctx.focus ?? ctx.bikePos);
     },
   };
 }

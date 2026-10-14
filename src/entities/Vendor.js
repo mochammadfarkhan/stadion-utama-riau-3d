@@ -148,7 +148,7 @@ export class VendorGroup {
     });
     for (const e of this.#vendors) this.#place(e, time);
     this.#updatePrompt(ctx.bikePos);
-    this.#updateLabels(ctx.bikePos);
+    this.#updateLabels(ctx.focus ?? ctx.bikePos); // label mengikuti fokus tampilan (POV)
   }
 
   #updatePrompt(bikePos) {
@@ -162,6 +162,7 @@ export class VendorGroup {
     return {
       id: e.sim.id, kind: e.kind, name: e.name, state: e.sim.state,
       position: { x: e.sim.pos.x, z: e.sim.pos.z },
+      yaw: Number.isFinite(e.yaw) ? e.yaw : (e.sim.yaw ?? 0),
       catalog: VENDOR_CATALOG[e.kind] ?? [],
     };
   }

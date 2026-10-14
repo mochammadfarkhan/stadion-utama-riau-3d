@@ -3,6 +3,8 @@ import { App, hasWebGL } from './core/App.js';
 import { Input } from './core/Input.js';
 import { CameraRig } from './core/CameraRig.js';
 import { createCollider } from './core/Collider.js';
+import { createPovSource } from './core/povSource.js';
+import { EXIT_KEY, POVS } from './core/cameraPresets.js';
 import { createAudioBus } from './core/AudioBus.js';
 import { createLighting } from './world/Lighting.js';
 import { createTimeOfDay } from './world/TimeOfDay.js';
@@ -40,19 +42,20 @@ function main() {
 
   const lighting = createLighting(app.scene, app.renderer);
   app.scene.add(lighting);
-  app.addUpdatable({ update: (dt, ctx) => lighting.userData.update?.(dt, ctx.time, ctx.bikePos) });
+  app.addUpdatable({ update: (dt, ctx) => lighting.userData.update?.(dt, ctx.time, ctx.focus) });
 
   const world = buildWorld();
   app.scene.add(world.group);
   const blenderModels = createModelGroup();
   app.scene.add(blenderModels);
   loadBlenderModels(blenderModels, world.group, hud);
-  app.addUpdatable({ update: (dt, ctx) => { updateWind(dt); world.update(dt, ctx.time, ctx.bikePos); } }); // angin global tiap frame
+  app.addUpdatable({ update: (dt, ctx) => { updateWind(dt); world.update(dt, ctx.time, ctx.focus); } }); // angin global tiap frame
 
   const wallet = createWallet();
   const ents = buildEntities({ start: START_POS, world, wallet });
   app.scene.add(ents.group);
   ents.bike.setCollider(createCollider(START_POS));
+  rig.attachSource(createPovSource(ents));
   ents.bike.setAudioBus(audioBus);
   for (const e of ents.updatables) app.addUpdatable(e);
 
@@ -70,7 +73,10 @@ function main() {
   app.addUpdatable({
     update(dt, ctx) {
       handleKeys(input, { rig, hud, ents, shop, time, store });
-      rig.update(ents.bike.state, dt);
+      rig.update(ents.bike.state, dt, ctx.time);
+      hud.setCameraView(rig.mode, rig.povLabel, rig.freezesBike);
+      // POV beku: sepeda berhenti seketika (bukan meluncur karena momentum)
+      if (rig.freezesBike && ents.bike.state.v !== 0) ents.bike.state = { ...ents.bike.state, v: 0 };
       hud.setSpeed(ents.bike.speedKmh);
       hud.setTime(formatHour(time.hour), time.presetName, weather.weatherName);
       hud.setScore(ents.match.score);
@@ -87,7 +93,8 @@ function main() {
 
   app.start((dt, t) => {
     bikePos.set(ents.bike.state.x, 0, ents.bike.state.z);
-    return { dt, time: t, bikePos, input: hud.shopOpen ? null : input };
+    // focus = titik pusat tampilan (sepeda, atau titik pandang saat POV); sepeda beku di POV tanpa kendali
+    return { dt, time: t, bikePos, focus: rig.focus, input: hud.shopOpen || rig.freezesBike ? null : input };
   });
 
   setupPointerLock(app, rig, hud, store);
@@ -135,14 +142,29 @@ function exposeDevTools({ app, ents, rig, time, weather, store, audioBus }) {
 /** Hotkey lama menulis ke store (binding menerapkan ke scene). */
 function handleKeys(input, { rig, hud, ents, shop, time, store }) {
   const toggle = (key) => store.set(key, !store.get(key));
-  if (input.consumePress('KeyV')) store.set('camera.mode', rig.mode === 'third' ? 'first' : 'third');
+  handleCameraKeys(input, { rig, hud, store });
   if (input.consumePress('KeyM')) toggle('performance.minimap');
   if (input.consumePress('KeyO')) toggle('graphics.ao'); // matikan AO bila FPS rendah
   handleTimeWeatherKeys(input, hud, time, store);
   if (input.consumePress('KeyE') || input.consumePress('Escape')) handleShopKey(rig, hud, ents, shop);
 }
 
+/** V: ganti mode kamera pemain, atau keluar dari POV. Digit1..7 masuk POV, Digit0 keluar. */
+function handleCameraKeys(input, { rig, hud, store }) {
+  if (input.consumePress('KeyV')) {
+    if (rig.povId) rig.exitPov();
+    else store.set('camera.mode', rig.mode === 'third' ? 'first' : 'third');
+  }
+  for (const code of [EXIT_KEY, ...POVS.map((p) => p.key)]) {
+    if (!input.consumePress(code)) continue;
+    const msg = rig.handlePovKey(code);
+    if (msg) hud.toast(msg, true);
+    else if (code !== EXIT_KEY) hud.toast('POV belum tersedia', false);
+  }
+}
+
 function handleShopKey(rig, hud, ents, shop) {
+  if (rig.freezesBike) return; // sepeda dibekukan di POV: tidak ada transaksi
   if (hud.shopOpen) {
     hud.closeShop();
     shop.vendorId = null;

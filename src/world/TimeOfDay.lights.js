@@ -109,7 +109,8 @@ export function createNightLights(scene) {
   return {
     get lampsOn() { return lampsOn; },
     setLampsOn(on) { lampsOn = Boolean(on); },
-    update(dt, bikePos, bikeYaw = 0) {
+    /** `focus`: pusat pemilihan PJU terdekat (titik pandang POV); lampu depan tetap di sepeda. */
+    update(dt, bikePos, bikeYaw = 0, focus = bikePos) {
       const target = lampsOn ? 1 : 0;
       level = THREE.MathUtils.damp(level, target, FADE_RATE * 3, dt);
       if (Math.abs(level - target) < 0.002) level = target;
@@ -117,7 +118,7 @@ export function createNightLights(scene) {
       pickTimer -= dt;
       if (pickTimer <= 0) {
         pickTimer = DAY.pointLightInterval;
-        pickNearest(bikePos);
+        pickNearest(focus);
       }
       for (const light of points) light.intensity = light.userData.active ? LAMP_POWER * level : 0;
       updateHeadlight(bikePos, bikeYaw);

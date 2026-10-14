@@ -57,6 +57,13 @@ export class HUD {
     this.#set('cam', mode === 'first' ? 'Kamera: orang pertama (V)' : 'Kamera: orang ketiga (V)');
   }
 
+  /** Teks kamera: nama POV aktif (dengan petunjuk keluar) atau mode kamera pemain. */
+  setCameraView(mode, povLabel = null, freezesBike = false) {
+    if (!povLabel) return this.setCameraMode(mode);
+    const hint = freezesBike ? 'sepeda dibekukan · V/0 kembali' : 'sepeda aktif · V/0 kembali';
+    return this.#set('cam', `POV: ${povLabel} (${hint})`);
+  }
+
   setPrompt(text) {
     this.#set('prompt', text ?? '');
     this.el.prompt.classList.toggle('hidden', !text);

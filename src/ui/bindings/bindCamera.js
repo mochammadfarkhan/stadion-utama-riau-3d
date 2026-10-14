@@ -18,8 +18,11 @@ export function bindCamera(store, { rig, camera, hud = null, app = null }) {
     hud?.setCameraMode?.(rig.mode);
   });
   on('camera.fov', (fov) => {
-    camera.fov = fov;
-    camera.updateProjectionMatrix();
+    if (typeof rig.setBaseFov === 'function') rig.setBaseFov(fov); // dipulihkan setelah POV
+    else {
+      camera.fov = fov;
+      camera.updateProjectionMatrix();
+    }
   });
   on('camera.sensitivity', (v) => { rig.sensitivity = v; });
   on('camera.followSmoothing', (v) => { rig.followSmoothing = v; });

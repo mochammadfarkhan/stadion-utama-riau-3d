@@ -5,6 +5,7 @@
  * store -> scene tidak bergantung pada panel).
  */
 import { captureScreenshot } from './Screenshot.js';
+import { EXIT_KEY, POVS } from '../core/cameraPresets.js';
 
 const SIM_HELP_ITEMS = Object.freeze([
   { group: 'Sepeda' },
@@ -14,7 +15,17 @@ const SIM_HELP_ITEMS = Object.freeze([
   { keys: ['Space'], text: 'Bel' },
   { group: 'Dunia' },
   { keys: ['E'], text: 'Beli dari pedagang' },
-  { keys: ['V'], text: 'Ganti kamera' },
+  { keys: ['V'], text: 'Ganti kamera / keluar dari POV' },
+  { group: 'Sudut pandang (POV)' },
+  { keys: ['1'], text: 'Udara' },
+  { keys: ['2'], text: 'Tribun' },
+  { keys: ['3'], text: 'Bola' },
+  { keys: ['4'], text: 'Pelari (tekan lagi: pelari berikutnya)' },
+  { keys: ['5'], text: 'Pedagang (tekan lagi: pedagang berikutnya)' },
+  { keys: ['6'], text: 'Orbit sinematik' },
+  { keys: ['7'], text: 'Top-down (sepeda tetap bisa dikendalikan)' },
+  { keys: ['0'], text: 'Kembali ke sepeda' },
+  { keys: ['Mouse', 'Roda'], text: 'Orbit & zoom saat POV' },
   { keys: ['M'], text: 'Minimap' },
   { keys: ['N'], text: 'Preset waktu berikutnya' },
   { keys: ['T'], text: 'Jalankan / hentikan jam' },
@@ -57,6 +68,22 @@ function adaptTimeOfDay(Ctor) {
   };
 }
 
+/** Tombol POV di tab Kamera (selain hotkey 1-7). */
+function addPovFolder(tabs, rig, hud) {
+  const tab = tabs?.camera;
+  if (!tab?.addFolder || !rig?.handlePovKey) return;
+  const folder = tab.addFolder('Sudut pandang', { id: 'camera.pov', icon: 'camera' });
+  const go = (code) => {
+    const msg = rig.handlePovKey(code);
+    if (msg) hud?.toast?.(msg, true);
+    else if (code !== EXIT_KEY) hud?.toast?.('POV belum tersedia', false);
+  };
+  for (const def of POVS) {
+    folder.addButton({ label: `${def.key.replace('Digit', '')} · ${def.label}`, icon: 'viewfinder', onClick: () => go(def.key) });
+  }
+  folder.addButton({ label: '0 · Kembali ke sepeda', icon: 'reset', onClick: () => go(EXIT_KEY) });
+}
+
 function addPerfFolder(tabs, infos) {
   const tab = tabs?.performance;
   if (!tab?.addFolder) return;
@@ -91,7 +118,10 @@ export async function mountSettingsPanel({ store, app, rig = null, hud = null })
       panel,
       extras: {
         timeOfDayCtor: adaptTimeOfDay(mods.todMod?.TimeOfDayControl),
-        afterBuild: (tabs) => addPerfFolder(tabs, perfInfos({ app, hud })),
+        afterBuild: (tabs) => {
+          addPerfFolder(tabs, perfInfos({ app, hud }));
+          addPovFolder(tabs, rig, hud);
+        },
       },
     });
   } catch {
