@@ -5,7 +5,7 @@
  * saat siang) agar jumlah cahaya tetap dan shader tidak dikompilasi ulang.
  */
 import * as THREE from 'three';
-import { DAY } from '../config/constants.js';
+import { DAY, STADIUM } from '../config/constants.js';
 import { LAYOUT } from './layout.js';
 import { LAMP_POST } from './props/LampPost.js';
 
@@ -18,6 +18,10 @@ const HEADLIGHT_POWER = 90;       // candela
 const HEADLIGHT_ANGLE = 0.55;
 const HEADLIGHT_HEIGHT = 0.95;
 const HEADLIGHT_REACH = 14;
+const FLOOD_COLOR = 0xfff1dc;
+const FLOOD_POWER = 40000;        // candela per sorot (jarak ±100 m → ±4 lux di lapangan)
+const FLOOD_ANGLE = 0.62;
+const FLOOD_DISTANCE = 260;
 const EMISSIVE_AUTO_BOOST = 1.8;  // material emissive tanpa tag: on = off × boost
 const FADE_RATE = 1.5;            // 1/s, transisi intensitas
 // Aturan PJU rusak harus sama dengan world/index.js (plaza i%7==3, jalan lingkar i%9==4).
@@ -68,6 +72,21 @@ function createHeadlight(scene) {
   return spot;
 }
 
+/** Empat sorot floodlight di sudut atap, mengarah ke tengah lapangan dan tribun seberang. */
+function createFloodSpots(scene) {
+  const x = STADIUM.innerSemiX * 0.85;
+  const z = STADIUM.innerSemiZ * 0.85;
+  const y = STADIUM.roofHeight - 2;
+  return [[1, 1], [-1, 1], [1, -1], [-1, -1]].map(([sx, sz], i) => {
+    const spot = new THREE.SpotLight(FLOOD_COLOR, 0, FLOOD_DISTANCE, FLOOD_ANGLE, 0.6, 2);
+    spot.name = `floodlightSorot-${i}`;
+    spot.position.set(sx * x, y, sz * z);
+    spot.target.position.set(-sx * x * 0.25, 0, -sz * z * 0.25);
+    scene.add(spot, spot.target);
+    return spot;
+  });
+}
+
 /**
  * @returns {{ update(dt, bikePos, bikeYaw): void, setLampsOn(on: boolean): void, get lampsOn }}
  */
@@ -76,6 +95,7 @@ export function createNightLights(scene) {
   const lamps = litLampPositions();
   const points = createPointLights(scene);
   const headlight = createHeadlight(scene);
+  const floods = createFloodSpots(scene);
   const order = lamps.map((_, i) => i);
   const dist2 = new Float32Array(lamps.length);
   let lampsOn = false;
@@ -121,6 +141,7 @@ export function createNightLights(scene) {
         pickNearest(focus);
       }
       for (const light of points) light.intensity = light.userData.active ? LAMP_POWER * level : 0;
+      for (const f of floods) f.intensity = FLOOD_POWER * level;
       updateHeadlight(bikePos, bikeYaw);
     },
   };
