@@ -14,6 +14,9 @@ const FLOW_SPEED = 0.2;
 const FLOW_STRENGTH = 0.09;
 const DRIFT_SPEED = 0.004;
 const LIT_DEFAULT = new THREE.Color('#fff1d8');
+const ZENITH_DAY = new THREE.Color('#1478e6');
+const ZENITH_TWILIGHT = new THREE.Color('#3a3f86');
+const ZENITH_NIGHT = new THREE.Color('#050a1e');
 const SHADE_DEFAULT = new THREE.Color('#aebfdc');
 
 /** Kepadatan awan 0..1 (R) yang bisa diulang tanpa sambungan. */
@@ -149,11 +152,22 @@ export function createStylizedClouds() {
     u.uStorm.value = THREE.MathUtils.smoothstep(cover, 0.7, 0.95);
     u.uSunDir.value.copy(sunDir);
   };
-  /** Warna awan mengikuti warna matahari; `brightness` 0..1 meredupkan awan saat malam. */
-  mesh.userData.setLook = (sunColor, brightness) => {
+  /**
+   * Warna langit & awan mengikuti jam: biru siang → ungu senja → biru tua malam.
+   * @param {number} sunColor warna matahari/bulan (hex)
+   * @param {number} elevationDeg tinggi matahari (derajat, negatif = di bawah horizon)
+   * @param {number} horizonHex warna kabut preset (horizon menyatu dengan kabut)
+   */
+  mesh.userData.setLook = (sunColor, elevationDeg, horizonHex) => {
+    const sm = THREE.MathUtils.smoothstep;
+    const day = sm(elevationDeg, -6, 10);
+    const twilight = sm(elevationDeg, -8, 2) * (1 - sm(elevationDeg, 2, 14));
+    u.uZenith.value.copy(ZENITH_NIGHT).lerp(ZENITH_DAY, day).lerp(ZENITH_TWILIGHT, twilight * 0.7);
+    u.uHorizon.value.set(horizonHex);
     u.uLit.value.copy(LIT_DEFAULT).lerp(_tint.set(sunColor), 0.35);
-    u.uBright.value = brightness * brightness * brightness;
-    u.uSkyMix.value = THREE.MathUtils.smoothstep(brightness, 0.3, 0.7);
+    // Terang awan murni dari tinggi matahari (bukan cahaya sekitar yang masih tinggi saat malam).
+    const light = sm(elevationDeg, -12, 14);
+    u.uBright.value = 0.04 + 0.96 * light * light;
   };
   return mesh;
 }

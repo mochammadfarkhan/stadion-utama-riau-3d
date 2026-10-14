@@ -108,7 +108,7 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
     L.skyUniforms.turbidity.value = Math.max(TURBIDITY_MIN, p.skyTurbidity + (over.haze - HAZE_DEFAULT));
     L.skyUniforms.rayleigh.value = p.skyRayleigh;
     if (L.skyUniforms.cloudCoverage) L.skyUniforms.cloudCoverage.value = over.cloudCover;
-    L.clouds?.userData.setLook(p.sunColor, THREE.MathUtils.clamp(p.hemiIntensity * 1.4, 0.025, 1));
+    L.clouds?.userData.setLook(p.sunColor, sun.elevationDeg, p.fogColor);
     scene.environmentIntensity = L.defaults.envIntensity * Math.max(ENV_MIN_FACTOR, Math.min(1, p.hemiIntensity));
   };
 
