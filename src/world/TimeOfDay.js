@@ -22,7 +22,7 @@ import { createNightLights } from './TimeOfDay.lights.js';
 
 const MOON_ELEVATION_DEG = 48;
 const MOON_AZIMUTH_DEG = 120;
-const MOON_MAX_INTENSITY = 0.15;   // batas intensitas cahaya arah saat matahari di bawah horizon
+const MOON_MAX_INTENSITY = 0.6;    // intensitas cahaya bulan (cahaya arah saat matahari di bawah horizon)
 const HORIZON_FADE_DEG = 6;        // matahari memudar menjelang terbenam (hindari bayangan datar ekstrem)
 const ENV_MIN_FACTOR = 0.15;       // environmentIntensity malam ≈ 0.12 × 0.15 ≈ 0.02
 const STAR_RADIUS = 1800;
@@ -93,7 +93,7 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
 
   const applyPreset = (p, sun) => {
     const fade = THREE.MathUtils.clamp(sun.elevationDeg / HORIZON_FADE_DEG, 0, 1);
-    L.sun.intensity = sun.elevationDeg > 0 ? p.sunIntensity * fade : Math.min(p.sunIntensity, MOON_MAX_INTENSITY);
+    L.sun.intensity = sun.elevationDeg > 0 ? p.sunIntensity * fade : MOON_MAX_INTENSITY;
     L.sun.color.setHex(p.sunColor);
     L.hemi.intensity = p.hemiIntensity;
     L.hemi.color.setHex(p.hemiSky);
