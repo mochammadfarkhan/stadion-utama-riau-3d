@@ -84,7 +84,7 @@ const FRAGMENT = /* glsl */`
     float shape = smoothstep(thr, thr + 0.07, d);
     float fade = smoothstep(0.0, 0.16, h);
     // Gradasi langit biru-cerah (siang) di bawah awan; memudar ke warna kabut di horizon.
-    vec3 skyCol = mix(uHorizon, uZenith, smoothstep(0.02, 0.55, h));
+    vec3 skyCol = mix(uHorizon, uZenith, smoothstep(0.0, 0.28, h));
     float skyA = uSkyMix * smoothstep(0.0, 0.18, h);
     if (shape < 0.003 && skyA < 0.003) discard;
 
@@ -121,8 +121,8 @@ export function createStylizedClouds() {
       uStorm: { value: 0 },
       uBright: { value: 1 },
       uSkyMix: { value: 1 },
-      uHorizon: { value: new THREE.Color('#cdeeff') },
-      uZenith: { value: new THREE.Color('#2a8fd8') },
+      uHorizon: { value: new THREE.Color('#bfe6ff') },
+      uZenith: { value: new THREE.Color('#1478e6') },
       uLit: { value: LIT_DEFAULT.clone() },
       uShade: { value: SHADE_DEFAULT.clone() },
       uSunDir: { value: new THREE.Vector3(0.5, 0.5, 0.2) },
@@ -152,8 +152,8 @@ export function createStylizedClouds() {
   /** Warna awan mengikuti warna matahari; `brightness` 0..1 meredupkan awan saat malam. */
   mesh.userData.setLook = (sunColor, brightness) => {
     u.uLit.value.copy(LIT_DEFAULT).lerp(_tint.set(sunColor), 0.35);
-    u.uBright.value = brightness;
-    u.uSkyMix.value = THREE.MathUtils.smoothstep(brightness, 0.5, 0.95);
+    u.uBright.value = brightness * brightness * brightness;
+    u.uSkyMix.value = THREE.MathUtils.smoothstep(brightness, 0.3, 0.7);
   };
   return mesh;
 }
