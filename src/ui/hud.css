@@ -32,6 +32,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1016; fon
 #hud-score { top: 16px; border: 1px solid var(--hud-accent); }
 #hud-prompt { bottom: 48px; border: 1px solid var(--hud-accent); animation: pulse 1.4s infinite; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(242, 183, 5, 0.18); } }
+@media (prefers-reduced-motion: reduce) { #hud-prompt { animation: none; } }
 
 /* Di atas tengah (bukan bawah) supaya tidak tertutup dialog cerita (#story-dialog, bawah layar). */
 #hud-toast {

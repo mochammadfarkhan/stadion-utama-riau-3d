@@ -48,16 +48,25 @@ export class CameraRig {
       this.locked = document.pointerLockElement === this.dom;
     }, { signal });
     document.addEventListener('mousemove', (e) => {
-      if (!this.locked) return;
-      const k = MOUSE_SENSITIVITY * this.sensitivity;
-      if (this.director.mode === 'pov') {
-        this.director.look(e.movementX * k, e.movementY * k);
-        return;
-      }
-      this.yawOffset -= e.movementX * k;
-      this.pitch = THREE.MathUtils.clamp(this.pitch + e.movementY * k, -PITCH_LIMIT, PITCH_LIMIT);
+      if (this.locked) this.lookBy(e.movementX, e.movementY);
     }, { signal });
     this.dom.addEventListener('wheel', (e) => this.director.zoomBy(e.deltaY), { signal, passive: true });
+  }
+
+  /**
+   * Geser arah lihat dalam satuan "piksel mouse": dipakai mouse (pointer lock), drag sentuh,
+   * dan stick kanan gamepad. Di POV diteruskan ke PovDirector.
+   * @param {number} dx @param {number} dy @param {number} [scale=1] pengali kepekaan (sentuh > mouse)
+   */
+  lookBy(dx, dy, scale = 1) {
+    if (!Number.isFinite(dx) || !Number.isFinite(dy)) return;
+    const k = MOUSE_SENSITIVITY * this.sensitivity * scale;
+    if (this.director.mode === 'pov') {
+      this.director.look(dx * k, dy * k);
+      return;
+    }
+    this.yawOffset -= dx * k;
+    this.pitch = THREE.MathUtils.clamp(this.pitch + dy * k, -PITCH_LIMIT, PITCH_LIMIT);
   }
 
   /** Lepas semua listener (dipanggil saat aplikasi dibongkar). */

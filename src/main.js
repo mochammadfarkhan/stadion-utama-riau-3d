@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import { App, hasWebGL } from './core/App.js';
 import { Input } from './core/Input.js';
+import { createGamepadPoller } from './core/gamepad.js';
+import { TouchControls } from './ui/TouchControls.js';
+import { isTouchPrimary } from './ui/touchMath.js';
+import './ui/touch.css';
 import { CameraRig } from './core/CameraRig.js';
 import { createCollider } from './core/Collider.js';
 import { createPovSource } from './core/povSource.js';
@@ -19,7 +23,7 @@ import { updateWind } from './world/shaders/windState.js';
 import { buildEntities } from './entities/index.js';
 import { HUD } from './ui/HUD.js';
 import { createWallet } from './sim/vendorSim.js';
-import { createSettingsStore } from './settings/store.js';
+import { createSettingsStore, STORAGE_KEY } from './settings/store.js';
 import { safeLocalStorage } from './settings/safeStorage.js';
 import { bindAll } from './ui/bindings/index.js';
 import { mountSettingsPanel } from './ui/mountSettingsPanel.js';
@@ -48,8 +52,17 @@ async function main() {
   const input = new Input();
   const hud = new HUD(document.getElementById('hud'));
   const rig = new CameraRig(app.camera, app.renderer.domElement);
+  // Kontrol sentuh + gamepad menulis ke Input yang sama dengan keyboard.
+  const touchUi = new TouchControls(document.body, { input, rig, surface: app.renderer.domElement });
+  const gamepad = createGamepadPoller(input, { lookBy: (dx, dy) => rig.lookBy(dx, dy) });
+  app.addUpdatable({ update: (dt) => gamepad.update(dt) });
+  window.addEventListener('gamepadconnected', () => hud.toast('Gamepad terhubung', true));
   const audioBus = createAudioBus();
-  const store = createSettingsStore({ storage: safeLocalStorage() });
+  const storage = safeLocalStorage();
+  const firstRun = storage?.getItem(STORAGE_KEY) == null;
+  const store = createSettingsStore({ storage });
+  const touch = isTouchPrimary();
+  if (touch && firstRun) store.set('performance.minimap', false); // layar kecil: minimap menutupi tombol layar
   // Perubahan terakhir tidak boleh hilang saat tab ditutup/disembunyikan (debounce 150 ms).
   window.addEventListener('pagehide', () => store.flush());
   document.addEventListener('visibilitychange', () => { if (document.hidden) store.flush(); });
@@ -118,7 +131,7 @@ async function main() {
     return { dt, rawDt, time: t, bikePos, focus: rig.focus, input: hud.shopOpen || rig.freezesBike ? null : input };
   });
 
-  setupPointerLock(app, rig, hud, store);
+  setupPointerLock(app, rig, hud, store, { touchUi, touch });
   await loading.step(0.9, 'Memuat model 3D (tugu, bangku)…');
   // Model 3D opsional (ada cadangan prosedural): jangan tahan tombol Mulai bila unduhan macet.
   await Promise.race([modelsReady, new Promise((resolve) => setTimeout(resolve, MODELS_TIMEOUT_MS))]);
@@ -158,15 +171,16 @@ function setupShop(hud, ents, story) {
 }
 
 /** Tombol mulai + klik kanvas mengunci pointer; panel pengaturan dipasang bila modulnya ada. */
-function setupPointerLock(app, rig, hud, store) {
+function setupPointerLock(app, rig, hud, store, { touchUi, touch }) {
   document.getElementById('start').addEventListener('click', () => {
     document.getElementById('overlay').classList.add('hidden');
-    rig.requestLock();
+    if (touch) touchUi.setVisible(true); // pointer lock tidak ada di ponsel; kontrol layar menggantikannya
+    else rig.requestLock();
   });
   mountSettingsPanel({ store, app, rig, hud }).then(({ panel }) => {
     if (panel) return; // panel memasang handler klik kanvas sendiri (cek isPointerOverUI)
     app.renderer.domElement.addEventListener('click', () => {
-      if (!hud.shopOpen) rig.requestLock();
+      if (!hud.shopOpen && !touch) rig.requestLock();
     });
   });
 }
