@@ -119,3 +119,22 @@ describe('preset & format', () => {
     expect(formatHour(23.999)).toBe('23:59');
   });
 });
+
+describe('sunMoonWeight', () => {
+  it('0 jauh di bawah horizon, 1 jauh di atas, 0,5 tepat di horizon', async () => {
+    const { sunMoonWeight } = await import('../src/sim/dayCycle.js');
+    expect(sunMoonWeight(-20)).toBe(0);
+    expect(sunMoonWeight(20)).toBe(1);
+    expect(sunMoonWeight(0)).toBeCloseTo(0.5, 6);
+  });
+  it('monoton naik dan kontinu (tanpa loncatan besar per 0,5 derajat)', async () => {
+    const { sunMoonWeight } = await import('../src/sim/dayCycle.js');
+    let prev = sunMoonWeight(-10);
+    for (let e = -9.5; e <= 10; e += 0.5) {
+      const w = sunMoonWeight(e);
+      expect(w).toBeGreaterThanOrEqual(prev);
+      expect(w - prev).toBeLessThan(0.1);
+      prev = w;
+    }
+  });
+});

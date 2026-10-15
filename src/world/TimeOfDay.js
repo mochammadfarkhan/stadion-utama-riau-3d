@@ -15,7 +15,7 @@ import * as THREE from 'three';
 import { DAY } from '../config/constants.js';
 import {
   createDayState, stepDay, setDayHour, sunFromHour, lightingPreset,
-  presetNameForHour, nextPresetAfter, PRESET_HOURS,
+  presetNameForHour, nextPresetAfter, sunMoonWeight, PRESET_HOURS,
 } from '../sim/dayCycle.js';
 import { directionFromAngles } from './Lighting.js';
 import { createNightLights } from './TimeOfDay.lights.js';
@@ -34,6 +34,7 @@ const FOG_DEFAULT = 1100;          // nilai fogDistance settings yang berarti "s
 const TURBIDITY_MIN = 1;
 
 const _sunDir = new THREE.Vector3();
+const _lightDir = new THREE.Vector3();
 const _moonDir = directionFromAngles(MOON_ELEVATION_DEG, MOON_AZIMUTH_DEG);
 
 /** Kubah bintang sederhana (Points) yang mengikuti kamera; hanya tampak malam. */
@@ -87,13 +88,17 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
     if (state.hour === lastDirHour) return;
     lastDirHour = state.hour;
     directionFromAngles(sun.elevationDeg, sun.azimuthDeg + over.azimuthOffset, _sunDir);
-    L.setSunDirection(sun.elevationDeg > 0 ? _sunDir : _moonDir);
+    // Cahaya arah beralih matahari → bulan bertahap di sekitar horizon (tanpa loncatan arah/bayangan).
+    const w = sunMoonWeight(sun.elevationDeg);
+    _lightDir.copy(_moonDir).lerp(_sunDir, w);
+    L.setSunDirection(_lightDir.lengthSq() > 1e-6 ? _lightDir : _sunDir);
     L.setSkyDirection(_sunDir);
   };
 
   const applyPreset = (p, sun) => {
     const fade = THREE.MathUtils.clamp(sun.elevationDeg / HORIZON_FADE_DEG, 0, 1);
-    L.sun.intensity = sun.elevationDeg > 0 ? p.sunIntensity * fade : MOON_MAX_INTENSITY;
+    const w = sunMoonWeight(sun.elevationDeg);
+    L.sun.intensity = p.sunIntensity * fade * w + MOON_MAX_INTENSITY * (1 - w);
     L.sun.color.setHex(p.sunColor);
     L.hemi.intensity = p.hemiIntensity;
     L.hemi.color.setHex(p.hemiSky);

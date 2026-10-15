@@ -165,14 +165,17 @@ function createEnvironment(scene, renderer, sunDir) {
   const envSky = createSky(sunDir);
   if (envSky.material.uniforms.showSunDisc) envSky.material.uniforms.showSunDisc.value = 0;
   envScene.add(envSky);
+  // Satu generator seumur hidup: membuat ulang tiap rebuild ±13x lebih lambat (27 ms vs 2 ms).
+  let pmrem = null;
+  let envTarget = null;
   const rebuild = () => {
     try {
-      const pmrem = new THREE.PMREMGenerator(renderer);
-      const previous = scene.environment;
-      scene.environment = pmrem.fromScene(envScene, ENV_SIGMA).texture;
-      if (previous) previous.dispose();
+      pmrem ??= new THREE.PMREMGenerator(renderer);
+      const next = pmrem.fromScene(envScene, ENV_SIGMA);
+      envTarget?.dispose(); // render target lama (bukan hanya texture) dilepas
+      envTarget = next;
+      scene.environment = next.texture;
       scene.environmentIntensity = ENV_INTENSITY;
-      pmrem.dispose();
     } catch {
       // Env map opsional: tanpa env map, pencahayaan hemisphere sudah cukup.
     }

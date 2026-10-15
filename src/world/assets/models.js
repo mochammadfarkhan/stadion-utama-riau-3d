@@ -19,7 +19,9 @@ export function modelUrl(path) {
 export function loadModel(path) {
   const url = modelUrl(path);
   if (!cache.has(url)) {
-    cache.set(url, loader.loadAsync(url).then((gltf) => prepare(gltf.scene)));
+    const pending = loader.loadAsync(url).then((gltf) => prepare(gltf.scene));
+    pending.catch(() => cache.delete(url)); // gagal: jangan cache selamanya, izinkan coba lagi
+    cache.set(url, pending);
   }
   return cache.get(url);
 }

@@ -146,6 +146,16 @@ export class App {
     this.labelRenderer.setSize(w, h);
   }
 
+  /** Satu updatable yang melempar tidak boleh menghentikan updatable lain maupun render. */
+  #safeUpdate(u, dt, ctx) {
+    try {
+      u.update(dt, ctx);
+    } catch (err) {
+      console.error('Updatable dinonaktifkan karena error:', err);
+      this.removeUpdatable(u);
+    }
+  }
+
   /** Mulai loop. makeContext(dt) mengembalikan ctx untuk semua updatable. */
   start(makeContext) {
     const loop = () => {
@@ -154,7 +164,7 @@ export class App {
       this.elapsed += dt;
       const ctx = makeContext(dt, this.elapsed);
       this.lastCtx = ctx;
-      for (const u of this.updatables) u.update(dt, ctx);
+      for (const u of this.updatables) this.#safeUpdate(u, dt, ctx);
       this.render(ctx);
       this.frame += 1;
     };

@@ -31,6 +31,7 @@ import { StoryJournal } from './ui/StoryJournal.js';
 
 const START_POS = { x: 0, z: -275, yaw: 0 }; // plaza utara, menghadap stadion
 const HOURS = 24;
+const MODELS_TIMEOUT_MS = 8000;
 
 function showFatal(msg) {
   const panel = document.querySelector('#overlay .panel');
@@ -48,6 +49,9 @@ async function main() {
   const rig = new CameraRig(app.camera, app.renderer.domElement);
   const audioBus = createAudioBus();
   const store = createSettingsStore({ storage: safeLocalStorage() });
+  // Perubahan terakhir tidak boleh hilang saat tab ditutup/disembunyikan (debounce 150 ms).
+  window.addEventListener('pagehide', () => store.flush());
+  document.addEventListener('visibilitychange', () => { if (document.hidden) store.flush(); });
 
   await loading.step(0.12, 'Menyiapkan langit dan pencahayaan…');
   const lighting = createLighting(app.scene, app.renderer);
@@ -114,7 +118,8 @@ async function main() {
 
   setupPointerLock(app, rig, hud, store);
   await loading.step(0.9, 'Memuat model 3D (tugu, bangku)…');
-  await modelsReady;
+  // Model 3D opsional (ada cadangan prosedural): jangan tahan tombol Mulai bila unduhan macet.
+  await Promise.race([modelsReady, new Promise((resolve) => setTimeout(resolve, MODELS_TIMEOUT_MS))]);
   await loading.step(1, 'Siap!');
   loading.done();
   if (import.meta.env.DEV) exposeDevTools({ app, ents, rig, time, weather, store, audioBus, story });
