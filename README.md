@@ -1,6 +1,6 @@
 # Stadion Utama Riau — Simulator 3D
 
-Simulator 3D interaktif kawasan **Stadion Utama Riau** (Jl. Naga Sakti, Panam, Pekanbaru) dibangun dengan [Three.js](https://threejs.org) 0.186 + Vite. Semua geometri prosedural, tanpa aset unduhan.
+Simulator 3D interaktif kawasan **Stadion Utama Riau** (Jl. Naga Sakti, Panam, Pekanbaru) dibangun dengan [Three.js](https://threejs.org) 0.186 + Vite. Hampir semua geometri prosedural; dua model Blender (GLB: tugu Lancang Kuning dan bangku taman) dimuat dari `public/models/`. Font Inter/JetBrains Mono dimuat dari Google Fonts.
 
 | Interior tribun | Plaza & gate utara |
 |---|---|
@@ -22,6 +22,8 @@ Simulator 3D interaktif kawasan **Stadion Utama Riau** (Jl. Naga Sakti, Panam, P
 - **Sudut pandang (POV)** dengan transisi halus yang melewati atas atap: Udara, Tribun, Bola, Pelari (tekan lagi untuk pelari berikutnya), Pedagang, Orbit sinematik, dan Top-down. Di semua POV sepeda dibekukan, kecuali Top-down yang tetap bisa dikendalikan. Reload selalu mulai dari sepeda.
 - **Cerita & misi** "Wisata Kuliner dan Budaya Riau": 5 chapter (antar Es Teh ke Pak Satpam, antar Rujak ke Coach Dedi, 3 putaran lintasan, jejak Air Molek) dengan hadiah, lencana, gelar, dan 8 easter egg tersembunyi. Tombol **J** membuka jurnal; progres tersimpan di browser.
 - **Panel pengaturan** (tombol **H**) gaya kaca gelap: tab Langit (busur matahari interaktif, azimut, jam berjalan, awan, kabut, exposure), Cuaca (hujan, intensitas, basah, angin, suara), Grafik (bayangan, resolusi, AO, vignette, kepadatan penonton), Kamera, Audio, Performa (FPS, draw call live). Semua nilai tersimpan otomatis (localStorage), bisa reset per kontrol/section/semua, tombol screenshot PNG, mode foto (**P**), bantuan (**F1**).
+- **Kontrol sentuh & gamepad**: joystick virtual, tombol Bel / E / Lari / Kamera / Jurnal, geser layar untuk melihat (ponsel/tablet); gamepad standar (stick, trigger, tombol aksi). Minimap otomatis dimatikan di ponsel agar tidak menutupi tombol.
+- **Performa**: LOD humanoid (mesh gabungan satu draw call di jarak menengah), bayangan dirender tiap 2 frame, **resolusi adaptif** (menurunkan resolusi hanya bila terbukti membantu), minimap 2D (peta dasar di-bake sekali, tanpa render 3D per frame), dunia statis dibekukan (matriks tidak dihitung ulang tiap frame), chunk `three` terpisah di bundel produksi.
 - **Lingkungan detail** berbasis riset: rib putih miring + selembayung, atap Kalzip bergelombang, louvre coklat-emas, 12 gate, tribun 2 tier ±39.000 kursi "pixel" warna-warni (sebagian hilang di tribun utara), lapangan FIFA 105×68, lintasan merah bata, floodlight di lingkar atap, patung serindit, tunnel pemain, plaza paving, tiang bendera, bangku, tong sampah, PJU, pot bunga, pos jaga, pagar, gapura "Selamat Datang", tugu Lancang Kuning + kolam, tugu tanjak, parkir mobil/motor, Jl. Naga Sakti dengan lapak PKL (gerobak, tenda ceper, jagung bakar), danau, sungai + jembatan besi, venue baseball, helipad, amphitheater, lintasan sepatu roda, ±1.000 pohon termasuk pohon muda berajir.
 
 ## Kontrol
@@ -32,22 +34,28 @@ Simulator 3D interaktif kawasan **Stadion Utama Riau** (Jl. Naga Sakti, Panam, P
 | Shift | sprint |
 | Space | bel |
 | Mouse | lihat sekeliling (klik kanvas untuk pointer lock) |
-| V | ganti kamera orang pertama / ketiga |
-| E | beli dari pedagang (saat prompt muncul) / tutup dialog |
+| E | bicara dengan NPC / lanjut dialog / beli dari pedagang (saat prompt muncul) / tutup toko |
+| Esc | tutup jurnal / toko |
+| V | ganti kamera orang pertama / ketiga (di POV: keluar dari POV) |
+| 1 – 7 | sudut pandang (POV): Udara, Tribun, Bola, Pelari, Pedagang, Orbit sinematik, Top-down |
+| 0 | keluar dari POV, kembali ke sepeda |
+| mouse / roda | orbit dan zoom saat POV aktif |
+| J | jurnal cerita (chapter, lencana, easter egg, mulai ulang) |
 | M | tampilkan / sembunyikan minimap |
 | N | ganti waktu: siang / sore / magrib / malam |
 | T | jalankan / hentikan jam (0,25 jam per detik) |
 | [ / ] | mundur / maju 1 jam |
 | R | hujan / cerah (jalan basah, genangan, kabut) |
 | O | ambient occlusion on/off |
-| 1 – 7 | sudut pandang (POV): Udara, Tribun, Bola, Pelari, Pedagang, Orbit sinematik, Top-down |
-| 0 atau V | keluar dari POV, kembali ke sepeda |
-| J | jurnal cerita (chapter, lencana, easter egg, mulai ulang) |
-| E | bicara dengan NPC / lanjut dialog / beli dari pedagang |
-| mouse / roda | orbit dan zoom saat POV aktif |
 | H | buka/tutup panel pengaturan |
 | F1 | bantuan kontrol |
 | P | mode foto (sembunyikan UI) |
+
+Kombinasi dengan Ctrl/Alt/Meta (mis. Ctrl+R) diabaikan game, dan mengetik di panel pengaturan tidak menggerakkan sepeda.
+
+**Ponsel/tablet:** joystick kiri bawah = kayuh/belok, geser di layar = lihat sekeliling, tombol kanan = Bel, E (interaksi), Lari, Kamera, Jurnal. Panel pengaturan lewat ikon di tepi kanan.
+
+**Gamepad (layout standar):** stick kiri / D-pad = kayuh & belok, stick kanan = lihat, RT/RB = lari, LT = rem, A = bel, X = interaksi (E), Y = kamera, B = Esc, Start = jurnal, Back = panel.
 
 ## Menjalankan
 ```bash
@@ -62,24 +70,34 @@ Build produksi: `npm run build` (hasil di `dist/`). Deploy otomatis ke GitHub Pa
 ```bash
 npm test
 ```
-Unit test (Vitest) mencakup semua logika murni di `src/sim/`: geometri lintasan, fisika sepeda, pelari, AI sepak bola & bola, pedagang & dompet.
+Unit test (Vitest) mencakup logika murni di `src/sim/` (fisika sepeda/bola, AI sepak bola, pelari, pedagang, siklus hari), mesin cerita (`reducer`, objective, pemicu easter egg, penyimpanan), pengaturan (skema, store, binding), kontrol (Input, gamepad, joystick sentuh, matematika minimap, kontroler resolusi adaptif), serta LOD humanoid, chunking instansi, dan komponen UI via jsdom.
 
 ## Struktur
 ```
 src/
-  core/        App (renderer, loop, minimap), Input, CameraRig, Collider
+  core/        App (renderer, loop, post-processing, bake minimap), Input, gamepad, CameraRig,
+               Collider, StoryDirector, adaptiveResolution, AudioBus
   config/      constants.js — seluruh dimensi & warna
-  sim/         logika murni tanpa THREE.Mesh (unit-tested)
-  world/       builder geometri statis: Ground, Landscape, stadium/*, props/*
-  entities/    objek bergerak: Bicycle, Runner, Footballer, Vendor, Crowd, Humanoid
-  ui/          HUD
+  sim/         logika murni tanpa THREE.Mesh (unit-tested); sim/story = mesin cerita
+  story/       data cerita (chapter, easter egg), pemicu, penyimpanan, pengaman uang
+  settings/    skema, store, safeStorage (localStorage)
+  world/       builder geometri statis: Ground, Landscape, stadium/*, props/*, langit/cuaca
+  entities/    objek bergerak: Bicycle, Runner, Footballer, Vendor, Crowd, Humanoid (+ LOD)
+  ui/          HUD, panel pengaturan, TouchControls, Minimap2D, jurnal & HUD cerita
+public/models/ model Blender (GLB)
+assets-src/    sumber .blend + skrip ekspor (export_glb.py)
 docs/
   research/    riset fakta stadion & teknis Three.js
-  superpowers/ spec desain & rencana implementasi
+  superpowers/ spec desain, rencana implementasi, audit & roadmap perbaikan
 ```
+
+Model GLB dihasilkan dari Blender lewat `assets-src/blender/export_glb.py` (alur Blender → GLB → `src/world/assets/models.js`).
 
 ## Kredit
 Pola UI panel pengaturan diadaptasi dari [dgreenheck/tidewater](https://github.com/dgreenheck/tidewater) (lisensi MIT).
+
+## Lisensi
+MIT, lihat [LICENSE](LICENSE).
 
 ## Sumber riset
 Lihat `docs/research/stadion-utama-riau.md` (Dispora Riau, StadiumDB, Wikipedia, liputan media lokal) dan `docs/research/threejs-teknis.md`.
