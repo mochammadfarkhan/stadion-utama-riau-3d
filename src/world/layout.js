@@ -71,6 +71,8 @@ export const LAYOUT = Object.freeze({
     { path: 'models/uji/bangku-taman.glb', x: 7, z: -186, rotY: Math.PI },
     // Tugu Lancang Kuning (Blender) menggantikan versi prosedural di posisi yang sama
     { path: 'models/monumen/lancang-kuning.glb', x: 0, z: -(STADIUM.outerSemiZ + 45), replaces: 'tuguLancangKuning' },
+    // Patung serindit (Blender) menggantikan versi prosedural di posisi yang sama (lihat Fixtures.props STATUE_POS)
+    { path: 'models/monumen/serindit.glb', x: 22, z: -(STADIUM.innerSemiZ - 8), replaces: 'patungSerindit' },
   ],
   plazaCenter: { x: 0, z: -180 },
   plazaSpots: {

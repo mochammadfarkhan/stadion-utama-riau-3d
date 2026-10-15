@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { STADIUM } from '../../config/constants.js';
 import { createEllipseArcTable, ellipseAngleAtArc, ellipsePoint, createCanvasTexture } from './ovalMath.js';
 import {
-  createSerinditStatue, createScheduleBoard, createTrashBins, createKiosks,
+  createScheduleBoard, createTrashBins, createKiosks,
 } from './Fixtures.props.js';
 
 const FLOOD_COUNT = 200;
@@ -126,7 +126,7 @@ export function createFixtures(opts = {}) {
   group.add(
     createFloodlights({ count: opts.floodCount }), createSpeakers(),
     createVideotron(-1, screenMat), createVideotron(1, screenMat),
-    createSerinditStatue(), createScheduleBoard(),
+    createScheduleBoard(),
     createTrashBins(), createKiosks(),
   );
   return group;

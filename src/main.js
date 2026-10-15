@@ -160,6 +160,7 @@ function setupStory({ app, ents, hud, rig }) {
   const markers = createStoryMarkers();
   app.scene.add(npcs.group, markers.group);
   ents.lod.addFrom(npcs.group);
+  app.addUpdatable({ update: (dt, ctx) => npcs.refreshLabels(ctx.focus ?? ctx.bikePos, ents.vendors.labelsEnabled) });
   let story = null;
   const storyHud = new StoryHUD(root, { onAdvance: () => story.advanceDialog() });
   const journal = new StoryJournal(root, { onReset: () => story.reset(), onClose: () => story.toggleJournal() });
