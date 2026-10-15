@@ -46,7 +46,7 @@ export async function captureScreenshot(app, { scale = 1, filename = screenshotF
   const basePr = app.pixelCeiling ?? app.pixelRatio;
   const k = Number.isFinite(scale) && scale > 0 ? scale : 1;
   body.classList.add(PHOTO_CLASS);
-  let pending = null;
+  let pending;
   try {
     pending = app.withPixelRatio(basePr * k, () => {
       app.renderFrame();

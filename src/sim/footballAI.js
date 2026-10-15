@@ -125,14 +125,14 @@ function kickVector(kicker, players, ball) {
 }
 
 /** Status FSM untuk pemain i. */
-function decideState(p, i, nearest, ball) {
+function decideState(p, i, nearest, _ball) {
   if (nearest[p.team].i !== i) return 'RETURN';
   if (p.kickTimer > 0) return 'KICK';
   return nearest[p.team].d < FOOTBALL.kickRange ? 'KICK' : 'CHASE';
 }
 
 /** Pemain pertama yang boleh menendang pada langkah ini (kickTimer habis & dekat bola). */
-function findKicker(players, nearest, ball) {
+function findKicker(players, nearest, _ball) {
   return players.find((p, i) => nearest[p.team].i === i && p.kickTimer <= 0 && nearest[p.team].d < FOOTBALL.kickRange);
 }
 
