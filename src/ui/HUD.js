@@ -143,7 +143,7 @@ function buildLayout(root) {
   const items = el('div', { id: 'hud-items', className: 'muted' }, 'Belum beli apa-apa');
   const score = el('div', { id: 'hud-score', className: 'pill' }, 'PSPS 0 – 0 TAMU');
   const prompt = el('div', { id: 'hud-prompt', className: 'pill hidden' });
-  const toast = el('div', { id: 'hud-toast', className: 'hidden' });
+  const toast = el('div', { id: 'hud-toast', className: 'hidden', role: 'status', 'aria-live': 'polite' });
   const shopTitle = el('h2', { id: 'hud-shop-title' });
   const shopList = el('div', { id: 'hud-shop-list' });
   const shopHint = el('p', { className: 'muted' }, 'Klik item untuk membeli · Esc / E untuk tutup');

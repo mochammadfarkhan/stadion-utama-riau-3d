@@ -142,7 +142,12 @@ async function main() {
   // Model 3D opsional (ada cadangan prosedural): jangan tahan tombol Mulai bila unduhan macet.
   await Promise.race([modelsReady, new Promise((resolve) => setTimeout(resolve, MODELS_TIMEOUT_MS))]);
   await loading.step(0.97, 'Menggambar peta…');
-  minimap.setBase(app.bakeMinimap(SITE.groundSize / 2), SITE.groundSize / 2);
+  try {
+    minimap.setBase(app.bakeMinimap(SITE.groundSize / 2), SITE.groundSize / 2);
+  } catch (err) {
+    // Minimap hanya pelengkap: GPU yang gagal mengalokasikan target/readPixels tidak boleh menggagalkan game.
+    console.error('Minimap dasar gagal dibuat, minimap memakai latar polos:', err);
+  }
   await loading.step(1, 'Siap!');
   loading.done();
   if (import.meta.env.DEV) exposeDevTools({ app, ents, rig, time, weather, store, audioBus, story });

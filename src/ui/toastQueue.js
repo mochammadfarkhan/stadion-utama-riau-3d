@@ -33,6 +33,10 @@ export function createToastQueue({ show, hide, schedule = setTimeout, cancel = c
   return {
     push(text, ok = true) {
       if (timer === null) return present({ text, ok });
+      if (!ok) { // galat (mis. uang tidak cukup) harus terbaca sekarang, bukan setelah antrean habis
+        cancel(timer);
+        return present({ text, ok });
+      }
       if (queue.length >= cfg.maxQueue) queue.shift();
       queue.push({ text, ok });
     },

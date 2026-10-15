@@ -60,16 +60,26 @@ describe('createToastQueue', () => {
     expect(log.at(-1)).toEqual(['hide']);
   });
 
-  it('meneruskan flag ok, dan antrean dibatasi agar tidak menumpuk', () => {
+  it('antrean dibatasi agar tidak menumpuk: yang terlama digeser', () => {
     const { q, clock, log } = setup({ maxQueue: 2 });
     q.push('1');
-    q.push('2', false);
+    q.push('2');
     q.push('3');
     q.push('4');
     clock.advance(2000);
-    expect(log[1]).toEqual(['show', '3', true]); // '2' dibuang: yang terlama di antrean digeser
+    expect(log[1]).toEqual(['show', '3', true]); // '2' digeser keluar
     clock.advance(2000);
     expect(log[2]).toEqual(['show', '4', true]);
+  });
+
+  it('pesan galat (ok=false) langsung tampil menggantikan yang sedang tampil, tanpa menunggu antrean', () => {
+    const { q, clock, log } = setup();
+    q.push('Teks egg panjang');
+    q.push('+Rp 3.000');
+    q.push('Uang tidak cukup', false);
+    expect(log.at(-1)).toEqual(['show', 'Uang tidak cukup', false]);
+    clock.advance(2000); // galat selesai → lanjut ke antrean yang tersisa
+    expect(log.at(-1)).toEqual(['show', '+Rp 3.000', true]);
   });
 
   it('setelah kosong dan tersembunyi, toast baru tampil lagi langsung', () => {

@@ -42,16 +42,17 @@ function canvasToBlob(canvas) {
  */
 export async function captureScreenshot(app, { scale = 1, filename = screenshotFilename(), download = true } = {}) {
   const body = document.body;
-  const basePr = app.pixelRatio;
+  // Foto memakai batas atas dari pengaturan (bukan resolusi adaptif yang sedang turun) dan tidak mengubahnya.
+  const basePr = app.pixelCeiling ?? app.pixelRatio;
   const k = Number.isFinite(scale) && scale > 0 ? scale : 1;
   body.classList.add(PHOTO_CLASS);
   let pending = null;
   try {
-    if (k !== 1) app.setPixelRatio(basePr * k);
-    app.renderFrame();
-    pending = canvasToBlob(app.renderer.domElement); // dipanggil sinkron setelah render
+    pending = app.withPixelRatio(basePr * k, () => {
+      app.renderFrame();
+      return canvasToBlob(app.renderer.domElement); // dipanggil sinkron setelah render
+    });
   } finally {
-    if (k !== 1) app.setPixelRatio(basePr);
     body.classList.remove(PHOTO_CLASS);
   }
   try {

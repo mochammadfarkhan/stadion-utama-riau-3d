@@ -45,6 +45,7 @@ export class StoryDirector {
     this.bought = null;
     this.bikePos = { x: 0, z: 0 };
     this.fundsTimer = 0;
+    this.fundedStep = null; // 'chapter:step' yang sudah diberi uang saku (sekali per langkah)
   }
 
   /** Muat progres tersimpan; hadiah yang sudah dikumpulkan ditambahkan ke dompet sesi ini. */
@@ -115,8 +116,11 @@ export class StoryDirector {
     this.fundsTimer -= dt;
     if (this.fundsTimer > 0 || this.state.finished || this.state.dialog) return;
     this.fundsTimer = FUNDS_CHECK_SEC;
+    const key = `${this.state.chapter}:${this.state.step}`;
+    if (this.fundedStep === key) return;
     const short = fundsShortfall(this.#step().objective, this.vendors.wallet);
     if (short <= 0) return;
+    this.fundedStep = key;
     this.vendors.credit(short);
     this.hud.setWallet(this.vendors.wallet);
     this.hud.toast(`Uang saku +Rp ${short.toLocaleString('id-ID')} untuk menyelesaikan misi`, true);

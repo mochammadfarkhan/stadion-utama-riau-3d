@@ -17,6 +17,7 @@ const SPIKE_STREAK = 3;         // ...kecuali berturut-turut: itu mesin yang mem
 const CLAMP_SEC = 1;            // batas atas dt yang dihitung
 const STEP_DOWN = 0.1;
 const GRID = 0.05;
+const SETTLE_FRAMES = 12;       // abaikan frame sesaat setelah perubahan rasio (realokasi target = hitch, bukan beban nyata)
 
 const snap = (v) => Math.round(v / GRID) * GRID;
 
@@ -34,10 +35,14 @@ export function createAdaptiveResolution({ ceiling, floor = 0.6, targetMs = 20 }
   let pendingGainCheck = false;
   let prevAvg = 0;
   let spikes = 0;
+  let settle = 0;
 
   const change = (next, cool) => {
     ratio = Math.min(top, Math.max(floor, snap(next)));
     cooldown = cool;
+    settle = SETTLE_FRAMES;
+    acc = 0;
+    frames = 0;
     return ratio;
   };
 
@@ -52,6 +57,7 @@ export function createAdaptiveResolution({ ceiling, floor = 0.6, targetMs = 20 }
     /** @returns {number|null} rasio baru bila berubah pada sampel ini, selain itu null */
     sample(dt) {
       if (!(dt > 0)) return null;
+      if (settle > 0) { settle -= 1; return null; }
       if (dt > MAX_SAMPLE_SEC) {
         spikes += 1;
         if (spikes < SPIKE_STREAK) return null;

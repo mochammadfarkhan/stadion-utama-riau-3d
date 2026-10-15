@@ -12,7 +12,7 @@
  * - azimuthOffset -> arah matahari diputar pada sumbu Y (derajat) sebelum dipakai
  */
 import * as THREE from 'three';
-import { DAY } from '../config/constants.js';
+import { DAY, WEATHER } from '../config/constants.js';
 import {
   createDayState, stepDay, setDayHour, sunFromHour, lightingPreset,
   presetNameForHour, nextPresetAfter, sunMoonWeight, PRESET_HOURS,
@@ -123,9 +123,13 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
     scene.environmentIntensity = L.defaults.envIntensity * Math.max(ENV_MIN_FACTOR, Math.min(1, p.hemiIntensity));
   };
 
+  /** Awan efektif: setelan pengguna, bergerak ke awan badai sesuai intensitas hujan (ditulis Weather). */
+  const effectiveCloudCover = () => THREE.MathUtils.clamp(
+    THREE.MathUtils.lerp(over.cloudCover, WEATHER.cloudCoverage, L.rainIntensity ?? 0), 0, 1);
+
   const applyStars = (sun) => {
     // Bintang tertutup awan: makin berawan (pengaturan), makin redup.
-    const clear = 1 - THREE.MathUtils.clamp(over.cloudCover, 0, 1) * STAR_CLOUD_DIM;
+    const clear = 1 - effectiveCloudCover() * STAR_CLOUD_DIM;
     const opacity = THREE.MathUtils.clamp(-sun.elevationDeg / STAR_FADE_DEG, 0, 1) * clear;
     stars.material.opacity = opacity;
     stars.visible = opacity > 0.01;
@@ -180,7 +184,7 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
       maybeRebuildEnv(dt, preset); // sebelum applyPreset: rebuild mereset environmentIntensity
       applyPreset(preset, sun);
       applyStars(sun);
-      bodies.update(app.camera, _sunDir, _moonDir, celestialLook({ elevationDeg: sun.elevationDeg, cloudCover: over.cloudCover }), preset.sunColor);
+      bodies.update(app.camera, _sunDir, _moonDir, celestialLook({ elevationDeg: sun.elevationDeg, cloudCover: effectiveCloudCover() }), preset.sunColor);
       night.setLampsOn(preset.lampsOn);
       night.update(dt, ctx.bikePos, bikeState?.yaw ?? 0, ctx.focus ?? ctx.bikePos);
     },

@@ -555,3 +555,17 @@ Rincian dibuat setelah Fase 1-3 selesai karena bergantung hasil profiling.
 - **Cakupan:** setiap temuan yang dilaporkan lima agen dipetakan ke satu task; temuan hanya-hipotesis ditandai dan diverifikasi saat eksekusi.
 - **Placeholder:** Task 3, 4, dan 9 Fase 1 meminta pembacaan file singkat di langkah pertama karena bentuk kode sekitarnya (penerapan efek toast, konstruktor `StoryDirector`) belum saya baca; kodenya sudah dispesifikasikan sebatas yang terverifikasi. Fase 2-6 sengaja berupa paket tugas, bukan langkah bite-sized.
 - **Konsistensi nama:** `routeEscape`, `sunMoonWeight`, `seedFound`, `findDone` dipakai konsisten antar tes dan implementasi.
+
+---
+
+## Status eksekusi (2026-10-15, branch `fix/audit-phase1`)
+
+**Selesai (diverifikasi dengan tes + browser):**
+- Fase 1 seluruhnya (Task 1-9): reducer chapter find, Esc, dialog/jurnal dapat diklik + pointer lock, antrean toast (galat memotong antrean), `coerceValue`, `safeStorage`, PMREM dipakai ulang, transisi matahari-bulan halus, update loop tahan error (3 kegagalan beruntun), timeout GLB, flush settings.
+- Fase 2: LOD humanoid, `matrixWorldAutoUpdate=false` + satu `updateMatrixWorld` per frame, `freezeStatic` (diperbaiki setelah review: yang menentukan adalah `matrixAutoUpdate`), shadow tiap 2 frame, resolusi adaptif (anti-CPU-bound + settle), minimap 2D dibake sekali, gerobak digabung, impor statis (peringatan bundler hilang), chunk `three`, geometri kursi 18 segitiga, 6 PointLight (dulu 12), chunking semak/ilalang, `antialias:false` pada backbuffer, FPS HUD jujur.
+- Fase 3 (sebagian): lintasan merah bata (fakta), penonton 9.000 dengan geometri hemat, kursi kurang jenuh, matahari/bulan/halo terlihat (meredup oleh awan dan hujan), bayangan bulan lembut, hujan malam redup, bintang tertutup awan.
+- Fase 4 (sebagian): uang saku anti-buntu (sekali per langkah), timer berhenti saat toko/jurnal/POV, penanda ke pedagang, teks cerita sesuai riset, jendela tengah malam ±30 menit, Input dengan penjaga fokus/modifier, HUD responsif, aria-live/role, reduced-motion.
+- Fase 5: LICENSE MIT, CI untuk PR, izin deploy minimal, `.blend1` keluar dari git, favicon, README baru.
+- Fase 6 (sebagian): kontrol sentuh + gamepad, perbaikan kamera orang ketiga/pertama (tanpa tembus tanah/dinding, rider disembunyikan di orang pertama, snap saat teleport).
+
+**Belum dikerjakan:** kompresi GLB (gltfpack tidak tersedia), halo lampu & uplight stadion malam, tekstur pitch, aset Blender baru (serindit, sawit, gerobak), ESLint + coverage, pecah `App.js`/`main.js`, self-host font, lazy-load story/GTAO, LOD bayangan humanoid (bayangan hilang di 60 m), rebinding tombol, tes `StoryDirector`/`ballPhysics`/`ovalMath`.

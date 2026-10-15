@@ -13,6 +13,7 @@ import { DepthRenderPass, OutlinePass } from './postprocessing/OutlinePass.js';
 const MAX_DT = 0.05;
 const MAX_PIXEL_RATIO = RENDER.pixelRatio;
 const SHADOW_INTERVAL = 2;         // peta bayangan dirender ulang tiap N frame (pass shadow ±25% biaya frame)
+const MAX_UPDATE_FAILURES = 3;       // error beruntun sebelum sebuah updatable dinonaktifkan
 const ADAPTIVE_MIN_RATIO = 0.6;   // resolusi adaptif tidak turun di bawah ini
 const ADAPTIVE_TARGET_MS = 20;    // target waktu frame (50 fps)
 const AO_SAMPLES = 12;            // sampel GTAO per piksel (default 16; lebih ringan)
@@ -31,6 +32,8 @@ const MINIMAP_BG = 0x2f5b32;
  * penggambaran per frame ada di ui/Minimap2D.js (tanpa render 3D tambahan).
  */
 export class App {
+  #failures = new Map(); // updatable -> jumlah error beruntun
+
   constructor(container) {
     this.container = container;
     this.scene = new THREE.Scene();
@@ -135,6 +138,20 @@ export class App {
     }
   }
 
+  /**
+   * Jalankan `fn` sementara dengan pixel ratio `r` lalu kembalikan ke rasio semula, TANPA mengubah
+   * batas atas pengaturan maupun kontroler adaptif (dipakai screenshot).
+   */
+  withPixelRatio(r, fn) {
+    const prev = this.pixelRatio;
+    if (r !== prev) this.#applyPixelRatio(r);
+    try {
+      return fn();
+    } finally {
+      if (r !== prev) this.#applyPixelRatio(prev);
+    }
+  }
+
   #applyPixelRatio(r) {
     this.renderer.setPixelRatio(r);
     this.post.composer.setPixelRatio(r); // resize() di bawah memakai rasio baru
@@ -163,9 +180,17 @@ export class App {
   #safeUpdate(u, dt, ctx) {
     try {
       u.update(dt, ctx);
+      if (this.#failures.has(u)) this.#failures.delete(u);
     } catch (err) {
-      console.error('Updatable dinonaktifkan karena error:', err);
-      this.removeUpdatable(u);
+      const n = (this.#failures.get(u) ?? 0) + 1;
+      this.#failures.set(u, n);
+      if (n >= MAX_UPDATE_FAILURES) {
+        console.error(`Updatable dinonaktifkan setelah ${n} error beruntun:`, err);
+        this.removeUpdatable(u);
+        this.#failures.delete(u);
+      } else if (n === 1) {
+        console.error('Updatable error (dicoba lagi pada frame berikutnya):', err);
+      }
     }
   }
 

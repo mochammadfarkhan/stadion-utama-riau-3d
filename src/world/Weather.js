@@ -129,6 +129,7 @@ export function createWeather(scene, app, lighting, { audioBus = null } = {}) {
       if (Math.abs(target - intensity) < step) intensity = target;
       // Terang lingkungan (sebelum redaman hujan) menentukan seberapa terlihat goresan aditif.
       const brightness = THREE.MathUtils.clamp(L.hemi.intensity / DAY_HEMI_INTENSITY, MIN_RAIN_BRIGHTNESS, 1);
+      L.rainIntensity = intensity; // dibaca TimeOfDay frame berikutnya (matahari/bulan/bintang tertutup awan badai)
       applyAtmosphere(intensity);
       rain.update(dt, intensity, app.camera, ctx.focus ?? ctx.bikePos, brightness);
       wet.update(dt, intensity * params.wetness);

@@ -49,9 +49,9 @@ export class TouchControls {
     this._lookId = null;
     this._lastLook = null;
 
-    this.el = el('div', 'hidden', { id: 'touch-ui', 'aria-label': 'Kontrol sentuh' });
+    this.el = el('div', 'hidden', { id: 'touch-ui', role: 'group', 'aria-label': 'Kontrol sentuh' });
     this.knob = el('div', 'touch-knob');
-    this.stick = el('div', 'touch-stick', { 'aria-label': 'Joystick: kayuh dan belok' });
+    this.stick = el('div', 'touch-stick', { role: 'application', 'aria-label': 'Joystick: kayuh dan belok' });
     this.stick.append(this.knob);
     this.buttons = {};
     const pad = el('div', 'touch-actions');
@@ -96,6 +96,8 @@ export class TouchControls {
       if (mode === 'hold') this.input.setVirtual(code, false, 'touch');
     };
     button.addEventListener('pointerdown', down, { signal });
+    // Aktivasi lewat keyboard/switch (Enter/Space pada tombol fokus = click tanpa pointer, detail 0).
+    button.addEventListener('click', (e) => { if (e.detail === 0 && mode === 'tap') this.input.press(code); }, { signal });
     button.addEventListener('pointerup', up, { signal });
     button.addEventListener('pointercancel', up, { signal });
   }
