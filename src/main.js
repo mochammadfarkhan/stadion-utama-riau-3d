@@ -16,6 +16,9 @@ import { createTimeOfDay } from './world/TimeOfDay.js';
 import { createWeather } from './world/Weather.js';
 import { formatHour, nextPresetAfter, PRESET_HOURS } from './sim/dayCycle.js';
 import { buildWorld } from './world/index.js';
+import { Minimap2D } from './ui/Minimap2D.js';
+import { SITE } from './config/constants.js';
+import { STORY_NPCS } from './story/chapters.js';
 import { freezeStatic } from './world/util/freezeStatic.js';
 import { createModelGroup, placeModels } from './world/assets/models.js';
 import { LAYOUT } from './world/layout.js';
@@ -101,6 +104,7 @@ async function main() {
   hud.setCameraMode(rig.mode);
   const story = setupStory({ app, ents, hud, rig });
   const shop = setupShop(hud, ents, story);
+  const minimap = setupMinimap(app, ents, story);
 
   const bikePos = new THREE.Vector3();
   app.addUpdatable({
@@ -135,6 +139,8 @@ async function main() {
   await loading.step(0.9, 'Memuat model 3D (tugu, bangku)…');
   // Model 3D opsional (ada cadangan prosedural): jangan tahan tombol Mulai bila unduhan macet.
   await Promise.race([modelsReady, new Promise((resolve) => setTimeout(resolve, MODELS_TIMEOUT_MS))]);
+  await loading.step(0.97, 'Menggambar peta…');
+  minimap.setBase(app.bakeMinimap(SITE.groundSize / 2), SITE.groundSize / 2);
   await loading.step(1, 'Siap!');
   loading.done();
   if (import.meta.env.DEV) exposeDevTools({ app, ents, rig, time, weather, store, audioBus, story });
@@ -155,6 +161,26 @@ function setupStory({ app, ents, hud, rig }) {
   ents.bike.onRing = () => story.onBell();
   story.start();
   return story;
+}
+
+const PIN_VENDOR = '#ff9f1c';
+const PIN_NPC = '#4cc9f0';
+
+/** Minimap 2D: peta dasar di-bake sekali (lihat App.bakeMinimap); marker digambar di canvas kecil. */
+function setupMinimap(app, ents, story) {
+  const minimap = new Minimap2D(document.body);
+  const pins = () => [
+    ...ents.vendors.vendors.map((v) => ({ x: v.position.x, z: v.position.z, color: PIN_VENDOR })),
+    ...STORY_NPCS.map((n) => ({ x: n.x, z: n.z, color: PIN_NPC })),
+  ];
+  app.addUpdatable({
+    update(dt, ctx) {
+      minimap.setVisible(app.minimapVisible);
+      const b = ents.bike.state;
+      minimap.update(ctx.time, { focus: b, yaw: b.yaw, goal: story.goalPoint(), getPins: pins });
+    },
+  });
+  return minimap;
 }
 
 /** Dialog beli: pedagang bisa berjalan menjauh saat dialog terbuka; kunci id pedagang saat dibuka. */

@@ -91,5 +91,5 @@ export const LAYOUT = Object.freeze({
     { count: 7, semiX: SITE.ringRoadSemiX + SITE.joggingTrackOffset, semiZ: SITE.ringRoadSemiZ + SITE.joggingTrackOffset, speedRange: [2.5, 4.8] },
     { count: 6, semiX: PLAZA_RING.semiX - 8, semiZ: PLAZA_RING.semiZ - 8, speedRange: [1.0, 2.0] },
   ],
-  spectatorCount: 3200,
+  spectatorCount: 9000, // ±23% kursi terisi (dulu 3.200 = 8%: tier atas tampak kosong); geometri penonton dihemat
 });

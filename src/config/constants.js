@@ -26,7 +26,7 @@ export const TRACK = Object.freeze({
   straightLength: 84.39,
   innerRadius: 36.5, // radius garis ukur lane 1 (0.3 m dari kerb)
   kerbOffset: 0.3,
-  color: 0xe07a5f, // tartan salmon (pastel hangat)
+  color: 0xb8553c, // tartan Herculan merah bata (riset: lintasan merah bata), sedikit dipudarkan agar serasi palet pastel
   lineColor: 0xffffff,
 });
 
@@ -43,7 +43,6 @@ export const STADIUM = Object.freeze({
   rowDepth: 0.8,
   rowRise: 0.42,
   seatWidth: 0.5,
-  seatColors: [0xf2b705, 0x1f7a3a, 0xd62828], // kuning, hijau, merah
   roofHeight: 42,
   facadeHeight: 30,
   louvreLevels: 5,

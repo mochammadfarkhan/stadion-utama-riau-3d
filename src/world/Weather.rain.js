@@ -124,7 +124,7 @@ function respawnSplash(sp, i, center) {
 }
 
 /** Perbarui umur, skala (membesar), dan posisi cipratan; bagian di luar intensitas disembunyikan. */
-function updateSplashes(sp, dt, intensity, center) {
+function updateSplashes(sp, dt, intensity, center, brightness = 1) {
   const active = Math.floor(WEATHER.splashCount * intensity);
   for (let i = 0; i < WEATHER.splashCount; i += 1) {
     sp.ages[i] += dt;
@@ -136,11 +136,12 @@ function updateSplashes(sp, dt, intensity, center) {
     sp.mesh.setMatrixAt(i, _m.compose(_p, _q, _s));
   }
   sp.mesh.instanceMatrix.needsUpdate = true;
-  sp.mesh.material.opacity = SPLASH_OPACITY * intensity;
+  sp.mesh.material.opacity = SPLASH_OPACITY * intensity * brightness;
 }
 
 /**
- * @returns {{ update(dt, intensity, camera, bikePos): void, setWind(scale): void, group: THREE.Group }}
+ * @returns {{ update(dt, intensity, camera, bikePos, brightness?): void, setWind(scale): void, group: THREE.Group }}
+ * brightness 0..1 = terang lingkungan (goresan aditif harus redup di malam hari)
  */
 export function createRain(scene) {
   const group = new THREE.Group();
@@ -158,7 +159,7 @@ export function createRain(scene) {
       const k = Math.max(0, Number(scale) || 0);
       drops.material.uniforms.uWind.value.set(WEATHER.wind.x * k, WEATHER.wind.z * k);
     },
-    update(dt, intensity, camera, bikePos) {
+    update(dt, intensity, camera, bikePos, brightness = 1) {
       const on = intensity > 0.001;
       drops.visible = on;
       splashes.mesh.visible = on;
@@ -167,8 +168,9 @@ export function createRain(scene) {
       const u = drops.material.uniforms;
       u.uTime.value = time;
       u.uIntensity.value = intensity;
+      u.uOpacity.value = DROP_OPACITY * brightness;
       u.uCenter.value.copy(camera.position);
-      updateSplashes(splashes, dt, intensity, bikePos);
+      updateSplashes(splashes, dt, intensity, bikePos, brightness);
     },
   };
 }

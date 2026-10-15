@@ -25,7 +25,8 @@ const VIP_ROWS = Object.freeze({ from: 6, to: 14 });
 const VIP_HALF_ARC = 11;             // ± meter dari pusat barat
 const VIP_SCALE = 1.35;
 const VIP_COLOR = 0x152238;
-const COLOR_FADE = 0.18;
+const COLOR_FADE = 0.3;              // variasi pudar acak; ditambah pudar dasar agar kursi tidak terlalu jenuh
+const BASE_DESATURATION = 0.1;
 
 /** Urutan sisi BoxGeometry di indeks (masing-masing 2 segitiga). */
 const BOX_FACE = Object.freeze({ px: 0, nx: 1, py: 2, ny: 3, pz: 4, nz: 5 });
@@ -64,7 +65,7 @@ function hashInt(a, b, c) {
 function seatColor(palette, tierIdx, row, col, rng, target) {
   const idx = hashInt(tierIdx + 1, row / BLOCK_ROWS | 0, col / BLOCK_COLS | 0) % palette.length;
   target.setHex(palette[idx]);
-  target.offsetHSL(0, -rng() * COLOR_FADE, (rng() - 0.5) * 0.08);
+  target.offsetHSL(0, -BASE_DESATURATION - rng() * COLOR_FADE, (rng() - 0.5) * 0.08);
   return target;
 }
 

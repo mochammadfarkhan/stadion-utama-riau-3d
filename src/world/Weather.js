@@ -6,6 +6,7 @@
  */
 import * as THREE from 'three';
 import { WEATHER } from '../config/constants.js';
+import { lightingPreset } from '../sim/dayCycle.js';
 import { createRain } from './Weather.rain.js';
 import { createWetSurfaces } from './Weather.wet.js';
 
@@ -73,6 +74,9 @@ function createRainAudio(audioBus) {
  *   setWetness(v):void, setWind(v):void, setSoundEnabled(b):void,
  *   isRaining:boolean, intensity:number, weatherName:string}}
  */
+const DAY_HEMI_INTENSITY = lightingPreset(12).hemiIntensity; // acuan "siang terang"
+const MIN_RAIN_BRIGHTNESS = 0.15;                              // hujan malam tetap samar terlihat
+
 export function createWeather(scene, app, lighting, { audioBus = null } = {}) {
   const L = lighting.userData;
   const rain = createRain(scene);
@@ -123,8 +127,10 @@ export function createWeather(scene, app, lighting, { audioBus = null } = {}) {
       const step = dt / WEATHER.transitionSeconds;
       intensity = THREE.MathUtils.clamp(intensity + Math.sign(target - intensity) * step, 0, 1);
       if (Math.abs(target - intensity) < step) intensity = target;
+      // Terang lingkungan (sebelum redaman hujan) menentukan seberapa terlihat goresan aditif.
+      const brightness = THREE.MathUtils.clamp(L.hemi.intensity / DAY_HEMI_INTENSITY, MIN_RAIN_BRIGHTNESS, 1);
       applyAtmosphere(intensity);
-      rain.update(dt, intensity, app.camera, ctx.focus ?? ctx.bikePos);
+      rain.update(dt, intensity, app.camera, ctx.focus ?? ctx.bikePos, brightness);
       wet.update(dt, intensity * params.wetness);
       audio.setLevel(params.soundEnabled ? intensity : 0);
     },
