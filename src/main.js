@@ -101,7 +101,7 @@ async function main() {
       hud.setSpeed(ents.bike.speedKmh);
       hud.setTime(formatHour(time.hour), time.presetName, weather.weatherName);
       hud.setScore(ents.match.score);
-      hud.tickFps(dt);
+      hud.tickFps(ctx.rawDt ?? dt); // FPS jujur: delta mentah, bukan yang di-clamp
       updatePrompt(hud, ents, story, ents.bike.state);
       input.endFrame();
     },
@@ -112,10 +112,10 @@ async function main() {
     app, time, lighting, weather, rig, hud, audioBus, crowd: ents.crowd, vendors: ents.vendors,
   });
 
-  app.start((dt, t) => {
+  app.start((dt, t, rawDt) => {
     bikePos.set(ents.bike.state.x, 0, ents.bike.state.z);
     // focus = titik pusat tampilan (sepeda, atau titik pandang saat POV); sepeda beku di POV tanpa kendali
-    return { dt, time: t, bikePos, focus: rig.focus, input: hud.shopOpen || rig.freezesBike ? null : input };
+    return { dt, rawDt, time: t, bikePos, focus: rig.focus, input: hud.shopOpen || rig.freezesBike ? null : input };
   });
 
   setupPointerLock(app, rig, hud, store);

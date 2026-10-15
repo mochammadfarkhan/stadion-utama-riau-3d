@@ -31,6 +31,7 @@ export function bindGraphics(store, { app, lighting = null, crowd = null }) {
 
   on('graphics.shadowQuality', (q) => applyShadowQuality(sun, q));
   on('graphics.pixelRatio', (v) => app.setPixelRatio?.(v));
+  on('graphics.adaptiveResolution', (v) => app.setAdaptiveResolution?.(v));
   on('graphics.ao', (v) => app.setAO?.(v));
   on('graphics.vignette', (v) => app.setVignette?.(v));
   on('graphics.outline', (v) => app.setOutline?.(v));

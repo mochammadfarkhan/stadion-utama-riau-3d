@@ -26,6 +26,7 @@ const TREE_COUNT_RANDOM = 260;
 const ROADSIDE_SPACING = 25;
 const YOUNG_TREE_COUNT = 150;
 const SHRUB_COUNT = 320;
+const VEGETATION_CELL = 200; // m: ukuran sel culling untuk instansi vegetasi
 const GRASS_CLUMP = Object.freeze({ clusters: 6, perCluster: 120, radius: 28 });
 const PALM = Object.freeze({ leaves: 7, len: 3.4, width: 0.55, lift: 0.55, droop: 0.95 });
 const GRASS_BLADES = 5;
@@ -139,15 +140,17 @@ function splitByType(spots, rnd, weights) {
 
 /** Warnai InstancedMesh bernama (awalan) di dalam group dengan palet acak. */
 function colorizeNamed(group, prefix, palette, rnd) {
-  const mesh = group.children.find((m) => m.isInstancedMesh && m.name.startsWith(prefix));
-  if (mesh) colorizeInstances(mesh, palette, rnd);
+  group.children
+    .filter((m) => m.isInstancedMesh && m.name.startsWith(prefix))
+    .forEach((mesh) => colorizeInstances(mesh, palette, rnd));
   return group;
 }
 
 /** Pasang material kedalaman berangin pada tajuk pohon besar agar bayangannya ikut bergoyang. */
 function attachCrownShadow(group) {
-  const crown = group.children.find((m) => m.isInstancedMesh && m.material === leafMat);
-  if (crown) crown.customDepthMaterial = leafDepthMat;
+  group.children
+    .filter((m) => m.isInstancedMesh && m.material === leafMat)
+    .forEach((crown) => { crown.customDepthMaterial = leafDepthMat; });
   return group;
 }
 
@@ -225,7 +228,7 @@ export function createShrubs(seed = 31) {
     if (ok) spots.push({ x, z, rotY: rnd.range(0, 6.28), scale: rnd.range(0.6, 1.5) });
   }
   const geo = blobCluster({ count: 6, radius: 0.8, spread: 0.85, flat: 0.75, center: [0, 0.45, 0], vertical: 0.15 }, createRandom(seed + 500));
-  const g = instanceParts([{ geometry: geo, material: shrubMat, name: 'semak' }], spots, 'semak'); // tanpa bayangan
+  const g = instanceParts([{ geometry: geo, material: shrubMat, name: 'semak' }], spots, 'semak', { cellSize: VEGETATION_CELL }); // tanpa bayangan
   return colorizeNamed(g, 'semak', SHRUB_PALETTE, rnd);
 }
 
@@ -255,7 +258,7 @@ export function createWildGrass(seed = 41, centers = defaultGrassCenters()) {
       spots.push({ x, z, rotY: rnd.range(0, 6.28), scale: rnd.range(0.7, 1.4) });
     }
   });
-  const g = instanceParts([{ geometry: grassClumpGeometry(), material: grassMat, name: 'ilalang' }], spots, 'ilalang');
+  const g = instanceParts([{ geometry: grassClumpGeometry(), material: grassMat, name: 'ilalang' }], spots, 'ilalang', { cellSize: VEGETATION_CELL });
   return colorizeNamed(g, 'ilalang', GRASS_PALETTE, rnd);
 }
 

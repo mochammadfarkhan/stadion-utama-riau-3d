@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createAdaptiveResolution } from './adaptiveResolution.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
@@ -10,6 +11,8 @@ import { DepthRenderPass, OutlinePass } from './postprocessing/OutlinePass.js';
 
 const MAX_DT = 0.05;
 const MAX_PIXEL_RATIO = RENDER.pixelRatio;
+const ADAPTIVE_MIN_RATIO = 0.6;   // resolusi adaptif tidak turun di bawah ini
+const ADAPTIVE_TARGET_MS = 20;    // target waktu frame (50 fps)
 const AO_SAMPLES = 12;            // sampel GTAO per piksel (default 16; lebih ringan)
 const AO_DISTANCE_FALLOFF = 1.0;
 const MINIMAP_SIZE = 200;
@@ -124,6 +127,22 @@ export class App {
   setPixelRatio(ratio) {
     const r = Number(ratio);
     if (!Number.isFinite(r) || r <= 0) return;
+    // Nilai dari pengaturan = batas atas; kontroler adaptif mulai ulang dari sini.
+    this.pixelCeiling = r;
+    this.adaptive = createAdaptiveResolution({ ceiling: r, floor: ADAPTIVE_MIN_RATIO, targetMs: ADAPTIVE_TARGET_MS });
+    this.#applyPixelRatio(r);
+  }
+
+  /** Aktifkan/nonaktifkan resolusi adaptif; saat nonaktif kembali ke batas atas dari pengaturan. */
+  setAdaptiveResolution(on) {
+    this.adaptiveOn = Boolean(on);
+    if (!this.adaptiveOn && this.pixelCeiling && this.pixelRatio !== this.pixelCeiling) {
+      this.adaptive = createAdaptiveResolution({ ceiling: this.pixelCeiling, floor: ADAPTIVE_MIN_RATIO, targetMs: ADAPTIVE_TARGET_MS });
+      this.#applyPixelRatio(this.pixelCeiling);
+    }
+  }
+
+  #applyPixelRatio(r) {
     this.renderer.setPixelRatio(r);
     this.post.composer.setPixelRatio(r); // resize() di bawah memakai rasio baru
     this.minimapTarget.setSize(Math.round(MINIMAP_SIZE * r), Math.round(MINIMAP_SIZE * r));
@@ -162,9 +181,14 @@ export class App {
   start(makeContext) {
     const loop = () => {
       this.timer.update();
-      const dt = Math.min(this.timer.getDelta(), MAX_DT);
+      const rawDt = this.timer.getDelta();
+      const dt = Math.min(rawDt, MAX_DT);
       this.elapsed += dt;
-      const ctx = makeContext(dt, this.elapsed);
+      const ctx = makeContext(dt, this.elapsed, rawDt);
+      if (this.adaptiveOn) {
+        const next = this.adaptive?.sample(rawDt);
+        if (next != null) this.#applyPixelRatio(next);
+      }
       this.lastCtx = ctx;
       for (const u of this.updatables) this.#safeUpdate(u, dt, ctx);
       this.render(ctx);
