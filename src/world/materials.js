@@ -16,6 +16,14 @@ const LOUVRE_ROUGHNESS = 0.8;
 
 const cache = new Map();
 
+/** Kesan disorot lampu dari bawah saat malam: emissive tipis yang dinaikkan TimeOfDay.lights (userData.nightEmissive). */
+function uplit(mat, color, on) {
+  mat.emissive.setHex(color);
+  mat.emissiveIntensity = 0;
+  mat.userData.nightEmissive = { on, off: 0 };
+  return mat;
+}
+
 function cached(key, make) {
   if (!cache.has(key)) cache.set(key, make());
   return cache.get(key);
@@ -47,11 +55,11 @@ function louvreMaterial(color) {
 
 export const Materials = Object.freeze({
   acp: () => cached('acp', () => new MeshStandardMaterial({ color: COLORS.acp, roughness: ROUGH_SATIN, metalness: ACP_METALNESS })),
-  grc: () => cached('grc', () => new MeshLambertMaterial({ color: COLORS.roofWhite, side: DoubleSide })),
+  grc: () => cached('grc', () => uplit(new MeshLambertMaterial({ color: COLORS.roofWhite, side: DoubleSide }), 0x8fa6ff, 0.16)),
   concrete: () => cached('concrete', () => concreteLambert(COLORS.concrete, { side: DoubleSide })),
   concreteDark: () => cached('concreteDark', () => concreteLambert(COLORS.concreteDark)),
-  louvre: () => cached('louvre', () => louvreMaterial(COLORS.louvre)),
-  louvreGold: () => cached('louvreGold', () => louvreMaterial(COLORS.louvreGold)),
+  louvre: () => cached('louvre', () => uplit(louvreMaterial(COLORS.louvre), 0xff9a50, 0.3)),
+  louvreGold: () => cached('louvreGold', () => uplit(louvreMaterial(COLORS.louvreGold), 0xffb860, 0.3)),
   gold: () => cached('gold', () => matte(COLORS.gold, ROUGH_SATIN)),
   steel: () => cached('steel', () => new MeshLambertMaterial({ color: COLORS.steel })),
   iron: () => cached('iron', () => new MeshLambertMaterial({ color: COLORS.ironDark })),
