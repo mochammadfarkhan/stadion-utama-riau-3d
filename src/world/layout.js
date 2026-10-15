@@ -72,6 +72,12 @@ export const LAYOUT = Object.freeze({
     // Tugu Lancang Kuning (Blender) menggantikan versi prosedural di posisi yang sama
     { path: 'models/monumen/lancang-kuning.glb', x: 0, z: -(STADIUM.outerSemiZ + 45), replaces: 'tuguLancangKuning' },
     // Patung serindit (Blender) menggantikan versi prosedural di posisi yang sama (lihat Fixtures.props STATUE_POS)
+    // Lalu lintas Jl. Naga Sakti (Blender): angkot dan bus kota, lajur berlawanan arah. Model menghadap +Z; rotY ±π/2 = ±X.
+    { path: 'models/kendaraan/bus-kota.glb', x: -60, z: SITE.nagaSaktiZ - 3.5, rotY: -Math.PI / 2 },
+    { path: 'models/kendaraan/bus-kota.glb', x: 210, z: SITE.nagaSaktiZ + 3.5, rotY: Math.PI / 2 },
+    { path: 'models/kendaraan/angkot.glb', x: -125, z: SITE.nagaSaktiZ + 3.5, rotY: Math.PI / 2 },
+    { path: 'models/kendaraan/angkot.glb', x: 150, z: SITE.nagaSaktiZ - 3.5, rotY: -Math.PI / 2 },
+    { path: 'models/kendaraan/angkot.glb', x: -240, z: SITE.nagaSaktiZ, rotY: Math.PI / 2 },
     { path: 'models/monumen/serindit.glb', x: 22, z: -(STADIUM.innerSemiZ - 8), replaces: 'patungSerindit' },
   ],
   plazaCenter: { x: 0, z: -180 },
