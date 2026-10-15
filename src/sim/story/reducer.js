@@ -20,11 +20,24 @@ export function createStory({ chapters, eggs }) {
   const eggById = new Map(eggs.map((e) => [e.id, e]));
   const stepOf = (s) => chapters[s.chapter].steps[s.step];
 
+  /** Langkah `find`: egg yang sudah ditemukan sebelum langkah ini ikut dihitung. */
+  const seedFound = (s) => {
+    const o = stepOf(s).objective;
+    if (o.type !== 'find') return s;
+    const found = o.ids.filter((id) => s.eggs.includes(id));
+    return found.length ? { ...s, progress: { count: 0, found } } : s;
+  };
+
+  const findDone = (s) => {
+    const o = stepOf(s).objective;
+    return o.type === 'find' && s.progress.found.length >= o.ids.length;
+  };
+
   /** Masuk ke langkah s.step: reset progres/timer, buka dialog bila ada (didahului `lead`). */
   const enter = (s, lead = [], silent = false) => {
     const step = stepOf(s);
     const lines = silent ? [] : [...lead, ...(step.say ?? [])];
-    return { ...s, progress: EMPTY_PROGRESS, timeLeft: step.timeLimit ?? null, dialog: lines.length ? { lines, index: 0 } : null };
+    return seedFound({ ...s, progress: EMPTY_PROGRESS, timeLeft: step.timeLimit ?? null, dialog: lines.length ? { lines, index: 0 } : null });
   };
 
   const grant = (s, effects, reward, badge) => {
@@ -75,6 +88,7 @@ export function createStory({ chapters, eggs }) {
   const dispatch = (s, event) => {
     if (event.type === 'egg') return onEgg(s, event.id);
     if (s.finished) return [s, []];
+    if (findDone(s)) return completeStep(s, []);
     if (event.type === 'tick') return onTick(s, event.dt);
     const base = event.type === 'lapDone' && Number.isFinite(event.seconds)
       ? { ...s, bestLap: s.bestLap == null ? event.seconds : Math.min(s.bestLap, event.seconds) } : s;
@@ -90,7 +104,7 @@ export function createStory({ chapters, eggs }) {
     initial,
     /** Pulihkan dari simpanan yang sudah disanitasi (tanpa membuka dialog). */
     hydrate(save) {
-      const s = { ...initial(), ...save, progress: EMPTY_PROGRESS, dialog: null };
+      const s = seedFound({ ...initial(), ...save, progress: EMPTY_PROGRESS, dialog: null });
       return { ...s, timeLeft: save.finished ? null : stepOf(s).timeLimit ?? null };
     },
     rankOf(s) {
