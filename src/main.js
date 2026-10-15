@@ -6,7 +6,7 @@ import { TouchControls } from './ui/TouchControls.js';
 import { isTouchPrimary } from './ui/touchMath.js';
 import './ui/touch.css';
 import { CameraRig } from './core/CameraRig.js';
-import { createCollider } from './core/Collider.js';
+import { createCollider, isCameraClear } from './core/Collider.js';
 import { createPovSource } from './core/povSource.js';
 import { EXIT_KEY, POVS } from './core/cameraPresets.js';
 import { createAudioBus } from './core/AudioBus.js';
@@ -55,6 +55,7 @@ async function main() {
   const input = new Input();
   const hud = new HUD(document.getElementById('hud'));
   const rig = new CameraRig(app.camera, app.renderer.domElement);
+  rig.setObstacleTest(isCameraClear);
   // Kontrol sentuh + gamepad menulis ke Input yang sama dengan keyboard.
   const touchUi = new TouchControls(document.body, { input, rig, surface: app.renderer.domElement });
   const gamepad = createGamepadPoller(input, { lookBy: (dx, dy) => rig.lookBy(dx, dy) });
@@ -112,6 +113,7 @@ async function main() {
       handleKeys(input, { rig, hud, ents, shop, time, store, story });
       story.update(dt, { time: ctx.time, bikePos: ents.bike.state, hour: time.hour, raining: Boolean(store.get('weather.raining')), paused: hud.shopOpen || rig.freezesBike });
       rig.update(ents.bike.state, dt, ctx.time);
+      ents.bike.setRiderVisible(!rig.firstPersonView);
       hud.setCameraView(rig.mode, rig.povLabel, rig.freezesBike);
       // POV beku: sepeda berhenti seketika (bukan meluncur karena momentum)
       if (rig.freezesBike && ents.bike.state.v !== 0) ents.bike.state = { ...ents.bike.state, v: 0 };
