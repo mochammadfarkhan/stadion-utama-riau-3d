@@ -129,7 +129,8 @@ function setupStory({ app, ents, hud, rig }) {
   let story = null;
   const storyHud = new StoryHUD(root, { onAdvance: () => story.advanceDialog() });
   const journal = new StoryJournal(root, { onReset: () => story.reset(), onClose: () => story.toggleJournal() });
-  story = new StoryDirector({ storage: safeLocalStorage(), vendors: ents.vendors, hud, storyHud, journal, markers });
+  const pointerLock = { release: () => document.exitPointerLock?.(), request: () => rig.requestLock() };
+  story = new StoryDirector({ storage: safeLocalStorage(), vendors: ents.vendors, hud, storyHud, journal, markers, pointerLock });
   ents.bike.onRing = () => story.onBell();
   story.start();
   return story;
@@ -185,7 +186,7 @@ function handleKeys(input, { rig, hud, ents, shop, time, store, story }) {
   const escTarget = input.consumePress('Escape')
     ? routeEscape({ journalOpen: story.journal.open, shopOpen: hud.shopOpen })
     : null;
-  if (escTarget === 'journal') story.journal.hide();
+  if (escTarget === 'journal') story.toggleJournal();
   if (input.consumePress('KeyE')) {
     if (hud.shopOpen || !story.tryInteract(ents.bike.state)) handleShopKey(rig, hud, ents, shop);
   } else if (escTarget === 'shop') handleShopKey(rig, hud, ents, shop);

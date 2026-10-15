@@ -29,11 +29,12 @@ function lapCheckpoints() {
 
 export class StoryDirector {
   /**
-   * @param {{storage:object, vendors:object, hud:object, storyHud:object, journal:object, markers:object}} deps
+   * @param {{storage:object, vendors:object, hud:object, storyHud:object, journal:object, markers:object,
+   *   pointerLock?:{release:()=>void, request:()=>void}}} deps
    */
-  constructor({ storage, vendors, hud, storyHud, journal, markers }) {
+  constructor({ storage, vendors, hud, storyHud, journal, markers, pointerLock = null }) {
     this.story = createStory({ chapters: CHAPTERS, eggs: EASTER_EGGS });
-    Object.assign(this, { storage, vendors, hud, storyHud, journal, markers });
+    Object.assign(this, { storage, vendors, hud, storyHud, journal, markers, pointerLock });
     this.state = this.story.initial();
     this.eggState = createEggState();
     this.checkpoints = lapCheckpoints();
@@ -156,9 +157,15 @@ export class StoryDirector {
 
   advanceDialog() { if (this.state.dialog) this.dispatch({ type: 'advance' }); }
 
+  /** Jurnal butuh kursor: lepas pointer lock saat dibuka, kunci lagi saat ditutup. */
   toggleJournal() {
-    if (this.journal.open) return this.journal.hide();
-    return this.journal.show(this.#journalView());
+    if (this.journal.open) {
+      this.journal.hide();
+      this.pointerLock?.request();
+      return;
+    }
+    this.pointerLock?.release();
+    this.journal.show(this.#journalView());
   }
 
   reset() {
