@@ -58,7 +58,7 @@ export const CHAPTERS = freezeDeep([
         objective: { type: 'buy', itemId: 'rujak' },
       },
       {
-        id: 'antar-rujak', text: 'Antar Rujak ke Coach Dedi di pinggir lintasan (tekan E)',
+        id: 'antar-rujak', text: 'Antar Rujak ke Coach Dedi di pinggir lintasan, masuk lewat gerbang utara (tekan E)',
         objective: { type: 'deliver', npcId: 'pelatih', itemId: 'rujak', missingText: 'Rujaknya belum ada. Beli dulu dari pedagang buah.' },
         reward: { rupiah: 3000 },
       },
@@ -78,12 +78,12 @@ export const CHAPTERS = freezeDeep([
   },
   {
     id: 'jejak-air-molek', title: 'Jejak Air Molek', rank: 'Anak Bertuah',
-    outro: ['Kamu menyatukan semua jejak. Air Molek adalah nama kampung yang dikenang lewat sebotol air jernih.', 'Terima kasih sudah berkeliling. Kamu kini Anak Bertuah!'],
+    outro: ['Kamu menyatukan semua jejak. Kabarnya Air Molek ada di Indragiri Hulu, Riau; mungkin kapal ini dinamai untuk mengenang tempat itu.', 'Terima kasih sudah berkeliling. Kamu kini Anak Bertuah!'],
     reward: { rupiah: 20000, badge: 'Anak Bertuah' },
     steps: [
       {
         id: 'cari-jejak', text: 'Temukan 3 jejak Air Molek di sekitar kawasan',
-        say: ['Ada tulisan "AIR MOLEK" di tugu itu. Apa artinya?', 'Cari tiga jejak: dekat gapura Jl. Naga Sakti, tepi danau utara, dan taman papan seluncur timur.'],
+        say: ['Di lambung replika kapal tertulis "AIR MOLEK", kemungkinan nama kapalnya. Apa artinya?', 'Cari tiga jejak: dekat gapura Jl. Naga Sakti, tepi danau utara, dan taman papan seluncur timur.'],
         objective: { type: 'find', ids: ['jejak-1', 'jejak-2', 'jejak-3'] },
       },
     ],

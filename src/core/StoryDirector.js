@@ -8,6 +8,7 @@ import { EASTER_EGGS, EGG_IDS } from '../story/easterEggs.js';
 import { createEggState, stepEggs } from '../story/eggTriggers.js';
 import { loadStory, saveStory } from '../story/storage.js';
 import { createStory } from '../sim/story/reducer.js';
+import { fundsShortfall } from '../story/funds.js';
 import { createLapTracker, stepLap } from '../sim/story/lapTracker.js';
 import { pointOnLane, laneLength } from '../sim/trackPath.js';
 
@@ -15,6 +16,7 @@ const NPC_RANGE = 4;
 const LAP_LANE = 4;          // lane tengah: radius cek menutup semua lane
 const LAP_CHECKPOINTS = 8;
 const LAP_RADIUS = 9;
+const FUNDS_CHECK_SEC = 1;   // seberapa sering saldo dicek terhadap langkah beli/antar
 const SAVE_KEYS = ['version', 'chapter', 'step', 'badges', 'eggs', 'bestLap', 'rupiah', 'finished'];
 
 const LIMITS = Object.freeze({ chapters: CHAPTERS.length, steps: CHAPTERS.map((c) => c.steps.length), eggIds: EGG_IDS });
@@ -41,6 +43,8 @@ export class StoryDirector {
     this.lap = null;
     this.bell = false;
     this.bought = null;
+    this.bikePos = { x: 0, z: 0 };
+    this.fundsTimer = 0;
   }
 
   /** Muat progres tersimpan; hadiah yang sudah dikumpulkan ditambahkan ke dompet sesi ini. */
@@ -64,6 +68,8 @@ export class StoryDirector {
   dispatch(event) {
     const { state, effects } = this.story.reduce(this.state, event);
     if (state === this.state && !effects.length) return;
+    // Waktu habis mengulang langkah (timeLeft naik lagi): tracker putaran lama tidak boleh ikut terhitung.
+    if (event.type === 'tick' && state.timeLeft != null && this.state.timeLeft != null && state.timeLeft > this.state.timeLeft) this.lap = null;
     this.state = state;
     effects.forEach((e) => this.#apply(e));
     this.#render();
@@ -86,15 +92,34 @@ export class StoryDirector {
     }
   }
 
-  /** @param {number} dt @param {{time:number, bikePos:{x:number,z:number}, hour:number, raining:boolean}} ctx */
+  /**
+   * @param {number} dt
+   * @param {{time:number, bikePos:{x:number,z:number}, hour:number, raining:boolean, paused?:boolean}} ctx
+   *   paused: toko/POV beku, jam misi tidak berjalan (jurnal terbuka juga menjeda)
+   */
   update(dt, ctx) {
     const pos = ctx.bikePos;
+    this.bikePos = pos;
     this.dispatch({ type: 'position', x: pos.x, z: pos.z });
-    if (this.state.timeLeft != null && !this.state.dialog) this.dispatch({ type: 'tick', dt });
+    const paused = ctx.paused || this.journal.open;
+    if (this.state.timeLeft != null && !this.state.dialog && !paused) this.dispatch({ type: 'tick', dt });
+    this.#ensureFunds(dt);
     this.#updateLaps(pos, ctx.time);
     this.#updateEggs(dt, ctx);
     this.markers.setTarget(this.goalPoint());
     this.markers.update(ctx.time);
+  }
+
+  /** Pengaman soft-lock: beri uang saku bila saldo tak cukup untuk langkah beli/antar saat ini. */
+  #ensureFunds(dt) {
+    this.fundsTimer -= dt;
+    if (this.fundsTimer > 0 || this.state.finished || this.state.dialog) return;
+    this.fundsTimer = FUNDS_CHECK_SEC;
+    const short = fundsShortfall(this.#step().objective, this.vendors.wallet);
+    if (short <= 0) return;
+    this.vendors.credit(short);
+    this.hud.setWallet(this.vendors.wallet);
+    this.hud.toast(`Uang saku +Rp ${short.toLocaleString('id-ID')} untuk menyelesaikan misi`, true);
   }
 
   #updateLaps(pos, time) {
@@ -123,7 +148,11 @@ export class StoryDirector {
     if (this.state.finished || this.state.dialog) return null;
     const o = this.#step().objective;
     if (o.type === 'goto') return o.target;
-    if (o.type === 'deliver') return STORY_NPCS.find((n) => n.id === o.npcId) ?? null;
+    if (o.type === 'buy') return this.vendors.nearestSelling(o.itemId, this.bikePos);
+    if (o.type === 'deliver') {
+      const carrying = this.vendors.wallet.items.some((i) => i.id === o.itemId);
+      return carrying ? STORY_NPCS.find((n) => n.id === o.npcId) ?? null : this.vendors.nearestSelling(o.itemId, this.bikePos);
+    }
     if (o.type === 'laps') return this.checkpoints[this.lap?.next ?? 0];
     if (o.type === 'find') {
       const id = o.ids.find((i) => !this.state.progress.found.includes(i));

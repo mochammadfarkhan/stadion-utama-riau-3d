@@ -31,6 +31,10 @@ describe('eggTriggers', () => {
   });
   it('tengah lapangan tepat tengah malam', () => {
     expect(step(createEggState(), { pos: { x: 3, z: 3 }, hour: 0.02 }).ids).toContain('bola-tengah-malam');
+    // jendela ±30 menit (cukup lebar untuk dicapai tanpa mengutak-atik jam)
+    expect(step(createEggState(), { pos: { x: 3, z: 3 }, hour: 23.6 }).ids).toContain('bola-tengah-malam');
+    expect(step(createEggState(), { pos: { x: 3, z: 3 }, hour: 0.4 }).ids).toContain('bola-tengah-malam');
+    expect(step(createEggState(), { pos: { x: 3, z: 3 }, hour: 23.3 }).ids).not.toContain('bola-tengah-malam');
     expect(step(createEggState(), { pos: { x: 3, z: 3 }, hour: 12 }).ids).not.toContain('bola-tengah-malam');
     expect(step(createEggState(), { pos: { x: 90, z: 3 }, hour: 0 }).ids).not.toContain('bola-tengah-malam');
   });

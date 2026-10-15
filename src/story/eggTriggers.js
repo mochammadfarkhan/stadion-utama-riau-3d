@@ -12,7 +12,7 @@ const RAIN_DWELL = 5;       // detik berdiri di bawah layar tugu
 const TUGU_RANGE = 14;
 const CENTER = Object.freeze({ x: 0, z: 0 });
 const CENTER_RANGE = 20;
-const MIDNIGHT_HALF_WINDOW_H = 0.1; // ±6 menit
+const MIDNIGHT_HALF_WINDOW_H = 0.5; // ±30 menit (jam berjalan 0,25 jam/dtk: ±6 menit hanya ±0,8 dtk)
 
 const SATPAM = STORY_NPCS.find((n) => n.id === 'satpam');
 

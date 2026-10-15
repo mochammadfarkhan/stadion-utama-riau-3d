@@ -211,5 +211,21 @@ export class VendorGroup {
 
   /** Tambah saldo dompet (hadiah misi). */
   credit(amount) { this.#wallet = credit(this.#wallet, amount); }
+
+  /**
+   * Posisi pedagang terdekat yang menjual itemId (penanda misi).
+   * @param {string} itemId @param {{x:number,z:number}} from
+   * @returns {{x:number,z:number}|null}
+   */
+  nearestSelling(itemId, from) {
+    let best = null;
+    let bestD = Infinity;
+    for (const e of this.#vendors) {
+      if (!VENDOR_CATALOG[e.kind]?.some((i) => i.id === itemId)) continue;
+      const d = Math.hypot(e.sim.pos.x - from.x, e.sim.pos.z - from.z);
+      if (d < bestD) { bestD = d; best = { x: e.sim.pos.x, z: e.sim.pos.z }; }
+    }
+    return best;
+  }
   get vendors() { return this.#vendors.map((e) => this.#info(e)); }
 }

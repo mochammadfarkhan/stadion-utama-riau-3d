@@ -93,7 +93,7 @@ async function main() {
   app.addUpdatable({
     update(dt, ctx) {
       handleKeys(input, { rig, hud, ents, shop, time, store, story });
-      story.update(dt, { time: ctx.time, bikePos: ents.bike.state, hour: time.hour, raining: Boolean(store.get('weather.raining')) });
+      story.update(dt, { time: ctx.time, bikePos: ents.bike.state, hour: time.hour, raining: Boolean(store.get('weather.raining')), paused: hud.shopOpen || rig.freezesBike });
       rig.update(ents.bike.state, dt, ctx.time);
       hud.setCameraView(rig.mode, rig.povLabel, rig.freezesBike);
       // POV beku: sepeda berhenti seketika (bukan meluncur karena momentum)
