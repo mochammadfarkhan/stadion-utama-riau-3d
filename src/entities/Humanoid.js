@@ -17,6 +17,7 @@ import * as THREE from 'three';
 import { BASE_HEIGHT, DIM, GEO } from './Humanoid.dim.js';
 import { createFace } from './Humanoid.face.js';
 import { ALL_HAIR_STYLES, HAIR_STYLES, createHair, createHat, styleUnderHat } from './Humanoid.hair.js';
+import { buildStaticLodMesh } from './Humanoid.lod.js';
 import { makeRng, matFor, pick } from './util.js';
 
 export { BASE_HEIGHT, DIM };
@@ -87,6 +88,10 @@ export function createHumanoid(opts = {}) {
   buildLeg(body, parts, o, 'L', 1);
   buildLeg(body, parts, o, 'R', -1);
   buildBottom(body, parts, o);
+  // Mesh gabungan untuk jarak menengah (disembunyikan sampai pengelola LOD memilihnya).
+  const lodMesh = buildStaticLodMesh(group, body);
+  group.add(lodMesh);
+  group.userData.humanoidLod = { body, mesh: lodMesh };
   return { group, parts, height: o.height };
 }
 

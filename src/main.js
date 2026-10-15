@@ -12,6 +12,7 @@ import { createTimeOfDay } from './world/TimeOfDay.js';
 import { createWeather } from './world/Weather.js';
 import { formatHour, nextPresetAfter, PRESET_HOURS } from './sim/dayCycle.js';
 import { buildWorld } from './world/index.js';
+import { freezeStatic } from './world/util/freezeStatic.js';
 import { createModelGroup, placeModels } from './world/assets/models.js';
 import { LAYOUT } from './world/layout.js';
 import { updateWind } from './world/shaders/windState.js';
@@ -61,6 +62,7 @@ async function main() {
   await loading.step(0.2, 'Membangun stadion, tribun, dan lingkungan…');
   const world = buildWorld();
   app.scene.add(world.group);
+  freezeStatic(world.group); // dunia statis: matriks dihitung sekali, tidak per frame
   const blenderModels = createModelGroup();
   app.scene.add(blenderModels);
   const modelsReady = loadBlenderModels(blenderModels, world.group, hud);
@@ -68,7 +70,7 @@ async function main() {
 
   await loading.step(0.55, 'Menyiapkan pemain, pelari, pedagang, dan penonton…');
   const wallet = createWallet();
-  const ents = buildEntities({ start: START_POS, world, wallet });
+  const ents = buildEntities({ start: START_POS, world, wallet, camera: app.camera });
   app.scene.add(ents.group);
   ents.bike.setCollider(createCollider(START_POS));
   rig.attachSource(createPovSource(ents));
@@ -131,6 +133,7 @@ function setupStory({ app, ents, hud, rig }) {
   const npcs = new StoryNpcs();
   const markers = createStoryMarkers();
   app.scene.add(npcs.group, markers.group);
+  ents.lod.addFrom(npcs.group);
   let story = null;
   const storyHud = new StoryHUD(root, { onAdvance: () => story.advanceDialog() });
   const journal = new StoryJournal(root, { onReset: () => story.reset(), onClose: () => story.toggleJournal() });

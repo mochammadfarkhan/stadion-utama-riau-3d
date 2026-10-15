@@ -33,6 +33,8 @@ export class App {
   constructor(container) {
     this.container = container;
     this.scene = new THREE.Scene();
+    // Matriks dunia dihitung SEKALI per frame di render() (bukan oleh composer, label, dan minimap sendiri-sendiri).
+    this.scene.matrixWorldAutoUpdate = false;
     this.camera = new THREE.PerspectiveCamera(60, 1, 0.3, 2500);
     this.renderer = createRenderer();
     this.labelRenderer = createLabelRenderer();
@@ -184,6 +186,7 @@ export class App {
     r.info.reset(); // info.render dihitung per frame (semua pass), bukan per pass
     r.shadowMap.needsUpdate = true; // satu shadow pass per frame (hanya untuk kamera utama)
     r.setViewport(0, 0, w, h);
+    this.scene.updateMatrixWorld();
     this.post.composer.render(); // pass pertama membersihkan buffer; OutputPass menulis ke layar
     this.labelRenderer.render(this.scene, this.camera);
     if (this.minimapVisible) this.renderMinimap(ctx, w);
