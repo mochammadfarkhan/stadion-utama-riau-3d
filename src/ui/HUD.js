@@ -1,5 +1,6 @@
+import { createToastQueue } from './toastQueue.js';
+
 const FPS_SAMPLE_INTERVAL = 0.5;
-const TOAST_MS = 2200;
 
 const rupiah = (n) => 'Rp ' + Math.round(n).toLocaleString('id-ID');
 
@@ -21,6 +22,14 @@ export class HUD {
   constructor(root) {
     this.root = root;
     this.el = buildLayout(root);
+    const toastEl = this.el.toast;
+    this.toasts = createToastQueue({
+      show: (text, ok) => {
+        toastEl.textContent = text;
+        toastEl.className = ok ? 'ok' : 'err';
+      },
+      hide: () => { toastEl.className = 'hidden'; },
+    });
     this._last = {};
     this._fpsAcc = 0;
     this._fpsFrames = 0;
@@ -108,11 +117,7 @@ export class HUD {
   }
 
   toast(text, ok = true) {
-    const t = this.el.toast;
-    t.textContent = text;
-    t.className = ok ? 'ok' : 'err';
-    clearTimeout(this._toastTimer);
-    this._toastTimer = setTimeout(() => (t.className = 'hidden'), TOAST_MS);
+    this.toasts.push(text, ok);
   }
 
   #onShopClick(e) {
@@ -138,7 +143,7 @@ function buildLayout(root) {
   const items = el('div', { id: 'hud-items', className: 'muted' }, 'Belum beli apa-apa');
   const score = el('div', { id: 'hud-score', className: 'pill' }, 'PSPS 0 – 0 TAMU');
   const prompt = el('div', { id: 'hud-prompt', className: 'pill hidden' });
-  const toast = el('div', { id: 'hud-toast', className: 'hidden' });
+  const toast = el('div', { id: 'hud-toast', className: 'hidden', role: 'status', 'aria-live': 'polite' });
   const shopTitle = el('h2', { id: 'hud-shop-title' });
   const shopList = el('div', { id: 'hud-shop-list' });
   const shopHint = el('p', { className: 'muted' }, 'Klik item untuk membeli · Esc / E untuk tutup');

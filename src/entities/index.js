@@ -4,12 +4,14 @@ import { RunnerGroup, LoopWalkers } from './Runner.js';
 import { FootballMatch } from './Footballer.js';
 import { VendorGroup } from './Vendor.js';
 import { Crowd } from './Crowd.js';
+import { createHumanoidLod } from './Humanoid.lod.js';
 
 /**
  * Merakit semua entitas bergerak.
- * @param {{start:{x:number,z:number,yaw:number}, world:{seatSamples:object[], layout:object}, wallet:object}} opts
+ * @param {{start:{x:number,z:number,yaw:number}, world:{seatSamples:object[], layout:object}, wallet:object,
+ *   camera?:import('three').Camera}} opts  camera: dipakai LOD humanoid (jarak ke kamera)
  */
-export function buildEntities({ start, world, wallet }) {
+export function buildEntities({ start, world, wallet, camera }) {
   const group = new THREE.Group();
   group.name = 'entities';
   const { layout } = world;
@@ -29,5 +31,10 @@ export function buildEntities({ start, world, wallet }) {
   const updatables = [bike, runners, ...walkers, match, vendors, crowd];
   for (const e of updatables) group.add(e.group);
 
-  return { group, bike, runners, walkers, match, vendors, crowd, updatables };
+  // LOD humanoid: detail penuh dekat kamera, satu mesh gabungan di jarak menengah, sembunyi di jauh.
+  const lod = createHumanoidLod();
+  lod.addFrom(group);
+  if (camera) updatables.push({ update: () => lod.update(camera.position) });
+
+  return { group, bike, runners, walkers, match, vendors, crowd, updatables, lod };
 }

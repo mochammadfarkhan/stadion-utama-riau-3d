@@ -71,6 +71,8 @@ export const LAYOUT = Object.freeze({
     { path: 'models/uji/bangku-taman.glb', x: 7, z: -186, rotY: Math.PI },
     // Tugu Lancang Kuning (Blender) menggantikan versi prosedural di posisi yang sama
     { path: 'models/monumen/lancang-kuning.glb', x: 0, z: -(STADIUM.outerSemiZ + 45), replaces: 'tuguLancangKuning' },
+    // Patung serindit (Blender) menggantikan versi prosedural di posisi yang sama (lihat Fixtures.props STATUE_POS)
+    { path: 'models/monumen/serindit.glb', x: 22, z: -(STADIUM.innerSemiZ - 8), replaces: 'patungSerindit' },
   ],
   plazaCenter: { x: 0, z: -180 },
   plazaSpots: {
@@ -91,5 +93,5 @@ export const LAYOUT = Object.freeze({
     { count: 7, semiX: SITE.ringRoadSemiX + SITE.joggingTrackOffset, semiZ: SITE.ringRoadSemiZ + SITE.joggingTrackOffset, speedRange: [2.5, 4.8] },
     { count: 6, semiX: PLAZA_RING.semiX - 8, semiZ: PLAZA_RING.semiZ - 8, speedRange: [1.0, 2.0] },
   ],
-  spectatorCount: 3200,
+  spectatorCount: 9000, // ±23% kursi terisi (dulu 3.200 = 8%: tier atas tampak kosong); geometri penonton dihemat
 });

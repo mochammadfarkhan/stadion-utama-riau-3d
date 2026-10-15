@@ -32,10 +32,12 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1016; fon
 #hud-score { top: 16px; border: 1px solid var(--hud-accent); }
 #hud-prompt { bottom: 48px; border: 1px solid var(--hud-accent); animation: pulse 1.4s infinite; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(242, 183, 5, 0.18); } }
+@media (prefers-reduced-motion: reduce) { #hud-prompt { animation: none; } }
 
+/* Di atas tengah (bukan bawah) supaya tidak tertutup dialog cerita (#story-dialog, bawah layar). */
 #hud-toast {
-  position: absolute; left: 50%; bottom: 100px; transform: translateX(-50%);
-  padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 600;
+  position: absolute; left: 50%; top: 96px; transform: translateX(-50%); max-width: min(520px, 90vw);
+  padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; text-align: center;
 }
 #hud-toast.ok { background: var(--hud-green); }
 #hud-toast.err { background: var(--hud-red); }
@@ -103,6 +105,7 @@ body.is-photo .vendor-label { display: none !important; }
   padding: 16px 20px; border-radius: 14px; background: rgba(10, 18, 28, 0.92); color: var(--hud-fg);
   border: 1px solid var(--hud-accent); z-index: 9; cursor: pointer; font-size: 16px; line-height: 1.5;
 }
+#story-dialog, #story-journal { pointer-events: auto; } /* #hud mewariskan pointer-events:none */
 #story-dialog .story-dialog-hint { margin-top: 8px; font-size: 12px; color: var(--hud-muted); text-align: right; }
 #story-journal {
   position: fixed; inset: 0; margin: auto; width: min(560px, 92vw); height: fit-content; max-height: 80vh; overflow: auto;
@@ -117,3 +120,10 @@ body.is-photo .vendor-label { display: none !important; }
 #story-journal button { flex: 1; padding: 10px; border: 0; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; }
 #story-journal .journal-reset { background: #3a2226; color: #ffb4bb; }
 #story-journal .journal-close { background: var(--hud-accent); color: #1a1a1a; }
+
+/* Minimap 2D (canvas kecil; peta dasar di-bake sekali) */
+#minimap2d {
+  position: fixed; right: 12px; bottom: 12px; z-index: 4; pointer-events: none;
+  border-radius: 12px; border: 2px solid rgba(255, 255, 255, 0.35); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+@media (max-width: 640px) { #minimap2d { width: 130px !important; height: 130px !important; right: 8px; bottom: auto; top: 64px; } }

@@ -35,8 +35,8 @@ class Spectators {
     const n = seatSamples.length;
     this.#seats = seatSamples;
     this.#animated = new Uint8Array(n);
-    const torsoGeo = new THREE.CapsuleGeometry(SEATED.torsoR, SEATED.torsoH, 2, 6);
-    const headGeo = new THREE.SphereGeometry(SEATED.headR, 6, 5);
+    const torsoGeo = new THREE.CapsuleGeometry(SEATED.torsoR, SEATED.torsoH, 1, 5);
+    const headGeo = new THREE.SphereGeometry(SEATED.headR, 5, 4);
     this.#torso = new THREE.InstancedMesh(torsoGeo, new THREE.MeshLambertMaterial(), n);
     this.#head = new THREE.InstancedMesh(headGeo, new THREE.MeshLambertMaterial(), n);
     this.#torso.castShadow = this.#head.castShadow = false;

@@ -18,7 +18,7 @@ export class StoryJournal {
     this.resetBtn.addEventListener('click', () => this.#confirmReset(onReset));
     const close = el('button', { className: 'journal-close', textContent: 'Tutup (J)' });
     close.addEventListener('click', onClose);
-    this.panel = el('div', { id: 'story-journal', className: 'hidden' },
+    this.panel = el('div', { id: 'story-journal', className: 'hidden', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Jurnal perjalanan' },
       el('h2', {}, 'Jurnal Perjalanan'), this.body, el('div', { className: 'journal-actions' }, this.resetBtn, close));
     root.append(this.panel);
     this._armed = false;

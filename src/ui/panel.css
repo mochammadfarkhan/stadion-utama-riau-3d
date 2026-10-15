@@ -294,6 +294,8 @@
 
 /* ---------- Mode foto: sembunyikan HUD & panel ---------- */
 body.is-photo #hud,
+body.is-photo #minimap2d,
+body.is-photo #touch-ui,
 body.is-photo .ui-panel,
 body.is-photo .ui-rail {
   opacity: 0 !important;

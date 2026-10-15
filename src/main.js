@@ -1,23 +1,32 @@
 import * as THREE from 'three';
 import { App, hasWebGL } from './core/App.js';
 import { Input } from './core/Input.js';
+import { createGamepadPoller } from './core/gamepad.js';
+import { TouchControls } from './ui/TouchControls.js';
+import { isTouchPrimary } from './ui/touchMath.js';
+import './ui/touch.css';
 import { CameraRig } from './core/CameraRig.js';
-import { createCollider } from './core/Collider.js';
+import { createCollider, isCameraClear } from './core/Collider.js';
 import { createPovSource } from './core/povSource.js';
 import { EXIT_KEY, POVS } from './core/cameraPresets.js';
 import { createAudioBus } from './core/AudioBus.js';
+import { routeEscape } from './core/escapeRoute.js';
 import { createLighting } from './world/Lighting.js';
 import { createTimeOfDay } from './world/TimeOfDay.js';
 import { createWeather } from './world/Weather.js';
 import { formatHour, nextPresetAfter, PRESET_HOURS } from './sim/dayCycle.js';
 import { buildWorld } from './world/index.js';
+import { Minimap2D } from './ui/Minimap2D.js';
+import { SITE } from './config/constants.js';
+import { STORY_NPCS } from './story/chapters.js';
+import { freezeStatic } from './world/util/freezeStatic.js';
 import { createModelGroup, placeModels } from './world/assets/models.js';
 import { LAYOUT } from './world/layout.js';
 import { updateWind } from './world/shaders/windState.js';
 import { buildEntities } from './entities/index.js';
 import { HUD } from './ui/HUD.js';
 import { createWallet } from './sim/vendorSim.js';
-import { createSettingsStore } from './settings/store.js';
+import { createSettingsStore, STORAGE_KEY } from './settings/store.js';
 import { safeLocalStorage } from './settings/safeStorage.js';
 import { bindAll } from './ui/bindings/index.js';
 import { mountSettingsPanel } from './ui/mountSettingsPanel.js';
@@ -30,6 +39,7 @@ import { StoryJournal } from './ui/StoryJournal.js';
 
 const START_POS = { x: 0, z: -275, yaw: 0 }; // plaza utara, menghadap stadion
 const HOURS = 24;
+const MODELS_TIMEOUT_MS = 8000;
 
 function showFatal(msg) {
   const panel = document.querySelector('#overlay .panel');
@@ -45,17 +55,31 @@ async function main() {
   const input = new Input();
   const hud = new HUD(document.getElementById('hud'));
   const rig = new CameraRig(app.camera, app.renderer.domElement);
+  rig.setObstacleTest(isCameraClear);
+  // Kontrol sentuh + gamepad menulis ke Input yang sama dengan keyboard.
+  const touchUi = new TouchControls(document.body, { input, rig, surface: app.renderer.domElement });
+  const gamepad = createGamepadPoller(input, { lookBy: (dx, dy) => rig.lookBy(dx, dy) });
+  app.addUpdatable({ update: (dt) => gamepad.update(dt) });
+  window.addEventListener('gamepadconnected', () => hud.toast('Gamepad terhubung', true));
   const audioBus = createAudioBus();
-  const store = createSettingsStore({ storage: safeLocalStorage() });
+  const storage = safeLocalStorage();
+  const firstRun = storage?.getItem(STORAGE_KEY) == null;
+  const store = createSettingsStore({ storage });
+  const touch = isTouchPrimary();
+  if (touch && firstRun) store.set('performance.minimap', false); // layar kecil: minimap menutupi tombol layar
+  // Perubahan terakhir tidak boleh hilang saat tab ditutup/disembunyikan (debounce 150 ms).
+  window.addEventListener('pagehide', () => store.flush());
+  document.addEventListener('visibilitychange', () => { if (document.hidden) store.flush(); });
 
   await loading.step(0.12, 'Menyiapkan langit dan pencahayaan…');
   const lighting = createLighting(app.scene, app.renderer);
   app.scene.add(lighting);
-  app.addUpdatable({ update: (dt, ctx) => lighting.userData.update?.(dt, ctx.time, ctx.focus) });
+  app.addUpdatable({ update: (dt, ctx) => lighting.userData.update?.(dt, ctx.time, ctx.focus, ctx.shadowFrame) });
 
   await loading.step(0.2, 'Membangun stadion, tribun, dan lingkungan…');
   const world = buildWorld();
   app.scene.add(world.group);
+  freezeStatic(world.group); // dunia statis: matriks dihitung sekali, tidak per frame
   const blenderModels = createModelGroup();
   app.scene.add(blenderModels);
   const modelsReady = loadBlenderModels(blenderModels, world.group, hud);
@@ -63,7 +87,7 @@ async function main() {
 
   await loading.step(0.55, 'Menyiapkan pemain, pelari, pedagang, dan penonton…');
   const wallet = createWallet();
-  const ents = buildEntities({ start: START_POS, world, wallet });
+  const ents = buildEntities({ start: START_POS, world, wallet, camera: app.camera });
   app.scene.add(ents.group);
   ents.bike.setCollider(createCollider(START_POS));
   rig.attachSource(createPovSource(ents));
@@ -81,20 +105,22 @@ async function main() {
   hud.setCameraMode(rig.mode);
   const story = setupStory({ app, ents, hud, rig });
   const shop = setupShop(hud, ents, story);
+  const minimap = setupMinimap(app, ents, story);
 
   const bikePos = new THREE.Vector3();
   app.addUpdatable({
     update(dt, ctx) {
       handleKeys(input, { rig, hud, ents, shop, time, store, story });
-      story.update(dt, { time: ctx.time, bikePos: ents.bike.state, hour: time.hour, raining: Boolean(store.get('weather.raining')) });
+      story.update(dt, { time: ctx.time, bikePos: ents.bike.state, hour: time.hour, raining: Boolean(store.get('weather.raining')), paused: hud.shopOpen || rig.freezesBike });
       rig.update(ents.bike.state, dt, ctx.time);
+      ents.bike.setRiderVisible(!rig.firstPersonView);
       hud.setCameraView(rig.mode, rig.povLabel, rig.freezesBike);
       // POV beku: sepeda berhenti seketika (bukan meluncur karena momentum)
       if (rig.freezesBike && ents.bike.state.v !== 0) ents.bike.state = { ...ents.bike.state, v: 0 };
       hud.setSpeed(ents.bike.speedKmh);
       hud.setTime(formatHour(time.hour), time.presetName, weather.weatherName);
       hud.setScore(ents.match.score);
-      hud.tickFps(dt);
+      hud.tickFps(ctx.rawDt ?? dt); // FPS jujur: delta mentah, bukan yang di-clamp
       updatePrompt(hud, ents, story, ents.bike.state);
       input.endFrame();
     },
@@ -105,15 +131,23 @@ async function main() {
     app, time, lighting, weather, rig, hud, audioBus, crowd: ents.crowd, vendors: ents.vendors,
   });
 
-  app.start((dt, t) => {
+  app.start((dt, t, rawDt) => {
     bikePos.set(ents.bike.state.x, 0, ents.bike.state.z);
     // focus = titik pusat tampilan (sepeda, atau titik pandang saat POV); sepeda beku di POV tanpa kendali
-    return { dt, time: t, bikePos, focus: rig.focus, input: hud.shopOpen || rig.freezesBike ? null : input };
+    return { dt, rawDt, time: t, bikePos, focus: rig.focus, input: hud.shopOpen || rig.freezesBike ? null : input };
   });
 
-  setupPointerLock(app, rig, hud, store);
+  setupPointerLock(app, rig, hud, store, { touchUi, touch });
   await loading.step(0.9, 'Memuat model 3D (tugu, bangku)…');
-  await modelsReady;
+  // Model 3D opsional (ada cadangan prosedural): jangan tahan tombol Mulai bila unduhan macet.
+  await Promise.race([modelsReady, new Promise((resolve) => setTimeout(resolve, MODELS_TIMEOUT_MS))]);
+  await loading.step(0.97, 'Menggambar peta…');
+  try {
+    minimap.setBase(app.bakeMinimap(SITE.groundSize / 2), SITE.groundSize / 2);
+  } catch (err) {
+    // Minimap hanya pelengkap: GPU yang gagal mengalokasikan target/readPixels tidak boleh menggagalkan game.
+    console.error('Minimap dasar gagal dibuat, minimap memakai latar polos:', err);
+  }
   await loading.step(1, 'Siap!');
   loading.done();
   if (import.meta.env.DEV) exposeDevTools({ app, ents, rig, time, weather, store, audioBus, story });
@@ -125,13 +159,36 @@ function setupStory({ app, ents, hud, rig }) {
   const npcs = new StoryNpcs();
   const markers = createStoryMarkers();
   app.scene.add(npcs.group, markers.group);
+  ents.lod.addFrom(npcs.group);
+  app.addUpdatable({ update: (dt, ctx) => npcs.refreshLabels(ctx.focus ?? ctx.bikePos, ents.vendors.labelsEnabled) });
   let story = null;
   const storyHud = new StoryHUD(root, { onAdvance: () => story.advanceDialog() });
   const journal = new StoryJournal(root, { onReset: () => story.reset(), onClose: () => story.toggleJournal() });
-  story = new StoryDirector({ storage: safeLocalStorage(), vendors: ents.vendors, hud, storyHud, journal, markers });
+  const pointerLock = { release: () => document.exitPointerLock?.(), request: () => rig.requestLock() };
+  story = new StoryDirector({ storage: safeLocalStorage(), vendors: ents.vendors, hud, storyHud, journal, markers, pointerLock });
   ents.bike.onRing = () => story.onBell();
   story.start();
   return story;
+}
+
+const PIN_VENDOR = '#ff9f1c';
+const PIN_NPC = '#4cc9f0';
+
+/** Minimap 2D: peta dasar di-bake sekali (lihat App.bakeMinimap); marker digambar di canvas kecil. */
+function setupMinimap(app, ents, story) {
+  const minimap = new Minimap2D(document.body);
+  const pins = () => [
+    ...ents.vendors.vendors.map((v) => ({ x: v.position.x, z: v.position.z, color: PIN_VENDOR })),
+    ...STORY_NPCS.map((n) => ({ x: n.x, z: n.z, color: PIN_NPC })),
+  ];
+  app.addUpdatable({
+    update(dt, ctx) {
+      minimap.setVisible(app.minimapVisible);
+      const b = ents.bike.state;
+      minimap.update(ctx.time, { focus: b, yaw: b.yaw, goal: story.goalPoint(), getPins: pins });
+    },
+  });
+  return minimap;
 }
 
 /** Dialog beli: pedagang bisa berjalan menjauh saat dialog terbuka; kunci id pedagang saat dibuka. */
@@ -148,15 +205,16 @@ function setupShop(hud, ents, story) {
 }
 
 /** Tombol mulai + klik kanvas mengunci pointer; panel pengaturan dipasang bila modulnya ada. */
-function setupPointerLock(app, rig, hud, store) {
+function setupPointerLock(app, rig, hud, store, { touchUi, touch }) {
   document.getElementById('start').addEventListener('click', () => {
     document.getElementById('overlay').classList.add('hidden');
-    rig.requestLock();
+    if (touch) touchUi.setVisible(true); // pointer lock tidak ada di ponsel; kontrol layar menggantikannya
+    else rig.requestLock();
   });
   mountSettingsPanel({ store, app, rig, hud }).then(({ panel }) => {
     if (panel) return; // panel memasang handler klik kanvas sendiri (cek isPointerOverUI)
     app.renderer.domElement.addEventListener('click', () => {
-      if (!hud.shopOpen) rig.requestLock();
+      if (!hud.shopOpen && !touch) rig.requestLock();
     });
   });
 }
@@ -181,10 +239,13 @@ function handleKeys(input, { rig, hud, ents, shop, time, store, story }) {
   if (input.consumePress('KeyO')) toggle('graphics.ao'); // matikan AO bila FPS rendah
   handleTimeWeatherKeys(input, hud, time, store);
   if (input.consumePress('KeyJ')) story.toggleJournal();
-  if (input.consumePress('Escape') && story.journal.open) story.journal.hide();
+  const escTarget = input.consumePress('Escape')
+    ? routeEscape({ journalOpen: story.journal.open, shopOpen: hud.shopOpen })
+    : null;
+  if (escTarget === 'journal') story.toggleJournal();
   if (input.consumePress('KeyE')) {
     if (hud.shopOpen || !story.tryInteract(ents.bike.state)) handleShopKey(rig, hud, ents, shop);
-  } else if (input.consumePress('Escape')) handleShopKey(rig, hud, ents, shop);
+  } else if (escTarget === 'shop') handleShopKey(rig, hud, ents, shop);
 }
 
 /** V: ganti mode kamera pemain, atau keluar dari POV. Digit1..7 masuk POV, Digit0 keluar. */

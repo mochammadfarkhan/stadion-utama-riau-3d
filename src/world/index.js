@@ -10,6 +10,7 @@ import { createTribune } from './stadium/Tribune.js';
 import { createPitch } from './stadium/Pitch.js';
 import { createTrack } from './stadium/Track.js';
 import { createFixtures } from './stadium/Fixtures.js';
+import { createSerinditStatue } from './stadium/Fixtures.props.js';
 import { createTunnels } from './stadium/Tunnels.js';
 import { createFlagpoles } from './props/Flagpole.js';
 import { createGuardPosts } from './props/GuardPost.js';
@@ -65,6 +66,7 @@ export function buildWorld() {
   add(createTrack(), { minimap: true });
   add(createDecals(), { merge: false }); // dekal permukaan: 1 InstancedMesh, bukan layer minimap
   add(createFixtures());
+  add(createSerinditStatue()); // terpisah dari fixtures agar namanya terjaga: model Blender menggantikannya (layout.blenderModels)
   add(createTunnels());
   addStadiumSurroundings(add);
   addPlazaFurniture(add);

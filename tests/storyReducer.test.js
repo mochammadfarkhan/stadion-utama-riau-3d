@@ -83,3 +83,26 @@ describe('createStory', () => {
     expect(() => story.reduce(s0, { type: 'advance' })).not.toThrow();
   });
 });
+
+describe('langkah find dengan egg yang sudah ditemukan lebih dulu', () => {
+  const save = (eggsFound, step = 1) => ({ version: 1, chapter: 1, step, eggs: eggsFound, badges: [], bestLap: null, rupiah: 0, finished: false });
+
+  it('hydrate mengisi progress.found dari egg tersimpan', () => {
+    expect(story.hydrate(save(['e1'])).progress.found).toEqual(['e1']);
+    expect(story.hydrate(save([])).progress.found).toEqual([]);
+  });
+  it('egg yang sudah lengkap menyelesaikan langkah pada event non-egg berikutnya', () => {
+    const { state } = story.reduce(story.hydrate(save(['e1'])), { type: 'tick', dt: 0.016 });
+    expect(state.finished).toBe(true);
+  });
+  it('masuk langkah find dari langkah sebelumnya memakai egg yang sudah ditemukan', () => {
+    const s0 = story.hydrate(save(['e1'], 0));
+    const s1 = story.reduce(s0, { type: 'lapDone', seconds: 5 }).state;
+    expect(s1.step).toBe(1);
+    expect(s1.progress.found).toEqual(['e1']);
+  });
+  it('egg baru tetap dihitung lewat event egg', () => {
+    const { state } = story.reduce(story.hydrate(save([])), { type: 'egg', id: 'e1' });
+    expect(state.finished).toBe(true);
+  });
+});

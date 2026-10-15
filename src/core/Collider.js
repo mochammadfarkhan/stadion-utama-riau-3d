@@ -8,6 +8,7 @@ const CORRIDOR_K_END = 1.25;
 const WORLD_LIMIT = SITE.groundSize / 2 - 20;
 const LAKE_RADIUS = 70;
 const BIKE_CLEARANCE = 0.6;
+const CAMERA_CLEARANCE = 0.8;  // kamera butuh jarak lebih lega dari dinding daripada sepeda
 
 /** Rintangan lingkaran padat di plaza/kawasan: kolam tugu Lancang Kuning & tugu tanjak. */
 export const OBSTACLES = Object.freeze([
@@ -67,4 +68,18 @@ export function createCollider(start = { x: 0, z: 0 }) {
     if (isWalkable(last.x, z)) return (last = { x: last.x, z });
     return { ...last };
   };
+}
+
+/**
+ * Apakah titik (x, z) bebas untuk KAMERA: di luar dinding tribun/cangkang (kecuali di dalam koridor gate)
+ * dan di luar rintangan padat. Tidak melarang danau/tepi dunia (kamera boleh melayang di atasnya).
+ * Dipakai CameraRig untuk menarik kamera orang ketiga mendekat agar tidak menembus bangunan.
+ */
+export function isCameraClear(x, z) {
+  if (!Number.isFinite(x) || !Number.isFinite(z)) return false;
+  if (OBSTACLES.some((o) => Math.hypot(x - o.x, z - o.z) < o.r - BIKE_CLEARANCE + CAMERA_CLEARANCE)) return false;
+  if (distanceToGateCorridor(x, z) < GATE_HALF_WIDTH - 0.6) return true;
+  const inner = ellipseRadius(x, z, STADIUM.innerSemiX - 1, STADIUM.innerSemiZ - 1);
+  const outer = ellipseRadius(x, z, STADIUM.outerSemiX + 3, STADIUM.outerSemiZ + 3);
+  return inner < 1 || outer > 1;
 }

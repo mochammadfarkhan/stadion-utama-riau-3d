@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { DAY, STADIUM } from '../config/constants.js';
 import { LAYOUT } from './layout.js';
 import { LAMP_POST } from './props/LampPost.js';
+import { createNightHalos } from './NightHalos.js';
 
 const LAMP_COLOR = 0xffe2a8;
 const LAMP_POWER = 320;           // candela (PointLight fisik)
@@ -133,6 +134,7 @@ export function createNightLights(scene) {
   const headlight = createHeadlight(scene);
   const floods = createFloodSpots(scene);
   const pools = createLightPools(scene, lamps);
+  const halos = createNightHalos(scene, lamps.map((l) => ({ x: l.x, y: LAMP_HEIGHT, z: l.z })));
   const order = lamps.map((_, i) => i);
   const dist2 = new Float32Array(lamps.length);
   let lampsOn = false;
@@ -180,6 +182,7 @@ export function createNightLights(scene) {
       for (const light of points) light.intensity = light.userData.active ? LAMP_POWER * level : 0;
       pools.material.opacity = POOL_OPACITY * level;
       pools.visible = level > 0.01;
+      halos.setLevel(level);
       for (const f of floods) f.intensity = FLOOD_POWER * level;
       updateHeadlight(bikePos, bikeYaw);
     },

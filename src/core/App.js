@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { createAdaptiveResolution } from './adaptiveResolution.js';
+import { flipRowsInPlace } from '../ui/minimapMath.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
@@ -10,36 +12,36 @@ import { DepthRenderPass, OutlinePass } from './postprocessing/OutlinePass.js';
 
 const MAX_DT = 0.05;
 const MAX_PIXEL_RATIO = RENDER.pixelRatio;
+const SHADOW_INTERVAL = 2;         // peta bayangan dirender ulang tiap N frame (pass shadow ±25% biaya frame)
+const MAX_UPDATE_FAILURES = 3;       // error beruntun sebelum sebuah updatable dinonaktifkan
+const ADAPTIVE_MIN_RATIO = 0.6;   // resolusi adaptif tidak turun di bawah ini
+const ADAPTIVE_TARGET_MS = 20;    // target waktu frame (50 fps)
 const AO_SAMPLES = 12;            // sampel GTAO per piksel (default 16; lebih ringan)
 const AO_DISTANCE_FALLOFF = 1.0;
-const MINIMAP_SIZE = 200;
-const MINIMAP_MARGIN = 12;
-const MINIMAP_HALF_EXTENT = 160;
-const MINIMAP_HEIGHT = 400;
-const MINIMAP_INTERVAL = 2;        // minimap dirender ulang tiap N frame
-const MINIMAP_MARKER_RADIUS = 4;   // meter (lingkaran merah posisi sepeda)
-const MINIMAP_MARKER_Y = 150;      // di atas atap stadion
-const MINIMAP_MARKER_COLOR = 0xe53935;
+const MINIMAP_BAKE_PX = 1536;      // resolusi peta dasar (±0,9 m/piksel untuk dunia 1.400 m)
+const MINIMAP_BAKE_HEIGHT = 400;
+const MINIMAP_BAKE_AMBIENT = 3;    // ambient ≈ albedo ×0,95 (tanpa IBL/kabut/matahari)
+const MINIMAP_BG = 0x2f5b32;
 
 /**
  * App: renderer, scene, kamera utama, post-processing, minimap, loop waktu.
  * Modul lain mendaftar lewat addUpdatable({ update(dt, ctx) }).
  * Render utama lewat EffectComposer (RenderPass -> GTAO -> Outline -> Vignette -> OutputPass;
  * tone mapping + sRGB hanya di OutputPass), lalu label CSS2D, lalu minimap.
- * Minimap hanya merender objek di RENDER_LAYERS.minimap, ke render target
- * tiap MINIMAP_INTERVAL frame, lalu di-blit ke pojok layar setiap frame.
+ * Minimap = peta dasar 2D yang di-bake sekali (bakeMinimap) dari objek di RENDER_LAYERS.minimap;
+ * penggambaran per frame ada di ui/Minimap2D.js (tanpa render 3D tambahan).
  */
 export class App {
+  #failures = new Map(); // updatable -> jumlah error beruntun
+
   constructor(container) {
     this.container = container;
     this.scene = new THREE.Scene();
+    // Matriks dunia dihitung SEKALI per frame di render() (bukan oleh composer, label, dan minimap sendiri-sendiri).
+    this.scene.matrixWorldAutoUpdate = false;
     this.camera = new THREE.PerspectiveCamera(60, 1, 0.3, 2500);
     this.renderer = createRenderer();
     this.labelRenderer = createLabelRenderer();
-    this.minimapCamera = createMinimapCamera();
-    this.minimapMarker = createMinimapMarker();
-    this.minimapTarget = createMinimapTarget(this.renderer.getPixelRatio());
-    this.minimapBlit = createBlit(this.minimapTarget.texture);
     this.post = createComposer(this.renderer, this.scene, this.camera);
     this.timer = new THREE.Timer();
     this.updatables = [];
@@ -50,7 +52,6 @@ export class App {
     this.baseExposure = RENDER.exposure; // dari preset TimeOfDay (ditulis tiap frame)
     this.exposureScale = 1;           // pengali dari settings (sky.exposure / RENDER.exposure)
 
-    this.scene.add(this.minimapMarker);
     container.appendChild(this.renderer.domElement);
     document.body.appendChild(this.labelRenderer.domElement);
     window.addEventListener('resize', () => this.resize());
@@ -122,9 +123,38 @@ export class App {
   setPixelRatio(ratio) {
     const r = Number(ratio);
     if (!Number.isFinite(r) || r <= 0) return;
+    // Nilai dari pengaturan = batas atas; kontroler adaptif mulai ulang dari sini.
+    this.pixelCeiling = r;
+    this.adaptive = createAdaptiveResolution({ ceiling: r, floor: ADAPTIVE_MIN_RATIO, targetMs: ADAPTIVE_TARGET_MS });
+    this.#applyPixelRatio(r);
+  }
+
+  /** Aktifkan/nonaktifkan resolusi adaptif; saat nonaktif kembali ke batas atas dari pengaturan. */
+  setAdaptiveResolution(on) {
+    this.adaptiveOn = Boolean(on);
+    if (!this.adaptiveOn && this.pixelCeiling && this.pixelRatio !== this.pixelCeiling) {
+      this.adaptive = createAdaptiveResolution({ ceiling: this.pixelCeiling, floor: ADAPTIVE_MIN_RATIO, targetMs: ADAPTIVE_TARGET_MS });
+      this.#applyPixelRatio(this.pixelCeiling);
+    }
+  }
+
+  /**
+   * Jalankan `fn` sementara dengan pixel ratio `r` lalu kembalikan ke rasio semula, TANPA mengubah
+   * batas atas pengaturan maupun kontroler adaptif (dipakai screenshot).
+   */
+  withPixelRatio(r, fn) {
+    const prev = this.pixelRatio;
+    if (r !== prev) this.#applyPixelRatio(r);
+    try {
+      return fn();
+    } finally {
+      if (r !== prev) this.#applyPixelRatio(prev);
+    }
+  }
+
+  #applyPixelRatio(r) {
     this.renderer.setPixelRatio(r);
     this.post.composer.setPixelRatio(r); // resize() di bawah memakai rasio baru
-    this.minimapTarget.setSize(Math.round(MINIMAP_SIZE * r), Math.round(MINIMAP_SIZE * r));
     this.resize();
   }
 
@@ -146,15 +176,39 @@ export class App {
     this.labelRenderer.setSize(w, h);
   }
 
+  /** Satu updatable yang melempar tidak boleh menghentikan updatable lain maupun render. */
+  #safeUpdate(u, dt, ctx) {
+    try {
+      u.update(dt, ctx);
+      if (this.#failures.has(u)) this.#failures.delete(u);
+    } catch (err) {
+      const n = (this.#failures.get(u) ?? 0) + 1;
+      this.#failures.set(u, n);
+      if (n >= MAX_UPDATE_FAILURES) {
+        console.error(`Updatable dinonaktifkan setelah ${n} error beruntun:`, err);
+        this.removeUpdatable(u);
+        this.#failures.delete(u);
+      } else if (n === 1) {
+        console.error('Updatable error (dicoba lagi pada frame berikutnya):', err);
+      }
+    }
+  }
+
   /** Mulai loop. makeContext(dt) mengembalikan ctx untuk semua updatable. */
   start(makeContext) {
     const loop = () => {
       this.timer.update();
-      const dt = Math.min(this.timer.getDelta(), MAX_DT);
+      const rawDt = this.timer.getDelta();
+      const dt = Math.min(rawDt, MAX_DT);
       this.elapsed += dt;
-      const ctx = makeContext(dt, this.elapsed);
+      const ctx = makeContext(dt, this.elapsed, rawDt);
+      ctx.shadowFrame = this.frame % SHADOW_INTERVAL === 0;
+      if (this.adaptiveOn) {
+        const next = this.adaptive?.sample(rawDt);
+        if (next != null) this.#applyPixelRatio(next);
+      }
       this.lastCtx = ctx;
-      for (const u of this.updatables) u.update(dt, ctx);
+      for (const u of this.updatables) this.#safeUpdate(u, dt, ctx);
       this.render(ctx);
       this.frame += 1;
     };
@@ -163,7 +217,7 @@ export class App {
 
   /** Render satu frame tanpa memajukan simulasi (screenshot). */
   renderFrame() {
-    this.render(this.lastCtx);
+    this.render({ ...this.lastCtx, shadowFrame: true });
   }
 
   render(ctx) {
@@ -172,44 +226,70 @@ export class App {
     const h = window.innerHeight;
     r.autoClear = false;
     r.info.reset(); // info.render dihitung per frame (semua pass), bukan per pass
-    r.shadowMap.needsUpdate = true; // satu shadow pass per frame (hanya untuk kamera utama)
+    r.shadowMap.needsUpdate = ctx?.shadowFrame !== false; // shadow pass tiap SHADOW_INTERVAL frame (hanya kamera utama)
     r.setViewport(0, 0, w, h);
+    this.scene.updateMatrixWorld();
     this.post.composer.render(); // pass pertama membersihkan buffer; OutputPass menulis ke layar
     this.labelRenderer.render(this.scene, this.camera);
-    if (this.minimapVisible) this.renderMinimap(ctx, w);
   }
 
-  renderMinimap(ctx, w) {
+  /**
+   * Bake peta dasar minimap SEKALI: tampak atas seluruh dunia dari kamera ortografis, hanya objek
+   * di RENDER_LAYERS.minimap, diterangi ambient merata (tanpa IBL, kabut, matahari) lalu disalin
+   * ke canvas 2D. Dipakai oleh ui/Minimap2D; tidak ada render 3D minimap per frame.
+   * @param {number} worldHalf setengah sisi dunia (m)
+   * @returns {HTMLCanvasElement}
+   */
+  bakeMinimap(worldHalf) {
     const r = this.renderer;
-    const focus = ctx?.bikePos ?? new THREE.Vector3();
-    this.minimapMarker.position.set(focus.x, MINIMAP_MARKER_Y, focus.z);
-    if (this.frame % MINIMAP_INTERVAL === 0) this.renderMinimapToTarget(focus);
-    const x = w - MINIMAP_SIZE - MINIMAP_MARGIN;
-    r.setScissorTest(true);
-    r.setViewport(x, MINIMAP_MARGIN, MINIMAP_SIZE, MINIMAP_SIZE);
-    r.setScissor(x, MINIMAP_MARGIN, MINIMAP_SIZE, MINIMAP_SIZE);
-    r.clearDepth();
-    r.render(this.minimapBlit.scene, this.minimapBlit.camera);
-    r.setScissorTest(false);
-  }
-
-  /** Render tampak atas (layer minimap saja) ke render target. */
-  renderMinimapToTarget(focus) {
-    const r = this.renderer;
-    this.minimapCamera.position.set(focus.x, MINIMAP_HEIGHT, focus.z);
-    this.minimapCamera.lookAt(focus.x, 0, focus.z);
-    const fog = this.scene.fog; // tanpa kabut agar peta tidak pudar
+    const px = MINIMAP_BAKE_PX;
+    const cam = new THREE.OrthographicCamera(-worldHalf, worldHalf, worldHalf, -worldHalf, 1, MINIMAP_BAKE_HEIGHT * 2);
+    cam.up.set(0, 0, -1); // utara (−z) di atas layar
+    cam.layers.set(RENDER_LAYERS.minimap);
+    cam.position.set(0, MINIMAP_BAKE_HEIGHT, 0);
+    cam.lookAt(0, 0, 0);
+    cam.updateMatrixWorld();
+    const target = new THREE.WebGLRenderTarget(px, px, { type: THREE.UnsignedByteType, stencilBuffer: false });
+    target.texture.colorSpace = THREE.SRGBColorSpace; // shader menulis sRGB; target bukan layar → tanpa tone mapping
+    const light = new THREE.AmbientLight(0xffffff, MINIMAP_BAKE_AMBIENT);
+    light.layers.set(RENDER_LAYERS.minimap);
+    const keep = { env: this.scene.environment, fog: this.scene.fog, bg: this.scene.background };
+    const clear = r.getClearColor(new THREE.Color());
+    const clearAlpha = r.getClearAlpha();
+    this.scene.add(light);
+    this.scene.environment = null;
     this.scene.fog = null;
-    r.setRenderTarget(this.minimapTarget);
-    r.clear();
-    r.render(this.scene, this.minimapCamera);
-    r.setRenderTarget(null);
-    this.scene.fog = fog;
+    this.scene.background = null;
+    this.scene.updateMatrixWorld();
+    try {
+      r.setRenderTarget(target);
+      r.setClearColor(MINIMAP_BG, 1);
+      r.clear();
+      r.render(this.scene, cam);
+      const buf = new Uint8ClampedArray(px * px * 4);
+      r.readRenderTargetPixels(target, 0, 0, px, px, buf);
+      flipRowsInPlace(buf, px, px);
+      const canvas = document.createElement('canvas');
+      canvas.width = px;
+      canvas.height = px;
+      canvas.getContext('2d').putImageData(new ImageData(buf, px, px), 0, 0);
+      return canvas;
+    } finally {
+      r.setRenderTarget(null);
+      r.setClearColor(clear, clearAlpha);
+      this.scene.remove(light);
+      this.scene.environment = keep.env;
+      this.scene.fog = keep.fog;
+      this.scene.background = keep.bg;
+      target.dispose();
+    }
   }
 }
 
 function createRenderer() {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  // antialias:false — scene dirender ke target composer (tanpa MSAA); backbuffer MSAA hanya menerima quad layar penuh.
+  // Penghalusan tepi datang dari supersampling (pixelRatio) + garis tepi.
+  const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
   renderer.shadowMap.enabled = true;     // tipe (VSM) diatur di world/Lighting.js
   renderer.shadowMap.autoUpdate = false; // dipicu manual lewat needsUpdate sekali per frame
@@ -289,40 +369,6 @@ function createLabelRenderer() {
   const lr = new CSS2DRenderer();
   lr.domElement.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;';
   return lr;
-}
-
-function createMinimapCamera() {
-  const e = MINIMAP_HALF_EXTENT;
-  const cam = new THREE.OrthographicCamera(-e, e, e, -e, 1, 800);
-  cam.up.set(0, 0, -1);
-  cam.layers.set(RENDER_LAYERS.minimap);
-  return cam;
-}
-
-/** Lingkaran merah penanda sepeda; hanya tampil di minimap (layer minimap). */
-function createMinimapMarker() {
-  const geo = new THREE.CircleGeometry(MINIMAP_MARKER_RADIUS, 16).rotateX(-Math.PI / 2);
-  const mat = new THREE.MeshBasicMaterial({ color: MINIMAP_MARKER_COLOR, depthTest: false, fog: false });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.name = 'minimapMarker';
-  mesh.renderOrder = 999;
-  mesh.frustumCulled = false;
-  mesh.layers.set(RENDER_LAYERS.minimap);
-  return mesh;
-}
-
-/** Render target HDR untuk minimap (tone mapping diterapkan saat blit). */
-function createMinimapTarget(pixelRatio) {
-  const size = Math.round(MINIMAP_SIZE * pixelRatio);
-  return new THREE.WebGLRenderTarget(size, size, { type: THREE.HalfFloatType, stencilBuffer: false });
-}
-
-/** Scene kecil berisi quad layar penuh untuk menyalin tekstur minimap ke viewport. */
-function createBlit(texture) {
-  const scene = new THREE.Scene();
-  scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.MeshBasicMaterial({ map: texture, fog: false })));
-  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-  return { scene, camera };
 }
 
 export function hasWebGL() {

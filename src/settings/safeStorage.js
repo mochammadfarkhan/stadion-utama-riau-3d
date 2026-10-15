@@ -8,8 +8,13 @@ export function safeLocalStorage(win = typeof window !== 'undefined' ? window : 
   try {
     const ls = win?.localStorage;
     if (!ls) return null;
-    ls.setItem(PROBE_KEY, '1');
-    ls.removeItem(PROBE_KEY);
+    ls.getItem(PROBE_KEY); // baca ditolak -> tidak dapat dipakai sama sekali
+    try {
+      ls.setItem(PROBE_KEY, '1');
+      ls.removeItem(PROBE_KEY);
+    } catch {
+      // kuota penuh: tetap dipakai agar data yang sudah ada dapat dibaca
+    }
     return ls;
   } catch {
     return null;

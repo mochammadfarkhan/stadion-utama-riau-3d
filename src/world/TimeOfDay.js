@@ -12,28 +12,32 @@
  * - azimuthOffset -> arah matahari diputar pada sumbu Y (derajat) sebelum dipakai
  */
 import * as THREE from 'three';
-import { DAY } from '../config/constants.js';
+import { DAY, WEATHER } from '../config/constants.js';
 import {
   createDayState, stepDay, setDayHour, sunFromHour, lightingPreset,
-  presetNameForHour, nextPresetAfter, PRESET_HOURS,
+  presetNameForHour, nextPresetAfter, sunMoonWeight, PRESET_HOURS,
 } from '../sim/dayCycle.js';
 import { directionFromAngles } from './Lighting.js';
 import { createNightLights } from './TimeOfDay.lights.js';
+import { createCelestialBodies, celestialLook } from './CelestialBodies.js';
 
 const MOON_ELEVATION_DEG = 48;
 const MOON_AZIMUTH_DEG = 120;
+const MOON_SHADOW_STRENGTH = 0.45;  // kekuatan bayangan saat sumber cahaya = bulan (matahari = 1)
 const MOON_MAX_INTENSITY = 0.6;    // intensitas cahaya bulan (cahaya arah saat matahari di bawah horizon)
 const HORIZON_FADE_DEG = 6;        // matahari memudar menjelang terbenam (hindari bayangan datar ekstrem)
 const ENV_MIN_FACTOR = 0.15;       // environmentIntensity malam ≈ 0.12 × 0.15 ≈ 0.02
 const STAR_RADIUS = 1800;
 const STAR_MIN_Y = 0.06;
 const STAR_SIZE = 2.2;
+const STAR_CLOUD_DIM = 0.9;        // cloudCover 1 → bintang tinggal 10%
 const STAR_FADE_DEG = 8;           // bintang penuh saat matahari ≥ 8° di bawah horizon
 const HAZE_DEFAULT = 2.5;          // nilai haze settings yang berarti "sama dengan preset"
 const FOG_DEFAULT = 1100;          // nilai fogDistance settings yang berarti "sama dengan preset"
 const TURBIDITY_MIN = 1;
 
 const _sunDir = new THREE.Vector3();
+const _lightDir = new THREE.Vector3();
 const _moonDir = directionFromAngles(MOON_ELEVATION_DEG, MOON_AZIMUTH_DEG);
 
 /** Kubah bintang sederhana (Points) yang mengikuti kamera; hanya tampak malam. */
@@ -74,6 +78,8 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
   let envTimer = DAY.envRebuildInterval;
   const stars = createStars(DAY.starCount);
   scene.add(stars);
+  const bodies = createCelestialBodies();
+  scene.add(bodies.group);
   const night = createNightLights(scene);
   // Override settings (lihat komentar modul); objek baru tiap perubahan (immutable).
   let over = Object.freeze({ azimuthOffset: 0, cloudCover: L.defaults.cloudCoverage, haze: HAZE_DEFAULT, fogDistance: FOG_DEFAULT });
@@ -87,13 +93,18 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
     if (state.hour === lastDirHour) return;
     lastDirHour = state.hour;
     directionFromAngles(sun.elevationDeg, sun.azimuthDeg + over.azimuthOffset, _sunDir);
-    L.setSunDirection(sun.elevationDeg > 0 ? _sunDir : _moonDir);
+    // Cahaya arah beralih matahari → bulan bertahap di sekitar horizon (tanpa loncatan arah/bayangan).
+    const w = sunMoonWeight(sun.elevationDeg);
+    _lightDir.copy(_moonDir).lerp(_sunDir, w);
+    L.setSunDirection(_lightDir.lengthSq() > 1e-6 ? _lightDir : _sunDir);
     L.setSkyDirection(_sunDir);
   };
 
   const applyPreset = (p, sun) => {
     const fade = THREE.MathUtils.clamp(sun.elevationDeg / HORIZON_FADE_DEG, 0, 1);
-    L.sun.intensity = sun.elevationDeg > 0 ? p.sunIntensity * fade : MOON_MAX_INTENSITY;
+    const w = sunMoonWeight(sun.elevationDeg);
+    L.sun.intensity = p.sunIntensity * fade * w + MOON_MAX_INTENSITY * (1 - w);
+    L.sun.shadow.intensity = MOON_SHADOW_STRENGTH + (1 - MOON_SHADOW_STRENGTH) * w; // bayangan bulan lebih lembut
     L.sun.color.setHex(p.sunColor);
     L.hemi.intensity = p.hemiIntensity;
     L.hemi.color.setHex(p.hemiSky);
@@ -112,8 +123,14 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
     scene.environmentIntensity = L.defaults.envIntensity * Math.max(ENV_MIN_FACTOR, Math.min(1, p.hemiIntensity));
   };
 
+  /** Awan efektif: setelan pengguna, bergerak ke awan badai sesuai intensitas hujan (ditulis Weather). */
+  const effectiveCloudCover = () => THREE.MathUtils.clamp(
+    THREE.MathUtils.lerp(over.cloudCover, WEATHER.cloudCoverage, L.rainIntensity ?? 0), 0, 1);
+
   const applyStars = (sun) => {
-    const opacity = THREE.MathUtils.clamp(-sun.elevationDeg / STAR_FADE_DEG, 0, 1);
+    // Bintang tertutup awan: makin berawan (pengaturan), makin redup.
+    const clear = 1 - effectiveCloudCover() * STAR_CLOUD_DIM;
+    const opacity = THREE.MathUtils.clamp(-sun.elevationDeg / STAR_FADE_DEG, 0, 1) * clear;
     stars.material.opacity = opacity;
     stars.visible = opacity > 0.01;
     stars.position.copy(app.camera.position);
@@ -167,6 +184,7 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
       maybeRebuildEnv(dt, preset); // sebelum applyPreset: rebuild mereset environmentIntensity
       applyPreset(preset, sun);
       applyStars(sun);
+      bodies.update(app.camera, _sunDir, _moonDir, celestialLook({ elevationDeg: sun.elevationDeg, cloudCover: effectiveCloudCover() }), preset.sunColor);
       night.setLampsOn(preset.lampsOn);
       night.update(dt, ctx.bikePos, bikeState?.yaw ?? 0, ctx.focus ?? ctx.bikePos);
     },

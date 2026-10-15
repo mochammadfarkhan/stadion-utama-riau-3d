@@ -17,6 +17,7 @@ export const TREE_TYPES = Object.freeze({
   mahoni: { trunkH: 4.8, trunkR: 0.5, crown: 'tall', crownR: 3.6, crownY: 8.6, blobs: 7, spread: 2.2, flat: 1.15, seed: 102 },
   pulai: { trunkH: 6, trunkR: 0.45, crown: 'layered', crownR: 3.2, crownY: 9.5, blobs: 8, spread: 2.4, flat: 0.9, seed: 103 },
   palem: { trunkH: 7.5, trunkR: 0.34, crown: 'palm', crownR: 3.2, crownY: 8.2, blobs: 7, spread: 0, flat: 1, seed: 104 },
+  sawit: { trunkH: 9, trunkR: 0.36, crown: 'sawit', crownR: 4.6, crownY: 9.2, blobs: 0, spread: 0, flat: 1, seed: 105 },
 });
 /** Palet pastel: 3 tingkat hijau + sedikit kuning muda. */
 export const LEAF_PALETTE = Object.freeze([0x9ccc65, 0x7cb342, 0xc5e1a5, 0x9ccc65, 0x7cb342, 0xdce775]);
@@ -26,9 +27,12 @@ const TREE_COUNT_RANDOM = 260;
 const ROADSIDE_SPACING = 25;
 const YOUNG_TREE_COUNT = 150;
 const SHRUB_COUNT = 320;
+const VEGETATION_CELL = 200; // m: ukuran sel culling untuk instansi vegetasi
 const GRASS_CLUMP = Object.freeze({ clusters: 6, perCluster: 120, radius: 28 });
 const PALM = Object.freeze({ leaves: 7, len: 3.4, width: 0.55, lift: 0.55, droop: 0.95 });
 const GRASS_BLADES = 5;
+const SAWIT = Object.freeze({ fronds: 22, segments: 11, length: 4.3, leafLen: 1.2, leafHalfBase: 0.22, ribbon: 0.08, ringStep: 0.55 });
+const SAWIT_PALETTE = Object.freeze([0x3f8f3a, 0x357f35, 0x4a9a3e, 0x2f7433]);
 
 /**
  * Parameter angin per jenis vegetasi (koordinat lokal geometri; tajuk berpusat di origin
@@ -41,6 +45,11 @@ const WIND = Object.freeze({
   grass: { weightMode: 'height', heightMin: 0.1, heightMax: 1.4, amplitude: 0.35 },
 });
 
+// Kelapa sawit: helai daun tipis tanpa ketebalan → perlu DoubleSide (juga untuk bayangan).
+const sawitLeafMat = applyWind(new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide }), WIND.bigCrown);
+sawitLeafMat.shadowSide = THREE.DoubleSide;
+const sawitDepthMat = createWindDepthMaterial(WIND.bigCrown);
+sawitDepthMat.side = THREE.DoubleSide;
 const trunkMat = new THREE.MeshLambertMaterial({ color: 0x8d6e63 });
 const stakeMat = new THREE.MeshLambertMaterial({ color: 0xd7b98e });
 const leafMat = applyWind(new THREE.MeshLambertMaterial({ color: 0xffffff }), WIND.bigCrown); // warna via instanceColor
@@ -69,9 +78,73 @@ function palmCrown(t) {
   return mergeAll(leaves);
 }
 
+/**
+ * Satu pelepah sawit di bidang XY (x keluar, y atas): tulang daun melengkung (naik lalu menjuntai)
+ * berupa pita pipih + helai daun sirip di kedua sisi (segitiga bersudut ke depan-samping-bawah).
+ * `lift`/`droop` mengatur kelengkungan: pelepah dalam lebih tegak, luar menjuntai.
+ */
+function sawitFrond(lift, droop) {
+  const { segments: N, length: L, leafLen, leafHalfBase: w, ribbon } = SAWIT;
+  const pts = Array.from({ length: N + 1 }, (_, i) => {
+    const t = i / N;
+    return new THREE.Vector3(L * t, lift * t - droop * t * t, 0);
+  });
+  const pos = [];
+  const tri = (a, b, c) => pos.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+  const quad = (a, b, c, d) => { tri(a, b, c); tri(a, c, d); };
+  const tan = new THREE.Vector3();
+  for (let i = 0; i < N; i += 1) {
+    const [a, b] = [pts[i], pts[i + 1]];
+    quad(a.clone().setZ(-ribbon), b.clone().setZ(-ribbon), b.clone().setZ(ribbon), a.clone().setZ(ribbon));
+  }
+  for (let i = 2; i <= N; i += 1) {
+    const p = pts[i];
+    tan.subVectors(pts[Math.min(i + 1, N)], pts[i - 1]).normalize();
+    const len = leafLen * (1 - 0.5 * (i / N));
+    for (const side of [-1, 1]) {
+      const dir = new THREE.Vector3(tan.x * 0.5, tan.y * 0.5 - 0.35, side * 0.85).normalize().multiplyScalar(len);
+      const tip = p.clone().add(dir);
+      tri(p.clone().addScaledVector(tan, -w), p.clone().addScaledVector(tan, w), tip);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/** Tajuk sawit: pelepah tersusun spiral (dalam tegak, luar menjuntai) + pangkal bulat kecil. */
+export function sawitCrownGeometry(t) {
+  const { fronds } = SAWIT;
+  const parts = [new THREE.SphereGeometry(t.trunkR * 1.6, 8, 6)];
+  for (let i = 0; i < fronds; i += 1) {
+    const ring = i % 3;                                   // 0 = tegak, 1 = sedang, 2 = menjuntai
+    const frond = sawitFrond([3.2, 2.7, 2.3][ring], [3.6, 4.0, 4.4][ring]);
+    parts.push(frond.rotateY((i / fronds) * Math.PI * 2 + ring * 0.35));
+  }
+  return mergeAll(parts.map((g) => (g.index ? g.toNonIndexed() : g)).map((g) => {
+    g.deleteAttribute('uv');
+    return g;
+  }));
+}
+
+/** Batang sawit: tumpukan cincin bergantian (bekas pelepah) dan menyempit ke atas. */
+export function sawitTrunkGeometry(r, h) {
+  const n = Math.max(2, Math.round(h / SAWIT.ringStep));
+  const step = h / n;
+  const rings = Array.from({ length: n }, (_, i) => {
+    const k = 1 - 0.18 * (i / n);
+    const radius = r * k * (i % 2 === 0 ? 0.9 : 1.13);
+    return new THREE.CylinderGeometry(radius * 0.97, radius, step, 8, 1, true).translate(0, step * (i + 0.5), 0);
+  });
+  rings.push(new THREE.CircleGeometry(r * 0.78, 8).rotateX(-Math.PI / 2).translate(0, h, 0));
+  return mergeAll(rings.map((g) => (g.index ? g.toNonIndexed() : g)));
+}
+
 /** Geometri tajuk gumpalan bola sesuai jenis (origin di pusat tajuk). */
 function crownGeometry(t) {
   if (t.crown === 'palm') return palmCrown(t);
+  if (t.crown === 'sawit') return sawitCrownGeometry(t);
   const rnd = createRandom(t.seed);
   const vertical = t.crown === 'tall' ? t.crownR * 0.9 : t.crownR * 0.35;
   return blobCluster({ count: t.blobs, radius: t.crownR, spread: t.spread, flat: t.flat, vertical }, rnd);
@@ -88,9 +161,10 @@ function trunkGeometry(r, h, segments = 8) {
 /** Daftar part (batang + tajuk) untuk satu jenis pohon. */
 function treeParts(type) {
   const t = TREE_TYPES[type];
+  const sawit = type === 'sawit';
   return [
-    { geometry: trunkGeometry(t.trunkR, t.trunkH), material: trunkMat, castShadow: true, name: `batang-${type}` },
-    { geometry: crownGeometry(t), material: leafMat, matrix: localMatrix(0, t.crownY, 0), castShadow: true, name: `tajuk-${type}` },
+    { geometry: sawit ? sawitTrunkGeometry(t.trunkR, t.trunkH) : trunkGeometry(t.trunkR, t.trunkH), material: trunkMat, castShadow: true, name: `batang-${type}` },
+    { geometry: crownGeometry(t), material: sawit ? sawitLeafMat : leafMat, matrix: localMatrix(0, t.crownY, 0), castShadow: true, name: `tajuk-${type}` },
   ];
 }
 
@@ -139,15 +213,17 @@ function splitByType(spots, rnd, weights) {
 
 /** Warnai InstancedMesh bernama (awalan) di dalam group dengan palet acak. */
 function colorizeNamed(group, prefix, palette, rnd) {
-  const mesh = group.children.find((m) => m.isInstancedMesh && m.name.startsWith(prefix));
-  if (mesh) colorizeInstances(mesh, palette, rnd);
+  group.children
+    .filter((m) => m.isInstancedMesh && m.name.startsWith(prefix))
+    .forEach((mesh) => colorizeInstances(mesh, palette, rnd));
   return group;
 }
 
 /** Pasang material kedalaman berangin pada tajuk pohon besar agar bayangannya ikut bergoyang. */
 function attachCrownShadow(group) {
-  const crown = group.children.find((m) => m.isInstancedMesh && m.material === leafMat);
-  if (crown) crown.customDepthMaterial = leafDepthMat;
+  group.children
+    .filter((m) => m.isInstancedMesh && (m.material === leafMat || m.material === sawitLeafMat))
+    .forEach((crown) => { crown.customDepthMaterial = crown.material === sawitLeafMat ? sawitDepthMat : leafDepthMat; });
   return group;
 }
 
@@ -155,13 +231,13 @@ function attachCrownShadow(group) {
 export function createBigTrees(seed = 11) {
   const rnd = createRandom(seed);
   const road = roadsideTreeSpots(rnd);
-  const random = splitByType(randomTreeSpots(rnd, TREE_COUNT_RANDOM), rnd, { trembesi: 3, mahoni: 3, pulai: 2, palem: 1 });
-  const ringSplit = splitByType(road.ring, rnd, { trembesi: 2, mahoni: 1 });
+  const random = splitByType(randomTreeSpots(rnd, TREE_COUNT_RANDOM), rnd, { trembesi: 3, mahoni: 3, pulai: 2, palem: 1, sawit: 3 });
+  const ringSplit = splitByType(road.ring, rnd, { trembesi: 2, mahoni: 1, sawit: 2 });
   const g = new THREE.Group();
   g.name = 'pohonBesar';
   Object.keys(TREE_TYPES).forEach((type) => {
     const spots = [...random[type], ...ringSplit[type], ...(type === 'palem' ? road.naga : [])];
-    g.add(attachCrownShadow(colorizeNamed(instanceParts(treeParts(type), spots, `pohon-${type}`), 'tajuk', LEAF_PALETTE, rnd)));
+    g.add(attachCrownShadow(colorizeNamed(instanceParts(treeParts(type), spots, `pohon-${type}`), 'tajuk', type === 'sawit' ? SAWIT_PALETTE : LEAF_PALETTE, rnd)));
   });
   g.userData.count = Object.values(random).flat().length + road.ring.length + road.naga.length;
   return g;
@@ -225,7 +301,7 @@ export function createShrubs(seed = 31) {
     if (ok) spots.push({ x, z, rotY: rnd.range(0, 6.28), scale: rnd.range(0.6, 1.5) });
   }
   const geo = blobCluster({ count: 6, radius: 0.8, spread: 0.85, flat: 0.75, center: [0, 0.45, 0], vertical: 0.15 }, createRandom(seed + 500));
-  const g = instanceParts([{ geometry: geo, material: shrubMat, name: 'semak' }], spots, 'semak'); // tanpa bayangan
+  const g = instanceParts([{ geometry: geo, material: shrubMat, name: 'semak' }], spots, 'semak', { cellSize: VEGETATION_CELL }); // tanpa bayangan
   return colorizeNamed(g, 'semak', SHRUB_PALETTE, rnd);
 }
 
@@ -255,7 +331,7 @@ export function createWildGrass(seed = 41, centers = defaultGrassCenters()) {
       spots.push({ x, z, rotY: rnd.range(0, 6.28), scale: rnd.range(0.7, 1.4) });
     }
   });
-  const g = instanceParts([{ geometry: grassClumpGeometry(), material: grassMat, name: 'ilalang' }], spots, 'ilalang');
+  const g = instanceParts([{ geometry: grassClumpGeometry(), material: grassMat, name: 'ilalang' }], spots, 'ilalang', { cellSize: VEGETATION_CELL });
   return colorizeNamed(g, 'ilalang', GRASS_PALETTE, rnd);
 }
 

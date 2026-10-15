@@ -60,6 +60,7 @@ export const SETTINGS_SCHEMA = Object.freeze({
         fields: Object.freeze({
           shadowQuality: select('Kualitas bayangan', 'sedang', ['mati', 'rendah', 'sedang', 'tinggi']),
           pixelRatio: range('Resolusi render', 1.25, 0.5, 2, 0.05, { unit: '×' }),
+          adaptiveResolution: toggle('Resolusi adaptif (jaga FPS)', true),
           ao: toggle('Ambient occlusion', false),
           vignette: toggle('Vignette', true),
           outline: toggle('Garis tepi', true),
@@ -132,7 +133,8 @@ export function defaultSettings(schema = SETTINGS_SCHEMA) {
 export function coerceValue(field, value) {
   if (field.type === 'toggle') return typeof value === 'boolean' ? value : field.default;
   if (field.type === 'select') return field.options.includes(value) ? value : field.default;
-  const n = Number(value);
+  const isNumeric = typeof value === 'number' || (typeof value === 'string' && value.trim() !== '');
+  const n = isNumeric ? Number(value) : NaN;
   if (!Number.isFinite(n)) return field.default;
   const clamped = Math.min(field.max, Math.max(field.min, n));
   const stepped = Math.round((clamped - field.min) / field.step) * field.step + field.min;

@@ -59,12 +59,30 @@ function mergePartsByMaterial(parts) {
   }).flat();
 }
 
-/** Bangun Group berisi InstancedMesh per material (part digabung bila bisa). */
-export function instanceParts(parts, positions, name = 'instanced') {
+/** Bagi posisi per sel grid (cellSize m) agar tiap sel punya bounding sphere sendiri → frustum culling per sel. */
+function bucketByCell(positions, cellSize) {
+  const cells = new Map();
+  for (const p of positions) {
+    const key = `${Math.floor((p.x ?? 0) / cellSize)},${Math.floor((p.z ?? 0) / cellSize)}`;
+    if (!cells.has(key)) cells.set(key, []);
+    cells.get(key).push(p);
+  }
+  return [...cells.values()];
+}
+
+/**
+ * Bangun Group berisi InstancedMesh per material (part digabung bila bisa).
+ * Dengan `cellSize` > 0 posisi dibagi per sel grid: satu InstancedMesh per sel per material
+ * (geometri/material dibagikan), sehingga sel di luar frustum kamera dan frustum bayangan dilewati.
+ * Nama mesh sama untuk semua sel agar pencarian berawalan nama tetap bekerja.
+ */
+export function instanceParts(parts, positions, name = 'instanced', { cellSize = 0 } = {}) {
   const group = new THREE.Group();
   group.name = name;
   if (!positions || positions.length === 0) return group;
-  mergePartsByMaterial(parts).forEach((part) => group.add(instancePart(part, positions)));
+  const merged = mergePartsByMaterial(parts);
+  const batches = cellSize > 0 ? bucketByCell(positions, cellSize) : [positions];
+  for (const batch of batches) merged.forEach((part) => group.add(instancePart(part, batch)));
   return group;
 }
 

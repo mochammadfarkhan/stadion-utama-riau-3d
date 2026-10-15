@@ -66,6 +66,14 @@ export function sunFromHour(hour) {
   return { elevationDeg: -DAY.nightDepthDeg * Math.sin(Math.PI * t), azimuthDeg: (270 + 180 * t) % 360 };
 }
 
+const BLEND_BAND_DEG = 6;
+
+/** Bobot matahari terhadap bulan sebagai sumber cahaya arah: 0 (malam) → 1 (siang), smoothstep di sekitar horizon. */
+export function sunMoonWeight(elevationDeg, band = BLEND_BAND_DEG) {
+  const t = Math.min(1, Math.max(0, (elevationDeg + band) / (2 * band)));
+  return t * t * (3 - 2 * t);
+}
+
 /** Apakah lampu PJU menyala pada jam ini. */
 export function lampsOnAt(hour) {
   const h = wrapHour(hour);

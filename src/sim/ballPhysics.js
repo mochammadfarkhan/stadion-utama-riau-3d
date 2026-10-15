@@ -5,6 +5,7 @@
 import { PITCH, FOOTBALL } from '../config/constants.js';
 
 const sign = (v) => (v < 0 ? -1 : 1);
+const MAX_STEP = 0.25; // detik: batas langkah (aplikasi sudah membatasi 0,05; ini pengaman bagi pemanggil lain)
 
 /** Bola diam di titik tengah. */
 export function createBall() {
@@ -68,7 +69,9 @@ function endLines(ball) {
  * @returns {{ball, scorer:null|'a'|'b'}} scorer terisi bila terjadi gol
  */
 export function stepBall(ball, dt) {
-  const moved = sideWalls(groundContact(integrate(ball, dt), dt));
+  const h = Number.isFinite(dt) ? Math.min(Math.max(dt, 0), MAX_STEP) : 0; // dt rusak/negatif tidak boleh merusak state
+  if (h === 0) return { ball, scorer: null };
+  const moved = sideWalls(groundContact(integrate(ball, h), h));
   return endLines(moved);
 }
 

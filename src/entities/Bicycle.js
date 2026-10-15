@@ -86,6 +86,9 @@ export class Bicycle {
    */
   setCollider(fn) { this.#collider = typeof fn === 'function' ? fn : null; }
 
+  /** Tampilkan/sembunyikan pengendara (disembunyikan di kamera orang pertama: kamera berada di kepalanya). */
+  setRiderVisible(visible) { this.#rider.group.visible = Boolean(visible); }
+
   /** Bunyikan bel (Space). */
   ring() {
     this.onRing?.();

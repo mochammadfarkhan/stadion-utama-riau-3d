@@ -77,11 +77,12 @@ export function createLighting(scene, renderer) {
   Object.assign(group.userData, {
     sun, hemi, sky, skyUniforms: sky.material.uniforms, envSky: env.envSky,
     defaults: Object.freeze({ envIntensity: ENV_INTENSITY, fogNear: FOG_NEAR, fogFar: FOG_FAR, cloudCoverage: CLOUD_COVERAGE, cloudDensity: CLOUD_DENSITY }),
-    update: (dt, t, focus) => {
+    /** shadowFrame=false: frustum bayangan tidak diikutkan, agar peta bayangan basi tidak bergeser (shimmer). */
+    update: (dt, t, focus, shadowFrame = true) => {
       sky.material.uniforms.time.value = t * 0.02;
       const su = sky.material.uniforms;
       clouds.userData.update(t, su.cloudCoverage ? su.cloudCoverage.value : CLOUD_COVERAGE, su.sunPosition.value);
-      if (focus) follower.follow(focus);
+      if (focus && shadowFrame) follower.follow(focus);
     },
     setSunDirection: (dir) => {
       follower.setDirection(dir);
@@ -165,14 +166,17 @@ function createEnvironment(scene, renderer, sunDir) {
   const envSky = createSky(sunDir);
   if (envSky.material.uniforms.showSunDisc) envSky.material.uniforms.showSunDisc.value = 0;
   envScene.add(envSky);
+  // Satu generator seumur hidup: membuat ulang tiap rebuild ±13x lebih lambat (27 ms vs 2 ms).
+  let pmrem = null;
+  let envTarget = null;
   const rebuild = () => {
     try {
-      const pmrem = new THREE.PMREMGenerator(renderer);
-      const previous = scene.environment;
-      scene.environment = pmrem.fromScene(envScene, ENV_SIGMA).texture;
-      if (previous) previous.dispose();
+      pmrem ??= new THREE.PMREMGenerator(renderer);
+      const next = pmrem.fromScene(envScene, ENV_SIGMA);
+      envTarget?.dispose(); // render target lama (bukan hanya texture) dilepas
+      envTarget = next;
+      scene.environment = next.texture;
       scene.environmentIntensity = ENV_INTENSITY;
-      pmrem.dispose();
     } catch {
       // Env map opsional: tanpa env map, pencahayaan hemisphere sudah cukup.
     }

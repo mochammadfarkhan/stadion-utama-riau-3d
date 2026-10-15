@@ -2,14 +2,17 @@
  * Pedagang keliling: Humanoid (celemek + topi/hijab) mendorong gerobak,
  * digerakkan sim/vendorSim (WALK/DWELL), label nama CSS2D, interaksi beli.
  *
- * Gerobak diambil dari world/props/Cart.js (agen lain) lewat dynamic import;
- * bila gagal (belum ada / Node), dipakai gerobak fallback lokal.
+ * Gerobak dari world/props/Cart.js (digabung per material: 1 draw call per material, bukan ±20 mesh);
+ * bila gagal, dipakai gerobak fallback lokal.
  */
 import * as THREE from 'three';
 import { VENDOR_CATALOG, createVendor, stepVendor, createWallet, buy, consumeItem, credit } from '../sim/vendorSim.js';
 import { createHumanoid, animateWalk, animateSellIdle } from './Humanoid.js';
 import { randomVendorOutfit } from './Humanoid.outfits.js';
 import { createFallbackCart } from './Vendor.cart.js';
+import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { createCart } from '../world/props/Cart.js';
+import { mergeByMaterial } from '../world/util/merge.js';
 import { makeRng, isFiniteXZ, lerpAngle, clamp, HAS_DOM } from './util.js';
 
 const LABEL_DISTANCE = 45;
@@ -28,7 +31,6 @@ const DEFAULT_NAMES = Object.freeze({
 /** Label CSS2D; hanya dibuat bila DOM tersedia (dryrun Node melewati). */
 async function createLabel(text) {
   if (!HAS_DOM) return null;
-  const { CSS2DObject } = await import('three/addons/renderers/CSS2DRenderer.js');
   const el = document.createElement('div');
   el.className = 'vendor-label';
   el.textContent = text;
@@ -45,17 +47,16 @@ async function createLabel(text) {
  */
 async function loadCart(kind) {
   try {
-    const mod = await import('../world/props/Cart.js');
-    const cart = mod.createCart?.({ kind });
+    const cart = createCart({ kind });
     if (cart?.isObject3D) {
       const wrap = new THREE.Group();
       wrap.rotation.y = -Math.PI / 2;
       wrap.position.z = REAL_CART_EXTRA_Z;
-      wrap.add(cart);
+      wrap.add(mergeByMaterial(cart));
       return wrap;
     }
   } catch {
-    // modul belum tersedia (agen lain) atau gagal di-load → fallback
+    // pembuatan gerobak gagal → fallback
   }
   return createFallbackCart({ kind });
 }
@@ -93,7 +94,7 @@ export class VendorGroup {
     const h = createHumanoid(randomVendorOutfit(rng, kind));
     const cartSlot = new THREE.Group();
     cartSlot.position.z = CART_OFFSET_Z;
-    cartSlot.add(createFallbackCart({ kind }));
+    cartSlot.add(mergeByMaterial(createFallbackCart({ kind })));
     root.add(h.group, cartSlot);
     this.group.add(root);
     const entry = { sim, h, root, cartSlot, name, kind, yaw: sim.yaw ?? 0 };
@@ -210,5 +211,21 @@ export class VendorGroup {
 
   /** Tambah saldo dompet (hadiah misi). */
   credit(amount) { this.#wallet = credit(this.#wallet, amount); }
+
+  /**
+   * Posisi pedagang terdekat yang menjual itemId (penanda misi).
+   * @param {string} itemId @param {{x:number,z:number}} from
+   * @returns {{x:number,z:number}|null}
+   */
+  nearestSelling(itemId, from) {
+    let best = null;
+    let bestD = Infinity;
+    for (const e of this.#vendors) {
+      if (!VENDOR_CATALOG[e.kind]?.some((i) => i.id === itemId)) continue;
+      const d = Math.hypot(e.sim.pos.x - from.x, e.sim.pos.z - from.z);
+      if (d < bestD) { bestD = d; best = { x: e.sim.pos.x, z: e.sim.pos.z }; }
+    }
+    return best;
+  }
   get vendors() { return this.#vendors.map((e) => this.#info(e)); }
 }

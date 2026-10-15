@@ -4,3 +4,7 @@ dist/
 *.log
 .DS_Store
 coverage/
+
+# Cadangan otomatis Blender dan artefak alat lokal
+*.blend1
+.playwright-mcp/
