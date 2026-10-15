@@ -27,10 +27,28 @@ const VIP_SCALE = 1.35;
 const VIP_COLOR = 0x152238;
 const COLOR_FADE = 0.18;
 
-/** Geometri kursi: dudukan + sandaran (depan = +Z lokal). */
+/** Urutan sisi BoxGeometry di indeks (masing-masing 2 segitiga). */
+const BOX_FACE = Object.freeze({ px: 0, nx: 1, py: 2, ny: 3, pz: 4, nz: 5 });
+
+/** Salinan BoxGeometry tanpa sisi tertentu (sisi yang tertutup/tak terlihat tidak perlu digambar). */
+function boxWithoutFaces(w, h, d, faces) {
+  const box = new THREE.BoxGeometry(w, h, d);
+  const drop = new Set(faces.map((f) => BOX_FACE[f]));
+  const old = box.index.array;
+  const kept = [];
+  for (let f = 0; f < 6; f += 1) if (!drop.has(f)) for (let i = 0; i < 6; i += 1) kept.push(old[f * 6 + i]);
+  box.setIndex(kept);
+  return box;
+}
+
+/**
+ * Geometri kursi: dudukan + sandaran (depan = +Z lokal), 18 segitiga (dulu 24).
+ * Dibuang: sisi belakang dudukan (tertanam di sandaran), alas dudukan, dan alas sandaran.
+ * ±38 rb kursi, jadi ±230 rb segitiga lebih sedikit per frame.
+ */
 export function createSeatGeometry(scale = 1) {
-  const seat = new THREE.BoxGeometry(SEAT_W, 0.06, 0.42).translate(0, 0.42, 0.02);
-  const back = new THREE.BoxGeometry(SEAT_W, 0.46, 0.05).translate(0, 0.66, -0.2);
+  const seat = boxWithoutFaces(SEAT_W, 0.06, 0.42, ['nz', 'ny']).translate(0, 0.42, 0.02);
+  const back = boxWithoutFaces(SEAT_W, 0.46, 0.05, ['ny']).translate(0, 0.66, -0.2);
   const g = mergeFlat([seat, back]);
   if (scale !== 1) g.scale(scale, scale, scale);
   return g;
