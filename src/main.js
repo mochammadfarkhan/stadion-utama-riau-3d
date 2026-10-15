@@ -57,7 +57,7 @@ async function main() {
   await loading.step(0.12, 'Menyiapkan langit dan pencahayaan…');
   const lighting = createLighting(app.scene, app.renderer);
   app.scene.add(lighting);
-  app.addUpdatable({ update: (dt, ctx) => lighting.userData.update?.(dt, ctx.time, ctx.focus) });
+  app.addUpdatable({ update: (dt, ctx) => lighting.userData.update?.(dt, ctx.time, ctx.focus, ctx.shadowFrame) });
 
   await loading.step(0.2, 'Membangun stadion, tribun, dan lingkungan…');
   const world = buildWorld();

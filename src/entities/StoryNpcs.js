@@ -3,6 +3,7 @@
  * Posisi/nama dari story/chapters.js; berdiri menghadap yaw yang ditentukan.
  */
 import * as THREE from 'three';
+import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { createHumanoid } from './Humanoid.js';
 import { randomCasualOutfit } from './Humanoid.outfits.js';
 import { makeRng } from './util.js';
@@ -12,7 +13,6 @@ const OUTFIT_SEED = 77;
 
 async function addLabel(group, name) {
   if (typeof document === 'undefined') return;
-  const { CSS2DObject } = await import('three/addons/renderers/CSS2DRenderer.js');
   const el = document.createElement('div');
   el.className = 'vendor-label';
   el.textContent = name;

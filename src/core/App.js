@@ -11,6 +11,7 @@ import { DepthRenderPass, OutlinePass } from './postprocessing/OutlinePass.js';
 
 const MAX_DT = 0.05;
 const MAX_PIXEL_RATIO = RENDER.pixelRatio;
+const SHADOW_INTERVAL = 2;         // peta bayangan dirender ulang tiap N frame (pass shadow ±25% biaya frame)
 const ADAPTIVE_MIN_RATIO = 0.6;   // resolusi adaptif tidak turun di bawah ini
 const ADAPTIVE_TARGET_MS = 20;    // target waktu frame (50 fps)
 const AO_SAMPLES = 12;            // sampel GTAO per piksel (default 16; lebih ringan)
@@ -19,7 +20,7 @@ const MINIMAP_SIZE = 200;
 const MINIMAP_MARGIN = 12;
 const MINIMAP_HALF_EXTENT = 160;
 const MINIMAP_HEIGHT = 400;
-const MINIMAP_INTERVAL = 2;        // minimap dirender ulang tiap N frame
+const MINIMAP_PERIOD = 0.1;        // detik: minimap dirender ulang ±10 Hz (berbasis waktu, bukan jumlah frame)
 const MINIMAP_MARKER_RADIUS = 4;   // meter (lingkaran merah posisi sepeda)
 const MINIMAP_MARKER_Y = 150;      // di atas atap stadion
 const MINIMAP_MARKER_COLOR = 0xe53935;
@@ -30,7 +31,7 @@ const MINIMAP_MARKER_COLOR = 0xe53935;
  * Render utama lewat EffectComposer (RenderPass -> GTAO -> Outline -> Vignette -> OutputPass;
  * tone mapping + sRGB hanya di OutputPass), lalu label CSS2D, lalu minimap.
  * Minimap hanya merender objek di RENDER_LAYERS.minimap, ke render target
- * tiap MINIMAP_INTERVAL frame, lalu di-blit ke pojok layar setiap frame.
+ * tiap MINIMAP_PERIOD detik, lalu di-blit ke pojok layar setiap frame.
  */
 export class App {
   constructor(container) {
@@ -38,6 +39,7 @@ export class App {
     this.scene = new THREE.Scene();
     // Matriks dunia dihitung SEKALI per frame di render() (bukan oleh composer, label, dan minimap sendiri-sendiri).
     this.scene.matrixWorldAutoUpdate = false;
+    this.minimapAt = -Infinity;
     this.camera = new THREE.PerspectiveCamera(60, 1, 0.3, 2500);
     this.renderer = createRenderer();
     this.labelRenderer = createLabelRenderer();
@@ -185,6 +187,7 @@ export class App {
       const dt = Math.min(rawDt, MAX_DT);
       this.elapsed += dt;
       const ctx = makeContext(dt, this.elapsed, rawDt);
+      ctx.shadowFrame = this.frame % SHADOW_INTERVAL === 0;
       if (this.adaptiveOn) {
         const next = this.adaptive?.sample(rawDt);
         if (next != null) this.#applyPixelRatio(next);
@@ -199,7 +202,7 @@ export class App {
 
   /** Render satu frame tanpa memajukan simulasi (screenshot). */
   renderFrame() {
-    this.render(this.lastCtx);
+    this.render({ ...this.lastCtx, shadowFrame: true });
   }
 
   render(ctx) {
@@ -208,7 +211,7 @@ export class App {
     const h = window.innerHeight;
     r.autoClear = false;
     r.info.reset(); // info.render dihitung per frame (semua pass), bukan per pass
-    r.shadowMap.needsUpdate = true; // satu shadow pass per frame (hanya untuk kamera utama)
+    r.shadowMap.needsUpdate = ctx?.shadowFrame !== false; // shadow pass tiap SHADOW_INTERVAL frame (hanya kamera utama)
     r.setViewport(0, 0, w, h);
     this.scene.updateMatrixWorld();
     this.post.composer.render(); // pass pertama membersihkan buffer; OutputPass menulis ke layar
@@ -220,7 +223,10 @@ export class App {
     const r = this.renderer;
     const focus = ctx?.bikePos ?? new THREE.Vector3();
     this.minimapMarker.position.set(focus.x, MINIMAP_MARKER_Y, focus.z);
-    if (this.frame % MINIMAP_INTERVAL === 0) this.renderMinimapToTarget(focus);
+    if (this.elapsed - this.minimapAt >= MINIMAP_PERIOD) {
+      this.minimapAt = this.elapsed;
+      this.renderMinimapToTarget(focus);
+    }
     const x = w - MINIMAP_SIZE - MINIMAP_MARGIN;
     r.setScissorTest(true);
     r.setViewport(x, MINIMAP_MARGIN, MINIMAP_SIZE, MINIMAP_SIZE);
@@ -246,7 +252,9 @@ export class App {
 }
 
 function createRenderer() {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  // antialias:false — scene dirender ke target composer (tanpa MSAA); backbuffer MSAA hanya menerima quad layar penuh.
+  // Penghalusan tepi datang dari supersampling (pixelRatio) + garis tepi.
+  const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
   renderer.shadowMap.enabled = true;     // tipe (VSM) diatur di world/Lighting.js
   renderer.shadowMap.autoUpdate = false; // dipicu manual lewat needsUpdate sekali per frame

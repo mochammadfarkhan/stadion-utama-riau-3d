@@ -77,11 +77,12 @@ export function createLighting(scene, renderer) {
   Object.assign(group.userData, {
     sun, hemi, sky, skyUniforms: sky.material.uniforms, envSky: env.envSky,
     defaults: Object.freeze({ envIntensity: ENV_INTENSITY, fogNear: FOG_NEAR, fogFar: FOG_FAR, cloudCoverage: CLOUD_COVERAGE, cloudDensity: CLOUD_DENSITY }),
-    update: (dt, t, focus) => {
+    /** shadowFrame=false: frustum bayangan tidak diikutkan, agar peta bayangan basi tidak bergeser (shimmer). */
+    update: (dt, t, focus, shadowFrame = true) => {
       sky.material.uniforms.time.value = t * 0.02;
       const su = sky.material.uniforms;
       clouds.userData.update(t, su.cloudCoverage ? su.cloudCoverage.value : CLOUD_COVERAGE, su.sunPosition.value);
-      if (focus) follower.follow(focus);
+      if (focus && shadowFrame) follower.follow(focus);
     },
     setSunDirection: (dir) => {
       follower.setDirection(dir);

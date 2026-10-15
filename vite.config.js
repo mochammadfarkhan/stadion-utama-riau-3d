@@ -3,7 +3,19 @@ import { defineConfig } from 'vite';
 // Base path untuk GitHub Pages: https://<user>.github.io/stadion-utama-riau-3d/
 export default defineConfig({
   base: process.env.GITHUB_PAGES ? '/stadion-utama-riau-3d/' : '/',
-  build: { target: 'es2022', sourcemap: false },
+  build: {
+    target: 'es2022',
+    sourcemap: false,
+    chunkSizeWarningLimit: 800, // chunk vendor `three` memang besar (±716 kB), dipisah agar ter-cache
+    rolldownOptions: {
+      output: {
+        // `three` (±450 kB) jadi chunk vendor sendiri: tidak ikut ter-invalidasi tiap rilis kode aplikasi.
+        codeSplitting: {
+          groups: [{ name: 'three', test: /node_modules[\/]three[\/]/, priority: 20 }],
+        },
+      },
+    },
+  },
   test: {
     environment: 'node',
     include: ['tests/**/*.test.js'],
