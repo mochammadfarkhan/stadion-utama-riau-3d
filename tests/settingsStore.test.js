@@ -98,3 +98,13 @@ describe('store', () => {
     expect(b.import('{bad')).toBe(false);
   });
 });
+
+describe('coerceValue: nilai non-numerik', () => {
+  it('null, kosong, array, boolean, undefined, objek jatuh ke default (bukan minimum)', () => {
+    const [, fov] = listFields().find(([k]) => k === 'camera.fov');
+    for (const bad of [null, '', '  ', [], true, undefined, {}]) {
+      expect(coerceValue(fov, bad)).toBe(fov.default);
+    }
+    expect(coerceValue(fov, '70')).toBe(70);
+  });
+});

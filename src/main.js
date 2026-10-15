@@ -6,6 +6,7 @@ import { createCollider } from './core/Collider.js';
 import { createPovSource } from './core/povSource.js';
 import { EXIT_KEY, POVS } from './core/cameraPresets.js';
 import { createAudioBus } from './core/AudioBus.js';
+import { routeEscape } from './core/escapeRoute.js';
 import { createLighting } from './world/Lighting.js';
 import { createTimeOfDay } from './world/TimeOfDay.js';
 import { createWeather } from './world/Weather.js';
@@ -181,10 +182,13 @@ function handleKeys(input, { rig, hud, ents, shop, time, store, story }) {
   if (input.consumePress('KeyO')) toggle('graphics.ao'); // matikan AO bila FPS rendah
   handleTimeWeatherKeys(input, hud, time, store);
   if (input.consumePress('KeyJ')) story.toggleJournal();
-  if (input.consumePress('Escape') && story.journal.open) story.journal.hide();
+  const escTarget = input.consumePress('Escape')
+    ? routeEscape({ journalOpen: story.journal.open, shopOpen: hud.shopOpen })
+    : null;
+  if (escTarget === 'journal') story.journal.hide();
   if (input.consumePress('KeyE')) {
     if (hud.shopOpen || !story.tryInteract(ents.bike.state)) handleShopKey(rig, hud, ents, shop);
-  } else if (input.consumePress('Escape')) handleShopKey(rig, hud, ents, shop);
+  } else if (escTarget === 'shop') handleShopKey(rig, hud, ents, shop);
 }
 
 /** V: ganti mode kamera pemain, atau keluar dari POV. Digit1..7 masuk POV, Digit0 keluar. */
