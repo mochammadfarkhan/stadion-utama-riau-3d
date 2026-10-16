@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { createAdaptiveResolution } from './adaptiveResolution.js';
-import { flipRowsInPlace } from '../ui/minimapMath.js';
+import { flipRowsInPlace } from '../shared/minimapMath.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';

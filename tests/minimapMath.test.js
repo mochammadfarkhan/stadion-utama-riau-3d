@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sourceRect, projectToView, clampToEdge, flipRowsInPlace } from '../src/ui/minimapMath.js';
+import { sourceRect, projectToView, clampToEdge, flipRowsInPlace } from '../src/shared/minimapMath.js';
 
 const WORLD_HALF = 700;
 const BASE_PX = 1400; // 1 px = 1 m agar angkanya mudah dicek

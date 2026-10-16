@@ -31,12 +31,14 @@ function lapCheckpoints() {
 
 export class StoryDirector {
   /**
-   * @param {{storage:object, vendors:object, hud:object, storyHud:object, journal:object, markers:object,
+   * HUD tidak diimpor/dipegang langsung: efek toast & dompet dikirim lewat callback (core tidak bergantung ui).
+   * @param {{storage:object, vendors:object, storyHud:object, journal:object, markers:object,
+   *   onToast?:(text:string, ok:boolean)=>void, onWalletChange?:(wallet:object)=>void,
    *   pointerLock?:{release:()=>void, request:()=>void}}} deps
    */
-  constructor({ storage, vendors, hud, storyHud, journal, markers, pointerLock = null }) {
+  constructor({ storage, vendors, storyHud, journal, markers, onToast = () => {}, onWalletChange = () => {}, pointerLock = null }) {
     this.story = createStory({ chapters: CHAPTERS, eggs: EASTER_EGGS });
-    Object.assign(this, { storage, vendors, hud, storyHud, journal, markers, pointerLock });
+    Object.assign(this, { storage, vendors, storyHud, journal, markers, onToast, onWalletChange, pointerLock });
     this.state = this.story.initial();
     this.eggState = createEggState();
     this.checkpoints = lapCheckpoints();
@@ -54,7 +56,7 @@ export class StoryDirector {
     if (save) {
       this.state = this.story.hydrate(save);
       this.vendors.credit(this.state.rupiah);
-      this.hud.setWallet(this.vendors.wallet);
+      this.onWalletChange(this.vendors.wallet);
     }
     this.#render();
   }
@@ -78,15 +80,15 @@ export class StoryDirector {
 
   #apply(effect) {
     switch (effect.type) {
-      case 'toast': this.hud.toast(effect.text, effect.ok); break;
+      case 'toast': this.onToast(effect.text, effect.ok); break;
       case 'reward':
         this.vendors.credit(effect.rupiah);
-        this.hud.setWallet(this.vendors.wallet);
-        this.hud.toast(`${effect.badge ? `Lencana: ${effect.badge} · ` : ''}+Rp ${effect.rupiah.toLocaleString('id-ID')}`, true);
+        this.onWalletChange(this.vendors.wallet);
+        this.onToast(`${effect.badge ? `Lencana: ${effect.badge} · ` : ''}+Rp ${effect.rupiah.toLocaleString('id-ID')}`, true);
         break;
       case 'consumeItem':
         this.vendors.consume(effect.itemId);
-        this.hud.setWallet(this.vendors.wallet);
+        this.onWalletChange(this.vendors.wallet);
         break;
       case 'save': saveStory(this.storage, Object.fromEntries(SAVE_KEYS.map((k) => [k, this.state[k]]))); break;
       default: break;
@@ -122,8 +124,8 @@ export class StoryDirector {
     if (short <= 0) return;
     this.fundedStep = key;
     this.vendors.credit(short);
-    this.hud.setWallet(this.vendors.wallet);
-    this.hud.toast(`Uang saku +Rp ${short.toLocaleString('id-ID')} untuk menyelesaikan misi`, true);
+    this.onWalletChange(this.vendors.wallet);
+    this.onToast(`Uang saku +Rp ${short.toLocaleString('id-ID')} untuk menyelesaikan misi`, true);
   }
 
   #updateLaps(pos, time) {
@@ -184,7 +186,7 @@ export class StoryDirector {
     const carrying = this.vendors.wallet.items.map((i) => i.id);
     const before = this.state;
     this.dispatch({ type: 'interacted', id: npc.id, carrying });
-    if (this.state === before) this.hud.toast(`${npc.name}: Halo, semangat ya!`, true);
+    if (this.state === before) this.onToast(`${npc.name}: Halo, semangat ya!`, true);
     return true;
   }
 
@@ -205,7 +207,7 @@ export class StoryDirector {
     this.dispatch({ type: 'reset' });
     this.eggState = createEggState();
     this.journal.hide();
-    this.hud.toast('Cerita dimulai ulang', true);
+    this.onToast('Cerita dimulai ulang', true);
   }
 
   #journalView() {

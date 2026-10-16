@@ -220,7 +220,11 @@ function setupStory({ app, ents, hud, rig }) {
   const storyHud = new StoryHUD(root, { onAdvance: () => story.advanceDialog() });
   const journal = new StoryJournal(root, { onReset: () => story.reset(), onClose: () => story.toggleJournal() });
   const pointerLock = { release: () => document.exitPointerLock?.(), request: () => rig.requestLock() };
-  story = new StoryDirector({ storage: safeLocalStorage(), vendors: ents.vendors, hud, storyHud, journal, markers, pointerLock });
+  story = new StoryDirector({
+    storage: safeLocalStorage(), vendors: ents.vendors, storyHud, journal, markers, pointerLock,
+    onToast: (text, ok) => hud.toast(text, ok),
+    onWalletChange: (wallet) => hud.setWallet(wallet),
+  });
   ents.bike.onRing = () => story.onBell();
   story.start();
   return story;

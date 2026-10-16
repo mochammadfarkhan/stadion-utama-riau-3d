@@ -17,7 +17,8 @@ function makeDeps({ balance = 50000, items = [], save = null } = {}) {
     deps: {
       storage: { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) },
       vendors,
-      hud: { toast: (t, ok) => log.toasts.push([t, ok]), setWallet: () => {} },
+      onToast: (t, ok) => log.toasts.push([t, ok]),
+      onWalletChange: () => {},
       storyHud: { render: () => { log.renders += 1; } },
       journal: { open: false, show() { this.open = true; }, hide() { this.open = false; } },
       markers: { setTarget: (p) => log.targets.push(p), update: () => {} },
