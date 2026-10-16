@@ -3,7 +3,6 @@ import { createAdaptiveResolution } from './adaptiveResolution.js';
 import { flipRowsInPlace } from '../ui/minimapMath.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
@@ -33,6 +32,8 @@ const MINIMAP_BG = 0x2f5b32;
  */
 export class App {
   #failures = new Map(); // updatable -> jumlah error beruntun
+  #aoWanted = RENDER.ao;
+  #aoLoading = false;
 
   constructor(container) {
     this.container = container;
@@ -70,12 +71,36 @@ export class App {
 
   /** Aktif/nonaktifkan ambient occlusion saat runtime (mis. bila FPS rendah). */
   setAO(enabled) {
-    this.post.gtaoPass.enabled = Boolean(enabled);
-    return this.post.gtaoPass.enabled;
+    this.#aoWanted = Boolean(enabled);
+    if (this.post.gtaoPass) this.post.gtaoPass.enabled = this.#aoWanted;
+    else if (this.#aoWanted) this.#loadGtao();
+    return this.#aoWanted;
   }
 
   get aoEnabled() {
-    return this.post.gtaoPass.enabled;
+    return this.#aoWanted;
+  }
+
+  /**
+   * GTAO dibuat malas: pass (beberapa render target resolusi penuh) dan kodenya baru dimuat saat AO
+   * pertama kali dinyalakan. Default AO mati, jadi sebagian besar sesi tidak pernah membayarnya.
+   */
+  async #loadGtao() {
+    if (this.#aoLoading) return;
+    this.#aoLoading = true;
+    try {
+      const { GTAOPass } = await import('three/addons/postprocessing/GTAOPass.js');
+      const pass = createGtaoPass(GTAOPass, this.scene, this.camera);
+      pass.enabled = this.#aoWanted;
+      this.post.composer.insertPass(pass, 1); // tepat setelah render scene, sebelum outline
+      this.post.gtaoPass = pass;
+      this.resize(); // ukuran AO (RENDER.aoScale)
+    } catch (err) {
+      console.error('Ambient occlusion gagal dimuat, dinonaktifkan:', err);
+      this.#aoWanted = false;
+    } finally {
+      this.#aoLoading = false;
+    }
   }
 
   /** Aktif/nonaktifkan pass vignette. */
@@ -172,7 +197,7 @@ export class App {
     const pr = this.renderer.getPixelRatio();
     this.post.outlinePass.setPixelRatio(pr);
     this.post.composer.setSize(w, h); // ukuran efektif (+ depthTexture) ke semua target & pass // GTAO dihitung pada resolusi lebih rendah (RENDER.aoScale)
-    this.post.gtaoPass.setSize(Math.round(w * pr * RENDER.aoScale), Math.round(h * pr * RENDER.aoScale));
+    this.post.gtaoPass?.setSize(Math.round(w * pr * RENDER.aoScale), Math.round(h * pr * RENDER.aoScale));
     this.labelRenderer.setSize(w, h);
   }
 
@@ -304,14 +329,12 @@ function createRenderer() {
 /**
  * Rantai post-processing: RenderPass -> GTAOPass (AO halus) -> Outline -> Vignette -> OutputPass.
  * Target composer memakai DepthTexture agar OutlinePass dapat membaca kedalaman adegan.
- * @returns {{composer: EffectComposer, gtaoPass: GTAOPass, outlinePass: OutlinePass, vignettePass: ShaderPass}}
+ * @returns {{composer: EffectComposer, gtaoPass: object|null, outlinePass: OutlinePass, vignettePass: ShaderPass}}
  */
 function createComposer(renderer, scene, camera) {
   const composer = new EffectComposer(renderer, createComposerTarget(renderer));
   const scenePass = new DepthRenderPass(scene, camera);
   composer.addPass(scenePass);
-  const gtaoPass = createGtaoPass(scene, camera);
-  composer.addPass(gtaoPass);
   const outlinePass = createOutlinePass(camera, scenePass, renderer.getPixelRatio());
   composer.addPass(outlinePass);
   const vignettePass = new ShaderPass(VignetteShader);
@@ -320,7 +343,7 @@ function createComposer(renderer, scene, camera) {
   vignettePass.enabled = RENDER.vignette;
   composer.addPass(vignettePass);
   composer.addPass(new OutputPass());
-  return { composer, gtaoPass, outlinePass, vignettePass };
+  return { composer, gtaoPass: null, outlinePass, vignettePass }; // gtaoPass dibuat malas (App.setAO)
 }
 
 /** Render target HDR composer + DepthTexture (ukuran fisik; diperbarui composer.setSize). */
@@ -350,7 +373,7 @@ function createOutlinePass(camera, scenePass, pixelRatio) {
 }
 
 /** GTAO dengan radius skala dunia (meter) dan blend lembut. */
-function createGtaoPass(scene, camera) {
+function createGtaoPass(GTAOPass, scene, camera) {
   const size = { w: window.innerWidth, h: window.innerHeight };
   const aoParams = {
     radius: RENDER.aoRadius,
@@ -361,7 +384,6 @@ function createGtaoPass(scene, camera) {
   const pass = new GTAOPass(scene, camera, size.w, size.h, undefined, aoParams);
   pass.output = GTAOPass.OUTPUT.Default;
   pass.blendIntensity = RENDER.aoBlend;
-  pass.enabled = RENDER.ao;
   return pass;
 }
 
