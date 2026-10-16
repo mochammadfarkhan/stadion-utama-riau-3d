@@ -1,0 +1,1395 @@
+{
+  "version": 1,
+  "format": "citybake-tiles",
+  "origin": {
+    "lat": 0.4835954,
+    "lon": 101.3895277
+  },
+  "frame": "ENU lokal; +X timur, -Z utara, +Y atas; meter",
+  "tileSize": 500,
+  "unit": 0.1,
+  "areas": [
+    {
+      "id": "pusat",
+      "name": "Pusat kota — Masjid Raya An-Nur",
+      "bounds": {
+        "minX": 6076.658362128706,
+        "minZ": -5504.50681441363,
+        "maxX": 7576.658362128706,
+        "maxZ": -4004.5068144136303
+      },
+      "osmTimestamp": "2026-10-16T09:00:35Z",
+      "overtureRelease": "2026-09-23.1",
+      "tiles": [
+        "12_-12",
+        "13_-12",
+        "14_-12",
+        "15_-12",
+        "12_-11",
+        "13_-11",
+        "14_-11",
+        "15_-11",
+        "12_-10",
+        "13_-10",
+        "14_-10",
+        "15_-10",
+        "12_-9",
+        "13_-9",
+        "14_-9",
+        "15_-9"
+      ]
+    },
+    {
+      "id": "stadion",
+      "name": "Kawasan Stadion Utama Riau",
+      "bounds": {
+        "minX": -1500,
+        "minZ": -1500,
+        "maxX": 1500,
+        "maxZ": 1500
+      },
+      "osmTimestamp": "2026-10-16T08:53:21Z",
+      "overtureRelease": "2026-09-23.1",
+      "tiles": [
+        "-3_-3",
+        "-2_-3",
+        "-1_-3",
+        "0_-3",
+        "1_-3",
+        "2_-3",
+        "-3_-2",
+        "-2_-2",
+        "-1_-2",
+        "0_-2",
+        "1_-2",
+        "2_-2",
+        "-3_-1",
+        "-2_-1",
+        "-1_-1",
+        "0_-1",
+        "1_-1",
+        "2_-1",
+        "-3_0",
+        "-2_0",
+        "-1_0",
+        "0_0",
+        "1_0",
+        "2_0",
+        "-3_1",
+        "-2_1",
+        "-1_1",
+        "0_1",
+        "1_1",
+        "2_1",
+        "-3_2",
+        "-2_2",
+        "-1_2",
+        "0_2",
+        "1_2",
+        "2_2"
+      ]
+    }
+  ],
+  "tiles": [
+    {
+      "key": "12_-12",
+      "ix": 12,
+      "iz": -12,
+      "area": "pusat",
+      "bytes": 227413,
+      "lod": [
+        {
+          "level": 0,
+          "file": "12_-12.lod0.glb",
+          "bytes": 113408,
+          "triangles": 7097
+        },
+        {
+          "level": 1,
+          "file": "12_-12.lod1.glb",
+          "bytes": 78344,
+          "triangles": 4885
+        }
+      ],
+      "data": {
+        "file": "12_-12.data.json",
+        "bytes": 35661
+      }
+    },
+    {
+      "key": "13_-12",
+      "ix": 13,
+      "iz": -12,
+      "area": "pusat",
+      "bytes": 284776,
+      "lod": [
+        {
+          "level": 0,
+          "file": "13_-12.lod0.glb",
+          "bytes": 141436,
+          "triangles": 8838
+        },
+        {
+          "level": 1,
+          "file": "13_-12.lod1.glb",
+          "bytes": 101360,
+          "triangles": 6396
+        }
+      ],
+      "data": {
+        "file": "13_-12.data.json",
+        "bytes": 41980
+      }
+    },
+    {
+      "key": "14_-12",
+      "ix": 14,
+      "iz": -12,
+      "area": "pusat",
+      "bytes": 220809,
+      "lod": [
+        {
+          "level": 0,
+          "file": "14_-12.lod0.glb",
+          "bytes": 106220,
+          "triangles": 6698
+        },
+        {
+          "level": 1,
+          "file": "14_-12.lod1.glb",
+          "bytes": 81144,
+          "triangles": 5166
+        }
+      ],
+      "data": {
+        "file": "14_-12.data.json",
+        "bytes": 33445
+      }
+    },
+    {
+      "key": "15_-12",
+      "ix": 15,
+      "iz": -12,
+      "area": "pusat",
+      "bytes": 267617,
+      "lod": [
+        {
+          "level": 0,
+          "file": "15_-12.lod0.glb",
+          "bytes": 132256,
+          "triangles": 8140
+        },
+        {
+          "level": 1,
+          "file": "15_-12.lod1.glb",
+          "bytes": 95024,
+          "triangles": 5900
+        }
+      ],
+      "data": {
+        "file": "15_-12.data.json",
+        "bytes": 40337
+      }
+    },
+    {
+      "key": "12_-11",
+      "ix": 12,
+      "iz": -11,
+      "area": "pusat",
+      "bytes": 235181,
+      "lod": [
+        {
+          "level": 0,
+          "file": "12_-11.lod0.glb",
+          "bytes": 117960,
+          "triangles": 7392
+        },
+        {
+          "level": 1,
+          "file": "12_-11.lod1.glb",
+          "bytes": 80592,
+          "triangles": 5038
+        }
+      ],
+      "data": {
+        "file": "12_-11.data.json",
+        "bytes": 36629
+      }
+    },
+    {
+      "key": "13_-11",
+      "ix": 13,
+      "iz": -11,
+      "area": "pusat",
+      "bytes": 226860,
+      "lod": [
+        {
+          "level": 0,
+          "file": "13_-11.lod0.glb",
+          "bytes": 112696,
+          "triangles": 6996
+        },
+        {
+          "level": 1,
+          "file": "13_-11.lod1.glb",
+          "bytes": 80660,
+          "triangles": 5070
+        }
+      ],
+      "data": {
+        "file": "13_-11.data.json",
+        "bytes": 33504
+      }
+    },
+    {
+      "key": "14_-11",
+      "ix": 14,
+      "iz": -11,
+      "area": "pusat",
+      "bytes": 216724,
+      "lod": [
+        {
+          "level": 0,
+          "file": "14_-11.lod0.glb",
+          "bytes": 107764,
+          "triangles": 6517
+        },
+        {
+          "level": 1,
+          "file": "14_-11.lod1.glb",
+          "bytes": 77184,
+          "triangles": 4770
+        }
+      ],
+      "data": {
+        "file": "14_-11.data.json",
+        "bytes": 31776
+      }
+    },
+    {
+      "key": "15_-11",
+      "ix": 15,
+      "iz": -11,
+      "area": "pusat",
+      "bytes": 218250,
+      "lod": [
+        {
+          "level": 0,
+          "file": "15_-11.lod0.glb",
+          "bytes": 108020,
+          "triangles": 6547
+        },
+        {
+          "level": 1,
+          "file": "15_-11.lod1.glb",
+          "bytes": 78236,
+          "triangles": 4819
+        }
+      ],
+      "data": {
+        "file": "15_-11.data.json",
+        "bytes": 31994
+      }
+    },
+    {
+      "key": "12_-10",
+      "ix": 12,
+      "iz": -10,
+      "area": "pusat",
+      "bytes": 300809,
+      "lod": [
+        {
+          "level": 0,
+          "file": "12_-10.lod0.glb",
+          "bytes": 153672,
+          "triangles": 9482
+        },
+        {
+          "level": 1,
+          "file": "12_-10.lod1.glb",
+          "bytes": 101676,
+          "triangles": 6285
+        }
+      ],
+      "data": {
+        "file": "12_-10.data.json",
+        "bytes": 45461
+      }
+    },
+    {
+      "key": "13_-10",
+      "ix": 13,
+      "iz": -10,
+      "area": "pusat",
+      "bytes": 204106,
+      "lod": [
+        {
+          "level": 0,
+          "file": "13_-10.lod0.glb",
+          "bytes": 101292,
+          "triangles": 6352
+        },
+        {
+          "level": 1,
+          "file": "13_-10.lod1.glb",
+          "bytes": 71800,
+          "triangles": 4418
+        }
+      ],
+      "data": {
+        "file": "13_-10.data.json",
+        "bytes": 31014
+      }
+    },
+    {
+      "key": "14_-10",
+      "ix": 14,
+      "iz": -10,
+      "area": "pusat",
+      "bytes": 156072,
+      "lod": [
+        {
+          "level": 0,
+          "file": "14_-10.lod0.glb",
+          "bytes": 75608,
+          "triangles": 4675
+        },
+        {
+          "level": 1,
+          "file": "14_-10.lod1.glb",
+          "bytes": 55688,
+          "triangles": 3387
+        }
+      ],
+      "data": {
+        "file": "14_-10.data.json",
+        "bytes": 24776
+      }
+    },
+    {
+      "key": "15_-10",
+      "ix": 15,
+      "iz": -10,
+      "area": "pusat",
+      "bytes": 213928,
+      "lod": [
+        {
+          "level": 0,
+          "file": "15_-10.lod0.glb",
+          "bytes": 105344,
+          "triangles": 6409
+        },
+        {
+          "level": 1,
+          "file": "15_-10.lod1.glb",
+          "bytes": 77532,
+          "triangles": 4811
+        }
+      ],
+      "data": {
+        "file": "15_-10.data.json",
+        "bytes": 31052
+      }
+    },
+    {
+      "key": "12_-9",
+      "ix": 12,
+      "iz": -9,
+      "area": "pusat",
+      "bytes": 245768,
+      "lod": [
+        {
+          "level": 0,
+          "file": "12_-9.lod0.glb",
+          "bytes": 121780,
+          "triangles": 7788
+        },
+        {
+          "level": 1,
+          "file": "12_-9.lod1.glb",
+          "bytes": 84268,
+          "triangles": 5292
+        }
+      ],
+      "data": {
+        "file": "12_-9.data.json",
+        "bytes": 39720
+      }
+    },
+    {
+      "key": "13_-9",
+      "ix": 13,
+      "iz": -9,
+      "area": "pusat",
+      "bytes": 204263,
+      "lod": [
+        {
+          "level": 0,
+          "file": "13_-9.lod0.glb",
+          "bytes": 98340,
+          "triangles": 6058
+        },
+        {
+          "level": 1,
+          "file": "13_-9.lod1.glb",
+          "bytes": 75528,
+          "triangles": 4672
+        }
+      ],
+      "data": {
+        "file": "13_-9.data.json",
+        "bytes": 30395
+      }
+    },
+    {
+      "key": "14_-9",
+      "ix": 14,
+      "iz": -9,
+      "area": "pusat",
+      "bytes": 247620,
+      "lod": [
+        {
+          "level": 0,
+          "file": "14_-9.lod0.glb",
+          "bytes": 122588,
+          "triangles": 7402
+        },
+        {
+          "level": 1,
+          "file": "14_-9.lod1.glb",
+          "bytes": 88276,
+          "triangles": 5428
+        }
+      ],
+      "data": {
+        "file": "14_-9.data.json",
+        "bytes": 36756
+      }
+    },
+    {
+      "key": "15_-9",
+      "ix": 15,
+      "iz": -9,
+      "area": "pusat",
+      "bytes": 203686,
+      "lod": [
+        {
+          "level": 0,
+          "file": "15_-9.lod0.glb",
+          "bytes": 104088,
+          "triangles": 6252
+        },
+        {
+          "level": 1,
+          "file": "15_-9.lod1.glb",
+          "bytes": 69320,
+          "triangles": 4224
+        }
+      ],
+      "data": {
+        "file": "15_-9.data.json",
+        "bytes": 30278
+      }
+    },
+    {
+      "key": "-3_-3",
+      "ix": -3,
+      "iz": -3,
+      "area": "stadion",
+      "bytes": 73297,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-3_-3.lod0.glb",
+          "bytes": 37104,
+          "triangles": 1952
+        },
+        {
+          "level": 1,
+          "file": "-3_-3.lod1.glb",
+          "bytes": 25772,
+          "triangles": 1320
+        }
+      ],
+      "data": {
+        "file": "-3_-3.data.json",
+        "bytes": 10421
+      }
+    },
+    {
+      "key": "-2_-3",
+      "ix": -2,
+      "iz": -3,
+      "area": "stadion",
+      "bytes": 56242,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-2_-3.lod0.glb",
+          "bytes": 29560,
+          "triangles": 1467
+        },
+        {
+          "level": 1,
+          "file": "-2_-3.lod1.glb",
+          "bytes": 19396,
+          "triangles": 877
+        }
+      ],
+      "data": {
+        "file": "-2_-3.data.json",
+        "bytes": 7286
+      }
+    },
+    {
+      "key": "-1_-3",
+      "ix": -1,
+      "iz": -3,
+      "area": "stadion",
+      "bytes": 17626,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-1_-3.lod0.glb",
+          "bytes": 9644,
+          "triangles": 82
+        },
+        {
+          "level": 1,
+          "file": "-1_-3.lod1.glb",
+          "bytes": 7388,
+          "triangles": 40
+        }
+      ],
+      "data": {
+        "file": "-1_-3.data.json",
+        "bytes": 594
+      }
+    },
+    {
+      "key": "0_-3",
+      "ix": 0,
+      "iz": -3,
+      "area": "stadion",
+      "bytes": 22918,
+      "lod": [
+        {
+          "level": 0,
+          "file": "0_-3.lod0.glb",
+          "bytes": 12352,
+          "triangles": 311
+        },
+        {
+          "level": 1,
+          "file": "0_-3.lod1.glb",
+          "bytes": 8784,
+          "triangles": 155
+        }
+      ],
+      "data": {
+        "file": "0_-3.data.json",
+        "bytes": 1782
+      }
+    },
+    {
+      "key": "1_-3",
+      "ix": 1,
+      "iz": -3,
+      "area": "stadion",
+      "bytes": 80092,
+      "lod": [
+        {
+          "level": 0,
+          "file": "1_-3.lod0.glb",
+          "bytes": 41660,
+          "triangles": 2250
+        },
+        {
+          "level": 1,
+          "file": "1_-3.lod1.glb",
+          "bytes": 27256,
+          "triangles": 1398
+        }
+      ],
+      "data": {
+        "file": "1_-3.data.json",
+        "bytes": 11176
+      }
+    },
+    {
+      "key": "2_-3",
+      "ix": 2,
+      "iz": -3,
+      "area": "stadion",
+      "bytes": 46597,
+      "lod": [
+        {
+          "level": 0,
+          "file": "2_-3.lod0.glb",
+          "bytes": 24424,
+          "triangles": 1166
+        },
+        {
+          "level": 1,
+          "file": "2_-3.lod1.glb",
+          "bytes": 15172,
+          "triangles": 542
+        }
+      ],
+      "data": {
+        "file": "2_-3.data.json",
+        "bytes": 7001
+      }
+    },
+    {
+      "key": "-3_-2",
+      "ix": -3,
+      "iz": -2,
+      "area": "stadion",
+      "bytes": 69907,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-3_-2.lod0.glb",
+          "bytes": 35392,
+          "triangles": 1832
+        },
+        {
+          "level": 1,
+          "file": "-3_-2.lod1.glb",
+          "bytes": 25644,
+          "triangles": 1280
+        }
+      ],
+      "data": {
+        "file": "-3_-2.data.json",
+        "bytes": 8871
+      }
+    },
+    {
+      "key": "-2_-2",
+      "ix": -2,
+      "iz": -2,
+      "area": "stadion",
+      "bytes": 39961,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-2_-2.lod0.glb",
+          "bytes": 20140,
+          "triangles": 892
+        },
+        {
+          "level": 1,
+          "file": "-2_-2.lod1.glb",
+          "bytes": 14896,
+          "triangles": 598
+        }
+      ],
+      "data": {
+        "file": "-2_-2.data.json",
+        "bytes": 4925
+      }
+    },
+    {
+      "key": "-1_-2",
+      "ix": -1,
+      "iz": -2,
+      "area": "stadion",
+      "bytes": 25458,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-1_-2.lod0.glb",
+          "bytes": 12756,
+          "triangles": 398
+        },
+        {
+          "level": 1,
+          "file": "-1_-2.lod1.glb",
+          "bytes": 10340,
+          "triangles": 264
+        }
+      ],
+      "data": {
+        "file": "-1_-2.data.json",
+        "bytes": 2362
+      }
+    },
+    {
+      "key": "0_-2",
+      "ix": 0,
+      "iz": -2,
+      "area": "stadion",
+      "bytes": 29019,
+      "lod": [
+        {
+          "level": 0,
+          "file": "0_-2.lod0.glb",
+          "bytes": 16352,
+          "triangles": 527
+        },
+        {
+          "level": 1,
+          "file": "0_-2.lod1.glb",
+          "bytes": 10020,
+          "triangles": 227
+        }
+      ],
+      "data": {
+        "file": "0_-2.data.json",
+        "bytes": 2647
+      }
+    },
+    {
+      "key": "1_-2",
+      "ix": 1,
+      "iz": -2,
+      "area": "stadion",
+      "bytes": 150806,
+      "lod": [
+        {
+          "level": 0,
+          "file": "1_-2.lod0.glb",
+          "bytes": 83484,
+          "triangles": 4926
+        },
+        {
+          "level": 1,
+          "file": "1_-2.lod1.glb",
+          "bytes": 43380,
+          "triangles": 2486
+        }
+      ],
+      "data": {
+        "file": "1_-2.data.json",
+        "bytes": 23942
+      }
+    },
+    {
+      "key": "2_-2",
+      "ix": 2,
+      "iz": -2,
+      "area": "stadion",
+      "bytes": 134199,
+      "lod": [
+        {
+          "level": 0,
+          "file": "2_-2.lod0.glb",
+          "bytes": 68144,
+          "triangles": 3912
+        },
+        {
+          "level": 1,
+          "file": "2_-2.lod1.glb",
+          "bytes": 46392,
+          "triangles": 2700
+        }
+      ],
+      "data": {
+        "file": "2_-2.data.json",
+        "bytes": 19663
+      }
+    },
+    {
+      "key": "-3_-1",
+      "ix": -3,
+      "iz": -1,
+      "area": "stadion",
+      "bytes": 39365,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-3_-1.lod0.glb",
+          "bytes": 19788,
+          "triangles": 882
+        },
+        {
+          "level": 1,
+          "file": "-3_-1.lod1.glb",
+          "bytes": 14444,
+          "triangles": 474
+        }
+      ],
+      "data": {
+        "file": "-3_-1.data.json",
+        "bytes": 5133
+      }
+    },
+    {
+      "key": "-2_-1",
+      "ix": -2,
+      "iz": -1,
+      "area": "stadion",
+      "bytes": 28545,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-2_-1.lod0.glb",
+          "bytes": 14488,
+          "triangles": 464
+        },
+        {
+          "level": 1,
+          "file": "-2_-1.lod1.glb",
+          "bytes": 11728,
+          "triangles": 280
+        }
+      ],
+      "data": {
+        "file": "-2_-1.data.json",
+        "bytes": 2329
+      }
+    },
+    {
+      "key": "-1_-1",
+      "ix": -1,
+      "iz": -1,
+      "area": "stadion",
+      "bytes": 41516,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-1_-1.lod0.glb",
+          "bytes": 21848,
+          "triangles": 935
+        },
+        {
+          "level": 1,
+          "file": "-1_-1.lod1.glb",
+          "bytes": 13828,
+          "triangles": 389
+        }
+      ],
+      "data": {
+        "file": "-1_-1.data.json",
+        "bytes": 5840
+      }
+    },
+    {
+      "key": "0_-1",
+      "ix": 0,
+      "iz": -1,
+      "area": "stadion",
+      "bytes": 41550,
+      "lod": [
+        {
+          "level": 0,
+          "file": "0_-1.lod0.glb",
+          "bytes": 23372,
+          "triangles": 1113
+        },
+        {
+          "level": 1,
+          "file": "0_-1.lod1.glb",
+          "bytes": 11860,
+          "triangles": 279
+        }
+      ],
+      "data": {
+        "file": "0_-1.data.json",
+        "bytes": 6318
+      }
+    },
+    {
+      "key": "1_-1",
+      "ix": 1,
+      "iz": -1,
+      "area": "stadion",
+      "bytes": 164342,
+      "lod": [
+        {
+          "level": 0,
+          "file": "1_-1.lod0.glb",
+          "bytes": 91012,
+          "triangles": 5287
+        },
+        {
+          "level": 1,
+          "file": "1_-1.lod1.glb",
+          "bytes": 47616,
+          "triangles": 2741
+        }
+      ],
+      "data": {
+        "file": "1_-1.data.json",
+        "bytes": 25714
+      }
+    },
+    {
+      "key": "2_-1",
+      "ix": 2,
+      "iz": -1,
+      "area": "stadion",
+      "bytes": 201260,
+      "lod": [
+        {
+          "level": 0,
+          "file": "2_-1.lod0.glb",
+          "bytes": 101348,
+          "triangles": 6077
+        },
+        {
+          "level": 1,
+          "file": "2_-1.lod1.glb",
+          "bytes": 69620,
+          "triangles": 4319
+        }
+      ],
+      "data": {
+        "file": "2_-1.data.json",
+        "bytes": 30292
+      }
+    },
+    {
+      "key": "-3_0",
+      "ix": -3,
+      "iz": 0,
+      "area": "stadion",
+      "bytes": 63712,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-3_0.lod0.glb",
+          "bytes": 32128,
+          "triangles": 1760
+        },
+        {
+          "level": 1,
+          "file": "-3_0.lod1.glb",
+          "bytes": 22824,
+          "triangles": 1076
+        }
+      ],
+      "data": {
+        "file": "-3_0.data.json",
+        "bytes": 8760
+      }
+    },
+    {
+      "key": "-2_0",
+      "ix": -2,
+      "iz": 0,
+      "area": "stadion",
+      "bytes": 37819,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-2_0.lod0.glb",
+          "bytes": 18960,
+          "triangles": 793
+        },
+        {
+          "level": 1,
+          "file": "-2_0.lod1.glb",
+          "bytes": 15040,
+          "triangles": 527
+        }
+      ],
+      "data": {
+        "file": "-2_0.data.json",
+        "bytes": 3819
+      }
+    },
+    {
+      "key": "-1_0",
+      "ix": -1,
+      "iz": 0,
+      "area": "stadion",
+      "bytes": 23567,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-1_0.lod0.glb",
+          "bytes": 11316,
+          "triangles": 336
+        },
+        {
+          "level": 1,
+          "file": "-1_0.lod1.glb",
+          "bytes": 10280,
+          "triangles": 202
+        }
+      ],
+      "data": {
+        "file": "-1_0.data.json",
+        "bytes": 1971
+      }
+    },
+    {
+      "key": "0_0",
+      "ix": 0,
+      "iz": 0,
+      "area": "stadion",
+      "bytes": 28011,
+      "lod": [
+        {
+          "level": 0,
+          "file": "0_0.lod0.glb",
+          "bytes": 14628,
+          "triangles": 542
+        },
+        {
+          "level": 1,
+          "file": "0_0.lod1.glb",
+          "bytes": 10436,
+          "triangles": 240
+        }
+      ],
+      "data": {
+        "file": "0_0.data.json",
+        "bytes": 2947
+      }
+    },
+    {
+      "key": "1_0",
+      "ix": 1,
+      "iz": 0,
+      "area": "stadion",
+      "bytes": 167072,
+      "lod": [
+        {
+          "level": 0,
+          "file": "1_0.lod0.glb",
+          "bytes": 92524,
+          "triangles": 5353
+        },
+        {
+          "level": 1,
+          "file": "1_0.lod1.glb",
+          "bytes": 48848,
+          "triangles": 2787
+        }
+      ],
+      "data": {
+        "file": "1_0.data.json",
+        "bytes": 25700
+      }
+    },
+    {
+      "key": "2_0",
+      "ix": 2,
+      "iz": 0,
+      "area": "stadion",
+      "bytes": 123281,
+      "lod": [
+        {
+          "level": 0,
+          "file": "2_0.lod0.glb",
+          "bytes": 59948,
+          "triangles": 3457
+        },
+        {
+          "level": 1,
+          "file": "2_0.lod1.glb",
+          "bytes": 44140,
+          "triangles": 2586
+        }
+      ],
+      "data": {
+        "file": "2_0.data.json",
+        "bytes": 19193
+      }
+    },
+    {
+      "key": "-3_1",
+      "ix": -3,
+      "iz": 1,
+      "area": "stadion",
+      "bytes": 71195,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-3_1.lod0.glb",
+          "bytes": 35700,
+          "triangles": 1995
+        },
+        {
+          "level": 1,
+          "file": "-3_1.lod1.glb",
+          "bytes": 23244,
+          "triangles": 1133
+        }
+      ],
+      "data": {
+        "file": "-3_1.data.json",
+        "bytes": 12251
+      }
+    },
+    {
+      "key": "-2_1",
+      "ix": -2,
+      "iz": 1,
+      "area": "stadion",
+      "bytes": 47133,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-2_1.lod0.glb",
+          "bytes": 22472,
+          "triangles": 1214
+        },
+        {
+          "level": 1,
+          "file": "-2_1.lod1.glb",
+          "bytes": 16884,
+          "triangles": 752
+        }
+      ],
+      "data": {
+        "file": "-2_1.data.json",
+        "bytes": 7777
+      }
+    },
+    {
+      "key": "-1_1",
+      "ix": -1,
+      "iz": 1,
+      "area": "stadion",
+      "bytes": 30306,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-1_1.lod0.glb",
+          "bytes": 14952,
+          "triangles": 630
+        },
+        {
+          "level": 1,
+          "file": "-1_1.lod1.glb",
+          "bytes": 11964,
+          "triangles": 372
+        }
+      ],
+      "data": {
+        "file": "-1_1.data.json",
+        "bytes": 3390
+      }
+    },
+    {
+      "key": "0_1",
+      "ix": 0,
+      "iz": 1,
+      "area": "stadion",
+      "bytes": 90232,
+      "lod": [
+        {
+          "level": 0,
+          "file": "0_1.lod0.glb",
+          "bytes": 47692,
+          "triangles": 2605
+        },
+        {
+          "level": 1,
+          "file": "0_1.lod1.glb",
+          "bytes": 28992,
+          "triangles": 1521
+        }
+      ],
+      "data": {
+        "file": "0_1.data.json",
+        "bytes": 13548
+      }
+    },
+    {
+      "key": "1_1",
+      "ix": 1,
+      "iz": 1,
+      "area": "stadion",
+      "bytes": 170255,
+      "lod": [
+        {
+          "level": 0,
+          "file": "1_1.lod0.glb",
+          "bytes": 89068,
+          "triangles": 5295
+        },
+        {
+          "level": 1,
+          "file": "1_1.lod1.glb",
+          "bytes": 54860,
+          "triangles": 3285
+        }
+      ],
+      "data": {
+        "file": "1_1.data.json",
+        "bytes": 26327
+      }
+    },
+    {
+      "key": "2_1",
+      "ix": 2,
+      "iz": 1,
+      "area": "stadion",
+      "bytes": 265756,
+      "lod": [
+        {
+          "level": 0,
+          "file": "2_1.lod0.glb",
+          "bytes": 136360,
+          "triangles": 8185
+        },
+        {
+          "level": 1,
+          "file": "2_1.lod1.glb",
+          "bytes": 88736,
+          "triangles": 5545
+        }
+      ],
+      "data": {
+        "file": "2_1.data.json",
+        "bytes": 40660
+      }
+    },
+    {
+      "key": "-3_2",
+      "ix": -3,
+      "iz": 2,
+      "area": "stadion",
+      "bytes": 65505,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-3_2.lod0.glb",
+          "bytes": 32464,
+          "triangles": 1739
+        },
+        {
+          "level": 1,
+          "file": "-3_2.lod1.glb",
+          "bytes": 23880,
+          "triangles": 1169
+        }
+      ],
+      "data": {
+        "file": "-3_2.data.json",
+        "bytes": 9161
+      }
+    },
+    {
+      "key": "-2_2",
+      "ix": -2,
+      "iz": 2,
+      "area": "stadion",
+      "bytes": 150966,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-2_2.lod0.glb",
+          "bytes": 75964,
+          "triangles": 4420
+        },
+        {
+          "level": 1,
+          "file": "-2_2.lod1.glb",
+          "bytes": 52584,
+          "triangles": 3032
+        }
+      ],
+      "data": {
+        "file": "-2_2.data.json",
+        "bytes": 22418
+      }
+    },
+    {
+      "key": "-1_2",
+      "ix": -1,
+      "iz": 2,
+      "area": "stadion",
+      "bytes": 158608,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-1_2.lod0.glb",
+          "bytes": 80116,
+          "triangles": 4648
+        },
+        {
+          "level": 1,
+          "file": "-1_2.lod1.glb",
+          "bytes": 55400,
+          "triangles": 3208
+        }
+      ],
+      "data": {
+        "file": "-1_2.data.json",
+        "bytes": 23092
+      }
+    },
+    {
+      "key": "0_2",
+      "ix": 0,
+      "iz": 2,
+      "area": "stadion",
+      "bytes": 159713,
+      "lod": [
+        {
+          "level": 0,
+          "file": "0_2.lod0.glb",
+          "bytes": 82340,
+          "triangles": 4749
+        },
+        {
+          "level": 1,
+          "file": "0_2.lod1.glb",
+          "bytes": 54044,
+          "triangles": 3147
+        }
+      ],
+      "data": {
+        "file": "0_2.data.json",
+        "bytes": 23329
+      }
+    },
+    {
+      "key": "1_2",
+      "ix": 1,
+      "iz": 2,
+      "area": "stadion",
+      "bytes": 210243,
+      "lod": [
+        {
+          "level": 0,
+          "file": "1_2.lod0.glb",
+          "bytes": 109484,
+          "triangles": 6481
+        },
+        {
+          "level": 1,
+          "file": "1_2.lod1.glb",
+          "bytes": 69320,
+          "triangles": 4169
+        }
+      ],
+      "data": {
+        "file": "1_2.data.json",
+        "bytes": 31439
+      }
+    },
+    {
+      "key": "2_2",
+      "ix": 2,
+      "iz": 2,
+      "area": "stadion",
+      "bytes": 259661,
+      "lod": [
+        {
+          "level": 0,
+          "file": "2_2.lod0.glb",
+          "bytes": 129248,
+          "triangles": 7798
+        },
+        {
+          "level": 1,
+          "file": "2_2.lod1.glb",
+          "bytes": 91152,
+          "triangles": 5734
+        }
+      ],
+      "data": {
+        "file": "2_2.data.json",
+        "bytes": 39261
+      }
+    }
+  ]
+}
