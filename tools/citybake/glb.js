@@ -11,7 +11,7 @@ import { MeshoptDecoder, MeshoptEncoder } from 'meshoptimizer';
 /** Urutan node = urutan gambar bawah → atas. Node kosong tidak ditulis. */
 export const MESH_NAMES = Object.freeze(['landuse', 'water', 'roads', 'buildings_walls', 'buildings_roofs']);
 
-/** Bit kuantisasi posisi (14 bit atas rentang ±300 m ≈ 4 cm). */
+/** Bit kuantisasi posisi: 14 bit per bbox mesh; pada setengah-rentang 300 m langkah ≈ 3,7 cm (galat ≤ ±1,8 cm). */
 const QUANTIZE_POSITION_BITS = 14;
 /** Bit kuantisasi normal: 8 → int8 ternormalisasi (kontrak); default meshopt 'medium' = 10 (int16). */
 const QUANTIZE_NORMAL_BITS = 8;
@@ -49,12 +49,12 @@ export async function writeTileGlb(meshes, sceneName) {
   const io = await getIO();
   const doc = new Document();
   doc.setLogger(new Logger(Logger.Verbosity.ERROR));
-  const buffer = doc.createBuffer();
   const scene = doc.createScene(sceneName);
   doc.getRoot().setDefaultScene(scene);
-  for (const name of MESH_NAMES) {
-    if (meshes[name]) addMesh(doc, buffer, scene, name, meshes[name]);
-  }
+  const present = MESH_NAMES.filter((name) => meshes[name]);
+  // Buffer hanya dibuat bila ada mesh: buffer kosong ditulis tanpa byteLength (tidak valid menurut skema glTF).
+  const buffer = present.length > 0 ? doc.createBuffer() : null;
+  for (const name of present) addMesh(doc, buffer, scene, name, meshes[name]);
   await doc.transform(meshopt({
     encoder: MeshoptEncoder,
     level: 'medium',

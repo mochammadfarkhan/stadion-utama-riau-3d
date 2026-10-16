@@ -4,6 +4,8 @@ import { MESH_NAMES, writeTileGlb, readGlbSummary } from '../../tools/citybake/g
 import { createMeshBuilder } from '../../tools/citybake/geometry/meshBuilder.js';
 import { addFlatPolygon } from '../../tools/citybake/geometry/areas.js';
 import { addBuilding } from '../../tools/citybake/geometry/buildings.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { WHITE, rect } from './meshTestUtils.js';
 
 /** JSON chunk GLB mentah (untuk memeriksa tipe komponen accessor & transform node). */
@@ -58,6 +60,23 @@ describe('writeTileGlb / readGlbSummary', () => {
     for (const node of json.nodes) {
       expect(node.translation).toHaveLength(3);
       expect(node.scale).toHaveLength(3);
+    }
+  });
+
+  it('tile kosong (semua lapisan null, mis. LOD1): GLB valid tanpa buffer, scene bernama', async () => {
+    const empty = Object.fromEntries(MESH_NAMES.map((n) => [n, null]));
+    for (const meshes of [empty, {}]) {
+      const bytes = await writeTileGlb(meshes, 'tile_0_-1_lod1');
+      const json = glbJson(bytes);
+      expect(json.buffers ?? []).toEqual([]);
+      expect(json.scenes[json.scene].name).toBe('tile_0_-1_lod1');
+      expect(json.scenes[json.scene].nodes ?? []).toEqual([]);
+      const s = await readGlbSummary(bytes);
+      expect(s.scene).toBe('tile_0_-1_lod1');
+      expect(s.nodes).toEqual([]);
+      const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+      const gltf = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(ab, '');
+      expect(gltf.scene.children).toHaveLength(0);
     }
   });
 
