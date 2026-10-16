@@ -6,10 +6,8 @@ import { SITE, STADIUM } from './site.js';
 import { distanceToGateCorridor, inGateCorridor, GATE_HALF_WIDTH } from '../../world/stadium/gateCorridor.js';
 
 const GROUND_MARGIN = 20;
-const LAKE_RADIUS = 70;
 const BIKE_CLEARANCE = 0.6;
 const CAMERA_CLEARANCE = 0.8;  // kamera butuh jarak lebih lega dari dinding daripada sepeda
-const TUGU_POOL_R = 8.0;
 const TANJAK_R = 1.6;
 
 /** Radius ternormalisasi terhadap elips (1 = tepat di tepi). */
@@ -24,10 +22,11 @@ export function createStadionColliders({ site = SITE, stadium = STADIUM } = {}) 
   const limit = site.groundSize / 2 - GROUND_MARGIN;
   /** Rintangan lingkaran padat di plaza/kawasan: kolam tugu Lancang Kuning & tugu tanjak. */
   const obstacles = Object.freeze([
-    Object.freeze({ name: 'tuguLancangKuning', x: 0, z: -(stadium.outerSemiZ + 45), r: TUGU_POOL_R + BIKE_CLEARANCE }),
+    Object.freeze({ name: 'tuguLancangKuning', x: site.tugu.x, z: site.tugu.z, r: site.tugu.poolR + BIKE_CLEARANCE }),
     Object.freeze({ name: 'tuguTanjak', x: site.tanjakMonument.x, z: site.tanjakMonument.z, r: TANJAK_R + BIKE_CLEARANCE }),
   ]);
-  const inLake = (x, z) => Math.hypot(x - site.lakeCenter.x, z - site.lakeCenter.z) < LAKE_RADIUS;
+  /** Elips air danau (sama dengan Landscape.water / ZONES.lake). */
+  const inLake = (x, z) => ((x - site.lake.x) / site.lake.semiX) ** 2 + ((z - site.lake.z) / site.lake.semiZ) ** 2 < 1;
   // radiusOf: ekspresi radius dipertahankan persis seperti collider lama (paritas floating-point).
   const hitsObstacle = (x, z, radiusOf) => obstacles.some((o) => Math.hypot(x - o.x, z - o.z) < radiusOf(o));
   const walkRadius = (o) => o.r;

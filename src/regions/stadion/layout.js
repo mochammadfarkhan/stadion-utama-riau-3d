@@ -34,12 +34,17 @@ const GAPURA_GAP = 14;
 
 const nearGapura = (x) => Math.abs(x) < GAPURA_GAP;
 
+// PJU rusak (padam) — satu sumber untuk tiang (world/index.js) dan lampu malam (regions/stadion/lamps.js).
+const BROKEN_PLAZA_LAMP = (i) => i % 7 === 3;
+const BROKEN_RING_LAMP = (i) => i % 9 === 4;
+const withBroken = (list, isBroken) => list.map((p, i) => ({ ...p, broken: isBroken(i) }));
+
 export const LAYOUT = Object.freeze({
   benches: ringPositions(PLAZA_RING.semiX, PLAZA_RING.semiZ, 48, { phase: 0.03 }),
   trashBins: ringPositions(PLAZA_RING.semiX + 1.5, PLAZA_RING.semiZ + 1.5, 32, { phase: 0.08 }),
   planters: ringPositions(PLAZA_RING.semiX - 4, PLAZA_RING.semiZ - 4, 24, { phase: 0.12 }),
-  plazaLamps: ringPositions(PLAZA_RING.semiX + 6, PLAZA_RING.semiZ + 6, 28, { phase: 0.05 }),
-  ringRoadLamps: ringPositions(RING_ROAD_SIDEWALK.semiX, RING_ROAD_SIDEWALK.semiZ, 44),
+  plazaLamps: withBroken(ringPositions(PLAZA_RING.semiX + 6, PLAZA_RING.semiZ + 6, 28, { phase: 0.05 }), BROKEN_PLAZA_LAMP),
+  ringRoadLamps: withBroken(ringPositions(RING_ROAD_SIDEWALK.semiX, RING_ROAD_SIDEWALK.semiZ, 44), BROKEN_RING_LAMP),
   nagaSaktiLamps: linePositions(NAGA_SAKTI_SIDEWALK_Z + 2, -330, 330, 30, { skip: nearGapura }),
   stalls: linePositions(NAGA_SAKTI_SIDEWALK_Z, -300, 300, 24, { rotY: Math.PI, skip: nearGapura }),
   nagaSaktiFence: [
@@ -70,7 +75,7 @@ export const LAYOUT = Object.freeze({
   blenderModels: [
     { path: 'models/uji/bangku-taman.glb', x: 7, z: -186, rotY: Math.PI },
     // Tugu Lancang Kuning (Blender) menggantikan versi prosedural di posisi yang sama
-    { path: 'models/monumen/lancang-kuning.glb', x: 0, z: -(STADIUM.outerSemiZ + 45), replaces: 'tuguLancangKuning' },
+    { path: 'models/monumen/lancang-kuning.glb', x: SITE.tugu.x, z: SITE.tugu.z, replaces: 'tuguLancangKuning' },
     // Patung serindit (Blender) menggantikan versi prosedural di posisi yang sama (lihat Fixtures.props STATUE_POS)
     // Lalu lintas Jl. Naga Sakti (Blender): angkot dan bus kota, lajur berlawanan arah. Model menghadap +Z; rotY ±π/2 = ±X.
     { path: 'models/kendaraan/bus-kota.glb', x: -60, z: SITE.nagaSaktiZ - 3.5, rotY: -Math.PI / 2 },

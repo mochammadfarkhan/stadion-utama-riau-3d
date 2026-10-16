@@ -107,7 +107,7 @@ function collectParkingLots(ground) {
 
 function addStadiumSurroundings(add, layout, site) {
   add(createFlagpoles());
-  add(createLancangKuning());
+  add(createLancangKuning({ x: site.tugu.x, z: site.tugu.z }));
   add(createTanjakMonument({ x: site.tanjakMonument.x, z: site.tanjakMonument.z }));
   add(createGapura({ damaged: true }));
   add(createGuardPosts(layout.guardPosts));
@@ -125,8 +125,8 @@ function addPlazaFurniture(add, layout) {
   add(createPlanters(layout.planters));
   // Semua tiang PJU dalam satu panggilan agar instanced per varian (bukan per area)
   add(createLampPosts([
-    ...layout.plazaLamps.map((p, i) => ({ ...p, broken: i % 7 === 3 })),
-    ...layout.ringRoadLamps.map((p, i) => ({ ...p, double: true, broken: i % 9 === 4 })),
+    ...layout.plazaLamps,
+    ...layout.ringRoadLamps.map((p) => ({ ...p, double: true })),
     ...layout.nagaSaktiLamps,
   ]));
 }

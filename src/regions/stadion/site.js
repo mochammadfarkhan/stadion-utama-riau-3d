@@ -29,6 +29,11 @@ export const STADIUM = Object.freeze({
   concourseHeight: 7,      // tinggi dinding concourse lantai dasar
 });
 
+/** Danau kawasan (elips air, region-lokal): satu sumber untuk visual (Landscape.water), zona, dan collider. */
+const LAKE = Object.freeze({ x: -60, z: -480, semiX: 90, semiZ: 55 });
+/** Tugu Lancang Kuning di plaza utara: satu sumber untuk collider, cerita, dekal, model GLB, dan Monument. */
+const TUGU = Object.freeze({ x: 0, z: -(STADIUM.outerSemiZ + 45), poolR: 8.0 });
+
 // Lanskap sekitar
 export const SITE = Object.freeze({
   groundSize: 1400,
@@ -38,7 +43,9 @@ export const SITE = Object.freeze({
   plazaSemiX: 150,
   plazaSemiZ: 200,
   parkingNorthZ: -330,
-  lakeCenter: { x: -60, z: -480 },
+  lakeCenter: Object.freeze({ x: LAKE.x, z: LAKE.z }),
+  lake: LAKE,
+  tugu: TUGU,
   baseballCenter: { x: -300, z: 260 },
   // --- tambahan lanskap kawasan ---
   nagaSaktiZ: -390,            // parkingNorthZ - 60; Jl. Naga Sakti sejajar sumbu X
