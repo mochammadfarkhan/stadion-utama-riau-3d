@@ -61,6 +61,7 @@ describe('region stadion: build & dispose', () => {
     expect(typeof built.colliders.isWalkable).toBe('function');
     expect(built.seatSamples.length).toBeGreaterThan(0);
     expect(built.nightLights.lamps).toEqual(litLampPositions(LAYOUT));
+    expect(built.lateRoot.parent).toBe(built.group);
     expect(scope.size).toBeGreaterThan(0);
     built.dispose();
     built.dispose(); // idempoten

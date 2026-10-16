@@ -22,8 +22,6 @@ import { hasStoryProgress } from './ui/menuModel.js';
 import { createRotatePrompt } from './ui/orientation.js';
 import { SITE } from './config/constants.js';
 import { STORY_NPCS } from './story/chapters.js';
-import { freezeStatic } from './world/util/freezeStatic.js';
-import { createModelGroup, placeModels } from './world/assets/models.js';
 import { updateWind } from './world/shaders/windState.js';
 import { buildEntities } from './entities/index.js';
 import { HUD } from './ui/HUD.js';
@@ -37,7 +35,6 @@ import { StoryNpcs } from './entities/StoryNpcs.js';
 import { createStoryMarkers } from './world/StoryMarkers.js';
 import { StoryHUD } from './ui/StoryHUD.js';
 import { StoryJournal } from './ui/StoryJournal.js';
-import { createResourceScope } from './engine/ResourceScope.js';
 import { disposeTree } from './engine/disposeTree.js';
 import { stadionRegion } from './regions/stadion/index.js';
 import { session, setupMenu } from './app/session.js';
@@ -45,6 +42,7 @@ import { handleKeys } from './app/keymap.js';
 import { setupShop, updatePrompt } from './app/shop.js';
 import { exposeDevTools } from './app/devtools.js';
 import { createDisposerStack } from './app/lifecycle.js';
+import { mountRegion } from './app/mountRegion.js';
 
 const START_POS = { x: 0, z: -275, yaw: 0 }; // plaza utara, menghadap stadion
 const MODELS_TIMEOUT_MS = 8000;
@@ -87,32 +85,32 @@ async function main() {
   window.addEventListener('pagehide', () => store.flush(), { signal: listeners.signal });
   document.addEventListener('visibilitychange', () => { if (document.hidden) store.flush(); }, { signal: listeners.signal });
 
-  await loading.step(0.12, 'Menyiapkan langit dan pencahayaan…');
+  await loading.step(0.12, 'Menyiapkan langit, pencahayaan, waktu, dan cuaca…');
   const lighting = createLighting(app.scene, app.renderer);
   app.scene.add(lighting);
   app.addSystem({ id: 'lighting', phase: 'world', update: (dt, ctx) => lighting.userData.update?.(dt, ctx.time, ctx.focus, ctx.shadowFrame) });
+  // Siklus waktu & cuaca dibuat sebelum region: region mendaftar ke registry emissive/basah/lampu saat dipasang.
+  // Sistemnya tetap didaftarkan sesudah entitas (urutan fase world tidak berubah).
+  const time = createTimeOfDay(lighting, app.scene, app.renderer, app);
+  app.scene.add(time.group);
+  lifecycle.add(() => time.dispose());
+  const weather = createWeather(app.scene, app, lighting, { audioBus });
+  app.scene.add(weather.group);
+  lifecycle.add(() => weather.dispose());
 
   await loading.step(0.2, 'Membangun stadion, tribun, dan lingkungan…');
-  const region = await stadionRegion.build({
-    scene: app.scene, renderer: app.renderer, camera: app.camera, scope: createResourceScope('region:stadion'), store, clock: app.timer,
-  });
-  lifecycle.add(() => {
-    region.systems.forEach((s) => app.removeSystem(s.id)); // region.dispose() tidak mencabut sistemnya dari App
-    region.dispose();
-  });
-  app.scene.add(region.group);
-  freezeStatic(region.group); // dunia statis: matriks dihitung sekali, tidak per frame
+  app.addSystem({ id: 'wind', phase: 'world', update: (dt) => updateWind(dt) }); // angin global tiap frame
+  const stadion = await mountRegion(app, stadionRegion, { store, time, weather });
+  lifecycle.add(() => stadion.unmount()); // LIFO: dicabut sebelum time/weather di-dispose
+  const region = stadion.region;
   const colliders = createCompositeCollider({
     regions: [{ region: stadionRegion, colliders: region.colliders }],
     fallback: localized(stadionRegion, region.colliders), // Fase 0: tanah region (1,4 km) masih menutup seluruh dunia; Fase 2: TileCollider
   });
   rig.setObstacleTest(colliders.isCameraClear);
-  const blenderModels = createModelGroup();
-  app.scene.add(blenderModels);
-  lifecycle.add(() => { blenderModels.removeFromParent(); disposeTree(blenderModels); });
-  const modelsReady = loadBlenderModels(blenderModels, region, hud);
-  app.addSystem({ id: 'wind', phase: 'world', update: (dt) => updateWind(dt) }); // angin global tiap frame
-  region.systems.forEach((s) => app.addSystem(s));
+  const modelsReady = stadion.ready
+    .then(({ failed }) => { if (failed.length) hud.toast(`${failed.length} model 3D gagal dimuat`, false); })
+    .catch((err) => console.error('Model 3D region gagal diproses:', err));
 
   await loading.step(0.55, 'Menyiapkan pemain, pelari, pedagang, dan penonton…');
   const wallet = createWallet();
@@ -125,21 +123,7 @@ async function main() {
   ents.updatables.forEach((e, i) => app.addSystem({ id: `entities.${i}`, phase: 'sim', update: (dt, ctx) => e.update(dt, ctx) }));
 
   await loading.step(0.8, 'Menyiapkan siklus waktu dan cuaca…');
-  // Siklus waktu & cuaca: objeknya di grup sendiri; material emissive/basah didaftarkan lewat registry.
-  const time = createTimeOfDay(lighting, app.scene, app.renderer, app);
-  app.scene.add(time.group);
-  lifecycle.add(() => time.dispose());
-  // PJU, sorot floodlight, dan lensa milik region (koordinat dunia); LIFO: dicabut sebelum time.dispose.
-  lifecycle.add(time.registerLamps({ ...region.nightLights, lensRoot: region.group }));
-  time.registerEmissive(region.group);
   time.registerEmissive(ents.group);
-  modelsReady
-    .then(() => time.registerEmissive(blenderModels)) // GLB yang datang belakangan ikut menyala malam hari
-    .catch((err) => console.error('Registrasi emissive model 3D gagal:', err));
-  const weather = createWeather(app.scene, app, lighting, { audioBus });
-  app.scene.add(weather.group);
-  lifecycle.add(() => weather.dispose());
-  weather.registerWet(region.group);
   app.addSystem({ id: 'timeOfDay', phase: 'world', update: (dt, ctx) => time.update(dt, ctx, ents.bike.state) });
   app.addSystem({ id: 'weather', phase: 'world', update: (dt, ctx) => weather.update(dt, ctx) }); // setelah TimeOfDay: mengalikan nilai pencahayaan frame ini
 
@@ -276,15 +260,6 @@ function setupMinimap(app, ents, story) {
     },
   });
   return minimap;
-}
-
-/**
- * Muat model GLB hasil Blender (region.layout.blenderModels) tanpa menahan start aplikasi.
- * Model yang gagal dimuat hanya dilewati; dunia prosedural tetap lengkap.
- */
-async function loadBlenderModels(group, region, hud) {
-  const { failed } = await placeModels(group, region.layout.blenderModels ?? [], { world: region.group });
-  if (failed.length) hud.toast(`${failed.length} model 3D gagal dimuat`, false);
 }
 
 main().catch((err) => {
