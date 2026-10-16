@@ -65,23 +65,28 @@ function createStars(count) {
 
 /**
  * @param {THREE.Group} lightingGroup hasil createLighting (userData: sun, hemi, sky, ...)
- * @param {{lamps?: {x:number, z:number}[]}} [opts] PJU menyala dari region
- * @returns {{update(dt, ctx, bikeState?):void, setHour(h):void, nextPreset():string, toggleSpeed():boolean,
+ * @param {{lamps?: {x:number, z:number}[], lensRoot?: THREE.Object3D|null}} [opts]
+ *   lamps: PJU menyala dari region; lensRoot: grup region tempat lensa floodlight
+ * @returns {{group: THREE.Group, update(dt, ctx, bikeState?):void, registerEmissive(root):() => boolean,
+ *   unregisterEmissive(root):boolean, setHour(h):void, nextPreset():string, toggleSpeed():boolean,
  *   setSpeed(v):void, setAzimuthOffset(deg):void, setCloudCover(v):void, setHaze(v):void, setFogDistance(m):void,
  *   hour:number, presetName:string, speed:number, preset:object, overrides:object}}
  */
-export function createTimeOfDay(lightingGroup, scene, renderer, app, { lamps = [] } = {}) {
+export function createTimeOfDay(lightingGroup, scene, renderer, app, { lamps = [], lensRoot = null } = {}) {
   const L = lightingGroup.userData;
   let state = createDayState();
   let preset = lightingPreset(state.hour);
   let lastDirHour = NaN;
   let envBucket = -1;
   let envTimer = DAY.envRebuildInterval;
+  // Semua objek siklus waktu di grup sendiri (pemanggil menambahkannya ke scene), bukan langsung ke scene.
+  const group = new THREE.Group();
+  group.name = 'siklusWaktu';
   const stars = createStars(DAY.starCount);
-  scene.add(stars);
+  group.add(stars);
   const bodies = createCelestialBodies();
-  scene.add(bodies.group);
-  const night = createNightLights(scene, { lamps });
+  group.add(bodies.group);
+  const night = createNightLights(group, { lamps, lensRoot: lensRoot ?? group });
   // Override settings (lihat komentar modul); objek baru tiap perubahan (immutable).
   let over = Object.freeze({ azimuthOffset: 0, cloudCover: L.defaults.cloudCoverage, haze: HAZE_DEFAULT, fogDistance: FOG_DEFAULT });
   const setOverride = (patch) => {
@@ -153,6 +158,10 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app, { lamps = [
   };
 
   return {
+    group,
+    /** Daftarkan material emissive di bawah root (region/entitas/GLB); kembalikan fungsi unregister. */
+    registerEmissive: (root) => night.registerEmissive(root),
+    unregisterEmissive: (root) => night.unregisterEmissive(root),
     get hour() { return state.hour; },
     get speed() { return state.speed; },
     get presetName() { return presetNameForHour(state.hour); },

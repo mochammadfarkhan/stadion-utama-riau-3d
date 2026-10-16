@@ -70,7 +70,8 @@ function createRainAudio(audioBus) {
  * @param {import('../core/App.js').App} app
  * @param {THREE.Group} lighting hasil createLighting
  * @param {{audioBus?: object}} opts
- * @returns {{update(dt, ctx):void, toggleRain():boolean, setRaining(b):void, setIntensity(v):void,
+ * @returns {{group: THREE.Group, registerWet(root):() => boolean, unregisterWet(root):boolean,
+ *   update(dt, ctx):void, toggleRain():boolean, setRaining(b):void, setIntensity(v):void,
  *   setWetness(v):void, setWind(v):void, setSoundEnabled(b):void,
  *   isRaining:boolean, intensity:number, weatherName:string}}
  */
@@ -79,8 +80,11 @@ const MIN_RAIN_BRIGHTNESS = 0.15;                              // hujan malam te
 
 export function createWeather(scene, app, lighting, { audioBus = null } = {}) {
   const L = lighting.userData;
-  const rain = createRain(scene);
-  const wet = createWetSurfaces(scene);
+  // Hujan & genangan di grup sendiri (pemanggil menambahkannya ke scene); scene hanya untuk kabut/env.
+  const group = new THREE.Group();
+  group.name = 'cuaca';
+  const rain = createRain(group);
+  const wet = createWetSurfaces(group);
   const audio = createRainAudio(audioBus);
   let raining = false;
   // Parameter settings (immutable; objek baru tiap perubahan).
@@ -107,6 +111,10 @@ export function createWeather(scene, app, lighting, { audioBus = null } = {}) {
   const setParams = (patch) => { params = Object.freeze({ ...params, ...patch }); };
 
   return {
+    group,
+    /** Daftarkan permukaan basah di bawah root (region/tile); kembalikan fungsi unregister. */
+    registerWet: (root) => wet.register(root),
+    unregisterWet: (root) => wet.unregister(root),
     get isRaining() { return raining; },
     get intensity() { return intensity; },
     get weatherName() { return raining ? 'Hujan' : 'Cerah'; },

@@ -108,9 +108,17 @@ async function main() {
   ents.updatables.forEach((e, i) => app.addSystem({ id: `entities.${i}`, phase: 'sim', update: (dt, ctx) => e.update(dt, ctx) }));
 
   await loading.step(0.8, 'Menyiapkan siklus waktu dan cuaca…');
-  // Siklus waktu & cuaca: dibuat setelah dunia + entitas ada (mencari material emissive & permukaan basah).
-  const time = createTimeOfDay(lighting, app.scene, app.renderer, app, { lamps: region.lamps });
+  // Siklus waktu & cuaca: objeknya di grup sendiri; material emissive/basah didaftarkan lewat registry.
+  const time = createTimeOfDay(lighting, app.scene, app.renderer, app, { lamps: region.lamps, lensRoot: region.group });
+  app.scene.add(time.group);
+  time.registerEmissive(region.group);
+  time.registerEmissive(ents.group);
+  modelsReady
+    .then(() => time.registerEmissive(blenderModels)) // GLB yang datang belakangan ikut menyala malam hari
+    .catch((err) => console.error('Registrasi emissive model 3D gagal:', err));
   const weather = createWeather(app.scene, app, lighting, { audioBus });
+  app.scene.add(weather.group);
+  weather.registerWet(region.group);
   app.addSystem({ id: 'timeOfDay', phase: 'world', update: (dt, ctx) => time.update(dt, ctx, ents.bike.state) });
   app.addSystem({ id: 'weather', phase: 'world', update: (dt, ctx) => weather.update(dt, ctx) }); // setelah TimeOfDay: mengalikan nilai pencahayaan frame ini
 
