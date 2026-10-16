@@ -3,8 +3,6 @@
  * mulai dinonaktifkan sampai semua aset siap. `step` menunggu browser sempat
  * menggambar, karena pembuatan dunia memblokir thread utama cukup lama.
  */
-import { isTouchPrimary } from './touchMath.js';
-
 const PAINT_FRAMES = 2;
 const HIDDEN_TAB_FALLBACK_MS = 60; // rAF tidak jalan di tab latar; jangan menahan pemuatan
 
@@ -39,8 +37,7 @@ export function createLoadingScreen(root = document) {
     },
     done() {
       box.classList.add('hidden');
-      start.disabled = false;
-      start.textContent = isTouchPrimary() ? 'Ketuk untuk mulai' : 'Klik untuk mulai';
+      start.disabled = false; // label tombol diatur MainMenu.ready()
     },
   };
 }

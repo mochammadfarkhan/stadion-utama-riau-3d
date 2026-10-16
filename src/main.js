@@ -5,6 +5,8 @@ import { createGamepadPoller } from './core/gamepad.js';
 import { TouchControls } from './ui/TouchControls.js';
 import { isTouchPrimary } from './ui/touchMath.js';
 import './ui/touch.css';
+import '@fontsource-variable/inter';
+import '@fontsource-variable/jetbrains-mono';
 import { CameraRig } from './core/CameraRig.js';
 import { createCollider, isCameraClear } from './core/Collider.js';
 import { createPovSource } from './core/povSource.js';
@@ -17,6 +19,9 @@ import { createWeather } from './world/Weather.js';
 import { formatHour, nextPresetAfter, PRESET_HOURS } from './sim/dayCycle.js';
 import { buildWorld } from './world/index.js';
 import { Minimap2D } from './ui/Minimap2D.js';
+import { MainMenu } from './ui/MainMenu.js';
+import { hasStoryProgress } from './ui/menuModel.js';
+import { createRotatePrompt, requestLandscape } from './ui/orientation.js';
 import { SITE } from './config/constants.js';
 import { STORY_NPCS } from './story/chapters.js';
 import { freezeStatic } from './world/util/freezeStatic.js';
@@ -40,6 +45,8 @@ import { StoryJournal } from './ui/StoryJournal.js';
 const START_POS = { x: 0, z: -275, yaw: 0 }; // plaza utara, menghadap stadion
 const HOURS = 24;
 const MODELS_TIMEOUT_MS = 8000;
+/** Sesi: false selama menu utama terbuka (kamera orbit latar, tombol game diabaikan). */
+const session = { started: false };
 
 function showFatal(msg) {
   const panel = document.querySelector('#overlay .panel');
@@ -110,7 +117,7 @@ async function main() {
   const bikePos = new THREE.Vector3();
   app.addUpdatable({
     update(dt, ctx) {
-      handleKeys(input, { rig, hud, ents, shop, time, store, story });
+      if (session.started) handleKeys(input, { rig, hud, ents, shop, time, store, story }); // menu terbuka: tombol game diabaikan
       story.update(dt, { time: ctx.time, bikePos: ents.bike.state, hour: time.hour, raining: Boolean(store.get('weather.raining')), paused: hud.shopOpen || rig.freezesBike });
       rig.update(ents.bike.state, dt, ctx.time);
       ents.bike.setRiderVisible(!rig.firstPersonView);
@@ -137,7 +144,9 @@ async function main() {
     return { dt, rawDt, time: t, bikePos, focus: rig.focus, input: hud.shopOpen || rig.freezesBike ? null : input };
   });
 
-  setupPointerLock(app, rig, hud, store, { touchUi, touch });
+  const menu = new MainMenu();
+  createRotatePrompt(document.body, { isTouch: touch });
+  setupMenu({ app, rig, hud, store, touchUi, touch, menu, story });
   await loading.step(0.9, 'Memuat model 3D (tugu, bangku)…');
   // Model 3D opsional (ada cadangan prosedural): jangan tahan tombol Mulai bila unduhan macet.
   await Promise.race([modelsReady, new Promise((resolve) => setTimeout(resolve, MODELS_TIMEOUT_MS))]);
@@ -150,6 +159,9 @@ async function main() {
   }
   await loading.step(1, 'Siap!');
   loading.done();
+  // Latar menu: kamera orbit sinematik mengelilingi stadion (sepeda dibekukan, cerita dijeda) sampai pemain menekan Mulai.
+  rig.handlePovKey(POVS.find((p) => p.id === 'orbit').key);
+  menu.ready({ hasProgress: hasStoryProgress(story.state), touch });
   if (import.meta.env.DEV) exposeDevTools({ app, ents, rig, time, weather, store, audioBus, story });
 }
 
@@ -204,17 +216,35 @@ function setupShop(hud, ents, story) {
   return shop;
 }
 
-/** Tombol mulai + klik kanvas mengunci pointer; panel pengaturan dipasang bila modulnya ada. */
-function setupPointerLock(app, rig, hud, store, { touchUi, touch }) {
-  document.getElementById('start').addEventListener('click', () => {
-    document.getElementById('overlay').classList.add('hidden');
-    if (touch) touchUi.setVisible(true); // pointer lock tidak ada di ponsel; kontrol layar menggantikannya
-    else rig.requestLock();
+/** Menu utama: Mulai/Lanjutkan, Mulai dari awal, Pengaturan; klik kanvas mengunci pointer sesudah mulai. */
+function setupMenu({ app, rig, hud, store, touchUi, touch, menu, story }) {
+  let panel = null;
+  let started = false;
+  const begin = () => {
+    started = true;
+    session.started = true;
+    rig.exitPov(); // akhiri orbit latar menu
+    menu.hide();
+    if (touch) {
+      touchUi.setVisible(true); // pointer lock tidak ada di ponsel; kontrol layar menggantikannya
+      requestLandscape(); // layar penuh + kunci landscape (gestur pengguna = tombol Mulai)
+    } else {
+      rig.requestLock();
+    }
+  };
+  menu.on({
+    start: begin,
+    newGame: () => { story.reset(); begin(); },
+    settings: () => { menu.away(true); panel?.togglePanel?.(true); },
   });
-  mountSettingsPanel({ store, app, rig, hud }).then(({ panel }) => {
-    if (panel) return; // panel memasang handler klik kanvas sendiri (cek isPointerOverUI)
+  mountSettingsPanel({
+    store, app, rig, hud,
+    onPanelToggle: (open) => { if (!open && !started) menu.away(false); }, // panel ditutup sebelum mulai: menu muncul lagi
+  }).then(({ panel: p }) => {
+    panel = p;
+    if (p) return; // panel memasang handler klik kanvas sendiri (cek isPointerOverUI)
     app.renderer.domElement.addEventListener('click', () => {
-      if (!hud.shopOpen && !touch) rig.requestLock();
+      if (started && !hud.shopOpen && !touch) rig.requestLock();
     });
   });
 }

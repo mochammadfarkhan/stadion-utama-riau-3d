@@ -96,7 +96,7 @@ function addPerfFolder(tabs, infos) {
  * @param {{ store: object, app: object, rig?: object, hud?: object }} ctx
  * @returns {Promise<{ panel: object|null, dispose(): void }>}
  */
-export async function mountSettingsPanel({ store, app, rig = null, hud = null }) {
+export async function mountSettingsPanel({ store, app, rig = null, hud = null, onPanelToggle = null }) {
   const noop = { panel: null, dispose() {} };
   const mods = await loadPanelModules();
   if (!mods) return noop;
@@ -111,7 +111,7 @@ export async function mountSettingsPanel({ store, app, rig = null, hud = null })
       helpItems: [...DEFAULT_HELP_ITEMS, ...SIM_HELP_ITEMS],
       hooks: {
         onScreenshot: () => captureScreenshot(app),
-        onPanelToggle: (open) => { if (open) document.exitPointerLock?.(); },
+        onPanelToggle: (open) => { if (open) document.exitPointerLock?.(); onPanelToggle?.(open); },
       },
     });
     buildSettingsPanel({
