@@ -282,17 +282,18 @@ export class App {
    * Bake peta dasar minimap SEKALI: tampak atas seluruh dunia dari kamera ortografis, hanya objek
    * di RENDER_LAYERS.minimap, diterangi ambient merata (tanpa IBL, kabut, matahari) lalu disalin
    * ke canvas 2D. Dipakai oleh ui/Minimap2D; tidak ada render 3D minimap per frame.
-   * @param {number} worldHalf setengah sisi dunia (m)
+   * @param {number} worldHalf setengah sisi area bake (m)
+   * @param {{x:number, z:number}} [center] pusat area bake di frame dunia (placement region); utara tetap di atas
    * @returns {HTMLCanvasElement}
    */
-  bakeMinimap(worldHalf) {
+  bakeMinimap(worldHalf, center = { x: 0, z: 0 }) {
     const r = this.renderer;
     const px = MINIMAP_BAKE_PX;
     const cam = new THREE.OrthographicCamera(-worldHalf, worldHalf, worldHalf, -worldHalf, 1, MINIMAP_BAKE_HEIGHT * 2);
     cam.up.set(0, 0, -1); // utara (−z) di atas layar
     cam.layers.set(RENDER_LAYERS.minimap);
-    cam.position.set(0, MINIMAP_BAKE_HEIGHT, 0);
-    cam.lookAt(0, 0, 0);
+    cam.position.set(center.x, MINIMAP_BAKE_HEIGHT, center.z);
+    cam.lookAt(center.x, 0, center.z);
     cam.updateMatrixWorld();
     const target = new THREE.WebGLRenderTarget(px, px, { type: THREE.UnsignedByteType, stencilBuffer: false });
     target.texture.colorSpace = THREE.SRGBColorSpace; // shader menulis sRGB; target bukan layar → tanpa tone mapping

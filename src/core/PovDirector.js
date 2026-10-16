@@ -161,7 +161,7 @@ export class PovDirector {
     }
     this._t = clamp01(this._t + dt / this._duration);
     const e = easeInOutCubic(this._t);
-    routeControl(f, d, this._c1, this._c2);
+    routeControl(f, d, this._c1, this._c2, src?.frame ?? null);
     const p = bezier3(f, this._c1, this._c2, d, e, this._point);
     this.#apply(
       p.x, p.y, p.z,

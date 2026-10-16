@@ -115,13 +115,18 @@ function createPuddles(normalMap) {
 
 /**
  * @param {THREE.Object3D} parent grup pemilik (Weather.group)
+ * @param {{placement?: {x:number, z:number, yaw:number}|null}} [opts] placement region pemilik titik genangan
  * @returns {{ update(dt, intensity): void, register(root): () => boolean, unregister(root): boolean,
  *   dispose(): void, group: THREE.Group, count: number }}
  */
-export function createWetSurfaces(parent) {
+export function createWetSurfaces(parent, { placement = null } = {}) {
   const registry = createMaterialRegistry(selectWet, { onRemove: (e) => applyWet(e, 0) });
   const normalMap = createRippleNormalTexture();
   const puddles = createPuddles(normalMap);
+  if (placement) { // titik genangan region-lokal (plaza, jalan lingkar) → frame dunia
+    puddles.group.position.set(placement.x, 0, placement.z);
+    puddles.group.rotation.y = placement.yaw;
+  }
   parent.add(puddles.group);
   let last = -1;
 

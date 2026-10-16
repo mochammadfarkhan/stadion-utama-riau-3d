@@ -6,11 +6,12 @@ import { EXIT_KEY, POVS } from '../core/cameraPresets.js';
 import { routeEscape } from '../core/escapeRoute.js';
 import { nextPresetAfter, PRESET_HOURS } from '../sim/dayCycle.js';
 import { handleShopKey } from './shop.js';
+import { pointToLocal } from './regionContext.js';
 
 const HOURS = 24;
 
 /** Hotkey lama menulis ke store (binding menerapkan ke scene). */
-export function handleKeys(input, { rig, hud, ents, shop, time, store, story }) {
+export function handleKeys(input, { rig, hud, ents, shop, time, store, story, frame }) {
   const toggle = (key) => store.set(key, !store.get(key));
   handleCameraKeys(input, { rig, hud, store });
   if (input.consumePress('KeyM')) toggle('performance.minimap');
@@ -22,7 +23,7 @@ export function handleKeys(input, { rig, hud, ents, shop, time, store, story }) 
     : null;
   if (escTarget === 'journal') story.toggleJournal();
   if (input.consumePress('KeyE')) {
-    if (hud.shopOpen || !story.tryInteract(ents.bike.state)) handleShopKey(rig, hud, ents, shop);
+    if (hud.shopOpen || !story.tryInteract(pointToLocal(frame, ents.bike.state))) handleShopKey(rig, hud, ents, shop); // cerita region-lokal
   } else if (escTarget === 'shop') handleShopKey(rig, hud, ents, shop);
 }
 

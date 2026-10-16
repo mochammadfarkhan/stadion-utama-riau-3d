@@ -22,6 +22,7 @@ export class Minimap2D {
     this.halfExtent = halfExtent;
     this.base = null;
     this.worldHalf = 700;
+    this.baseCenter = { x: 0, z: 0 };
     this._last = -Infinity;
     this.canvas = document.createElement('canvas');
     this.canvas.id = 'minimap2d';
@@ -37,10 +38,15 @@ export class Minimap2D {
     root.append(this.canvas);
   }
 
-  /** @param {CanvasImageSource & {width:number}} baseCanvas peta dasar; @param {number} worldHalf setengah sisi dunia (m) */
-  setBase(baseCanvas, worldHalf) {
+  /**
+   * @param {CanvasImageSource & {width:number}} baseCanvas peta dasar
+   * @param {number} worldHalf setengah sisi area bake (m)
+   * @param {{x:number, z:number}} [center] pusat area bake di frame dunia (placement region)
+   */
+  setBase(baseCanvas, worldHalf, center = { x: 0, z: 0 }) {
     this.base = baseCanvas;
     this.worldHalf = worldHalf;
+    this.baseCenter = { x: center.x, z: center.z };
     this._last = -Infinity;
   }
 
@@ -63,7 +69,7 @@ export class Minimap2D {
     ctx.fillStyle = BG;
     ctx.fillRect(0, 0, S, S);
     if (this.base) {
-      const r = sourceRect(focus, this.halfExtent, this.worldHalf, this.base.width);
+      const r = sourceRect(focus, this.halfExtent, this.worldHalf, this.base.width, this.baseCenter);
       ctx.drawImage(this.base, r.sx, r.sy, r.sw, r.sh, 0, 0, S, S);
     }
     ctx.setTransform(k, 0, 0, k, 0, 0); // koordinat tampilan dalam px CSS

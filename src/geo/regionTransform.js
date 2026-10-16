@@ -25,3 +25,23 @@ export function toLocal(p, x, z) {
   const dz = z - p.z;
   return { x: c * dx - s * dz, z: s * dx + c * dz };
 }
+
+/**
+ * Frame region: placement beku + konversi titik & yaw. yaw entitas memakai konvensi maju = (sin, cos)
+ * sehingga yaw dunia = yaw lokal + placement.yaw. `identity` = placement {0, 0, 0} (jalur cepat).
+ * @param {{x:number, z:number, yaw:number}} placement
+ */
+export function createRegionFrame(placement) {
+  assertPlacement(placement);
+  const p = Object.freeze({ x: placement.x, z: placement.z, yaw: placement.yaw });
+  return Object.freeze({
+    placement: p,
+    identity: p.x === 0 && p.z === 0 && p.yaw === 0,
+    toWorld: (x, z) => toWorld(p, x, z),
+    toLocal: (x, z) => toLocal(p, x, z),
+    yawToWorld: (yaw) => yaw + p.yaw,
+    yawToLocal: (yaw) => yaw - p.yaw,
+  });
+}
+
+export const IDENTITY_FRAME = createRegionFrame({ x: 0, z: 0, yaw: 0 });

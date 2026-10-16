@@ -90,7 +90,7 @@ function segmentCrossesShell(a, d) {
  * @param {{x:number,y:number,z:number}} c1 titik kontrol dekat A (ditulis)
  * @param {{x:number,y:number,z:number}} c2 titik kontrol dekat D (ditulis)
  */
-export function routeControl(a, d, c1, c2) {
+function routeControlLocal(a, d, c1, c2) {
   const aIn = inBowl(a.px, a.py, a.pz);
   const dIn = inBowl(d.px, d.py, d.pz);
   if (aIn !== dIn) {
@@ -114,6 +114,41 @@ export function routeControl(a, d, c1, c2) {
   const lift = 4 + Math.hypot(d.px - a.px, d.pz - a.pz) * 0.05;
   c1.x = a.px + (d.px - a.px) / 3; c1.y = a.py + (d.py - a.py) / 3 + lift; c1.z = a.pz + (d.pz - a.pz) / 3;
   c2.x = a.px + ((d.px - a.px) * 2) / 3; c2.y = a.py + ((d.py - a.py) * 2) / 3 + lift; c2.z = a.pz + ((d.pz - a.pz) * 2) / 3;
+}
+
+const _routeA = createPose();
+const _routeD = createPose();
+
+/** Ubah pose (posisi + titik pandang) region-lokal → dunia, di tempat. */
+export function poseToWorld(pose, frame) {
+  const p = frame.toWorld(pose.px, pose.pz);
+  const t = frame.toWorld(pose.tx, pose.tz);
+  pose.px = p.x; pose.pz = p.z; pose.tx = t.x; pose.tz = t.z;
+  return pose;
+}
+
+/** Ubah pose dunia → region-lokal, di tempat. */
+export function poseToLocal(pose, frame) {
+  const p = frame.toLocal(pose.px, pose.pz);
+  const t = frame.toLocal(pose.tx, pose.tz);
+  pose.px = p.x; pose.pz = p.z; pose.tx = t.x; pose.tz = t.z;
+  return pose;
+}
+
+/**
+ * Titik kontrol rute A→D (lihat routeControlLocal). Pose a/d dalam koordinat dunia; `frame` = frame
+ * region stadion (geometri cangkang region-lokal). Tanpa frame / frame identitas = perilaku lama.
+ */
+export function routeControl(a, d, c1, c2, frame = null) {
+  if (!frame || frame.identity) {
+    routeControlLocal(a, d, c1, c2);
+    return;
+  }
+  routeControlLocal(poseToLocal(copyPose(_routeA, a), frame), poseToLocal(copyPose(_routeD, d), frame), c1, c2);
+  const w1 = frame.toWorld(c1.x, c1.z);
+  const w2 = frame.toWorld(c2.x, c2.z);
+  c1.x = w1.x; c1.z = w1.z;
+  c2.x = w2.x; c2.z = w2.z;
 }
 
 /** Bezier kubik B(t) dari a, c1, c2, d (komponen x/y/z). */
@@ -200,7 +235,8 @@ function poseTopDown(out, bike) {
  * @param {PovDef} def
  * @param {{bike:{x:number,z:number,yaw:number}, ball?:()=>{x:number,z:number},
  *   runner?:(i:number)=>({x:number,z:number,yaw:number}|null),
- *   vendor?:(i:number)=>({x:number,z:number,yaw:number}|null)}} src
+ *   vendor?:(i:number)=>({x:number,z:number,yaw:number}|null), frame?:object}} src
+ *   frame: frame region stadion (createRegionFrame); POV tetap (udara/tribun/orbit) dihitung lokal lalu diubah ke dunia
  * @param {number} subject indeks subjek (pelari/pedagang)
  * @param {number} time detik sejak mulai
  * @param {ReturnType<typeof createPose>} out
@@ -232,6 +268,7 @@ export function povPose(def, src, subject, time, out) {
     }
     default: return false;
   }
+  if (def.kind !== 'follow' && src.frame && !src.frame.identity) poseToWorld(out, src.frame); // pose tetap region-lokal
   out.fov = def.fov;
   return true;
 }

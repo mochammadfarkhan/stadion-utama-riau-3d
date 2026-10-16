@@ -4,12 +4,15 @@
  */
 const fin = (v) => (Number.isFinite(v) ? v : 0);
 
-/** Persegi sumber (piksel peta dasar) untuk jendela ±halfExtent meter di sekitar fokus. */
-export function sourceRect(focus, halfExtent, worldHalf, basePx) {
+/**
+ * Persegi sumber (piksel peta dasar) untuk jendela ±halfExtent meter di sekitar fokus.
+ * `center` = pusat dunia peta dasar (posisi kamera bake; default origin).
+ */
+export function sourceRect(focus, halfExtent, worldHalf, basePx, center = null) {
   const k = basePx / (2 * worldHalf);
   return {
-    sx: (fin(focus?.x) + worldHalf - halfExtent) * k,
-    sy: (fin(focus?.z) + worldHalf - halfExtent) * k,
+    sx: (fin(focus?.x) - fin(center?.x) + worldHalf - halfExtent) * k,
+    sy: (fin(focus?.z) - fin(center?.z) + worldHalf - halfExtent) * k,
     sw: 2 * halfExtent * k,
     sh: 2 * halfExtent * k,
   };

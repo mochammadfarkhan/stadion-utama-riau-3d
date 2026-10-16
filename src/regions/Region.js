@@ -50,3 +50,8 @@ export function regionContains(region, x, z) {
   const l = toLocal(region.placement, x, z);
   return pointInPolygon(l.x, l.z, region.mask);
 }
+
+/** Salinan definisi region dengan placement lain (uji placement non-identitas, mode dev). */
+export function withPlacement(region, placement) {
+  return defineRegion({ ...region, placement });
+}

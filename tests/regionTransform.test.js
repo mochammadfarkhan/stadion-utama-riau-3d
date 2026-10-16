@@ -31,3 +31,24 @@ describe('regionTransform', () => {
     expect(() => toWorld(null, 1, 1)).toThrow(TypeError);
   });
 });
+
+describe('createRegionFrame (Plan C)', () => {
+  it('membungkus toWorld/toLocal; yaw dunia = yaw lokal + placement.yaw', async () => {
+    const { createRegionFrame, IDENTITY_FRAME } = await import('../src/geo/regionTransform.js');
+    const f = createRegionFrame({ x: 100, z: -50, yaw: 0.3 });
+    expect(f.identity).toBe(false);
+    expect(f.toWorld(10, -25)).toEqual(toWorld(f.placement, 10, -25));
+    const l = f.toLocal(f.toWorld(3, 4).x, f.toWorld(3, 4).z);
+    expect(l.x).toBeCloseTo(3, 9);
+    expect(l.z).toBeCloseTo(4, 9);
+    // arah maju lokal (sin y, cos y) dirotasi placement = (sin(y+θ), cos(y+θ))
+    const y = 1.1;
+    const tip = f.toWorld(Math.sin(y), Math.cos(y));
+    const base = f.toWorld(0, 0);
+    expect(Math.atan2(tip.x - base.x, tip.z - base.z)).toBeCloseTo(f.yawToWorld(y), 9);
+    expect(f.yawToLocal(f.yawToWorld(y))).toBeCloseTo(y, 12);
+    expect(IDENTITY_FRAME.identity).toBe(true);
+    expect(Object.isFrozen(f.placement)).toBe(true);
+    expect(() => createRegionFrame({ x: 0, z: 0 })).toThrow(TypeError);
+  });
+});
