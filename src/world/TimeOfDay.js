@@ -20,6 +20,7 @@ import {
 import { directionFromAngles } from './Lighting.js';
 import { createNightLights } from './TimeOfDay.lights.js';
 import { createCelestialBodies, celestialLook } from './CelestialBodies.js';
+import { disposeTree } from '../engine/disposeTree.js';
 
 const MOON_ELEVATION_DEG = 48;
 const MOON_AZIMUTH_DEG = 120;
@@ -70,7 +71,7 @@ function createStars(count) {
  * @returns {{group: THREE.Group, update(dt, ctx, bikeState?):void, registerEmissive(root):() => boolean,
  *   unregisterEmissive(root):boolean, setHour(h):void, nextPreset():string, toggleSpeed():boolean,
  *   setSpeed(v):void, setAzimuthOffset(deg):void, setCloudCover(v):void, setHaze(v):void, setFogDistance(m):void,
- *   hour:number, presetName:string, speed:number, preset:object, overrides:object}}
+ *   dispose():void, hour:number, presetName:string, speed:number, preset:object, overrides:object}}
  */
 export function createTimeOfDay(lightingGroup, scene, renderer, app, { lamps = [], lensRoot = null } = {}) {
   const L = lightingGroup.userData;
@@ -197,6 +198,12 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app, { lamps = [
       bodies.update(app.camera, _sunDir, _moonDir, celestialLook({ elevationDeg: sun.elevationDeg, cloudCover: effectiveCloudCover() }), preset.sunColor);
       night.setLampsOn(preset.lampsOn);
       night.update(dt, ctx.bikePos, bikeState?.yaw ?? 0, ctx.focus ?? ctx.bikePos);
+    },
+    /** Bongkar: registrasi emissive dilepas (nilai siang dipulihkan), grup siklus waktu dilepas. */
+    dispose() {
+      night.dispose();
+      group.removeFromParent();
+      disposeTree(group);
     },
   };
 }

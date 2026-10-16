@@ -38,11 +38,13 @@ import { createStoryMarkers } from './world/StoryMarkers.js';
 import { StoryHUD } from './ui/StoryHUD.js';
 import { StoryJournal } from './ui/StoryJournal.js';
 import { createResourceScope } from './engine/ResourceScope.js';
+import { disposeTree } from './engine/disposeTree.js';
 import { stadionRegion } from './regions/stadion/index.js';
 import { session, setupMenu } from './app/session.js';
 import { handleKeys } from './app/keymap.js';
 import { setupShop, updatePrompt } from './app/shop.js';
 import { exposeDevTools } from './app/devtools.js';
+import { createDisposerStack } from './app/lifecycle.js';
 
 const START_POS = { x: 0, z: -275, yaw: 0 }; // plaza utara, menghadap stadion
 const MODELS_TIMEOUT_MS = 8000;
@@ -57,24 +59,33 @@ async function main() {
   const loading = createLoadingScreen();
   await loading.step(0.05, 'Menyiapkan mesin grafis…');
 
+  // Pembongkaran berurutan terbalik (LIFO); dipakai __sim.teardown() di mode dev.
+  const lifecycle = createDisposerStack();
+  const listeners = new AbortController();
   const app = new App(document.getElementById('app'));
+  lifecycle.add(() => app.dispose());
+  lifecycle.add(() => listeners.abort());
   const input = new Input();
+  lifecycle.add(() => input.dispose());
   const hud = new HUD(document.getElementById('hud'));
   const rig = new CameraRig(app.camera, app.renderer.domElement);
+  lifecycle.add(() => rig.dispose());
   // Kontrol sentuh + gamepad menulis ke Input yang sama dengan keyboard.
   const touchUi = new TouchControls(document.body, { input, rig, surface: app.renderer.domElement });
+  lifecycle.add(() => touchUi.dispose());
   const gamepad = createGamepadPoller(input, { lookBy: (dx, dy) => rig.lookBy(dx, dy) });
   app.addSystem({ id: 'gamepad', phase: 'input', update: (dt) => gamepad.update(dt) });
-  window.addEventListener('gamepadconnected', () => hud.toast('Gamepad terhubung', true));
+  window.addEventListener('gamepadconnected', () => hud.toast('Gamepad terhubung', true), { signal: listeners.signal });
   const audioBus = createAudioBus();
+  lifecycle.add(() => audioBus.dispose());
   const storage = safeLocalStorage();
   const firstRun = storage?.getItem(STORAGE_KEY) == null;
   const store = createSettingsStore({ storage });
   const touch = isTouchPrimary();
   if (touch && firstRun) store.set('performance.minimap', false); // layar kecil: minimap menutupi tombol layar
   // Perubahan terakhir tidak boleh hilang saat tab ditutup/disembunyikan (debounce 150 ms).
-  window.addEventListener('pagehide', () => store.flush());
-  document.addEventListener('visibilitychange', () => { if (document.hidden) store.flush(); });
+  window.addEventListener('pagehide', () => store.flush(), { signal: listeners.signal });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) store.flush(); }, { signal: listeners.signal });
 
   await loading.step(0.12, 'Menyiapkan langit dan pencahayaan…');
   const lighting = createLighting(app.scene, app.renderer);
@@ -85,6 +96,10 @@ async function main() {
   const region = await stadionRegion.build({
     scene: app.scene, renderer: app.renderer, camera: app.camera, scope: createResourceScope('region:stadion'), store, clock: app.timer,
   });
+  lifecycle.add(() => {
+    region.systems.forEach((s) => app.removeSystem(s.id)); // region.dispose() tidak mencabut sistemnya dari App
+    region.dispose();
+  });
   app.scene.add(region.group);
   freezeStatic(region.group); // dunia statis: matriks dihitung sekali, tidak per frame
   const colliders = createCompositeCollider({
@@ -94,6 +109,7 @@ async function main() {
   rig.setObstacleTest(colliders.isCameraClear);
   const blenderModels = createModelGroup();
   app.scene.add(blenderModels);
+  lifecycle.add(() => { blenderModels.removeFromParent(); disposeTree(blenderModels); });
   const modelsReady = loadBlenderModels(blenderModels, region, hud);
   app.addSystem({ id: 'wind', phase: 'world', update: (dt) => updateWind(dt) }); // angin global tiap frame
   region.systems.forEach((s) => app.addSystem(s));
@@ -102,6 +118,7 @@ async function main() {
   const wallet = createWallet();
   const ents = buildEntities({ start: START_POS, world: region, wallet, camera: app.camera });
   app.scene.add(ents.group);
+  lifecycle.add(() => { ents.bike.dispose(); ents.group.removeFromParent(); disposeTree(ents.group); });
   ents.bike.setCollider(createCollider(START_POS, colliders.isWalkable));
   rig.attachSource(createPovSource(ents));
   ents.bike.setAudioBus(audioBus);
@@ -111,6 +128,7 @@ async function main() {
   // Siklus waktu & cuaca: objeknya di grup sendiri; material emissive/basah didaftarkan lewat registry.
   const time = createTimeOfDay(lighting, app.scene, app.renderer, app, { lamps: region.lamps, lensRoot: region.group });
   app.scene.add(time.group);
+  lifecycle.add(() => time.dispose());
   time.registerEmissive(region.group);
   time.registerEmissive(ents.group);
   modelsReady
@@ -118,6 +136,7 @@ async function main() {
     .catch((err) => console.error('Registrasi emissive model 3D gagal:', err));
   const weather = createWeather(app.scene, app, lighting, { audioBus });
   app.scene.add(weather.group);
+  lifecycle.add(() => weather.dispose());
   weather.registerWet(region.group);
   app.addSystem({ id: 'timeOfDay', phase: 'world', update: (dt, ctx) => time.update(dt, ctx, ents.bike.state) });
   app.addSystem({ id: 'weather', phase: 'world', update: (dt, ctx) => weather.update(dt, ctx) }); // setelah TimeOfDay: mengalikan nilai pencahayaan frame ini
@@ -127,25 +146,28 @@ async function main() {
   const story = setupStory({ app, ents, hud, rig });
   const shop = setupShop(hud, ents, story);
   const minimap = setupMinimap(app, ents, story);
-
   addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story });
 
-  const bikePos = new THREE.Vector3();
-
   // Binding store -> scene (satu sumber kebenaran). Dipasang setelah semua objek ada.
-  bindAll(store, {
+  lifecycle.add(bindAll(store, {
     app, time, lighting, weather, rig, hud, audioBus, crowd: ents.crowd, vendors: ents.vendors,
-  });
+  }));
 
+  const bikePos = new THREE.Vector3();
   app.start((dt, t, rawDt) => {
     bikePos.set(ents.bike.state.x, 0, ents.bike.state.z);
     // focus = titik pusat tampilan (sepeda, atau titik pandang saat POV); sepeda beku di POV tanpa kendali
     return { dt, rawDt, time: t, bikePos, focus: rig.focus, input: hud.shopOpen || rig.freezesBike ? null : input };
   });
+  // LIFO: loop berhenti lebih dulu, sebelum sistem kehilangan sumber dayanya (App.dispose mengulanginya, idempoten).
+  lifecycle.add(() => app.renderer.setAnimationLoop(null));
 
   const menu = new MainMenu();
-  createRotatePrompt(document.body, { isTouch: touch });
-  setupMenu({ app, rig, hud, store, touchUi, touch, menu, story });
+  const rotatePrompt = createRotatePrompt(document.body, { isTouch: touch });
+  lifecycle.add(() => rotatePrompt.dispose());
+  setupMenu({ app, rig, hud, store, touchUi, touch, menu, story })
+    .then((mounted) => lifecycle.add(() => mounted.dispose()))
+    .catch((err) => console.error('Panel pengaturan gagal dipasang:', err));
   await loading.step(0.9, 'Memuat model 3D (tugu, bangku)…');
   // Model 3D opsional (ada cadangan prosedural): jangan tahan tombol Mulai bila unduhan macet.
   await Promise.race([modelsReady, new Promise((resolve) => setTimeout(resolve, MODELS_TIMEOUT_MS))]);
@@ -161,7 +183,9 @@ async function main() {
   // Latar menu: kamera orbit sinematik mengelilingi stadion (sepeda dibekukan, cerita dijeda) sampai pemain menekan Mulai.
   rig.handlePovKey(POVS.find((p) => p.id === 'orbit').key);
   menu.ready({ hasProgress: hasStoryProgress(story.state), touch });
-  if (import.meta.env.DEV) exposeDevTools({ app, ents, rig, time, weather, store, audioBus, story, colliders });
+  if (import.meta.env.DEV) {
+    exposeDevTools({ app, ents, rig, time, weather, store, audioBus, story, colliders, teardown: () => lifecycle.disposeAll() });
+  }
 }
 
 /**

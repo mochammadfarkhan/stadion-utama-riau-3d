@@ -7,7 +7,10 @@ import { mountSettingsPanel } from '../ui/mountSettingsPanel.js';
 /** Sesi: false selama menu utama terbuka (kamera orbit latar, tombol game diabaikan). */
 export const session = { started: false };
 
-/** Menu utama: Mulai/Lanjutkan, Mulai dari awal, Pengaturan; klik kanvas mengunci pointer sesudah mulai. */
+/**
+ * Menu utama: Mulai/Lanjutkan, Mulai dari awal, Pengaturan; klik kanvas mengunci pointer sesudah mulai.
+ * @returns {Promise<{panel: object|null, dispose(): void}>} hasil mountSettingsPanel
+ */
 export function setupMenu({ app, rig, hud, store, touchUi, touch, menu, story }) {
   let panel = null;
   let started = false;
@@ -28,14 +31,18 @@ export function setupMenu({ app, rig, hud, store, touchUi, touch, menu, story })
     newGame: () => { story.reset(); begin(); },
     settings: () => { menu.away(true); panel?.togglePanel?.(true); },
   });
-  mountSettingsPanel({
+  // Kembalikan hasil pemasangan panel agar composition root dapat memanggil dispose()-nya.
+  return mountSettingsPanel({
     store, app, rig, hud,
     onPanelToggle: (open) => { if (!open && !started) menu.away(false); }, // panel ditutup sebelum mulai: menu muncul lagi
-  }).then(({ panel: p }) => {
-    panel = p;
-    if (p) return; // panel memasang handler klik kanvas sendiri (cek isPointerOverUI)
-    app.renderer.domElement.addEventListener('click', () => {
-      if (started && !hud.shopOpen && !touch) rig.requestLock();
-    });
+  }).then((mounted) => {
+    panel = mounted.panel;
+    if (!mounted.panel) {
+      // tanpa panel: klik kanvas mengunci pointer (panel memasang handler sendiri, cek isPointerOverUI)
+      app.renderer.domElement.addEventListener('click', () => {
+        if (started && !hud.shopOpen && !touch) rig.requestLock();
+      });
+    }
+    return mounted;
   });
 }

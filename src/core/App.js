@@ -34,6 +34,8 @@ const MINIMAP_BG = 0x2f5b32;
 export class App {
   #legacy = new Map(); // updatable lama -> id sistem adaptor
   #legacySeq = 0;
+  #disposed = false;
+  #onResize = () => this.resize();
   #aoWanted = RENDER.ao;
   #aoLoading = false;
 
@@ -57,7 +59,7 @@ export class App {
 
     container.appendChild(this.renderer.domElement);
     document.body.appendChild(this.labelRenderer.domElement);
-    window.addEventListener('resize', () => this.resize());
+    window.addEventListener('resize', this.#onResize);
     this.resize();
   }
 
@@ -244,6 +246,23 @@ export class App {
   /** Render satu frame tanpa memajukan simulasi (screenshot). */
   renderFrame() {
     this.render({ ...this.lastCtx, shadowFrame: true });
+  }
+
+  /**
+   * Bongkar aplikasi: hentikan loop, lepas listener resize, dispose sistem, pass, render target,
+   * renderer, dan elemen DOM-nya. Idempoten. (Tidak dapat dites di Node: butuh WebGL.)
+   */
+  dispose() {
+    if (this.#disposed) return;
+    this.#disposed = true;
+    this.renderer.setAnimationLoop(null);
+    window.removeEventListener('resize', this.#onResize);
+    this.systems.dispose();
+    for (const pass of this.post.composer.passes) pass.dispose?.();
+    this.post.composer.dispose();
+    this.labelRenderer.domElement.remove();
+    this.renderer.dispose();
+    this.renderer.domElement.remove();
   }
 
   render(ctx) {
