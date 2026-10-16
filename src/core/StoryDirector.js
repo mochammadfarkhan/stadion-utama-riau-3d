@@ -6,20 +6,26 @@
 import { CHAPTERS, STORY_NPCS } from '../story/chapters.js';
 import { EASTER_EGGS, EGG_IDS } from '../story/easterEggs.js';
 import { createEggState, stepEggs } from '../story/eggTriggers.js';
-import { loadStory, saveStory } from '../story/storage.js';
+import { loadStory, saveStory, SAVE_VERSION } from '../story/storage.js';
 import { createStory } from '../sim/story/reducer.js';
 import { fundsShortfall } from '../story/funds.js';
 import { createLapTracker, stepLap } from '../sim/story/lapTracker.js';
 import { pointOnLane, laneLength } from '../sim/trackPath.js';
+import { VENDOR_CATALOG, createWallet } from '../sim/vendorSim.js';
+import { VENDOR } from '../config/constants.js';
 
 const NPC_RANGE = 4;
 const LAP_LANE = 4;          // lane tengah: radius cek menutup semua lane
 const LAP_CHECKPOINTS = 8;
 const LAP_RADIUS = 9;
 const FUNDS_CHECK_SEC = 1;   // seberapa sering saldo dicek terhadap langkah beli/antar
-const SAVE_KEYS = ['version', 'chapter', 'step', 'badges', 'eggs', 'bestLap', 'rupiah', 'finished'];
+const PROGRESS_KEYS = ['chapter', 'step', 'badges', 'eggs', 'bestLap', 'rupiah', 'finished'];
+const ITEM_IDS = Object.values(VENDOR_CATALOG).flat().map((i) => i.id);
 
-const LIMITS = Object.freeze({ chapters: CHAPTERS.length, steps: CHAPTERS.map((c) => c.steps.length), eggIds: EGG_IDS });
+const LIMITS = Object.freeze({
+  chapters: CHAPTERS.length, steps: CHAPTERS.map((c) => c.steps.length), eggIds: EGG_IDS,
+  startBalance: VENDOR.startBalance, itemIds: ITEM_IDS,
+});
 
 function lapCheckpoints() {
   const len = laneLength(LAP_LANE);
@@ -31,12 +37,14 @@ function lapCheckpoints() {
 
 export class StoryDirector {
   /**
-   * @param {{storage:object, vendors:object, hud:object, storyHud:object, journal:object, markers:object,
+   * HUD tidak diimpor/dipegang langsung: efek toast & dompet dikirim lewat callback (core tidak bergantung ui).
+   * @param {{storage:object, vendors:object, storyHud:object, journal:object, markers:object,
+   *   onToast?:(text:string, ok:boolean)=>void, onWalletChange?:(wallet:object)=>void,
    *   pointerLock?:{release:()=>void, request:()=>void}}} deps
    */
-  constructor({ storage, vendors, hud, storyHud, journal, markers, pointerLock = null }) {
+  constructor({ storage, vendors, storyHud, journal, markers, onToast = () => {}, onWalletChange = () => {}, pointerLock = null }) {
     this.story = createStory({ chapters: CHAPTERS, eggs: EASTER_EGGS });
-    Object.assign(this, { storage, vendors, hud, storyHud, journal, markers, pointerLock });
+    Object.assign(this, { storage, vendors, storyHud, journal, markers, onToast, onWalletChange, pointerLock });
     this.state = this.story.initial();
     this.eggState = createEggState();
     this.checkpoints = lapCheckpoints();
@@ -48,13 +56,14 @@ export class StoryDirector {
     this.fundedStep = null; // 'chapter:step' yang sudah diberi uang saku (sekali per langkah)
   }
 
-  /** Muat progres tersimpan; hadiah yang sudah dikumpulkan ditambahkan ke dompet sesi ini. */
+  /** Muat progres + dompet tersimpan (save v2; v1 dimigrasi sekali). Tidak ada credit-ulang hadiah. */
   start() {
     const save = loadStory(this.storage, LIMITS);
     if (save) {
-      this.state = this.story.hydrate(save);
-      this.vendors.credit(this.state.rupiah);
-      this.hud.setWallet(this.vendors.wallet);
+      const { wallet, version: _version, ...progress } = save;
+      this.state = this.story.hydrate(progress);
+      this.vendors.setWallet(wallet);
+      this.onWalletChange(this.vendors.wallet);
     }
     this.#render();
   }
@@ -64,6 +73,16 @@ export class StoryDirector {
   onBought(itemId) {
     this.bought = itemId;
     this.dispatch({ type: 'bought', itemId });
+    this.#persist(); // dompet berubah karena belanja: simpan agar reload tidak "mengembalikan" uang
+  }
+
+  /** Simpan progres + dompet (save v2). */
+  #persist() {
+    saveStory(this.storage, {
+      version: SAVE_VERSION,
+      ...Object.fromEntries(PROGRESS_KEYS.map((k) => [k, this.state[k]])),
+      wallet: this.vendors.wallet,
+    });
   }
 
   dispatch(event) {
@@ -78,17 +97,17 @@ export class StoryDirector {
 
   #apply(effect) {
     switch (effect.type) {
-      case 'toast': this.hud.toast(effect.text, effect.ok); break;
+      case 'toast': this.onToast(effect.text, effect.ok); break;
       case 'reward':
         this.vendors.credit(effect.rupiah);
-        this.hud.setWallet(this.vendors.wallet);
-        this.hud.toast(`${effect.badge ? `Lencana: ${effect.badge} · ` : ''}+Rp ${effect.rupiah.toLocaleString('id-ID')}`, true);
+        this.onWalletChange(this.vendors.wallet);
+        this.onToast(`${effect.badge ? `Lencana: ${effect.badge} · ` : ''}+Rp ${effect.rupiah.toLocaleString('id-ID')}`, true);
         break;
       case 'consumeItem':
         this.vendors.consume(effect.itemId);
-        this.hud.setWallet(this.vendors.wallet);
+        this.onWalletChange(this.vendors.wallet);
         break;
-      case 'save': saveStory(this.storage, Object.fromEntries(SAVE_KEYS.map((k) => [k, this.state[k]]))); break;
+      case 'save': this.#persist(); break;
       default: break;
     }
   }
@@ -122,8 +141,9 @@ export class StoryDirector {
     if (short <= 0) return;
     this.fundedStep = key;
     this.vendors.credit(short);
-    this.hud.setWallet(this.vendors.wallet);
-    this.hud.toast(`Uang saku +Rp ${short.toLocaleString('id-ID')} untuk menyelesaikan misi`, true);
+    this.onWalletChange(this.vendors.wallet);
+    this.onToast(`Uang saku +Rp ${short.toLocaleString('id-ID')} untuk menyelesaikan misi`, true);
+    this.#persist();
   }
 
   #updateLaps(pos, time) {
@@ -184,7 +204,7 @@ export class StoryDirector {
     const carrying = this.vendors.wallet.items.map((i) => i.id);
     const before = this.state;
     this.dispatch({ type: 'interacted', id: npc.id, carrying });
-    if (this.state === before) this.hud.toast(`${npc.name}: Halo, semangat ya!`, true);
+    if (this.state === before) this.onToast(`${npc.name}: Halo, semangat ya!`, true);
     return true;
   }
 
@@ -204,8 +224,13 @@ export class StoryDirector {
   reset() {
     this.dispatch({ type: 'reset' });
     this.eggState = createEggState();
+    this.fundedStep = null; // uang saku per langkah boleh diberikan lagi setelah mulai ulang
+    this.fundsTimer = 0;
+    this.vendors.setWallet(createWallet()); // "Mulai dari awal" = dompet awal juga
+    this.onWalletChange(this.vendors.wallet);
+    this.#persist();
     this.journal.hide();
-    this.hud.toast('Cerita dimulai ulang', true);
+    this.onToast('Cerita dimulai ulang', true);
   }
 
   #journalView() {

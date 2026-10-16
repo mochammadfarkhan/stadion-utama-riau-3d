@@ -143,13 +143,13 @@ function updateSplashes(sp, dt, intensity, center, brightness = 1) {
  * @returns {{ update(dt, intensity, camera, bikePos, brightness?): void, setWind(scale): void, group: THREE.Group }}
  * brightness 0..1 = terang lingkungan (goresan aditif harus redup di malam hari)
  */
-export function createRain(scene) {
+export function createRain(parent) {
   const group = new THREE.Group();
   group.name = 'cuacaHujan';
   const drops = createDrops();
   const splashes = createSplashes();
   group.add(drops, splashes.mesh);
-  scene.add(group);
+  parent.add(group);
   let time = 0;
 
   return {

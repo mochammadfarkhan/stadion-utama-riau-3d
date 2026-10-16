@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { SITE } from '../config/constants.js';
 import { instanceParts } from './siteutil/instanceParts.js';
+import { currentScope } from '../engine/ResourceScope.js';
 
 /**
  * Venue baseball/softball: outfield rumput (sektor 90°), infield tanah,
@@ -13,14 +14,19 @@ const FIELD = Object.freeze({
 });
 const Y = Object.freeze({ outfield: 0.03, infield: 0.04, innerGrass: 0.05, base: 0.08 });
 
-const outfieldMat = new THREE.MeshLambertMaterial({ color: 0x2c7d35 });
-const infieldMat = new THREE.MeshLambertMaterial({ color: 0x9c6b3c });
-const innerGrassMat = new THREE.MeshLambertMaterial({ color: 0x3a9344 });
-const baseMat = new THREE.MeshLambertMaterial({ color: 0xf5f5f0 });
-const fenceMat = new THREE.MeshLambertMaterial({ color: 0x4a5a3a, transparent: true, opacity: 0.55, side: THREE.DoubleSide });
-const postMat = new THREE.MeshLambertMaterial({ color: 0x6e7278 });
-const netMat = new THREE.MeshBasicMaterial({ color: 0x202020, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
-const dugoutMat = new THREE.MeshLambertMaterial({ color: 0x8f8f88 });
+/** Material venue (dulu dibuat saat impor), kini satu set per ResourceScope aktif. */
+function baseballMaterials() {
+  return currentScope().get('baseball:materials', () => ({
+    outfield: new THREE.MeshLambertMaterial({ color: 0x2c7d35 }),
+    infield: new THREE.MeshLambertMaterial({ color: 0x9c6b3c }),
+    innerGrass: new THREE.MeshLambertMaterial({ color: 0x3a9344 }),
+    base: new THREE.MeshLambertMaterial({ color: 0xf5f5f0 }),
+    fence: new THREE.MeshLambertMaterial({ color: 0x4a5a3a, transparent: true, opacity: 0.55, side: THREE.DoubleSide }),
+    post: new THREE.MeshLambertMaterial({ color: 0x6e7278 }),
+    net: new THREE.MeshBasicMaterial({ color: 0x202020, transparent: true, opacity: 0.35, side: THREE.DoubleSide }),
+    dugout: new THREE.MeshLambertMaterial({ color: 0x8f8f88 }),
+  }));
+}
 
 /** Mesh datar di XZ. */
 function flat(geometry, material, y) {
@@ -33,6 +39,7 @@ function flat(geometry, material, y) {
 
 /** Outfield + infield tanah + rumput dalam diamond + mound + base. */
 function createFieldSurface() {
+  const { outfield: outfieldMat, infield: infieldMat, innerGrass: innerGrassMat, base: baseMat } = baseballMaterials();
   const g = new THREE.Group();
   g.add(flat(new THREE.CircleGeometry(FIELD.outfieldR, 40, Math.PI / 4, Math.PI / 2), outfieldMat, Y.outfield));
   const half = FIELD.baseSide / Math.SQRT2; // setengah diagonal diamond
@@ -54,6 +61,7 @@ function createFieldSurface() {
 
 /** Pagar keliling outfield: tiang + panel semi transparan mengikuti busur. */
 function createOutfieldFence() {
+  const { fence: fenceMat, post: postMat } = baseballMaterials();
   const r = FIELD.outfieldR;
   const arcLen = (Math.PI / 2) * r;
   const n = Math.floor(arcLen / FIELD.fencePostStep);
@@ -79,6 +87,7 @@ function createOutfieldFence() {
 
 /** Backstop jaring di belakang home plate + 3 tiang. */
 function createBackstop() {
+  const { net: netMat, post: postMat } = baseballMaterials();
   const g = new THREE.Group();
   g.name = 'backstop';
   const net = new THREE.Mesh(new THREE.PlaneGeometry(FIELD.backstopW, FIELD.backstopH), netMat);
@@ -95,6 +104,7 @@ function createBackstop() {
 
 /** Dugout: bangku beton beratap di kiri-kanan home plate. */
 function createDugouts() {
+  const { dugout: dugoutMat } = baseballMaterials();
   const g = new THREE.Group();
   g.name = 'dugout';
   const roofGeo = new THREE.BoxGeometry(6, 0.15, 2.6);

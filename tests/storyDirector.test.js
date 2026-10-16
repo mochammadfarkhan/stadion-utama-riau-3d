@@ -1,23 +1,26 @@
 import { describe, it, expect } from 'vitest';
 import { StoryDirector } from '../src/core/StoryDirector.js';
 import { TUGU, CHAPTERS } from '../src/story/chapters.js';
-import { STORY_KEY } from '../src/story/storage.js';
+import { STORY_KEY, STORY_BACKUP_KEY } from '../src/story/storage.js';
 
-function makeDeps({ balance = 50000, items = [], save = null } = {}) {
-  const store = new Map(save ? [[STORY_KEY, JSON.stringify(save)]] : []);
+function makeDeps({ balance = 50000, items = [], save = null, store = null } = {}) {
+  const map = store ?? new Map(save ? [[STORY_KEY, JSON.stringify(save)]] : []);
   const log = { toasts: [], credits: [], renders: 0, targets: [] };
   const vendors = {
     wallet: { balance, items },
     credit(n) { this.wallet = { ...this.wallet, balance: this.wallet.balance + n }; log.credits.push(n); },
     consume(id) { this.wallet = { ...this.wallet, items: this.wallet.items.filter((i) => i.id !== id) }; },
+    setWallet(w) { this.wallet = { balance: w.balance, items: [...w.items] }; },
     nearestSelling: () => ({ x: 5, z: 5 }),
   };
   return {
     log,
+    store: map,
     deps: {
-      storage: { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) },
+      storage: { getItem: (k) => map.get(k) ?? null, setItem: (k, v) => map.set(k, v) },
       vendors,
-      hud: { toast: (t, ok) => log.toasts.push([t, ok]), setWallet: () => {} },
+      onToast: (t, ok) => log.toasts.push([t, ok]),
+      onWalletChange: () => {},
       storyHud: { render: () => { log.renders += 1; } },
       journal: { open: false, show() { this.open = true; }, hide() { this.open = false; } },
       markers: { setTarget: (p) => log.targets.push(p), update: () => {} },
@@ -98,7 +101,7 @@ describe('StoryDirector: timer chapter', () => {
 });
 
 describe('StoryDirector: pengaman uang (soft-lock)', () => {
-  const atBuy = (balance) => started({ balance, save: { version: 1, chapter: 1, step: 0, badges: [], eggs: [], bestLap: null, rupiah: 0, finished: false } });
+  const atBuy = (balance) => started({ save: { version: 2, chapter: 1, step: 0, badges: [], eggs: [], bestLap: null, rupiah: 0, finished: false, wallet: { balance, items: [] } } });
 
   it('saldo kurang untuk item misi: diberi uang saku tepat selisihnya, sekali per langkah', () => {
     const { d, log } = atBuy(1000);
@@ -143,5 +146,75 @@ describe('StoryDirector: jurnal dan pointer lock', () => {
     d.toggleJournal();
     expect(d.journal.open).toBe(false);
     expect(calls).toEqual(['release', 'request']);
+  });
+});
+
+describe('StoryDirector: dompet tersimpan (save v2)', () => {
+  const TEH = { id: 'es-teh', name: 'Es Teh', kind: 'minuman', price: 5000 };
+  const v2 = (wallet, extra = {}) => ({ version: 2, chapter: 1, step: 0, badges: [], eggs: [], bestLap: null, rupiah: 5000, finished: false, wallet, ...extra });
+  const savedIn = (m) => JSON.parse(m.deps.storage.getItem(STORY_KEY));
+
+  it('memuat dompet dari save tanpa mengkredit ulang hadiah', () => {
+    const { d, log } = started({ save: v2({ balance: 1200, items: [TEH] }) });
+    expect(d.vendors.wallet.balance).toBe(1200);
+    expect(d.vendors.wallet.items.map((i) => i.id)).toEqual(['es-teh']);
+    expect(log.credits).toEqual([]);
+  });
+
+  it('belanja tersimpan: reload tidak mengembalikan uang', () => {
+    const m = makeDeps();
+    const d = new StoryDirector(m.deps);
+    d.start();
+    d.vendors.wallet = { balance: 45000, items: [TEH] }; // hasil tryBuy di VendorGroup
+    d.onBought('es-teh');
+    expect(savedIn(m)).toMatchObject({ version: 2, wallet: { balance: 45000 } });
+    const reload = makeDeps({ store: m.store });
+    const d2 = new StoryDirector(reload.deps);
+    d2.start();
+    expect(d2.vendors.wallet.balance).toBe(45000);
+    expect(reload.log.credits).toEqual([]);
+  });
+
+  it('uang saku (soft-lock) ikut tersimpan', () => {
+    const m = makeDeps({ save: v2({ balance: 1000, items: [] }, { rupiah: 0 }) });
+    const d = new StoryDirector(m.deps);
+    d.start();
+    d.update(1.1, ctx(0, 0));
+    expect(savedIn(m).wallet.balance).toBe(5000);
+  });
+
+  it('mulai dari awal: dompet kembali ke saldo awal dan tersimpan', () => {
+    const m = makeDeps({ save: v2({ balance: 1234, items: [] }) });
+    const d = new StoryDirector(m.deps);
+    d.start();
+    d.reset();
+    expect(d.vendors.wallet).toEqual({ balance: 50000, items: [] });
+    expect(savedIn(m)).toMatchObject({ version: 2, chapter: 0, wallet: { balance: 50000, items: [] } });
+  });
+
+  it('mulai dari awal: uang saku langkah yang sama bisa diberikan lagi', () => {
+    const { d, log } = started({ save: v2({ balance: 1000, items: [] }, { rupiah: 0 }) });
+    d.update(1.1, ctx(0, 0));
+    expect(positive(log)).toEqual([4000]); // langkah 1:0 (beli Es Teh 5.000)
+    d.reset();
+    d.advanceDialog();
+    d.advanceDialog();
+    d.update(0.016, ctx(TUGU.x, TUGU.z)); // selesaikan chapter 0 → kembali ke langkah 1:0
+    while (d.state.dialog) d.advanceDialog();
+    expect([d.state.chapter, d.state.step]).toEqual([1, 0]);
+    const before = log.credits.length; // hadiah chapter 0 ikut tercatat di credits
+    d.vendors.wallet = { ...d.vendors.wallet, balance: 100 };
+    d.update(1.1, ctx(0, 0));
+    expect(log.credits.slice(before)).toEqual([4900]);
+    expect(d.vendors.wallet.balance).toBe(5000);
+  });
+
+  it('save rusak dicadangkan ke kunci .bak lalu mulai baru', () => {
+    const m = makeDeps();
+    m.deps.storage.setItem(STORY_KEY, '{bukan json');
+    const d = new StoryDirector(m.deps);
+    d.start();
+    expect(m.deps.storage.getItem(STORY_BACKUP_KEY)).toBe('{bukan json');
+    expect(d.state.chapter).toBe(0);
   });
 });

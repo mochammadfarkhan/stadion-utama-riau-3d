@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync } from 'node:fs';
-import { LAYOUT } from '../src/world/layout.js';
+import { LAYOUT } from '../src/regions/stadion/layout.js';
 
 describe('LAYOUT.blenderModels', () => {
   it('setiap path model GLB ada di public/ (tidak ada model hilang saat deploy)', () => {

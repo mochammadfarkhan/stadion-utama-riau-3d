@@ -6,7 +6,7 @@ import { insideEllipse } from './siteutil/ellipseGeo.js';
  * parkir, danau, venue, dll. Semua angka dalam meter.
  */
 export const ZONES = Object.freeze({
-  lake: { semiX: 90, semiZ: 55, margin: 10 },
+  lake: { semiX: SITE.lake.semiX, semiZ: SITE.lake.semiZ, margin: 10 },
   baseballRadius: 82,
   helipadMargin: 8,
   amphitheaterRadius: 26,

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { COLORS } from '../config/constants.js';
 import { surfaceMaps } from './textures/surfaces.js';
+import { currentScope } from '../engine/ResourceScope.js';
 
 /**
  * Material bersama untuk tanah, jalan, plaza (dibuat sekali, dipakai ulang).
@@ -57,13 +58,14 @@ export function uvToMeters(geometry, w, h) {
   return geometry;
 }
 
-let cache = null;
-
-/** Buat (sekali) dan kembalikan set material bersama. */
+/** Set material tanah bersama, satu per ResourceScope aktif. */
 export function groundMaterials() {
-  if (cache) return cache;
+  return currentScope().get('ground:materials', createGroundMaterials);
+}
+
+function createGroundMaterials() {
   const asphalt = surfaceMaterial('asphalt');
-  cache = {
+  return {
     grass: surfaceMaterial('grass'),
     paving: surfaceMaterial('paving', { color: COLORS.concrete }),
     asphalt,
@@ -77,5 +79,4 @@ export function groundMaterials() {
     dirt: new THREE.MeshLambertMaterial({ color: GROUND_COLORS.dirt }),
     amphitheater: new THREE.MeshLambertMaterial({ color: GROUND_COLORS.amphitheater }),
   };
-  return cache;
 }

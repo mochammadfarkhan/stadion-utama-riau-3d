@@ -9,6 +9,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { DIM } from './Humanoid.dim.js';
 import { matFor } from './util.js';
+import { currentScope } from '../engine/ResourceScope.js';
 
 const R = DIM.headR;
 const CY = DIM.headLift;
@@ -77,22 +78,18 @@ const BUILDERS = {
   ],
 };
 
-const cache = new Map();
-
 /** Samakan bentuk atribut (RoundedBox tanpa index) agar bisa digabung. */
 function unindexed(geo) {
   return geo.index ? geo.toNonIndexed() : geo;
 }
 
-/** Geometri gabungan untuk satu gaya; dibuat sekali lalu di-cache. */
+/** Geometri gabungan untuk satu gaya; dibuat sekali per ResourceScope aktif. */
 export function hairGeometry(style) {
   const key = BUILDERS[style] ? style : 'helmet';
-  const hit = cache.get(key);
-  if (hit) return hit;
-  const pieces = BUILDERS[key]().map(unindexed);
-  const merged = pieces.length === 1 ? pieces[0] : mergeGeometries(pieces, false);
-  cache.set(key, merged);
-  return merged;
+  return currentScope().get(`humanoid:hair:${key}`, () => {
+    const pieces = BUILDERS[key]().map(unindexed);
+    return pieces.length === 1 ? pieces[0] : mergeGeometries(pieces, false);
+  });
 }
 
 /** Gaya rambut yang aman dipakai di bawah topi pet. */

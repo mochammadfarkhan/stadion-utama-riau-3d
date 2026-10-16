@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SITE, STADIUM } from '../../config/constants.js';
+import { SITE } from '../../config/constants.js';
 import { makeTextMaterial } from '../siteutil/textCanvas.js';
 import { placeObject } from '../siteutil/instanceParts.js';
 
@@ -159,7 +159,7 @@ function createFountainPool() {
   return g;
 }
 
-/** Tugu Lancang Kuning lengkap; default di plaza utara z = -(outerSemiZ + 45). */
+/** Tugu Lancang Kuning lengkap; default di SITE.tugu (plaza utara). */
 export function createLancangKuning(opts = {}) {
   const g = new THREE.Group();
   g.name = 'tuguLancangKuning';
@@ -170,8 +170,7 @@ export function createLancangKuning(opts = {}) {
   ship.add(createHull(), createMasts(), createDragonHead(), createHullText());
   ship.position.y = pedestal.userData.topY;
   g.add(pool, pedestal, ship);
-  const z = opts.z ?? -(STADIUM.outerSemiZ + 45);
-  return placeObject(g, { x: opts.x ?? 0, z, rotY: opts.rotY ?? 0 });
+  return placeObject(g, { x: opts.x ?? SITE.tugu.x, z: opts.z ?? SITE.tugu.z, rotY: opts.rotY ?? 0 });
 }
 
 /** Profil kain tanjak terlipat (XY). */

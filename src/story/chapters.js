@@ -1,8 +1,8 @@
 /**
  * Cerita "Wisata Kuliner dan Budaya Riau": 5 chapter (data beku).
- * Koordinat tujuan memakai posisi dunia yang sama dengan world/layout.js.
+ * Koordinat tujuan memakai posisi dunia yang sama dengan regions/stadion/layout.js (tugu dari SITE.tugu).
  */
-import { STADIUM, SITE } from '../config/constants.js';
+import { SITE } from '../config/constants.js';
 
 const freezeDeep = (o) => {
   Object.values(o).forEach((v) => { if (v && typeof v === 'object') freezeDeep(v); });
@@ -15,7 +15,7 @@ export const STORY_NPCS = freezeDeep([
   { id: 'pelatih', name: 'Coach Dedi', x: 52, z: 12, yaw: -Math.PI / 2 },
 ]);
 
-export const TUGU = freezeDeep({ x: 0, z: -(STADIUM.outerSemiZ + 45) });
+export const TUGU = freezeDeep({ x: SITE.tugu.x, z: SITE.tugu.z });
 
 export const CHAPTERS = freezeDeep([
   {

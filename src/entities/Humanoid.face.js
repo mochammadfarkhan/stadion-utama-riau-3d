@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { DIM } from './Humanoid.dim.js';
+import { currentScope } from '../engine/ResourceScope.js';
 
 const EYE_COLOR = 0x151515;
 const CHEEK_COLOR = 0xf5a3b0;   // merah muda lembut (meniru opacity rendah di atas kulit)
@@ -14,8 +15,10 @@ const GLASSES_COLOR = 0x2b2b2b;
 const MUSTACHE_COLOR = 0x3a2a1a;
 const R = DIM.headR;
 
-/** Material bersama untuk semua wajah (warna dari atribut vertex). */
-export const FACE_MAT = new THREE.MeshLambertMaterial({ vertexColors: true });
+/** Material wajah bersama (warna dari atribut vertex), satu per ResourceScope aktif. */
+export function faceMaterial() {
+  return currentScope().get('humanoid:faceMaterial', () => new THREE.MeshLambertMaterial({ vertexColors: true }));
+}
 
 const _color = new THREE.Color();
 const _obj = new THREE.Object3D();
@@ -60,24 +63,20 @@ function mustache() {
   return [onHead(tint(g, MUSTACHE_COLOR), 0, -0.26, 1, 0.006)];
 }
 
-const variants = new Map();
-
-/** Geometri wajah untuk kombinasi {glasses, mustache}; dibuat sekali lalu di-cache. */
+/** Geometri wajah untuk kombinasi {glasses, mustache}; dibuat sekali per ResourceScope aktif. */
 export function faceGeometry({ glasses: hasGlasses = false, mustache: hasMustache = false } = {}) {
   const key = `${hasGlasses ? 'g' : '-'}${hasMustache ? 'm' : '-'}`;
-  const hit = variants.get(key);
-  if (hit) return hit;
-  const pieces = [...eyes(), ...cheeks()];
-  if (hasGlasses) pieces.push(...glasses());
-  if (hasMustache) pieces.push(...mustache());
-  const merged = mergeGeometries(pieces, false);
-  variants.set(key, merged);
-  return merged;
+  return currentScope().get(`humanoid:face:${key}`, () => {
+    const pieces = [...eyes(), ...cheeks()];
+    if (hasGlasses) pieces.push(...glasses());
+    if (hasMustache) pieces.push(...mustache());
+    return mergeGeometries(pieces, false);
+  });
 }
 
 /** Mesh wajah (1 draw call) untuk ditempel di pivot kepala. */
 export function createFace(opts = {}) {
-  const mesh = new THREE.Mesh(faceGeometry(opts), FACE_MAT);
+  const mesh = new THREE.Mesh(faceGeometry(opts), faceMaterial());
   mesh.castShadow = false;
   return mesh;
 }

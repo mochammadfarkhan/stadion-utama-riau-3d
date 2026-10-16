@@ -4,7 +4,7 @@
  * canvas 2D kecil. Tanpa render 3D tambahan, tidak terpengaruh siang/malam, dan murah.
  * Utara = atas; sepeda selalu di tengah.
  */
-import { clampToEdge, projectToView, sourceRect } from './minimapMath.js';
+import { clampToEdge, projectToView, sourceRect } from '../shared/minimapMath.js';
 
 const BG = '#2f5b32';
 const REDRAW_SEC = 1 / 15;     // 15 Hz cukup untuk peta

@@ -11,7 +11,7 @@ import { STADIUM, SITE } from '../config/constants.js';
 import { createRandom } from './siteutil/rng.js';
 import { frameAt, framePoint } from './stadium/ovalFrame.js';
 import { isInsideGate, isInsideStair } from './stadium/gateLayout.js';
-import { distanceToGateCorridor } from '../core/Collider.js';
+import { distanceToGateCorridor } from './stadium/gateCorridor.js';
 
 const SEED = 20121;
 const TWO_PI = Math.PI * 2;
@@ -19,7 +19,7 @@ const TWO_PI = Math.PI * 2;
 const Y = Object.freeze({ plaza: 0.032, moss: 0.034, road: 0.042, letter: 0.046, zebra: 0.066, sidewalk: 0.128 });
 const COUNTS = Object.freeze({ cracks: 120, parkingStains: 30, nagaStains: 10, tire: 15, arrows: 8, manholes: 12 });
 const GATE_CLEARANCE = 7;                 // jarak retak dari koridor gate utama (m)
-const TUGU = Object.freeze({ x: 0, z: -(STADIUM.outerSemiZ + 45), clear: 14, wallR: 11.53, wallH: 0.7, moss: 6 });
+const TUGU = Object.freeze({ x: SITE.tugu.x, z: SITE.tugu.z, clear: 14, wallR: 11.53, wallH: 0.7, moss: 6 });
 const NAGA = Object.freeze({ halfRoad: (SITE.nagaSaktiLanes * SITE.laneWidth) / 2, walk: 2.5 });
 const ZEBRA_WIDTH = 4;                    // lebar penyeberangan (sepanjang X)
 const RIB_FOOT_OUT = 1.1;                 // geser lumut keluar dari pusat kaki rib (m)

@@ -1,13 +1,14 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { currentScope } from '../../engine/ResourceScope.js';
+import { disposeTree } from '../../engine/disposeTree.js';
 
 /**
- * Pemuat model GLB hasil Blender. Satu loader + cache per URL: model yang sama
+ * Pemuat model GLB hasil Blender. Satu loader; cache per URL di ResourceScope aktif: model yang sama
  * dimuat sekali lalu di-clone (geometri & material dibagikan antar salinan).
  * Path relatif terhadap folder public/, sehingga tetap benar di GitHub Pages.
  */
 const loader = new GLTFLoader();
-const cache = new Map();
 
 /** URL absolut terhadap base Vite ("/" saat dev, "/<repo>/" di Pages). */
 export function modelUrl(path) {
@@ -15,15 +16,27 @@ export function modelUrl(path) {
   return `${base}${path.replace(/^\//, '')}`;
 }
 
-/** Muat GLB sekali; kembalikan Promise<THREE.Group> sumber (jangan dimodifikasi). */
+/** Muat GLB sekali per scope; kembalikan Promise<THREE.Group> sumber (jangan dimodifikasi). */
 export function loadModel(path) {
   const url = modelUrl(path);
-  if (!cache.has(url)) {
+  const scope = currentScope();
+  const key = `models:${url}`;
+  return scope.get(key, () => {
     const pending = loader.loadAsync(url).then((gltf) => prepare(gltf.scene));
-    pending.catch(() => cache.delete(url)); // gagal: jangan cache selamanya, izinkan coba lagi
-    cache.set(url, pending);
-  }
-  return cache.get(url);
+    // Gagal: lupakan entri agar bisa dicoba lagi. Galatnya tetap sampai ke pemanggil lewat `pending`.
+    pending.catch(() => scope.forget(key));
+    return pending;
+  }, { dispose: disposeModel });
+}
+
+/**
+ * Lepas sumber model setelah muatannya selesai. Muatan gagal diabaikan di sini (galatnya sudah
+ * diteruskan ke pemanggil loadModel); galat saat melepas dicatat, bukan ditelan.
+ */
+function disposeModel(pending) {
+  pending
+    .then((root) => disposeTree(root), () => {})
+    .catch((err) => console.error('Model GLB gagal dilepas:', err));
 }
 
 /** Salinan siap pakai dari model (geometri/material dibagikan). */

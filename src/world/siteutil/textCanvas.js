@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { currentScope } from '../../engine/ResourceScope.js';
 
 /**
  * CanvasTexture berisi teks — hanya jika `document` tersedia (browser).
@@ -49,17 +50,19 @@ export function makeTextTexture(text, opts = {}) {
   return tex;
 }
 
-const materialCache = new Map();
-
 /**
  * Material plane bertulisan; fallback warna polos jika kanvas tak tersedia.
- * Di-cache per (teks + opsi) agar papan dengan tulisan sama berbagi material
- * dan bisa digabung menjadi satu draw call.
+ * Di-cache per (teks + opsi) dalam ResourceScope aktif agar papan dengan tulisan sama berbagi
+ * material dan bisa digabung menjadi satu draw call. Tekstur kanvas ikut dilepas bersama material.
  */
 export function makeTextMaterial(text, opts = {}) {
   const key = `${text}|${JSON.stringify(opts)}`;
-  if (!materialCache.has(key)) materialCache.set(key, buildTextMaterial(text, opts));
-  return materialCache.get(key);
+  return currentScope().get(`text:${key}`, () => buildTextMaterial(text, opts), { dispose: disposeTextMaterial });
+}
+
+function disposeTextMaterial(mat) {
+  mat.map?.dispose();
+  mat.dispose();
 }
 
 function buildTextMaterial(text, opts) {

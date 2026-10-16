@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { RENDER_LAYERS, STADIUM } from '../config/constants.js';
+import { RENDER_LAYERS, STADIUM, SITE } from '../config/constants.js';
 import { createGround } from './Ground.js';
 import { createLandscape } from './Landscape.js';
 import { createGrass } from './Grass.js';
@@ -25,8 +25,7 @@ import { createGapura } from './props/Gapura.js';
 import { createParkedCars, createParkedMotorcycles, pickParkingSpots } from './props/Vehicles.js';
 import { createCart, createUmbrellaSet, createFoodStall } from './props/Cart.js';
 import { mergeByMaterial } from './util/merge.js';
-import { LAYOUT } from './layout.js';
-import { distanceToGateCorridor } from '../core/Collider.js';
+import { distanceToGateCorridor } from './stadium/gateCorridor.js';
 
 const ROW_DEPTH = STADIUM.rowDepth;
 const SEAT_INSET = 0.45;
@@ -37,12 +36,14 @@ const MINIMAP_LANDSCAPE_PARTS = ['danau', 'sungai'];
 const MINIMAP_TRIBUNE_PARTS = ['beton'];
 
 /**
- * Merakit seluruh dunia statis. Setiap bagian statis digabung per material
- * (mergeByMaterial) agar jumlah draw call minimal; objek besar diberi layer
- * minimap agar tampil di peta kecil.
- * @returns {{group: THREE.Group, update(dt:number, t:number):void, seatSamples: object[], layout: object}}
+ * Merakit seluruh dunia statis region stadion. Setiap bagian statis digabung per material
+ * (mergeByMaterial) agar jumlah draw call minimal; objek besar diberi layer minimap agar tampil
+ * di peta kecil. `layout` WAJIB dari region (regions/stadion/layout.js); `site` default = SITE.
+ * @param {{layout: object, site?: object}} opts
+ * @returns {{group: THREE.Group, update(dt:number, t:number, focus?:object):void, seatSamples: object[], layout: object}}
  */
-export function buildWorld() {
+export function buildWorld({ layout, site = SITE } = {}) {
+  if (!layout) throw new TypeError('buildWorld: layout wajib (diberikan region)');
   const group = new THREE.Group();
   group.name = 'world';
   const updatables = [];
@@ -68,16 +69,16 @@ export function buildWorld() {
   add(createFixtures());
   add(createSerinditStatue()); // terpisah dari fixtures agar namanya terjaga: model Blender menggantikannya (layout.blenderModels)
   add(createTunnels());
-  addStadiumSurroundings(add);
-  addPlazaFurniture(add);
-  addNagaSakti(add);
+  addStadiumSurroundings(add, layout, site);
+  addPlazaFurniture(add, layout);
+  addNagaSakti(add, layout);
   addParking(add, lots);
 
-  const seatSamples = sampleSeats(tribune.userData.tiers, LAYOUT.spectatorCount);
+  const seatSamples = sampleSeats(tribune.userData.tiers, layout.spectatorCount);
   return {
     group,
     seatSamples,
-    layout: LAYOUT,
+    layout,
     update: (dt, t, focus) => updatables.forEach((fn) => fn(dt, t, focus)),
   };
 }
@@ -104,39 +105,39 @@ function collectParkingLots(ground) {
   return lots;
 }
 
-function addStadiumSurroundings(add) {
+function addStadiumSurroundings(add, layout, site) {
   add(createFlagpoles());
-  add(createLancangKuning());
-  add(createTanjakMonument());
+  add(createLancangKuning({ x: site.tugu.x, z: site.tugu.z }));
+  add(createTanjakMonument({ x: site.tanjakMonument.x, z: site.tanjakMonument.z }));
   add(createGapura({ damaged: true }));
-  add(createGuardPosts(LAYOUT.guardPosts));
+  add(createGuardPosts(layout.guardPosts));
   const signs = new THREE.Group();
   signs.name = 'signage';
-  for (const s of LAYOUT.roadSigns) signs.add(placed(createRoadSign({ text: s.text, kind: s.kind }), s));
-  for (const b of LAYOUT.banners) signs.add(placed(createBanner({ text: b.text }), b));
-  for (const b of LAYOUT.billboards) signs.add(placed(createBillboard({ text: b.text }), b));
+  for (const s of layout.roadSigns) signs.add(placed(createRoadSign({ text: s.text, kind: s.kind }), s));
+  for (const b of layout.banners) signs.add(placed(createBanner({ text: b.text }), b));
+  for (const b of layout.billboards) signs.add(placed(createBillboard({ text: b.text }), b));
   add(signs);
 }
 
-function addPlazaFurniture(add) {
-  add(createBenches(LAYOUT.benches.map((p, i) => ({ ...p, type: i % 3 === 0 ? 'besi' : 'semen' }))));
-  add(createTrashBins(LAYOUT.trashBins));
-  add(createPlanters(LAYOUT.planters));
+function addPlazaFurniture(add, layout) {
+  add(createBenches(layout.benches.map((p, i) => ({ ...p, type: i % 3 === 0 ? 'besi' : 'semen' }))));
+  add(createTrashBins(layout.trashBins));
+  add(createPlanters(layout.planters));
   // Semua tiang PJU dalam satu panggilan agar instanced per varian (bukan per area)
   add(createLampPosts([
-    ...LAYOUT.plazaLamps.map((p, i) => ({ ...p, broken: i % 7 === 3 })),
-    ...LAYOUT.ringRoadLamps.map((p, i) => ({ ...p, double: true, broken: i % 9 === 4 })),
-    ...LAYOUT.nagaSaktiLamps,
+    ...layout.plazaLamps,
+    ...layout.ringRoadLamps.map((p) => ({ ...p, double: true })),
+    ...layout.nagaSaktiLamps,
   ]));
 }
 
-function addNagaSakti(add) {
-  for (const seg of LAYOUT.nagaSaktiFence) {
+function addNagaSakti(add, layout) {
+  for (const seg of layout.nagaSaktiFence) {
     add(createFence({ points: [{ x: seg.from, z: seg.z }, { x: seg.to, z: seg.z }], height: 2 }));
   }
   const stalls = new THREE.Group();
   stalls.name = 'lapakPKL';
-  LAYOUT.stalls.forEach((p, i) => stalls.add(placed(stallFor(i), p)));
+  layout.stalls.forEach((p, i) => stalls.add(placed(stallFor(i), p)));
   add(stalls); // semua lapak digabung per material → belasan draw call
 }
 

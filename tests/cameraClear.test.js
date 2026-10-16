@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isCameraClear, OBSTACLES } from '../src/core/Collider.js';
+import { isCameraClear, OBSTACLES } from '../src/regions/stadion/collider.js';
 import { STADIUM } from '../src/config/constants.js';
 
 describe('isCameraClear', () => {

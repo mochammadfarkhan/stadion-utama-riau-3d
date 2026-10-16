@@ -9,6 +9,7 @@ import { WEATHER } from '../config/constants.js';
 import { lightingPreset } from '../sim/dayCycle.js';
 import { createRain } from './Weather.rain.js';
 import { createWetSurfaces } from './Weather.wet.js';
+import { disposeTree } from '../engine/disposeTree.js';
 
 const RAIN_TURBIDITY_ADD = 4;      // langit lebih kabur saat hujan
 const AUDIO_GAIN = 0.18;
@@ -17,17 +18,23 @@ const AUDIO_BUFFER_SECONDS = 2;
 const WIND_DEFAULT = 0.3;          // nilai settings weather.wind yang berarti angin = WEATHER.wind
 
 /**
- * Suara hujan dari derau terfilter (Web Audio); dibuat setelah gesture pengguna.
- * Bila audioBus ada, memakai konteks bersama dan kanal 'ambience' (volume dari settings).
+ * Suara hujan dari derau terfilter (Web Audio); dibuat setelah gesture pengguna (pointerdown/keydown
+ * pada `eventTarget`). Bila audioBus ada, memakai konteks bersama dan kanal 'ambience' (volume dari
+ * settings) — konteks itu milik bus, jadi tidak ditutup di sini.
  */
-function createRainAudio(audioBus) {
+function createRainAudio(audioBus, eventTarget) {
   let ctx = null;
   let gain = null;
+  let src = null;
+  let ownsCtx = false;
+  const listeners = new AbortController();
   const start = () => {
-    const Ctor = window.AudioContext ?? window.webkitAudioContext;
     if (ctx) return;
-    ctx = audioBus?.ensure?.() ?? (Ctor ? new Ctor() : null);
+    const shared = audioBus?.ensure?.() ?? null;
+    const Ctor = globalThis.AudioContext ?? globalThis.webkitAudioContext;
+    ctx = shared ?? (Ctor ? new Ctor() : null);
     if (!ctx) return;
+    ownsCtx = !shared;
     const out = audioBus?.channel?.('ambience') ?? ctx.destination;
     const frames = ctx.sampleRate * AUDIO_BUFFER_SECONDS;
     const buffer = ctx.createBuffer(1, frames, ctx.sampleRate);
@@ -38,7 +45,7 @@ function createRainAudio(audioBus) {
       last = (last + 0.04 * white) / 1.04;
       data[i] = last * 3.5;
     }
-    const src = ctx.createBufferSource();
+    src = ctx.createBufferSource();
     src.buffer = buffer;
     src.loop = true;
     const filter = ctx.createBiquadFilter();
@@ -50,8 +57,8 @@ function createRainAudio(audioBus) {
     src.start();
   };
   const onGesture = () => start();
-  window.addEventListener('pointerdown', onGesture, { passive: true });
-  window.addEventListener('keydown', onGesture, { passive: true });
+  eventTarget?.addEventListener?.('pointerdown', onGesture, { passive: true, signal: listeners.signal });
+  eventTarget?.addEventListener?.('keydown', onGesture, { passive: true, signal: listeners.signal });
   let resuming = false;
   return {
     setLevel(level) {
@@ -62,6 +69,19 @@ function createRainAudio(audioBus) {
       }
       gain.gain.value = AUDIO_GAIN * level;
     },
+    dispose() {
+      listeners.abort();
+      try {
+        src?.stop();
+      } catch {
+        // sumber sudah berhenti
+      }
+      gain?.disconnect();
+      if (ownsCtx && ctx?.close) Promise.resolve(ctx.close()).catch(() => {});
+      src = null;
+      gain = null;
+      ctx = null;
+    },
   };
 }
 
@@ -69,19 +89,23 @@ function createRainAudio(audioBus) {
  * @param {THREE.Scene} scene
  * @param {import('../core/App.js').App} app
  * @param {THREE.Group} lighting hasil createLighting
- * @param {{audioBus?: object}} opts
- * @returns {{update(dt, ctx):void, toggleRain():boolean, setRaining(b):void, setIntensity(v):void,
+ * @param {{audioBus?: object, eventTarget?: EventTarget}} opts
+ * @returns {{group: THREE.Group, registerWet(root):() => boolean, unregisterWet(root):boolean,
+ *   update(dt, ctx):void, toggleRain():boolean, setRaining(b):void, setIntensity(v):void,
  *   setWetness(v):void, setWind(v):void, setSoundEnabled(b):void,
- *   isRaining:boolean, intensity:number, weatherName:string}}
+ *   dispose():void, isRaining:boolean, intensity:number, weatherName:string}}
  */
 const DAY_HEMI_INTENSITY = lightingPreset(12).hemiIntensity; // acuan "siang terang"
 const MIN_RAIN_BRIGHTNESS = 0.15;                              // hujan malam tetap samar terlihat
 
-export function createWeather(scene, app, lighting, { audioBus = null } = {}) {
+export function createWeather(scene, app, lighting, { audioBus = null, eventTarget = globalThis.window } = {}) {
   const L = lighting.userData;
-  const rain = createRain(scene);
-  const wet = createWetSurfaces(scene);
-  const audio = createRainAudio(audioBus);
+  // Hujan & genangan di grup sendiri (pemanggil menambahkannya ke scene); scene hanya untuk kabut/env.
+  const group = new THREE.Group();
+  group.name = 'cuaca';
+  const rain = createRain(group);
+  const wet = createWetSurfaces(group);
+  const audio = createRainAudio(audioBus, eventTarget);
   let raining = false;
   // Parameter settings (immutable; objek baru tiap perubahan).
   let params = Object.freeze({ maxIntensity: 0.7, wetness: 1, soundEnabled: true });
@@ -107,6 +131,10 @@ export function createWeather(scene, app, lighting, { audioBus = null } = {}) {
   const setParams = (patch) => { params = Object.freeze({ ...params, ...patch }); };
 
   return {
+    group,
+    /** Daftarkan permukaan basah di bawah root (region/tile); kembalikan fungsi unregister. */
+    registerWet: (root) => wet.register(root),
+    unregisterWet: (root) => wet.unregister(root),
     get isRaining() { return raining; },
     get intensity() { return intensity; },
     get weatherName() { return raining ? 'Hujan' : 'Cerah'; },
@@ -134,6 +162,13 @@ export function createWeather(scene, app, lighting, { audioBus = null } = {}) {
       rain.update(dt, intensity, app.camera, ctx.focus ?? ctx.bikePos, brightness);
       wet.update(dt, intensity * params.wetness);
       audio.setLevel(params.soundEnabled ? intensity : 0);
+    },
+    /** Bongkar: listener gesture, audio (konteks milik sendiri ditutup), registry basah, grup cuaca. */
+    dispose() {
+      audio.dispose();
+      wet.dispose();
+      group.removeFromParent();
+      disposeTree(group);
     },
   };
 }
