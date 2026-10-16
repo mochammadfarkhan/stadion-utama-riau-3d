@@ -65,7 +65,7 @@ async function main() {
   // Kontrol sentuh + gamepad menulis ke Input yang sama dengan keyboard.
   const touchUi = new TouchControls(document.body, { input, rig, surface: app.renderer.domElement });
   const gamepad = createGamepadPoller(input, { lookBy: (dx, dy) => rig.lookBy(dx, dy) });
-  app.addUpdatable({ update: (dt) => gamepad.update(dt) });
+  app.addSystem({ id: 'gamepad', phase: 'input', update: (dt) => gamepad.update(dt) });
   window.addEventListener('gamepadconnected', () => hud.toast('Gamepad terhubung', true));
   const audioBus = createAudioBus();
   const storage = safeLocalStorage();
@@ -80,7 +80,7 @@ async function main() {
   await loading.step(0.12, 'Menyiapkan langit dan pencahayaan…');
   const lighting = createLighting(app.scene, app.renderer);
   app.scene.add(lighting);
-  app.addUpdatable({ update: (dt, ctx) => lighting.userData.update?.(dt, ctx.time, ctx.focus, ctx.shadowFrame) });
+  app.addSystem({ id: 'lighting', phase: 'world', update: (dt, ctx) => lighting.userData.update?.(dt, ctx.time, ctx.focus, ctx.shadowFrame) });
 
   await loading.step(0.2, 'Membangun stadion, tribun, dan lingkungan…');
   const world = buildWorld();
@@ -89,7 +89,8 @@ async function main() {
   const blenderModels = createModelGroup();
   app.scene.add(blenderModels);
   const modelsReady = loadBlenderModels(blenderModels, world.group, hud);
-  app.addUpdatable({ update: (dt, ctx) => { updateWind(dt); world.update(dt, ctx.time, ctx.focus); } }); // angin global tiap frame
+  app.addSystem({ id: 'wind', phase: 'world', update: (dt) => updateWind(dt) }); // angin global tiap frame
+  app.addSystem({ id: 'world', phase: 'world', update: (dt, ctx) => world.update(dt, ctx.time, ctx.focus) });
 
   await loading.step(0.55, 'Menyiapkan pemain, pelari, pedagang, dan penonton…');
   const wallet = createWallet();
@@ -98,14 +99,14 @@ async function main() {
   ents.bike.setCollider(createCollider(START_POS));
   rig.attachSource(createPovSource(ents));
   ents.bike.setAudioBus(audioBus);
-  for (const e of ents.updatables) app.addUpdatable(e);
+  ents.updatables.forEach((e, i) => app.addSystem({ id: `entities.${i}`, phase: 'sim', update: (dt, ctx) => e.update(dt, ctx) }));
 
   await loading.step(0.8, 'Menyiapkan siklus waktu dan cuaca…');
   // Siklus waktu & cuaca: dibuat setelah dunia + entitas ada (mencari material emissive & permukaan basah).
   const time = createTimeOfDay(lighting, app.scene, app.renderer, app);
   const weather = createWeather(app.scene, app, lighting, { audioBus });
-  app.addUpdatable({ update: (dt, ctx) => time.update(dt, ctx, ents.bike.state) });
-  app.addUpdatable(weather); // setelah TimeOfDay: mengalikan nilai pencahayaan frame ini
+  app.addSystem({ id: 'timeOfDay', phase: 'world', update: (dt, ctx) => time.update(dt, ctx, ents.bike.state) });
+  app.addSystem({ id: 'weather', phase: 'world', update: (dt, ctx) => weather.update(dt, ctx) }); // setelah TimeOfDay: mengalikan nilai pencahayaan frame ini
 
   hud.setWallet(wallet);
   hud.setCameraMode(rig.mode);
@@ -113,24 +114,9 @@ async function main() {
   const shop = setupShop(hud, ents, story);
   const minimap = setupMinimap(app, ents, story);
 
+  addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story });
+
   const bikePos = new THREE.Vector3();
-  app.addUpdatable({
-    update(dt, ctx) {
-      if (session.started) handleKeys(input, { rig, hud, ents, shop, time, store, story }); // menu terbuka: tombol game diabaikan
-      story.update(dt, { time: ctx.time, bikePos: ents.bike.state, hour: time.hour, raining: Boolean(store.get('weather.raining')), paused: hud.shopOpen || rig.freezesBike });
-      rig.update(ents.bike.state, dt, ctx.time);
-      ents.bike.setRiderVisible(!rig.firstPersonView);
-      hud.setCameraView(rig.mode, rig.povLabel, rig.freezesBike);
-      // POV beku: sepeda berhenti seketika (bukan meluncur karena momentum)
-      if (rig.freezesBike && ents.bike.state.v !== 0) ents.bike.state = { ...ents.bike.state, v: 0 };
-      hud.setSpeed(ents.bike.speedKmh);
-      hud.setTime(formatHour(time.hour), time.presetName, weather.weatherName);
-      hud.setScore(ents.match.score);
-      hud.tickFps(ctx.rawDt ?? dt); // FPS jujur: delta mentah, bukan yang di-clamp
-      updatePrompt(hud, ents, story, ents.bike.state);
-      input.endFrame();
-    },
-  });
 
   // Binding store -> scene (satu sumber kebenaran). Dipasang setelah semua objek ada.
   bindAll(store, {
@@ -164,6 +150,50 @@ async function main() {
   if (import.meta.env.DEV) exposeDevTools({ app, ents, rig, time, weather, store, audioBus, story });
 }
 
+/**
+ * Sistem per frame milik composition root (dulu satu updatable raksasa). Hotkey kini di fase input
+ * (efeknya terlihat satu frame lebih awal; tidak ada perbedaan visual), cerita di sim, kamera di camera,
+ * HUD dan input.endFrame di ui (endFrame terdaftar terakhir di antara konsumen tombol).
+ */
+function addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story }) {
+  app.addSystem({
+    id: 'keymap',
+    phase: 'input',
+    update: () => { if (session.started) handleKeys(input, { rig, hud, ents, shop, time, store, story }); }, // menu terbuka: tombol game diabaikan
+  });
+  app.addSystem({
+    id: 'story',
+    phase: 'sim',
+    update: (dt, ctx) => story.update(dt, {
+      time: ctx.time, bikePos: ents.bike.state, hour: time.hour,
+      raining: Boolean(store.get('weather.raining')), paused: hud.shopOpen || rig.freezesBike,
+    }),
+  });
+  app.addSystem({
+    id: 'cameraRig',
+    phase: 'camera',
+    update: (dt, ctx) => {
+      rig.update(ents.bike.state, dt, ctx.time);
+      ents.bike.setRiderVisible(!rig.firstPersonView);
+      // POV beku: sepeda berhenti seketika (bukan meluncur karena momentum)
+      if (rig.freezesBike && ents.bike.state.v !== 0) ents.bike.state = { ...ents.bike.state, v: 0 };
+    },
+  });
+  app.addSystem({
+    id: 'hud',
+    phase: 'ui',
+    update: (dt, ctx) => {
+      hud.setCameraView(rig.mode, rig.povLabel, rig.freezesBike);
+      hud.setSpeed(ents.bike.speedKmh);
+      hud.setTime(formatHour(time.hour), time.presetName, weather.weatherName);
+      hud.setScore(ents.match.score);
+      hud.tickFps(ctx.rawDt ?? dt); // FPS jujur: delta mentah, bukan yang di-clamp
+      updatePrompt(hud, ents, story, ents.bike.state);
+    },
+  });
+  app.addSystem({ id: 'input.endFrame', phase: 'ui', update: () => input.endFrame() });
+}
+
 /** Cerita: NPC, penanda tujuan, HUD, jurnal; progres dimuat dari localStorage. */
 function setupStory({ app, ents, hud, rig }) {
   const root = document.getElementById('hud');
@@ -171,7 +201,7 @@ function setupStory({ app, ents, hud, rig }) {
   const markers = createStoryMarkers();
   app.scene.add(npcs.group, markers.group);
   ents.lod.addFrom(npcs.group);
-  app.addUpdatable({ update: (dt, ctx) => npcs.refreshLabels(ctx.focus ?? ctx.bikePos, ents.vendors.labelsEnabled) });
+  app.addSystem({ id: 'storyNpcLabels', phase: 'ui', update: (dt, ctx) => npcs.refreshLabels(ctx.focus ?? ctx.bikePos, ents.vendors.labelsEnabled) });
   let story = null;
   const storyHud = new StoryHUD(root, { onAdvance: () => story.advanceDialog() });
   const journal = new StoryJournal(root, { onReset: () => story.reset(), onClose: () => story.toggleJournal() });
@@ -192,7 +222,9 @@ function setupMinimap(app, ents, story) {
     ...ents.vendors.vendors.map((v) => ({ x: v.position.x, z: v.position.z, color: PIN_VENDOR })),
     ...STORY_NPCS.map((n) => ({ x: n.x, z: n.z, color: PIN_NPC })),
   ];
-  app.addUpdatable({
+  app.addSystem({
+    id: 'minimap',
+    phase: 'ui',
     update(dt, ctx) {
       minimap.setVisible(app.minimapVisible);
       const b = ents.bike.state;
