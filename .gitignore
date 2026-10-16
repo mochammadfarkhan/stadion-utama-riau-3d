@@ -8,3 +8,6 @@ coverage/
 # Cadangan otomatis Blender dan artefak alat lokal
 *.blend1
 .playwright-mcp/
+
+# Cache data mentah citybake (OSM/Overture; dapat diunduh ulang)
+data-src/

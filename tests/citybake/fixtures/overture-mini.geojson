@@ -1,0 +1,9 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {"type":"Feature","properties":{"id":"ov-a","src":"Microsoft ML Buildings","subtype":null,"class":null,"height":null,"num_floors":null,"name":null},"geometry":{"type":"Polygon","coordinates":[[[101.3903811,0.4827272],[101.390471,0.4827272],[101.390471,0.4826549],[101.3903811,0.4826549],[101.3903811,0.4827272]]]}},
+    {"type":"Feature","properties":{"id":"ov-b","src":"Google Open Buildings","subtype":"residential","class":"house","height":7.5,"num_floors":null,"name":null},"geometry":{"type":"Polygon","coordinates":[[[101.3881398,0.4822705],[101.3882206,0.4822705],[101.3882206,0.4822072],[101.3881398,0.4822072],[101.3881398,0.4822705]]]}},
+    {"type":"Feature","properties":{"id":"ov-c","src":"OpenStreetMap","subtype":null,"class":null,"height":null,"num_floors":null,"name":null},"geometry":{"type":"Polygon","coordinates":[[[101.3894828,0.4818319],[101.3895726,0.4818319],[101.3895726,0.4817414],[101.3894828,0.4817414],[101.3894828,0.4818319]]]}},
+    {"type":"Feature","properties":{"id":"ov-d","src":"Microsoft ML Buildings","subtype":"commercial","class":null,"height":null,"num_floors":2,"name":"Ruko Uji"},"geometry":{"type":"MultiPolygon","coordinates":[[[[101.3912974,0.4818138],[101.3913513,0.4818138],[101.3913513,0.4817595],[101.3912974,0.4817595],[101.3912974,0.4818138]]],[[[101.3914771,0.4818138],[101.391531,0.4818138],[101.391531,0.4817595],[101.3914771,0.4817595],[101.3914771,0.4818138]]]]}}
+  ]
+}
