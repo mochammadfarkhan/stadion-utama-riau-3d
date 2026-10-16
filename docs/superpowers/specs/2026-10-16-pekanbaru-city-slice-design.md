@@ -12,7 +12,7 @@ satu fondasi**. Spec ini hanya mencakup fondasi + vertical slice yang membuktika
 - **Area A — Stadion:** ±3 × 3 km berpusat di Stadion Utama Riau. Stadion yang sudah ada menjadi
   *region handmade* di tengah; sekelilingnya dari data nyata.
 - **Area B — Pusat kota:** ±1,5 × 1,5 km berpusat di Masjid Raya An-Nur (mencakup sebagian
-  Jl. Sudirman). Terpisah ±12 km dari stadion; dicapai lewat **fast travel**.
+  Jl. Sudirman). Terpisah ±8,3 km dari stadion (terukur dari OSM); hasil bake dibulatkan ke grid 500 m sehingga menjadi 2 × 2 km; dicapai lewat **fast travel**.
 - Sisa kota dapat ditambahkan nanti **hanya dengan menambah bbox di konfigurasi bake**, tanpa kode baru.
 
 ### Kriteria sukses
@@ -77,8 +77,10 @@ public/tiles/
 ```
 
 Arah dependensi yang ditegakkan (dicek ESLint `no-restricted-imports`):
-`engine` ← semua; `geo`, `shared`, `sim`, `story` murni (tanpa three/DOM kecuali `shared` boleh three);
-`world`, `regions`, `city` → `engine`, `geo`, `shared`, `config`; `ui` → semua kecuali `main`;
+`engine` ← semua; `geo`, `shared`, `story` murni (tanpa three/DOM kecuali `shared` boleh three);
+`sim` tanpa DOM (three masih dipakai `trackPath.js` — utang, belum ditegakkan);
+`world`, `city` → `engine`, `geo`, `shared`, `config`; `regions` → itu semua + `world` (region merakit
+builder dunia); `ui` → semua kecuali `main`;
 `core` **tidak** mengimpor `ui` atau `world/stadium/*`. `main.js` = composition root saja.
 
 ### 3.1 Kontrak
@@ -128,7 +130,7 @@ ikut tercakup dan dapat di-unregister saat dispose.
    `core/Collider.js` mengimpor `world/stadium/*`; StoryDirector berbicara ke HUD lewat callback/efek.
 7. `main.js` dipecah: `main.js` (composition), `keymap.js`, `shop.js`, `session.js`, `devtools.js`.
 8. **Bug dompet:** save `v2` menyimpan `wallet {balance, items}`; migrasi `v1 → v2` memberi
-   `balance = rupiah` sekali, lalu tidak ada lagi credit-ulang saat load (`StoryDirector.js:56`).
+   `balance = startBalance + rupiah` sekali (saldo awal tidak hilang), lalu tidak ada lagi credit-ulang saat load (`StoryDirector.js:56`).
 9. Duplikasi kebenaran: posisi tugu (5 file) dan aturan lampu rusak (`index.js:127`,
    `TimeOfDay.lights.js:32`) dipusatkan di data region; collider danau mengikuti bentuk visual (atau
    hilang bila danau dihapus di Fase 3).
