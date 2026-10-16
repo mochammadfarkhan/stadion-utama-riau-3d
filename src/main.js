@@ -10,18 +10,17 @@ import '@fontsource-variable/jetbrains-mono';
 import { CameraRig } from './core/CameraRig.js';
 import { createCollider, isCameraClear } from './core/Collider.js';
 import { createPovSource } from './core/povSource.js';
-import { EXIT_KEY, POVS } from './core/cameraPresets.js';
+import { POVS } from './core/cameraPresets.js';
 import { createAudioBus } from './core/AudioBus.js';
-import { routeEscape } from './core/escapeRoute.js';
 import { createLighting } from './world/Lighting.js';
 import { createTimeOfDay } from './world/TimeOfDay.js';
 import { createWeather } from './world/Weather.js';
-import { formatHour, nextPresetAfter, PRESET_HOURS } from './sim/dayCycle.js';
+import { formatHour } from './sim/dayCycle.js';
 import { buildWorld } from './world/index.js';
 import { Minimap2D } from './ui/Minimap2D.js';
 import { MainMenu } from './ui/MainMenu.js';
 import { hasStoryProgress } from './ui/menuModel.js';
-import { createRotatePrompt, requestLandscape } from './ui/orientation.js';
+import { createRotatePrompt } from './ui/orientation.js';
 import { SITE } from './config/constants.js';
 import { STORY_NPCS } from './story/chapters.js';
 import { freezeStatic } from './world/util/freezeStatic.js';
@@ -34,19 +33,19 @@ import { createWallet } from './sim/vendorSim.js';
 import { createSettingsStore, STORAGE_KEY } from './settings/store.js';
 import { safeLocalStorage } from './settings/safeStorage.js';
 import { bindAll } from './ui/bindings/index.js';
-import { mountSettingsPanel } from './ui/mountSettingsPanel.js';
 import { createLoadingScreen } from './ui/LoadingScreen.js';
 import { StoryDirector } from './core/StoryDirector.js';
 import { StoryNpcs } from './entities/StoryNpcs.js';
 import { createStoryMarkers } from './world/StoryMarkers.js';
 import { StoryHUD } from './ui/StoryHUD.js';
 import { StoryJournal } from './ui/StoryJournal.js';
+import { session, setupMenu } from './app/session.js';
+import { handleKeys } from './app/keymap.js';
+import { setupShop, updatePrompt } from './app/shop.js';
+import { exposeDevTools } from './app/devtools.js';
 
 const START_POS = { x: 0, z: -275, yaw: 0 }; // plaza utara, menghadap stadion
-const HOURS = 24;
 const MODELS_TIMEOUT_MS = 8000;
-/** Sesi: false selama menu utama terbuka (kamera orbit latar, tombol game diabaikan). */
-const session = { started: false };
 
 function showFatal(msg) {
   const panel = document.querySelector('#overlay .panel');
@@ -201,141 +200,6 @@ function setupMinimap(app, ents, story) {
     },
   });
   return minimap;
-}
-
-/** Dialog beli: pedagang bisa berjalan menjauh saat dialog terbuka; kunci id pedagang saat dibuka. */
-function setupShop(hud, ents, story) {
-  const shop = { vendorId: null };
-  hud.onBuy = (itemId) => {
-    if (!shop.vendorId) return;
-    const res = ents.vendors.tryBuy(itemId, shop.vendorId);
-    hud.setWallet(ents.vendors.wallet);
-    hud.toast(res.ok ? `Beli ${res.item.name} ✔` : res.error, res.ok);
-    if (res.ok) story.onBought(res.item.id);
-  };
-  return shop;
-}
-
-/** Menu utama: Mulai/Lanjutkan, Mulai dari awal, Pengaturan; klik kanvas mengunci pointer sesudah mulai. */
-function setupMenu({ app, rig, hud, store, touchUi, touch, menu, story }) {
-  let panel = null;
-  let started = false;
-  const begin = () => {
-    started = true;
-    session.started = true;
-    rig.exitPov(); // akhiri orbit latar menu
-    menu.hide();
-    if (touch) {
-      touchUi.setVisible(true); // pointer lock tidak ada di ponsel; kontrol layar menggantikannya
-      requestLandscape(); // layar penuh + kunci landscape (gestur pengguna = tombol Mulai)
-    } else {
-      rig.requestLock();
-    }
-  };
-  menu.on({
-    start: begin,
-    newGame: () => { story.reset(); begin(); },
-    settings: () => { menu.away(true); panel?.togglePanel?.(true); },
-  });
-  mountSettingsPanel({
-    store, app, rig, hud,
-    onPanelToggle: (open) => { if (!open && !started) menu.away(false); }, // panel ditutup sebelum mulai: menu muncul lagi
-  }).then(({ panel: p }) => {
-    panel = p;
-    if (p) return; // panel memasang handler klik kanvas sendiri (cek isPointerOverUI)
-    app.renderer.domElement.addEventListener('click', () => {
-      if (started && !hud.shopOpen && !touch) rig.requestLock();
-    });
-  });
-}
-
-/** Alat debug hanya di mode dev: teleport, statistik renderer, store settings. */
-function exposeDevTools({ app, ents, rig, time, weather, store, audioBus, story }) {
-  window.__sim = {
-    app, ents, rig, time, weather, store, audioBus, story,
-    teleport(x, z, yaw = 0) {
-      ents.bike.state = { ...ents.bike.state, x, z, yaw, v: 0 };
-      ents.bike.setCollider(createCollider({ x, z }));
-    },
-    stats: () => ({ ...app.renderer.info.render, fps: document.getElementById('hud-fps').textContent }),
-  };
-}
-
-/** Hotkey lama menulis ke store (binding menerapkan ke scene). */
-function handleKeys(input, { rig, hud, ents, shop, time, store, story }) {
-  const toggle = (key) => store.set(key, !store.get(key));
-  handleCameraKeys(input, { rig, hud, store });
-  if (input.consumePress('KeyM')) toggle('performance.minimap');
-  if (input.consumePress('KeyO')) toggle('graphics.ao'); // matikan AO bila FPS rendah
-  handleTimeWeatherKeys(input, hud, time, store);
-  if (input.consumePress('KeyJ')) story.toggleJournal();
-  const escTarget = input.consumePress('Escape')
-    ? routeEscape({ journalOpen: story.journal.open, shopOpen: hud.shopOpen })
-    : null;
-  if (escTarget === 'journal') story.toggleJournal();
-  if (input.consumePress('KeyE')) {
-    if (hud.shopOpen || !story.tryInteract(ents.bike.state)) handleShopKey(rig, hud, ents, shop);
-  } else if (escTarget === 'shop') handleShopKey(rig, hud, ents, shop);
-}
-
-/** V: ganti mode kamera pemain, atau keluar dari POV. Digit1..7 masuk POV, Digit0 keluar. */
-function handleCameraKeys(input, { rig, hud, store }) {
-  if (input.consumePress('KeyV')) {
-    if (rig.povId) rig.exitPov();
-    else store.set('camera.mode', rig.mode === 'third' ? 'first' : 'third');
-  }
-  for (const code of [EXIT_KEY, ...POVS.map((p) => p.key)]) {
-    if (!input.consumePress(code)) continue;
-    const msg = rig.handlePovKey(code);
-    if (msg) hud.toast(msg, true);
-    else if (code !== EXIT_KEY) hud.toast('POV belum tersedia', false);
-  }
-}
-
-function handleShopKey(rig, hud, ents, shop) {
-  if (rig.freezesBike) return; // sepeda dibekukan di POV: tidak ada transaksi
-  if (hud.shopOpen) {
-    hud.closeShop();
-    shop.vendorId = null;
-    rig.requestLock();
-  } else if (ents.vendors.promptVendor) {
-    shop.vendorId = ents.vendors.promptVendor.id;
-    hud.openShop(shopInfo(ents.vendors.promptVendor));
-    document.exitPointerLock?.();
-  }
-}
-
-/** R hujan, N preset waktu berikutnya, T jalankan/hentikan jam, [ / ] mundur/maju 1 jam. */
-function handleTimeWeatherKeys(input, hud, time, store) {
-  const setHour = (h) => store.set('sky.hour', ((h % HOURS) + HOURS) % HOURS);
-  if (input.consumePress('KeyR')) {
-    const on = !store.get('weather.raining');
-    store.set('weather.raining', on);
-    hud.toast(on ? 'Hujan turun' : 'Hujan reda', true);
-  }
-  if (input.consumePress('KeyN')) {
-    const name = nextPresetAfter(time.hour);
-    setHour(PRESET_HOURS[name]);
-    hud.toast(`Waktu: ${name}`, true);
-  }
-  if (input.consumePress('KeyT')) {
-    const running = !store.get('sky.advanceTime');
-    store.set('sky.advanceTime', running);
-    hud.toast(running ? 'Jam berjalan' : 'Jam berhenti', true);
-  }
-  if (input.consumePress('BracketLeft')) setHour(time.hour - 1);
-  if (input.consumePress('BracketRight')) setHour(time.hour + 1);
-}
-
-function updatePrompt(hud, ents, story, bikePos) {
-  if (hud.shopOpen) return hud.setPrompt(null);
-  const pv = ents.vendors.promptVendor; // satu sumber kebenaran jarak interaksi (VendorGroup)
-  hud.setPrompt(story.promptFor(bikePos) ?? (pv ? `Tekan E — ${pv.name}` : null));
-}
-
-/** Bentuk data untuk dialog HUD dari info pedagang. */
-function shopInfo(vendor) {
-  return { name: vendor.name, items: vendor.catalog };
 }
 
 /**
