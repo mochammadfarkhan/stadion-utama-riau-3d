@@ -82,6 +82,12 @@ function safeWallet(wallet) {
   return { balance, items };
 }
 
+/** Dompet dari data luar (save): saldo ≥ 0 dan salinan daftar item; tidak memutasi masukan. */
+export function restoreWallet(wallet) {
+  const w = safeWallet(wallet);
+  return { balance: w.balance, items: [...w.items] };
+}
+
 /**
  * Beli item dari katalog. Saldo tidak pernah negatif.
  * @returns {{ok:true,wallet,item}|{ok:false,wallet,error}}
