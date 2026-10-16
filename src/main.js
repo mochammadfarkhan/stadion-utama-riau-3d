@@ -16,7 +16,6 @@ import { createLighting } from './world/Lighting.js';
 import { createTimeOfDay } from './world/TimeOfDay.js';
 import { createWeather } from './world/Weather.js';
 import { formatHour } from './sim/dayCycle.js';
-import { buildWorld } from './world/index.js';
 import { Minimap2D } from './ui/Minimap2D.js';
 import { MainMenu } from './ui/MainMenu.js';
 import { hasStoryProgress } from './ui/menuModel.js';
@@ -25,7 +24,6 @@ import { SITE } from './config/constants.js';
 import { STORY_NPCS } from './story/chapters.js';
 import { freezeStatic } from './world/util/freezeStatic.js';
 import { createModelGroup, placeModels } from './world/assets/models.js';
-import { LAYOUT } from './world/layout.js';
 import { updateWind } from './world/shaders/windState.js';
 import { buildEntities } from './entities/index.js';
 import { HUD } from './ui/HUD.js';
@@ -39,6 +37,8 @@ import { StoryNpcs } from './entities/StoryNpcs.js';
 import { createStoryMarkers } from './world/StoryMarkers.js';
 import { StoryHUD } from './ui/StoryHUD.js';
 import { StoryJournal } from './ui/StoryJournal.js';
+import { createResourceScope } from './engine/ResourceScope.js';
+import { stadionRegion } from './regions/stadion/index.js';
 import { session, setupMenu } from './app/session.js';
 import { handleKeys } from './app/keymap.js';
 import { setupShop, updatePrompt } from './app/shop.js';
@@ -83,18 +83,20 @@ async function main() {
   app.addSystem({ id: 'lighting', phase: 'world', update: (dt, ctx) => lighting.userData.update?.(dt, ctx.time, ctx.focus, ctx.shadowFrame) });
 
   await loading.step(0.2, 'Membangun stadion, tribun, dan lingkungan…');
-  const world = buildWorld();
-  app.scene.add(world.group);
-  freezeStatic(world.group); // dunia statis: matriks dihitung sekali, tidak per frame
+  const region = await stadionRegion.build({
+    scene: app.scene, renderer: app.renderer, camera: app.camera, scope: createResourceScope('region:stadion'), store, clock: app.timer,
+  });
+  app.scene.add(region.group);
+  freezeStatic(region.group); // dunia statis: matriks dihitung sekali, tidak per frame
   const blenderModels = createModelGroup();
   app.scene.add(blenderModels);
-  const modelsReady = loadBlenderModels(blenderModels, world.group, hud);
+  const modelsReady = loadBlenderModels(blenderModels, region, hud);
   app.addSystem({ id: 'wind', phase: 'world', update: (dt) => updateWind(dt) }); // angin global tiap frame
-  app.addSystem({ id: 'world', phase: 'world', update: (dt, ctx) => world.update(dt, ctx.time, ctx.focus) });
+  region.systems.forEach((s) => app.addSystem(s));
 
   await loading.step(0.55, 'Menyiapkan pemain, pelari, pedagang, dan penonton…');
   const wallet = createWallet();
-  const ents = buildEntities({ start: START_POS, world, wallet, camera: app.camera });
+  const ents = buildEntities({ start: START_POS, world: region, wallet, camera: app.camera });
   app.scene.add(ents.group);
   ents.bike.setCollider(createCollider(START_POS));
   rig.attachSource(createPovSource(ents));
@@ -103,7 +105,7 @@ async function main() {
 
   await loading.step(0.8, 'Menyiapkan siklus waktu dan cuaca…');
   // Siklus waktu & cuaca: dibuat setelah dunia + entitas ada (mencari material emissive & permukaan basah).
-  const time = createTimeOfDay(lighting, app.scene, app.renderer, app);
+  const time = createTimeOfDay(lighting, app.scene, app.renderer, app, { lamps: region.lamps });
   const weather = createWeather(app.scene, app, lighting, { audioBus });
   app.addSystem({ id: 'timeOfDay', phase: 'world', update: (dt, ctx) => time.update(dt, ctx, ents.bike.state) });
   app.addSystem({ id: 'weather', phase: 'world', update: (dt, ctx) => weather.update(dt, ctx) }); // setelah TimeOfDay: mengalikan nilai pencahayaan frame ini
@@ -235,11 +237,11 @@ function setupMinimap(app, ents, story) {
 }
 
 /**
- * Muat model GLB hasil Blender (LAYOUT.blenderModels) tanpa menahan start aplikasi.
+ * Muat model GLB hasil Blender (region.layout.blenderModels) tanpa menahan start aplikasi.
  * Model yang gagal dimuat hanya dilewati; dunia prosedural tetap lengkap.
  */
-async function loadBlenderModels(group, worldGroup, hud) {
-  const { failed } = await placeModels(group, LAYOUT.blenderModels ?? [], { world: worldGroup });
+async function loadBlenderModels(group, region, hud) {
+  const { failed } = await placeModels(group, region.layout.blenderModels ?? [], { world: region.group });
   if (failed.length) hud.toast(`${failed.length} model 3D gagal dimuat`, false);
 }
 

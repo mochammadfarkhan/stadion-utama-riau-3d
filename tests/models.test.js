@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Group } from 'three';
 import { modelUrl, placeModels } from '../src/world/assets/models.js';
-import { LAYOUT } from '../src/world/layout.js';
+import { LAYOUT } from '../src/regions/stadion/layout.js';
 
 describe('pemuat model Blender', () => {
   it('modelUrl memakai base Vite dan tidak menggandakan garis miring', () => {

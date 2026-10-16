@@ -6,7 +6,6 @@
  */
 import * as THREE from 'three';
 import { DAY, STADIUM } from '../config/constants.js';
-import { LAYOUT } from './layout.js';
 import { LAMP_POST } from './props/LampPost.js';
 import { createNightHalos } from './NightHalos.js';
 
@@ -28,20 +27,8 @@ const POOL_OPACITY = 0.5;
 const POOL_Y = 0.14;
 const EMISSIVE_AUTO_BOOST = 1.8;  // material emissive tanpa tag: on = off × boost
 const FADE_RATE = 1.5;            // 1/s, transisi intensitas
-// Aturan PJU rusak harus sama dengan world/index.js (plaza i%7==3, jalan lingkar i%9==4).
-const PLAZA_BROKEN = (i) => i % 7 === 3;
-const RING_BROKEN = (i) => i % 9 === 4;
 
 const _fwd = new THREE.Vector3();
-
-/** Posisi semua PJU yang berlampu (data murni). */
-function litLampPositions() {
-  return [
-    ...LAYOUT.plazaLamps.filter((_, i) => !PLAZA_BROKEN(i)),
-    ...LAYOUT.ringRoadLamps.filter((_, i) => !RING_BROKEN(i)),
-    ...LAYOUT.nagaSaktiLamps,
-  ].map((p) => ({ x: p.x, z: p.z }));
-}
 
 /** Kumpulkan material emissive di scene; yang belum bertanda diberi tag otomatis. */
 function collectEmissiveMaterials(scene) {
@@ -125,11 +112,12 @@ function createFloodSpots(scene) {
 }
 
 /**
+ * @param {THREE.Object3D} scene
+ * @param {{lamps?: {x:number, z:number}[]}} [opts] posisi PJU yang menyala (dari region)
  * @returns {{ update(dt, bikePos, bikeYaw): void, setLampsOn(on: boolean): void, get lampsOn }}
  */
-export function createNightLights(scene) {
+export function createNightLights(scene, { lamps = [] } = {}) {
   const emissives = collectEmissiveMaterials(scene);
-  const lamps = litLampPositions();
   const points = createPointLights(scene);
   const headlight = createHeadlight(scene);
   const floods = createFloodSpots(scene);

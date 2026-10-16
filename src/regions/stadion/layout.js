@@ -1,8 +1,8 @@
 /**
- * Tata letak kawasan: posisi props & titik aktivitas (data murni, tanpa THREE).
+ * Tata letak region stadion: posisi props & titik aktivitas (data murni, tanpa THREE, region-lokal).
  * Origin = pusat lapangan; utara = −Z (Jl. Naga Sakti, plaza depan); barat = −X.
  */
-import { STADIUM, SITE } from '../config/constants.js';
+import { STADIUM, SITE } from './site.js';
 
 const TWO_PI = Math.PI * 2;
 
