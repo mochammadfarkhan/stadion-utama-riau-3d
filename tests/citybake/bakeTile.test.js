@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { bakeTile } from '../../tools/citybake/bakeTile.js';
 import { rect } from './meshTestUtils.js';
+import { signedArea } from '../../src/geo/polygon.js';
 
 const feature = (id, kind, cls, geom, extra = {}) => ({ id, source: 'osm', kind, cls, tags: {}, ...geom, ...extra });
 
@@ -89,5 +90,62 @@ describe('bakeTile', () => {
     const e = bakeTile({ ix: 5, iz: 5, key: '5_5', buildings: [], roads: [], water: [], waterways: [], landuse: [] });
     expect(e.empty).toBe(true);
     expect(e.lods[0].meshes.roads).toBeNull();
+  });
+
+  describe('data.json setelah pembulatan 0,1 m tetap memenuhi kontrak', () => {
+    const EMPTY = { ix: 0, iz: 0, key: '0_0', buildings: [], roads: [], water: [], waterways: [], landuse: [] };
+    const base = TILE.buildings[0];
+    const bake = (over) => bakeTile({ ...EMPTY, ...over }).data;
+    const pairs = (flatPts) => flatPts.reduce((acc, v, i) => (i % 2 ? [...acc.slice(0, -1), [acc.at(-1)[0], v]] : [...acc, [v]]), []);
+    const expectedRing = [-1600, -1550, -1400, -1550, -1400, -1450, -1600, -1450];
+
+    it('ring hampir tertutup: titik penutup ±1 cm dibuang', () => {
+      const ring = [...base.rings[0], [90.01, 95.01]];
+      expect(bake({ buildings: [{ ...base, rings: [ring] }] }).buildings[0].ring).toEqual(expectedRing);
+    });
+
+    it('titik berurutan berjarak ±2 cm digabung', () => {
+      const [first, ...rest] = base.rings[0];
+      const ring = [first, [90.02, 95.01], ...rest];
+      expect(bake({ buildings: [{ ...base, rings: [ring] }] }).buildings[0].ring).toEqual(expectedRing);
+    });
+
+    it('bangunan sliver < 10 cm dibuang', () => {
+      const d = bake({ buildings: [{ ...base, id: 'b0', rings: [rect(100, 100, 0.05, 0.05)] }, base] });
+      expect(d.buildings).toEqual([{ h: 96, ring: expectedRing }]);
+    });
+
+    it('sliver yang orientasinya terbalik setelah pembulatan tetap positif', () => {
+      // luas asli +0,015 m²; setelah dibulatkan [[0,0],[30,0],[60,-1]] → luas negatif sebelum dibalik
+      const ring = [[250, 250], [253, 249.96], [256, 249.93]];
+      expect(signedArea(ring)).toBeGreaterThan(0);
+      const out = bake({ buildings: [{ ...base, rings: [ring] }] }).buildings;
+      expect(out).toHaveLength(1);
+      expect(out[0].ring).toHaveLength(6);
+      expect(signedArea(pairs(out[0].ring))).toBeGreaterThan(0);
+    });
+
+    it('potongan jalan/sungai panjang nol dibuang; duplikat berurutan digabung', () => {
+      const d = bake({
+        roads: [
+          { ...TILE.roads[0], id: 'r0', line: [[250, 250], [250.01, 250.02]] },
+          { ...TILE.roads[0], line: [[0, 20], [0.02, 20.01], [240, 20]] },
+        ],
+        waterways: [{ ...TILE.waterways[0], line: [[400, 100], [400.03, 100]] }],
+      });
+      expect(d.roads).toEqual([{ cls: 'primary', w: 140, pts: [-2500, -2300, -100, -2300], name: 'Jalan Uji Raya' }]);
+      expect(d.waterways).toEqual([]);
+    });
+
+    it('lubang air yang runtuh dibuang, ring luar tetap; air yang runtuh seluruhnya dibuang', () => {
+      const w = TILE.water[0];
+      const d = bake({
+        water: [
+          { ...w, rings: [w.rings[0], rect(400, 400, 0.05, 0.05)] },
+          { ...w, id: 'w2', rings: [rect(100, 400, 0.04, 0.04)] },
+        ],
+      });
+      expect(d.water).toEqual([{ rings: [[1250, 1250, 1750, 1250, 1750, 1750, 1250, 1750]] }]);
+    });
   });
 });

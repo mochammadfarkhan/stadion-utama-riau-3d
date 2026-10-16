@@ -2,7 +2,7 @@
  * Satu tile (fitur dunia hasil partitionFeatures) → mesh LOD0 & LOD1 per material + data.json.
  * Semua koordinat di-re-center ke pusat tile (tile-lokal). Murni; penulisan GLB di glb.js.
  */
-import { orientRing, polygonArea } from '../../src/geo/polygon.js';
+import { cleanRing, polygonArea, signedArea } from '../../src/geo/polygon.js';
 import { tileCenter, TILE_SIZE } from '../../src/geo/tiles.js';
 import { createMeshBuilder } from './geometry/meshBuilder.js';
 import { addBuilding } from './geometry/buildings.js';
@@ -79,7 +79,42 @@ function buildLod(local, lod) {
   return { meshes, triangles };
 }
 
-const flat = (pts) => pts.flatMap(([x, z]) => [dm(x), dm(z)]);
+const roundPts = (pts) => pts.map(([x, z]) => [dm(x), dm(z)]);
+const flat = (pts) => pts.flat();
+
+/**
+ * Ring → array datar 0,1 m: dibulatkan DULU, lalu dibersihkan (duplikat berurutan & penutup) dan
+ * diorientasikan positif. null bila runtuh (< 3 titik atau luas 0) setelah pembulatan.
+ */
+function dataRing(ring) {
+  const r = cleanRing(roundPts(ring), 0);
+  if (r.length < 3) return null;
+  const area = signedArea(r);
+  if (area === 0) return null;
+  return flat(area > 0 ? r : r.reverse());
+}
+
+/** Polyline → array datar 0,1 m tanpa titik berurutan kembar; null bila < 2 titik. */
+function dataLine(line) {
+  const pts = roundPts(line).filter((p, i, a) => i === 0 || p[0] !== a[i - 1][0] || p[1] !== a[i - 1][1]);
+  return pts.length >= 2 ? flat(pts) : null;
+}
+
+/** Map lalu buang hasil null. */
+const mapDefined = (list, fn) => list.map(fn).filter((v) => v !== null);
+
+function dataWater(w) {
+  const [outer, ...holes] = w.rings.map(dataRing);
+  return outer ? { rings: [outer, ...holes.filter((h) => h !== null)] } : null;
+}
+
+function dataRoad(r) {
+  const pts = dataLine(r.line);
+  if (!pts) return null;
+  const cls = ROAD_CLASSES[r.cls];
+  const entry = { cls: r.cls, w: dm(cls.width), pts };
+  return cls.label && r.tags?.name ? { ...entry, name: r.tags.name } : entry;
+}
 
 /** data.json v1 (lihat "Format tile v1"). */
 function buildData(tile, local, center) {
@@ -90,14 +125,16 @@ function buildData(tile, local, center) {
     iz: tile.iz,
     center: [center.x, center.z],
     unit: 0.1,
-    buildings: local.buildings.map((b) => ({ h: dm(b.height), ring: flat(orientRing(b.rings[0], true)) })),
-    water: local.water.map((w) => ({ rings: w.rings.map(flat) })),
-    waterways: local.waterways.map((w) => ({ cls: w.cls, w: dm(WATERWAY_WIDTHS[w.cls]), pts: flat(w.line) })),
-    roads: local.roads.map((r) => {
-      const cls = ROAD_CLASSES[r.cls];
-      const entry = { cls: r.cls, w: dm(cls.width), pts: flat(r.line) };
-      return cls.label && r.tags?.name ? { ...entry, name: r.tags.name } : entry;
+    buildings: mapDefined(local.buildings, (b) => {
+      const ring = dataRing(b.rings[0]);
+      return ring ? { h: dm(b.height), ring } : null;
     }),
+    water: mapDefined(local.water, dataWater),
+    waterways: mapDefined(local.waterways, (w) => {
+      const pts = dataLine(w.line);
+      return pts ? { cls: w.cls, w: dm(WATERWAY_WIDTHS[w.cls]), pts } : null;
+    }),
+    roads: mapDefined(local.roads, dataRoad),
   };
 }
 
