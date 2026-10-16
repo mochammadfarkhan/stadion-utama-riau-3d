@@ -9,6 +9,12 @@ import { roundedBox } from '../src/world/siteutil/rounded.js';
 import { makeTextMaterial } from '../src/world/siteutil/textCanvas.js';
 import { createBaseballVenue } from '../src/world/Landscape.baseball.js';
 import { createRingRoad } from '../src/world/Ground.roads.js';
+import * as THREE from 'three';
+import { matFor } from '../src/entities/util.js';
+import { hairGeometry, HAIR_STYLES } from '../src/entities/Humanoid.hair.js';
+import { faceGeometry, createFace } from '../src/entities/Humanoid.face.js';
+import { buildStaticLodMesh } from '../src/entities/Humanoid.lod.js';
+import { loadModel, modelUrl } from '../src/world/assets/models.js';
 
 describe('cache modul dunia memakai ResourceScope aktif', () => {
   it.each([
@@ -64,5 +70,40 @@ describe('material/geometri saat-impor kini lazy per scope', () => {
     const owned = [...geometriesOf(first)].filter((g) => a.owns(g));
     expect(owned).toHaveLength(1);
     expect(geometriesOf(other).has(owned[0])).toBe(false);
+  });
+});
+
+const lodMaterial = () => {
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  body.add(new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshLambertMaterial()));
+  group.add(body);
+  return buildStaticLodMesh(group, body).material;
+};
+
+describe('cache entitas memakai ResourceScope aktif', () => {
+  it.each([
+    ['matFor', () => matFor(0x123456)],
+    ['hairGeometry', () => hairGeometry(HAIR_STYLES[0])],
+    ['faceGeometry', () => faceGeometry({ glasses: true })],
+    ['material wajah', () => createFace().material],
+    ['material LOD', lodMaterial],
+  ])('%s: sama dalam satu scope, baru di scope lain, dimiliki scope', (_name, make) => {
+    const { a, first, again, other } = inTwoScopes(make);
+    expect(again).toBe(first);
+    expect(other).not.toBe(first);
+    expect(a.owns(first)).toBe(true);
+  });
+});
+
+describe('model GLB memakai ResourceScope aktif', () => {
+  it('entri ada selama memuat dan dilupakan bila gagal (boleh dicoba ulang)', async () => {
+    const scope = createResourceScope('uji');
+    const path = 'models/tidak-ada.glb';
+    const pending = withScope(scope, () => loadModel(path));
+    expect(scope.has(`models:${modelUrl(path)}`)).toBe(true);
+    await expect(pending).rejects.toBeTruthy();
+    await Promise.resolve();
+    expect(scope.size).toBe(0);
   });
 });

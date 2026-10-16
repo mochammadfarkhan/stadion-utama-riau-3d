@@ -1,10 +1,8 @@
 /**
- * Utilitas bersama untuk modul entitas: cache material, RNG deterministik,
- * dan helper matematika kecil. Tidak ada efek samping global selain cache.
+ * Utilitas bersama untuk modul entitas: material per ResourceScope, RNG deterministik, dan helper matematika kecil.
  */
 import * as THREE from 'three';
-
-const materialCache = new Map();
+import { currentScope } from '../engine/ResourceScope.js';
 
 /**
  * Material Lambert yang di-cache per warna agar jumlah material tetap kecil
@@ -14,15 +12,11 @@ const materialCache = new Map();
  */
 export function matFor(color, extra = {}) {
   const key = `${color}|${extra.emissive ?? 0}|${extra.side ?? 0}`;
-  const hit = materialCache.get(key);
-  if (hit) return hit;
-  const mat = new THREE.MeshLambertMaterial({
+  return currentScope().get(`entities:mat:${key}`, () => new THREE.MeshLambertMaterial({
     color,
     emissive: extra.emissive ?? 0x000000,
     side: extra.side ?? THREE.FrontSide,
-  });
-  materialCache.set(key, mat);
-  return mat;
+  }));
 }
 
 /**
