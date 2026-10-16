@@ -1,6 +1,6 @@
 # Stadion Utama Riau — Simulator 3D
 
-Simulator 3D interaktif kawasan **Stadion Utama Riau** (Jl. Naga Sakti, Panam, Pekanbaru) dibangun dengan [Three.js](https://threejs.org) 0.186 + Vite. Hampir semua geometri prosedural; dua model Blender (GLB: tugu Lancang Kuning dan bangku taman) dimuat dari `public/models/`. Font Inter/JetBrains Mono dimuat dari Google Fonts.
+Simulator 3D interaktif kawasan **Stadion Utama Riau** (Jl. Naga Sakti, Panam, Pekanbaru) dibangun dengan [Three.js](https://threejs.org) 0.186 + Vite. Hampir semua geometri prosedural; dua model Blender (GLB: tugu Lancang Kuning dan bangku taman) dimuat dari `public/models/`. Font Inter/JetBrains Mono di-host sendiri (`@fontsource-variable`), jadi tidak butuh internet.
 
 | Interior tribun | Plaza & gate utara |
 |---|---|
