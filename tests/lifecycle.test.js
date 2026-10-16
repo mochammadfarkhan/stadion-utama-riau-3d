@@ -107,7 +107,7 @@ describe('TimeOfDay.dispose', () => {
   it('melepas grup dan registrasi emissive', () => {
     const scene = new THREE.Scene();
     const lighting = { userData: { defaults: { cloudCoverage: 0.3 } } };
-    const time = createTimeOfDay(lighting, scene, {}, fakeApp(), { lamps: [] });
+    const time = createTimeOfDay(lighting, scene, {}, fakeApp());
     scene.add(time.group);
     const mat = new THREE.MeshStandardMaterial({ emissive: 0xffffff, emissiveIntensity: 0.4 });
     const root = new THREE.Group();

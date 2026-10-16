@@ -16,14 +16,15 @@ const runFrames = (night, n) => { for (let i = 0; i < n; i += 1) night.update(0.
 describe('lampu malam: grup pemilik & registry emissive', () => {
   it('objek lampu menempel ke grup pemilik, bukan scene', () => {
     const parent = new THREE.Group();
-    createNightLights(parent, { lamps: [{ x: 0, z: 0 }] });
+    const night = createNightLights(parent);
+    night.registerLamps({ lamps: [{ x: 0, z: 0 }], floods: [{ x: 0, y: 40, z: 0, tx: 0, ty: 0, tz: 0 }] });
     expect(parent.getObjectByName('lampuSepeda')).toBeTruthy();
     expect(parent.getObjectByName('kolamCahayaPJU')).toBeTruthy();
     expect(parent.getObjectByName('floodlightSorot-0')).toBeTruthy();
   });
 
   it('material yang didaftarkan belakangan (mis. GLB) ikut menyala; unregister memulihkan nilai siang', () => {
-    const night = createNightLights(new THREE.Group(), { lamps: [] });
+    const night = createNightLights(new THREE.Group());
     const glow = new THREE.MeshStandardMaterial({ emissive: 0xffaa00, emissiveIntensity: 0.5 });
     const tagged = new THREE.MeshStandardMaterial({ emissive: 0x8fa6ff, emissiveIntensity: 0 });
     tagged.userData.nightEmissive = { on: 0.3, off: 0 };

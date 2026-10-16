@@ -60,7 +60,7 @@ describe('region stadion: build & dispose', () => {
     expect(built.systems.map((s) => s.id)).toEqual(['stadion.world']);
     expect(typeof built.colliders.isWalkable).toBe('function');
     expect(built.seatSamples.length).toBeGreaterThan(0);
-    expect(built.lamps).toEqual(litLampPositions(LAYOUT));
+    expect(built.nightLights.lamps).toEqual(litLampPositions(LAYOUT));
     expect(scope.size).toBeGreaterThan(0);
     built.dispose();
     built.dispose(); // idempoten

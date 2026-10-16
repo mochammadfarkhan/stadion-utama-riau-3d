@@ -66,14 +66,13 @@ function createStars(count) {
 
 /**
  * @param {THREE.Group} lightingGroup hasil createLighting (userData: sun, hemi, sky, ...)
- * @param {{lamps?: {x:number, z:number}[], lensRoot?: THREE.Object3D|null}} [opts]
- *   lamps: PJU menyala dari region; lensRoot: grup region tempat lensa floodlight
- * @returns {{group: THREE.Group, update(dt, ctx, bikeState?):void, registerEmissive(root):() => boolean,
+ * Lampu milik region (PJU, floodlight, lensa) didaftarkan lewat registerLamps() (koordinat dunia).
+ * @returns {{group: THREE.Group, update(dt, ctx, bikeState?):void, registerLamps(opts):() => boolean, registerEmissive(root):() => boolean,
  *   unregisterEmissive(root):boolean, setHour(h):void, nextPreset():string, toggleSpeed():boolean,
  *   setSpeed(v):void, setAzimuthOffset(deg):void, setCloudCover(v):void, setHaze(v):void, setFogDistance(m):void,
  *   dispose():void, hour:number, presetName:string, speed:number, preset:object, overrides:object}}
  */
-export function createTimeOfDay(lightingGroup, scene, renderer, app, { lamps = [], lensRoot = null } = {}) {
+export function createTimeOfDay(lightingGroup, scene, renderer, app) {
   const L = lightingGroup.userData;
   let state = createDayState();
   let preset = lightingPreset(state.hour);
@@ -87,7 +86,7 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app, { lamps = [
   group.add(stars);
   const bodies = createCelestialBodies();
   group.add(bodies.group);
-  const night = createNightLights(group, { lamps, lensRoot: lensRoot ?? group });
+  const night = createNightLights(group);
   // Override settings (lihat komentar modul); objek baru tiap perubahan (immutable).
   let over = Object.freeze({ azimuthOffset: 0, cloudCover: L.defaults.cloudCoverage, haze: HAZE_DEFAULT, fogDistance: FOG_DEFAULT });
   const setOverride = (patch) => {
@@ -160,6 +159,8 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app, { lamps = [
 
   return {
     group,
+    /** Daftarkan PJU/floodlight/lensa milik region (koordinat dunia); kembalikan pencabut. */
+    registerLamps: (opts) => night.registerLamps(opts),
     /** Daftarkan material emissive di bawah root (region/entitas/GLB); kembalikan fungsi unregister. */
     registerEmissive: (root) => night.registerEmissive(root),
     unregisterEmissive: (root) => night.unregisterEmissive(root),

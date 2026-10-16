@@ -126,9 +126,11 @@ async function main() {
 
   await loading.step(0.8, 'Menyiapkan siklus waktu dan cuaca…');
   // Siklus waktu & cuaca: objeknya di grup sendiri; material emissive/basah didaftarkan lewat registry.
-  const time = createTimeOfDay(lighting, app.scene, app.renderer, app, { lamps: region.lamps, lensRoot: region.group });
+  const time = createTimeOfDay(lighting, app.scene, app.renderer, app);
   app.scene.add(time.group);
   lifecycle.add(() => time.dispose());
+  // PJU, sorot floodlight, dan lensa milik region (koordinat dunia); LIFO: dicabut sebelum time.dispose.
+  lifecycle.add(time.registerLamps({ ...region.nightLights, lensRoot: region.group }));
   time.registerEmissive(region.group);
   time.registerEmissive(ents.group);
   modelsReady

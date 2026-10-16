@@ -10,12 +10,14 @@ import { stadionColliders } from './collider.js';
 import { SITE } from './site.js';
 import { LAYOUT } from './layout.js';
 import { STADION_MASK } from './mask.js';
-import { litLampPositions } from './lamps.js';
+import { stadionNightLights } from './lamps.js';
 
 export const STADION_ID = 'stadion';
 
-/** Fase 0 hanya memakai ctx.scope (ResourceScope milik region). */
-function buildStadion({ scope }) {
+export const STADION_PLACEMENT = Object.freeze({ x: 0, z: 0, yaw: 0 });
+
+/** ctx: scope (wajib), placement (default STADION_PLACEMENT; dipakai untuk data lampu dunia). */
+function buildStadion({ scope, placement = STADION_PLACEMENT }) {
   if (!scope) throw new TypeError('Region stadion: ctx.scope (ResourceScope) wajib');
   const world = withScope(scope, () => buildWorld({ layout: LAYOUT, site: SITE }));
   let disposed = false;
@@ -26,7 +28,7 @@ function buildStadion({ scope }) {
     systems: [{ id: 'stadion.world', phase: 'world', update: (dt, ctx) => world.update(dt, ctx.time, ctx.focus), dispose() {} }],
     seatSamples: world.seatSamples,
     layout: LAYOUT,
-    lamps: litLampPositions(LAYOUT),
+    nightLights: stadionNightLights(LAYOUT, placement),
     dispose() {
       if (disposed) return;
       disposed = true;
@@ -39,7 +41,7 @@ function buildStadion({ scope }) {
 
 export const stadionRegion = defineRegion({
   id: STADION_ID,
-  placement: { x: 0, z: 0, yaw: 0 },
+  placement: STADION_PLACEMENT,
   mask: STADION_MASK,
   build: async (ctx) => buildStadion(ctx ?? {}),
 });

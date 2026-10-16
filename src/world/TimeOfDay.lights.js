@@ -1,11 +1,12 @@
 /**
  * Lampu malam: material emissive (bohlam PJU, floodlight, arang gerobak, dll.),
  * maksimal DAY.maxPointLights PointLight nyata di PJU terdekat sepeda, dan
- * satu SpotLight lampu depan sepeda. Semua lampu selalu ada di scene (intensitas 0
- * saat siang) agar jumlah cahaya tetap dan shader tidak dikompilasi ulang.
+ * satu SpotLight lampu depan sepeda. Data lampu milik region (posisi PJU, sorot
+ * floodlight, lensa) didaftarkan lewat registerLamps() dalam koordinat DUNIA dan
+ * dicabut saat region dilepas. Intensitas 0 saat siang (objek tetap ada).
  */
 import * as THREE from 'three';
-import { DAY, STADIUM } from '../config/constants.js';
+import { DAY } from '../config/constants.js';
 import { LAMP_POST } from './props/LampPost.js';
 import { createNightHalos } from './NightHalos.js';
 import { createMaterialRegistry } from '../engine/materialRegistry.js';
@@ -92,40 +93,83 @@ function createLightPools(parent, lamps) {
   return mesh;
 }
 
-/** Empat sorot floodlight di sudut atap, mengarah ke tengah lapangan dan tribun seberang. */
-function createFloodSpots(parent) {
-  const x = STADIUM.innerSemiX * 0.85;
-  const z = STADIUM.innerSemiZ * 0.85;
-  const y = STADIUM.roofHeight - 2;
-  return [[1, 1], [-1, 1], [1, -1], [-1, -1]].map(([sx, sz], i) => {
+/**
+ * Sorot floodlight dari data region (koordinat dunia).
+ * @param {THREE.Object3D} parent
+ * @param {Array<{x:number,y:number,z:number,tx:number,ty:number,tz:number}>} floods
+ */
+function createFloodSpots(parent, floods) {
+  return floods.map((f, i) => {
     const spot = new THREE.SpotLight(FLOOD_COLOR, 0, FLOOD_DISTANCE, FLOOD_ANGLE, 0.6, 2);
     spot.name = `floodlightSorot-${i}`;
-    spot.position.set(sx * x, y, sz * z);
-    spot.target.position.set(-sx * x * 0.25, 0, -sz * z * 0.25);
+    spot.position.set(f.x, f.y, f.z);
+    spot.target.position.set(f.tx, f.ty, f.tz);
     parent.add(spot, spot.target);
     return spot;
   });
 }
 
+/** Lepas mesh kolam/halo (geometri, material, peta) dari induknya. */
+function releaseObject(obj) {
+  if (!obj) return;
+  obj.removeFromParent();
+  obj.traverse((o) => {
+    o.geometry?.dispose();
+    o.material?.map?.dispose();
+    o.material?.dispose();
+  });
+  if (obj.isInstancedMesh) obj.dispose();
+}
+
+/** Satu set lampu milik satu pendaftar (region): kolam cahaya, halo, sorot floodlight. */
+function createLampSet(parent, { lamps = [], lensRoot = null, floods = [] }) {
+  const list = lamps.map((l) => ({ x: l.x, z: l.z }));
+  const spots = createFloodSpots(parent, floods);
+  const pools = list.length ? createLightPools(parent, list) : null;
+  const halos = createNightHalos(parent, list.map((l) => ({ x: l.x, y: LAMP_HEIGHT, z: l.z })), lensRoot ?? parent);
+  return {
+    lamps: list,
+    spots,
+    pools,
+    halos,
+    dispose() {
+      for (const spot of spots) {
+        spot.removeFromParent();
+        spot.target.removeFromParent();
+        spot.dispose();
+      }
+      releaseObject(pools);
+      releaseObject(halos.group ?? null);
+    },
+  };
+}
+
 /**
  * @param {THREE.Object3D} parent grup pemilik (TimeOfDay.group), bukan scene
- * @param {{lamps?: {x:number, z:number}[], lensRoot?: THREE.Object3D}} [opts]
- *   lamps: posisi PJU menyala (dari region); lensRoot: tempat mencari lensa floodlight (grup region)
  * @returns {{ update(dt, bikePos, bikeYaw?, focus?): void, setLampsOn(on: boolean): void, lampsOn: boolean,
- *   registerEmissive(root): () => boolean, unregisterEmissive(root): boolean, emissiveCount: number, dispose(): void }}
+ *   registerLamps(opts?: {lamps?: {x:number,z:number}[], lensRoot?: THREE.Object3D|null,
+ *     floods?: Array<{x:number,y:number,z:number,tx:number,ty:number,tz:number}>}): () => boolean,
+ *   lampCount: number, registerEmissive(root): () => boolean, unregisterEmissive(root): boolean,
+ *   emissiveCount: number, dispose(): void }}
  */
-export function createNightLights(parent, { lamps = [], lensRoot = parent } = {}) {
+export function createNightLights(parent) {
   const emissives = createMaterialRegistry(selectEmissive, { onRemove: (e) => { e.mat.emissiveIntensity = e.off; } });
   const points = createPointLights(parent);
   const headlight = createHeadlight(parent);
-  const floods = createFloodSpots(parent);
-  const pools = createLightPools(parent, lamps);
-  const halos = createNightHalos(parent, lamps.map((l) => ({ x: l.x, y: LAMP_HEIGHT, z: l.z })), lensRoot);
-  const order = lamps.map((_, i) => i);
-  const dist2 = new Float32Array(lamps.length);
+  let sets = [];
+  let lamps = [];   // gabungan PJU semua set (dunia)
+  let order = [];
+  let dist2 = new Float32Array(0);
   let lampsOn = false;
   let level = 0;       // 0..1 intensitas lampu (transisi)
   let pickTimer = 0;
+
+  const rebuildIndex = () => {
+    lamps = sets.flatMap((s) => s.lamps);
+    order = lamps.map((_, i) => i);
+    dist2 = new Float32Array(lamps.length);
+    pickTimer = 0; // pilih ulang PJU terdekat pada frame berikutnya
+  };
 
   /** Pilih PJU terdekat (≤ maxPointLights dalam pointLightRange) tiap pointLightInterval. */
   const pickNearest = (pos) => {
@@ -151,9 +195,28 @@ export function createNightLights(parent, { lamps = [], lensRoot = parent } = {}
     headlight.intensity = HEADLIGHT_POWER * level;
   };
 
+  const removeSet = (set) => {
+    if (!sets.includes(set)) return false;
+    sets = sets.filter((s) => s !== set);
+    set.dispose();
+    rebuildIndex();
+    return true;
+  };
+
   return {
     get lampsOn() { return lampsOn; },
     setLampsOn(on) { lampsOn = Boolean(on); },
+    /**
+     * Daftarkan lampu milik region (koordinat dunia). `lensRoot` = grup tempat mencari lensa
+     * floodlight; matriks dunianya harus sudah final. Mengembalikan pencabut (idempoten).
+     */
+    registerLamps(opts = {}) {
+      const set = createLampSet(parent, opts);
+      sets = [...sets, set];
+      rebuildIndex();
+      return () => removeSet(set);
+    },
+    get lampCount() { return lamps.length; },
     /** Daftarkan material emissive di bawah `root` (region, entitas, GLB yang datang belakangan). */
     registerEmissive: (root) => emissives.register(root),
     unregisterEmissive: (root) => emissives.unregister(root),
@@ -170,13 +233,22 @@ export function createNightLights(parent, { lamps = [], lensRoot = parent } = {}
         pickNearest(focus);
       }
       for (const light of points) light.intensity = light.userData.active ? LAMP_POWER * level : 0;
-      pools.material.opacity = POOL_OPACITY * level;
-      pools.visible = level > 0.01;
-      halos.setLevel(level);
-      for (const f of floods) f.intensity = FLOOD_POWER * level;
+      for (const set of sets) {
+        if (set.pools) {
+          set.pools.material.opacity = POOL_OPACITY * level;
+          set.pools.visible = level > 0.01;
+        }
+        set.halos.setLevel(level);
+        for (const spot of set.spots) spot.intensity = FLOOD_POWER * level;
+      }
       updateHeadlight(bikePos, bikeYaw);
     },
-    /** Lepas semua registrasi (nilai emissive siang dipulihkan). */
-    dispose() { emissives.clear(); },
+    /** Lepas semua registrasi (nilai emissive siang dipulihkan) dan semua set lampu. */
+    dispose() {
+      emissives.clear();
+      for (const set of sets) set.dispose();
+      sets = [];
+      rebuildIndex();
+    },
   };
 }
