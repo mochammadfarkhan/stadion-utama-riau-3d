@@ -3,6 +3,7 @@ import { SITE } from '../config/constants.js';
 import { ellipseRingGeometry, distributeOnEllipse } from './siteutil/ellipseGeo.js';
 import { instancePart, localMatrix } from './siteutil/instanceParts.js';
 import { groundMaterials, LAYER_Y, uvToMeters } from './Ground.materials.js';
+import { currentScope } from '../engine/ResourceScope.js';
 
 /**
  * Jalan lingkar, Jl. Naga Sakti, jalan penghubung, parkir, jogging track.
@@ -16,7 +17,8 @@ const PARKING = Object.freeze({
   carBayW: 2.5, carBayD: 5, motoBayW: 1.0, motoBayD: 2.2, lineW: 0.12,
 });
 
-const dashGeometry = new THREE.BoxGeometry(DASH.length, DASH.thickness, DASH.width);
+/** Geometri marka putus-putus bersama (dulu dibuat saat impor), satu per ResourceScope aktif. */
+const dashGeometry = () => currentScope().get('roads:dash', () => new THREE.BoxGeometry(DASH.length, DASH.thickness, DASH.width));
 
 /** PlaneGeometry w × h dengan UV bersatuan meter (selaras ShapeGeometry jalan lingkar). */
 function meterPlane(w, h) {
@@ -50,7 +52,7 @@ export function createRingRoad() {
   const perimeter = Math.PI * (3 * (ax + az) - Math.sqrt((3 * ax + az) * (ax + 3 * az)));
   const count = Math.floor(perimeter / (DASH.length + DASH.gap));
   const pts = distributeOnEllipse(ax, az, count).map((p) => ({ ...p, y: LAYER_Y.marking }));
-  g.add(instancePart({ geometry: dashGeometry, material: m.lineWhite, name: 'markaLingkar' }, pts));
+  g.add(instancePart({ geometry: dashGeometry(), material: m.lineWhite, name: 'markaLingkar' }, pts));
   return g;
 }
 
@@ -60,7 +62,7 @@ function dashesAlongX(z, xFrom, xTo, material) {
   for (let x = xFrom; x < xTo; x += DASH.length + DASH.gap) {
     pts.push({ x: x + DASH.length / 2, z, y: LAYER_Y.marking, rotY: 0 });
   }
-  return instancePart({ geometry: dashGeometry, material }, pts);
+  return instancePart({ geometry: dashGeometry(), material }, pts);
 }
 
 /** Marka putus-putus lurus sepanjang sumbu Z pada x tertentu. */
@@ -69,7 +71,7 @@ function dashesAlongZ(x, zFrom, zTo, material) {
   for (let z = zFrom; z < zTo; z += DASH.length + DASH.gap) {
     pts.push({ x, z: z + DASH.length / 2, y: LAYER_Y.marking, rotY: Math.PI / 2 });
   }
-  return instancePart({ geometry: dashGeometry, material }, pts);
+  return instancePart({ geometry: dashGeometry(), material }, pts);
 }
 
 /** Jl. Naga Sakti: 3 lajur sejajar X, marka lajur, garis tepi, trotoar. */
@@ -167,7 +169,7 @@ export function createSkateTrack() {
   g.add(flatMesh(ellipseRingGeometry(28.4, 16.4, 28, 16, 64), m.kerb, LAYER_Y.kerb, 'kerb'));
   g.add(flatMesh(ellipseRingGeometry(18, 8, 17.6, 7.6, 64), m.kerb, LAYER_Y.kerb, 'kerbDalam'));
   const dashes = distributeOnEllipse(23, 12, 14, 360).map((p) => ({ ...p, y: LAYER_Y.marking }));
-  g.add(instancePart({ geometry: dashGeometry, material: m.lineYellow, matrix: localMatrix(0, 0, 0, 0, 0, 0, 0.6, 1, 1) }, dashes));
+  g.add(instancePart({ geometry: dashGeometry(), material: m.lineYellow, matrix: localMatrix(0, 0, 0, 0, 0, 0, 0.6, 1, 1) }, dashes));
   g.position.set(x, 0, z);
   return g;
 }

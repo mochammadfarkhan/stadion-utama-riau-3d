@@ -7,6 +7,7 @@
 import { CanvasTexture, DataTexture, LinearFilter, LinearMipmapLinearFilter, RGBAFormat, SRGBColorSpace, ClampToEdgeWrapping } from 'three';
 import { createRandom } from '../siteutil/rng.js';
 import { hasDocument } from './noise.js';
+import { currentScope } from '../../engine/ResourceScope.js';
 
 export const ATLAS_SIZE = 1024;
 export const ATLAS_COLS = 4;
@@ -272,14 +273,15 @@ function fallbackTexture() {
   return finalize(new DataTexture(data, s, s, RGBAFormat));
 }
 
-let cache = null;
-
 /**
- * Atlas dekal (di-cache; satu tekstur untuk seluruh dunia).
+ * Atlas dekal (satu tekstur per ResourceScope aktif).
  * @returns {{texture: import('three').Texture, uv(name:string): {u0:number,v0:number,du:number,dv:number}, names: string[]}}
  */
 export function createDecalAtlas() {
-  if (cache) return cache;
+  return currentScope().get('decals:atlas', buildDecalAtlas);
+}
+
+function buildDecalAtlas() {
   const uvs = Object.fromEntries(DECAL_NAMES.map((n, i) => [n, cellUv(i)]));
   const uv = (name) => {
     const rect = uvs[name];
@@ -297,6 +299,5 @@ export function createDecalAtlas() {
   } else {
     texture = fallbackTexture();
   }
-  cache = Object.freeze({ texture, uv, names: DECAL_NAMES });
-  return cache;
+  return Object.freeze({ texture, uv, names: DECAL_NAMES });
 }

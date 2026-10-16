@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+import { currentScope } from '../../engine/ResourceScope.js';
 
 /**
  * Helper bentuk "cozy stylized": balok bertepi membulat (di-cache per dimensi)
@@ -9,7 +10,6 @@ import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometr
  * sehingga kompatibel dengan mergeGeometries & mergeByMaterial.
  */
 const BLOB_SEGMENTS = Object.freeze({ width: 8, height: 6 });
-const boxCache = new Map();
 
 /** Radius sudut aman: tidak melebihi separuh sisi terpendek. */
 function safeRadius(w, h, d, r) {
@@ -26,8 +26,7 @@ export function roundedBox(w, h, d, r = 0.05, seg = 2) {
   const radius = safeRadius(w, h, d, r);
   const key = [w, h, d, radius, seg].map((v) => Number(v).toFixed(4)).join('|');
   // RoundedBoxGeometry non-indexed; diubah ke indexed (mergeVertices) agar bisa digabung dengan geometri primitif lain
-  if (!boxCache.has(key)) boxCache.set(key, mergeVertices(new RoundedBoxGeometry(w, h, d, seg, radius)));
-  return boxCache.get(key);
+  return currentScope().get(`rounded:${key}`, () => mergeVertices(new RoundedBoxGeometry(w, h, d, seg, radius)));
 }
 
 /** Satu bola low-poly yang sudah dipindah & diskala (y bisa dipipihkan). */

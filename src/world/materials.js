@@ -6,6 +6,7 @@
 import { DoubleSide, MeshLambertMaterial, MeshStandardMaterial, Vector2 } from 'three';
 import { COLORS } from '../config/constants.js';
 import { surfaceMaps } from './textures/surfaces.js';
+import { currentScope } from '../engine/ResourceScope.js';
 
 const ROUGH_MATTE = 0.9;
 const ROUGH_SATIN = 0.85;
@@ -13,8 +14,6 @@ const ACP_METALNESS = 0.1;
 const CONCRETE_TILE_M = 2;   // UV kotak 0..1 → setengah tile; dinding cincin (u 0..1) nyaris polos
 const NORMAL_SCALE = 0.35;
 const LOUVRE_ROUGHNESS = 0.8;
-
-const cache = new Map();
 
 /** Kesan disorot lampu dari bawah saat malam: emissive tipis yang dinaikkan TimeOfDay.lights (userData.nightEmissive). */
 function uplit(mat, color, on) {
@@ -24,9 +23,9 @@ function uplit(mat, color, on) {
   return mat;
 }
 
+/** Material bersama per ResourceScope aktif (region di-dispose → material ikut dilepas). */
 function cached(key, make) {
-  if (!cache.has(key)) cache.set(key, make());
-  return cache.get(key);
+  return currentScope().get(`materials:${key}`, make);
 }
 
 /** MeshStandardMaterial matte (metalness 0) dengan opsi tambahan. */
