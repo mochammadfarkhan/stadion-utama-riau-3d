@@ -7,6 +7,7 @@
 import { Color } from 'three';
 import { COLORS, TRACK } from '../../config/constants.js';
 import { fillCanvas, normalFromHeight, hash2, MAP_SIZE, NORMAL_SIZE } from './noise.js';
+import { currentScope } from '../../engine/ResourceScope.js';
 
 /** Ukuran satu tile tekstur dalam meter (acuan repeat = 1 / TILE_M). */
 export const TILE_M = Object.freeze({
@@ -21,11 +22,9 @@ const SEAM_WIDTH = 0.035;
 const CRACK_THRESHOLD = 0.012;
 const NORMAL_STRENGTH = 0.35;
 
-const cache = new Map();
-
+/** Tekstur asli per nama, satu set per ResourceScope aktif ({map, normalMap?, roughnessMap?}). */
 function cached(name, make) {
-  if (!cache.has(name)) cache.set(name, Object.freeze(make()));
-  return cache.get(name);
+  return currentScope().get(`surfaces:${name}`, () => Object.freeze(make()));
 }
 
 function rgb(hex) {

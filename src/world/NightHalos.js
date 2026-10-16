@@ -12,13 +12,13 @@ const LAMP_SIZE = 3.2;
 const FLOOD_OPACITY = 0.85;
 const LAMP_OPACITY = 0.75;
 
-/** Posisi dunia semua instans lensa floodlight (InstancedMesh dengan material 'lensaFloodlight'). */
-export function floodLensPositions(scene) {
+/** Posisi dunia semua instans lensa floodlight (InstancedMesh dengan material 'lensaFloodlight') di bawah `root`. */
+export function floodLensPositions(root) {
   const out = [];
   const m = new THREE.Matrix4();
   const c = new THREE.Vector3();
-  scene.updateMatrixWorld(true);
-  scene.traverse((o) => {
+  root.updateMatrixWorld(true);
+  root.traverse((o) => {
     if (!o.isInstancedMesh || o.material?.name !== 'lensaFloodlight') return;
     o.geometry.computeBoundingBox();
     const center = o.geometry.boundingBox.getCenter(new THREE.Vector3());
@@ -72,21 +72,22 @@ function makePoints(positions, { color, size, opacity, map }) {
 }
 
 /**
- * @param {THREE.Scene} scene
+ * @param {THREE.Object3D} parent grup pemilik halo
  * @param {{x:number, y:number, z:number}[]} lampPositions posisi bohlam PJU yang menyala
+ * @param {THREE.Object3D} [lensRoot] tempat mencari lensa floodlight (default: parent)
  * @returns {{setLevel(level:number):void}}
  */
-export function createNightHalos(scene, lampPositions) {
+export function createNightHalos(parent, lampPositions, lensRoot = parent) {
   if (typeof document === 'undefined') return { setLevel() {} }; // Node/tes
   const map = glowTexture();
   const group = new THREE.Group();
   group.name = 'halo-malam';
   const sets = [
-    makePoints(floodLensPositions(scene), { color: FLOOD_COLOR, size: FLOOD_SIZE, opacity: FLOOD_OPACITY, map }),
+    makePoints(floodLensPositions(lensRoot), { color: FLOOD_COLOR, size: FLOOD_SIZE, opacity: FLOOD_OPACITY, map }),
     makePoints(lampPositions, { color: LAMP_COLOR, size: LAMP_SIZE, opacity: LAMP_OPACITY, map }),
   ];
   group.add(...sets);
-  scene.add(group);
+  parent.add(group);
   return {
     setLevel(level) {
       const k = haloLevel(level);

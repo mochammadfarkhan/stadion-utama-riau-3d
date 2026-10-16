@@ -22,7 +22,11 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       // Logika murni yang dites unit; kode WebGL/DOM diverifikasi di browser.
-      include: ['src/sim/**', 'src/story/**', 'src/settings/**', 'src/core/{adaptiveResolution,cameraMath,escapeRoute,gamepad,Input}.js', 'src/ui/{minimapMath,touchMath,toastQueue}.js'],
+      include: [
+        'src/sim/**', 'src/story/**', 'src/settings/**',
+        'src/core/{adaptiveResolution,cameraMath,escapeRoute,gamepad,Input}.js', 'src/ui/{touchMath,toastQueue}.js',
+        'src/engine/**', 'src/geo/**', 'src/shared/**', 'src/regions/Region.js', 'src/regions/stadion/mask.js',
+      ],
       reporter: ['text-summary', 'text'],
       thresholds: { lines: 90, statements: 90, functions: 90, branches: 85 },
     },

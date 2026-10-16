@@ -21,15 +21,25 @@ export class Input {
   #keys = new Set();
   #virtual = new Map(); // kode tombol → Set sumber yang sedang menahan (touch, gamepad, ...)
   #pressedOnce = new Set();
+  #abort = new AbortController();
 
   constructor(target = window) {
+    const { signal } = this.#abort;
     target.addEventListener('keydown', (e) => {
       if (belongsToUi(e) || e.ctrlKey || e.metaKey || e.altKey) return;
       if (!this.isDown(e.code)) this.#pressedOnce.add(e.code);
       this.#keys.add(e.code);
-    });
-    target.addEventListener('keyup', (e) => this.#keys.delete(e.code));
-    (typeof window !== 'undefined' ? window : target).addEventListener('blur', () => this.#keys.clear());
+    }, { signal });
+    target.addEventListener('keyup', (e) => this.#keys.delete(e.code), { signal });
+    (typeof window !== 'undefined' ? window : target).addEventListener('blur', () => this.#keys.clear(), { signal });
+  }
+
+  /** Lepas semua listener dan kosongkan state tombol (dipanggil saat aplikasi dibongkar). */
+  dispose() {
+    this.#abort.abort();
+    this.#keys.clear();
+    this.#virtual.clear();
+    this.#pressedOnce.clear();
   }
 
   /** Tombol sedang ditahan (keyboard ATAU virtual). */

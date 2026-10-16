@@ -1,0 +1,14 @@
+Data tile kota di direktori ini adalah karya turunan (derived database) dari:
+
+  © OpenStreetMap contributors — https://www.openstreetmap.org/copyright
+  Overture Maps Foundation (theme buildings) — https://overturemaps.org
+    (menggabungkan OpenStreetMap, Microsoft ML Buildings, Google Open Buildings, Esri Community Maps)
+
+Lisensi data: Open Database License (ODbL) 1.0 — https://opendatacommons.org/licenses/odbl/1-0/
+File *.glb dan *.data.json di sini tunduk pada ODbL; kode proyek tetap berlisensi MIT.
+
+Area yang di-bake:
+- Pusat kota — Masjid Raya An-Nur (pusat): OSM 2026-10-16T09:00:35Z; Overture 2026-09-23.1; 16 tile
+- Kawasan Stadion Utama Riau (stadion): OSM 2026-10-16T08:53:21Z; Overture 2026-09-23.1; 36 tile
+
+Dihasilkan oleh tools/citybake (node tools/citybake --area <id>).

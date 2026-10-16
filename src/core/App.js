@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { createAdaptiveResolution } from './adaptiveResolution.js';
-import { flipRowsInPlace } from '../ui/minimapMath.js';
+import { flipRowsInPlace } from '../shared/minimapMath.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
@@ -8,11 +8,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
 import { RENDER, RENDER_LAYERS } from '../config/constants.js';
 import { DepthRenderPass, OutlinePass } from './postprocessing/OutlinePass.js';
+import { createSystemRunner } from '../engine/SystemRunner.js';
 
 const MAX_DT = 0.05;
 const MAX_PIXEL_RATIO = RENDER.pixelRatio;
 const SHADOW_INTERVAL = 2;         // peta bayangan dirender ulang tiap N frame (pass shadow ±25% biaya frame)
-const MAX_UPDATE_FAILURES = 3;       // error beruntun sebelum sebuah updatable dinonaktifkan
 const ADAPTIVE_MIN_RATIO = 0.6;   // resolusi adaptif tidak turun di bawah ini
 const ADAPTIVE_TARGET_MS = 20;    // target waktu frame (50 fps)
 const AO_SAMPLES = 12;            // sampel GTAO per piksel (default 16; lebih ringan)
@@ -24,14 +24,18 @@ const MINIMAP_BG = 0x2f5b32;
 
 /**
  * App: renderer, scene, kamera utama, post-processing, minimap, loop waktu.
- * Modul lain mendaftar lewat addUpdatable({ update(dt, ctx) }).
+ * Modul lain mendaftar lewat addSystem({ id, phase, update(dt, ctx) }) (engine/SystemRunner);
+ * addUpdatable({ update }) tetap ada sebagai adaptor fase 'ui' untuk binding settings.
  * Render utama lewat EffectComposer (RenderPass -> GTAO -> Outline -> Vignette -> OutputPass;
  * tone mapping + sRGB hanya di OutputPass), lalu label CSS2D, lalu minimap.
  * Minimap = peta dasar 2D yang di-bake sekali (bakeMinimap) dari objek di RENDER_LAYERS.minimap;
  * penggambaran per frame ada di ui/Minimap2D.js (tanpa render 3D tambahan).
  */
 export class App {
-  #failures = new Map(); // updatable -> jumlah error beruntun
+  #legacy = new Map(); // updatable lama -> id sistem adaptor
+  #legacySeq = 0;
+  #disposed = false;
+  #onResize = () => this.resize();
   #aoWanted = RENDER.ao;
   #aoLoading = false;
 
@@ -45,7 +49,7 @@ export class App {
     this.labelRenderer = createLabelRenderer();
     this.post = createComposer(this.renderer, this.scene, this.camera);
     this.timer = new THREE.Timer();
-    this.updatables = [];
+    this.systems = createSystemRunner();
     this.minimapVisible = true;
     this.elapsed = 0;
     this.frame = 0;
@@ -55,18 +59,35 @@ export class App {
 
     container.appendChild(this.renderer.domElement);
     document.body.appendChild(this.labelRenderer.domElement);
-    window.addEventListener('resize', () => this.resize());
+    window.addEventListener('resize', this.#onResize);
     this.resize();
   }
 
-  addUpdatable(obj) {
-    if (obj && typeof obj.update === 'function') this.updatables.push(obj);
+  /** Daftarkan sistem berfase (lihat engine/SystemRunner). */
+  addSystem(system) {
+    return this.systems.add(system);
+  }
+
+  removeSystem(id) {
+    return this.systems.remove(id);
+  }
+
+  /** Adaptor API lama: objek { update(dt, ctx) } menjadi sistem fase `phase` (default 'ui'). */
+  addUpdatable(obj, phase = 'ui') {
+    if (!obj || typeof obj.update !== 'function') return obj;
+    this.#legacySeq += 1;
+    const id = `updatable-${this.#legacySeq}`;
+    this.#legacy.set(obj, id);
+    this.systems.add({ id, phase, update: (dt, ctx) => obj.update(dt, ctx) });
     return obj;
   }
 
-  /** Hapus updatable yang didaftarkan lewat addUpdatable (salinan baru, tanpa mutasi array). */
+  /** Hapus updatable yang didaftarkan lewat addUpdatable. */
   removeUpdatable(obj) {
-    this.updatables = this.updatables.filter((u) => u !== obj);
+    const id = this.#legacy.get(obj);
+    if (!id) return;
+    this.systems.remove(id);
+    this.#legacy.delete(obj);
   }
 
   /** Aktif/nonaktifkan ambient occlusion saat runtime (mis. bila FPS rendah). */
@@ -201,24 +222,6 @@ export class App {
     this.labelRenderer.setSize(w, h);
   }
 
-  /** Satu updatable yang melempar tidak boleh menghentikan updatable lain maupun render. */
-  #safeUpdate(u, dt, ctx) {
-    try {
-      u.update(dt, ctx);
-      if (this.#failures.has(u)) this.#failures.delete(u);
-    } catch (err) {
-      const n = (this.#failures.get(u) ?? 0) + 1;
-      this.#failures.set(u, n);
-      if (n >= MAX_UPDATE_FAILURES) {
-        console.error(`Updatable dinonaktifkan setelah ${n} error beruntun:`, err);
-        this.removeUpdatable(u);
-        this.#failures.delete(u);
-      } else if (n === 1) {
-        console.error('Updatable error (dicoba lagi pada frame berikutnya):', err);
-      }
-    }
-  }
-
   /** Mulai loop. makeContext(dt) mengembalikan ctx untuk semua updatable. */
   start(makeContext) {
     const loop = () => {
@@ -233,7 +236,7 @@ export class App {
         if (next != null) this.#applyPixelRatio(next);
       }
       this.lastCtx = ctx;
-      for (const u of this.updatables) this.#safeUpdate(u, dt, ctx);
+      this.systems.update(dt, ctx);
       this.render(ctx);
       this.frame += 1;
     };
@@ -243,6 +246,23 @@ export class App {
   /** Render satu frame tanpa memajukan simulasi (screenshot). */
   renderFrame() {
     this.render({ ...this.lastCtx, shadowFrame: true });
+  }
+
+  /**
+   * Bongkar aplikasi: hentikan loop, lepas listener resize, dispose sistem, pass, render target,
+   * renderer, dan elemen DOM-nya. Idempoten. (Tidak dapat dites di Node: butuh WebGL.)
+   */
+  dispose() {
+    if (this.#disposed) return;
+    this.#disposed = true;
+    this.renderer.setAnimationLoop(null);
+    window.removeEventListener('resize', this.#onResize);
+    this.systems.dispose();
+    for (const pass of this.post.composer.passes) pass.dispose?.();
+    this.post.composer.dispose();
+    this.labelRenderer.domElement.remove();
+    this.renderer.dispose();
+    this.renderer.domElement.remove();
   }
 
   render(ctx) {

@@ -1,10 +1,11 @@
 /**
- * Permukaan basah: material tanah/jalan (dicari lewat nama mesh di Ground/Track)
- * dibuat lebih licin dan gelap saat hujan, plus genangan (puddle) memantulkan env map
+ * Permukaan basah: material tanah/jalan (mesh bernama di Ground/Track) didaftarkan lewat registry
+ * lalu dibuat lebih licin dan gelap saat hujan, plus genangan (puddle) memantulkan env map
  * dengan normal map riak prosedural. Nilai asli material disimpan untuk dipulihkan.
  */
 import * as THREE from 'three';
 import { WEATHER, SITE, STADIUM } from '../config/constants.js';
+import { createMaterialRegistry } from '../engine/materialRegistry.js';
 
 // Nama mesh dasar (sebelum "+N" hasil merge) yang dianggap permukaan basah.
 const WET_MESH_NAMES = new Set([
@@ -23,21 +24,15 @@ const PUDDLE_SIZE = Object.freeze({ minX: 3, maxX: 7, minZ: 2, maxZ: 4.5 });
 
 const baseName = (name) => (name ?? '').split('+')[0];
 
-/** Material unik dari mesh bernama permukaan basah; simpan nilai asli. */
-function collectWettable(scene) {
-  const seen = new Map();
-  scene.traverse((o) => {
-    if (!o.isMesh || !WET_MESH_NAMES.has(baseName(o.name))) return;
-    const mat = o.material;
-    if (!mat || Array.isArray(mat) || seen.has(mat.uuid)) return;
-    seen.set(mat.uuid, {
-      mat,
-      color: mat.color.clone(),
-      roughness: typeof mat.roughness === 'number' ? mat.roughness : null,
-      envMapIntensity: typeof mat.envMapIntensity === 'number' ? mat.envMapIntensity : null,
-    });
-  });
-  return [...seen.values()];
+/** Entri registry: material unik dari mesh bernama permukaan basah; nilai asli disimpan. */
+function selectWet(mat, o) {
+  if (!o.isMesh || !WET_MESH_NAMES.has(baseName(o.name)) || !mat.color) return null;
+  return {
+    mat,
+    color: mat.color.clone(),
+    roughness: typeof mat.roughness === 'number' ? mat.roughness : null,
+    envMapIntensity: typeof mat.envMapIntensity === 'number' ? mat.envMapIntensity : null,
+  };
 }
 
 function applyWet(entry, k) {
@@ -119,26 +114,37 @@ function createPuddles(normalMap) {
 }
 
 /**
- * @returns {{ update(dt, intensity): void, group: THREE.Group, count: number }}
+ * @param {THREE.Object3D} parent grup pemilik (Weather.group)
+ * @returns {{ update(dt, intensity): void, register(root): () => boolean, unregister(root): boolean,
+ *   dispose(): void, group: THREE.Group, count: number }}
  */
-export function createWetSurfaces(scene) {
-  const entries = collectWettable(scene);
+export function createWetSurfaces(parent) {
+  const registry = createMaterialRegistry(selectWet, { onRemove: (e) => applyWet(e, 0) });
   const normalMap = createRippleNormalTexture();
   const puddles = createPuddles(normalMap);
-  scene.add(puddles.group);
+  parent.add(puddles.group);
   let last = -1;
 
   return {
     group: puddles.group,
-    count: entries.length,
+    get count() { return registry.size; },
+    /** Daftarkan permukaan basah di bawah root; frame berikutnya menerapkan intensitas saat ini. */
+    register(root) {
+      const off = registry.register(root);
+      last = -1;
+      return off;
+    },
+    unregister: (root) => registry.unregister(root),
     update(dt, intensity) {
       const on = intensity > 0.001;
       puddles.group.visible = on;
       if (on) normalMap.offset.x = (normalMap.offset.x + dt * RIPPLE_SPEED) % 1;
       if (intensity === last) return;
       last = intensity;
-      for (const e of entries) applyWet(e, intensity);
+      for (const e of registry.entries) applyWet(e, intensity);
       puddles.mat.opacity = PUDDLE_OPACITY * intensity;
     },
+    /** Lepas semua registrasi (material kering dipulihkan). */
+    dispose() { registry.clear(); },
   };
 }

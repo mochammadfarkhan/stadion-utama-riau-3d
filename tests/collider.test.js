@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { isWalkable, createCollider, OBSTACLES } from '../src/core/Collider.js';
+import { createCollider } from '../src/core/Collider.js';
+import { isWalkable, OBSTACLES } from '../src/regions/stadion/collider.js';
 
 describe('collider', () => {
   it('tugu Lancang Kuning & tugu tanjak tidak bisa ditembus', () => {
@@ -16,7 +17,7 @@ describe('collider', () => {
   it('collider mengembalikan posisi valid terakhir saat menabrak tugu', () => {
     const tugu = OBSTACLES[0];
     const start = { x: tugu.x, z: tugu.z - tugu.r - 1 };
-    const collide = createCollider(start);
+    const collide = createCollider(start, isWalkable);
     expect(collide(start.x, start.z)).toEqual(start);
     expect(collide(tugu.x, tugu.z - tugu.r + 1)).toEqual(start);
   });

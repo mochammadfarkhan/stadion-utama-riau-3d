@@ -1,66 +1,56 @@
-import { STADIUM, SITE } from '../config/constants.js';
-import { GATES } from '../world/stadium/gateLayout.js';
-import { framePoint } from '../world/stadium/ovalFrame.js';
+/**
+ * Collider komposit (menggantikan fungsi global lama): titik dunia → region yang mask-nya memuat
+ * titik itu (koordinat diubah ke lokal region) → collider region; selain itu → `fallback`
+ * (Fase 2: TileCollider). Tidak mengimpor modul geometri stadion: geometri datang dari region.
+ */
+import { toLocal } from '../geo/regionTransform.js';
+import { pointInPolygon } from '../shared/polygon.js';
 
-const GATE_HALF_WIDTH = 4.6;   // sedikit lebih sempit dari terowongan 10 m
-const CORRIDOR_K_START = -0.08;
-const CORRIDOR_K_END = 1.25;
-const WORLD_LIMIT = SITE.groundSize / 2 - 20;
-const LAKE_RADIUS = 70;
-const BIKE_CLEARANCE = 0.6;
-const CAMERA_CLEARANCE = 0.8;  // kamera butuh jarak lebih lega dari dinding daripada sepeda
+const OPEN = Object.freeze({ isWalkable: () => true, isCameraClear: () => true });
 
-/** Rintangan lingkaran padat di plaza/kawasan: kolam tugu Lancang Kuning & tugu tanjak. */
-export const OBSTACLES = Object.freeze([
-  Object.freeze({ name: 'tuguLancangKuning', x: 0, z: -(STADIUM.outerSemiZ + 45), r: 8.0 + BIKE_CLEARANCE }),
-  Object.freeze({ name: 'tuguTanjak', x: SITE.tanjakMonument.x, z: SITE.tanjakMonument.z, r: 1.6 + BIKE_CLEARANCE }),
-]);
-
-/** Koridor gate utama sebagai segmen garis dunia (dari luar cangkang ke apron lintasan). */
-const CORRIDORS = GATES.filter((g) => g.main).map((g) => {
-  const a = framePoint(g.u, CORRIDOR_K_START, 0);
-  const b = framePoint(g.u, CORRIDOR_K_END, 0);
-  return { ax: a.x, az: a.z, bx: b.x, bz: b.z };
-});
-
-/** Radius ternormalisasi terhadap elips (1 = tepat di tepi). */
-const ellipseRadius = (x, z, a, b) => Math.sqrt((x / a) ** 2 + (z / b) ** 2);
-
-/** Jarak titik ke segmen garis (2D). */
-function distToSegment(px, pz, s) {
-  const dx = s.bx - s.ax;
-  const dz = s.bz - s.az;
-  const len2 = dx * dx + dz * dz || 1;
-  const t = Math.max(0, Math.min(1, ((px - s.ax) * dx + (pz - s.az) * dz) / len2));
-  return Math.hypot(px - (s.ax + dx * t), pz - (s.az + dz * t));
+/** Bungkus collider region-lokal agar menerima koordinat dunia (dipakai sebagai fallback). */
+export function localized(region, colliders) {
+  return Object.freeze({
+    isWalkable(x, z) {
+      const l = toLocal(region.placement, x, z);
+      return colliders.isWalkable(l.x, l.z);
+    },
+    isCameraClear(x, z) {
+      const l = toLocal(region.placement, x, z);
+      return colliders.isCameraClear(l.x, l.z);
+    },
+  });
 }
 
-/** Jarak terdekat titik ke garis tengah koridor gate utama. */
-export function distanceToGateCorridor(x, z) {
-  return Math.min(...CORRIDORS.map((s) => distToSegment(x, z, s)));
-}
-
-export function inGateCorridor(x, z) {
-  return distanceToGateCorridor(x, z) < GATE_HALF_WIDTH;
-}
-
-/** Posisi valid: di dalam mangkuk, di luar cangkang, atau di koridor gate; tidak di danau; dalam batas dunia. */
-export function isWalkable(x, z) {
-  if (Math.abs(x) > WORLD_LIMIT || Math.abs(z) > WORLD_LIMIT) return false;
-  const lake = SITE.lakeCenter;
-  if (Math.hypot(x - lake.x, z - lake.z) < LAKE_RADIUS) return false;
-  if (OBSTACLES.some((o) => Math.hypot(x - o.x, z - o.z) < o.r)) return false;
-  if (inGateCorridor(x, z)) return true;
-  const inner = ellipseRadius(x, z, STADIUM.innerSemiX - 2, STADIUM.innerSemiZ - 2);
-  const outer = ellipseRadius(x, z, STADIUM.outerSemiX + 1.5, STADIUM.outerSemiZ + 1.5);
-  return inner < 1 || outer > 1;
+/**
+ * @param {{regions?: Array<{region:{placement:object, mask:Array<[number,number]>}, colliders:object}>,
+ *   fallback?: {isWalkable(x:number,z:number):boolean, isCameraClear(x:number,z:number):boolean}}} [opts]
+ * @returns {{isWalkable(x:number, z:number):boolean, isCameraClear(x:number, z:number):boolean}}
+ */
+export function createCompositeCollider({ regions = [], fallback = OPEN } = {}) {
+  const list = regions.map(({ region, colliders }) => Object.freeze({ region, colliders }));
+  const route = (x, z, method) => {
+    if (!Number.isFinite(x) || !Number.isFinite(z)) return false;
+    for (const { region, colliders } of list) {
+      const l = toLocal(region.placement, x, z);
+      if (pointInPolygon(l.x, l.z, region.mask)) return colliders[method](l.x, l.z);
+    }
+    return fallback[method](x, z);
+  };
+  return Object.freeze({
+    isWalkable: (x, z) => route(x, z, 'isWalkable'),
+    isCameraClear: (x, z) => route(x, z, 'isCameraClear'),
+  });
 }
 
 /**
  * Collider stateful: mengembalikan posisi valid terakhir bila posisi baru menabrak.
  * Mencoba meluncur (slide) di sumbu X atau Z agar tidak "lengket".
+ * @param {{x:number, z:number}} start
+ * @param {(x:number, z:number) => boolean} isWalkable
  */
-export function createCollider(start = { x: 0, z: 0 }) {
+export function createCollider(start = { x: 0, z: 0 }, isWalkable) {
+  if (typeof isWalkable !== 'function') throw new TypeError('createCollider: isWalkable(x, z) wajib');
   let last = { x: start.x, z: start.z };
   return (x, z) => {
     if (isWalkable(x, z)) return (last = { x, z });
@@ -68,18 +58,4 @@ export function createCollider(start = { x: 0, z: 0 }) {
     if (isWalkable(last.x, z)) return (last = { x: last.x, z });
     return { ...last };
   };
-}
-
-/**
- * Apakah titik (x, z) bebas untuk KAMERA: di luar dinding tribun/cangkang (kecuali di dalam koridor gate)
- * dan di luar rintangan padat. Tidak melarang danau/tepi dunia (kamera boleh melayang di atasnya).
- * Dipakai CameraRig untuk menarik kamera orang ketiga mendekat agar tidak menembus bangunan.
- */
-export function isCameraClear(x, z) {
-  if (!Number.isFinite(x) || !Number.isFinite(z)) return false;
-  if (OBSTACLES.some((o) => Math.hypot(x - o.x, z - o.z) < o.r - BIKE_CLEARANCE + CAMERA_CLEARANCE)) return false;
-  if (distanceToGateCorridor(x, z) < GATE_HALF_WIDTH - 0.6) return true;
-  const inner = ellipseRadius(x, z, STADIUM.innerSemiX - 1, STADIUM.innerSemiZ - 1);
-  const outer = ellipseRadius(x, z, STADIUM.outerSemiX + 3, STADIUM.outerSemiZ + 3);
-  return inner < 1 || outer > 1;
 }

@@ -3,7 +3,7 @@ import { createDecalLayout, countDecals } from '../src/world/Decals.layout.js';
 import { createDecals } from '../src/world/Decals.js';
 import { DECAL_NAMES } from '../src/world/textures/decalAtlas.js';
 import { STADIUM, SITE } from '../src/config/constants.js';
-import { distanceToGateCorridor } from '../src/core/Collider.js';
+import { distanceToGateCorridor } from '../src/world/stadium/gateCorridor.js';
 
 const inEllipse = (x, z, a, b) => (x * x) / (a * a) + (z * z) / (b * b) < 1;
 

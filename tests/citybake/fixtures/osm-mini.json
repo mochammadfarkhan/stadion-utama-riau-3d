@@ -1,0 +1,19 @@
+{
+  "version": 0.6,
+  "generator": "fixture",
+  "osm3s": {"timestamp_osm_base":"2026-10-16T00:00:00Z","copyright":"fixture — bentuk sintetis untuk tes"},
+  "elements": [
+    {"type":"node","id":1,"lat":0.4836,"lon":101.3895,"tags":{"highway":"street_lamp"}},
+    {"type":"way","id":1001,"tags":{"building":"yes","building:levels":"3"},"geometry":[{"lat":0.4827362,"lon":101.3903362},{"lat":0.4827362,"lon":101.3905159},{"lat":0.4826458,"lon":101.3905159},{"lat":0.4826458,"lon":101.3903362},{"lat":0.4827362,"lon":101.3903362}]},
+    {"type":"way","id":1002,"tags":{"building":"house"},"geometry":[{"lat":0.4830799,"lon":101.3908393},{"lat":0.4830799,"lon":101.3909112},{"lat":0.4830256,"lon":101.3909112},{"lat":0.4830256,"lon":101.3908393},{"lat":0.4830799,"lon":101.3908393}]},
+    {"type":"way","id":1003,"tags":{"building":"yes"},"geometry":[{"lat":0.4825644,"lon":101.3885755},{"lat":0.4825644,"lon":101.3886833},{"lat":0.4824559,"lon":101.3886833},{"lat":0.4824559,"lon":101.3885755},{"lat":0.4825644,"lon":101.3885755}]},
+    {"type":"way","id":1004,"tags":{"building":"yes"},"geometry":[{"lat":0.4854494,"lon":101.3876861},{"lat":0.4854494,"lon":101.3877759},{"lat":0.4853589,"lon":101.3877759},{"lat":0.4853589,"lon":101.3876861},{"lat":0.4854494,"lon":101.3876861}]},
+    {"type":"way","id":2001,"tags":{"highway":"primary","name":"Jalan Uji Raya"},"geometry":[{"lat":0.4834145,"lon":101.3873717},{"lat":0.4834145,"lon":101.3895277},{"lat":0.4834145,"lon":101.3916837}]},
+    {"type":"way","id":2002,"tags":{"highway":"footway"},"geometry":[{"lat":0.4844998,"lon":101.3900667},{"lat":0.482691,"lon":101.3900667}]},
+    {"type":"way","id":2003,"tags":{"highway":"construction"},"geometry":[{"lat":0.4835954,"lon":101.3895277},{"lat":0.483505,"lon":101.3896175}]},
+    {"type":"way","id":3001,"tags":{"natural":"water"},"geometry":[{"lat":0.484952,"lon":101.3881802},{"lat":0.484952,"lon":101.3890785},{"lat":0.4840476,"lon":101.3890785},{"lat":0.4840476,"lon":101.3881802},{"lat":0.484952,"lon":101.3881802}]},
+    {"type":"way","id":3002,"tags":{"waterway":"stream","name":"Sungai Uji"},"geometry":[{"lat":0.4854041,"lon":101.390426},{"lat":0.484952,"lon":101.3913244}]},
+    {"type":"way","id":4001,"tags":{"landuse":"grass"},"geometry":[{"lat":0.4857659,"lon":101.3873717},{"lat":0.4857659,"lon":101.3916837},{"lat":0.4854946,"lon":101.3916837},{"lat":0.4854946,"lon":101.3873717},{"lat":0.4857659,"lon":101.3873717}]},
+    {"type":"relation","id":5001,"tags":{"type":"multipolygon","building":"commercial","height":"9"},"members":[{"type":"way","ref":9001,"role":"outer","geometry":[{"lat":0.4844546,"lon":101.3907405},{"lat":0.4844546,"lon":101.39101},{"lat":0.4841832,"lon":101.39101}]},{"type":"way","ref":9002,"role":"outer","geometry":[{"lat":0.4841832,"lon":101.39101},{"lat":0.4841832,"lon":101.3907405},{"lat":0.4844546,"lon":101.3907405}]},{"type":"way","ref":9003,"role":"inner","geometry":[{"lat":0.4843641,"lon":101.3908303},{"lat":0.4843641,"lon":101.3909201},{"lat":0.4842737,"lon":101.3909201},{"lat":0.4842737,"lon":101.3908303},{"lat":0.4843641,"lon":101.3908303}]}]}
+  ]
+}

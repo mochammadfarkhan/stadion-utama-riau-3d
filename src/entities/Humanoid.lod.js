@@ -7,6 +7,7 @@
  */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { currentScope } from '../engine/ResourceScope.js';
 
 export const LOD_NEAR = 60;  // m: di dalam jarak ini detail penuh + bayangan
 export const LOD_FAR = 320;  // m: di luar jarak ini disembunyikan
@@ -14,8 +15,8 @@ export const LOD_FAR = 320;  // m: di luar jarak ini disembunyikan
 const NEAR2 = LOD_NEAR * LOD_NEAR;
 const FAR2 = LOD_FAR * LOD_FAR;
 
-/** Material bersama untuk semua mesh LOD (Lambert, warna dari atribut vertex). */
-const lodMaterial = new THREE.MeshLambertMaterial({ vertexColors: true });
+/** Material bersama untuk semua mesh LOD (Lambert, warna dari atribut vertex), satu per ResourceScope aktif. */
+const lodMaterial = () => currentScope().get('humanoid:lodMaterial', () => new THREE.MeshLambertMaterial({ vertexColors: true }));
 
 /** Level LOD dari jarak kuadrat ke kamera. NaN dianggap terdekat agar humanoid tidak hilang karena data rusak. */
 export function lodLevelFor(dist2) {
@@ -54,7 +55,7 @@ export function buildStaticLodMesh(group, body) {
   body.traverse((o) => {
     if (o.isMesh && o.visible && o.geometry?.attributes?.position) parts.push(bakePart(o));
   });
-  const mesh = new THREE.Mesh(mergeGeometries(parts, false), lodMaterial);
+  const mesh = new THREE.Mesh(mergeGeometries(parts, false), lodMaterial());
   for (const g of parts) g.dispose();
   mesh.name = 'humanoidLod';
   mesh.castShadow = false;
