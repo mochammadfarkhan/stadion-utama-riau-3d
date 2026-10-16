@@ -11,7 +11,7 @@ import { STADIUM, SITE } from '../config/constants.js';
 import { createRandom } from './siteutil/rng.js';
 import { frameAt, framePoint } from './stadium/ovalFrame.js';
 import { isInsideGate, isInsideStair } from './stadium/gateLayout.js';
-import { distanceToGateCorridor } from '../core/Collider.js';
+import { distanceToGateCorridor } from './stadium/gateCorridor.js';
 
 const SEED = 20121;
 const TWO_PI = Math.PI * 2;

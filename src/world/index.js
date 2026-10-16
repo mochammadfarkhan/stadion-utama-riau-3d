@@ -25,7 +25,7 @@ import { createGapura } from './props/Gapura.js';
 import { createParkedCars, createParkedMotorcycles, pickParkingSpots } from './props/Vehicles.js';
 import { createCart, createUmbrellaSet, createFoodStall } from './props/Cart.js';
 import { mergeByMaterial } from './util/merge.js';
-import { distanceToGateCorridor } from '../core/Collider.js';
+import { distanceToGateCorridor } from './stadium/gateCorridor.js';
 
 const ROW_DEPTH = STADIUM.rowDepth;
 const SEAT_INSET = 0.45;

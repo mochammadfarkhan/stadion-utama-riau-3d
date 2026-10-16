@@ -6,7 +6,7 @@ import { defineRegion, validateBuild } from '../Region.js';
 import { withScope } from '../../engine/ResourceScope.js';
 import { disposeTree } from '../../engine/disposeTree.js';
 import { buildWorld } from '../../world/index.js';
-import { isWalkable, isCameraClear } from '../../core/Collider.js';
+import { stadionColliders } from './collider.js';
 import { SITE } from './site.js';
 import { LAYOUT } from './layout.js';
 import { STADION_MASK } from './mask.js';
@@ -21,7 +21,7 @@ function buildStadion({ scope }) {
   let disposed = false;
   return validateBuild({
     group: world.group,
-    colliders: { isWalkable, isCameraClear },
+    colliders: stadionColliders,
     minimapLayer: () => {}, // Fase 0: peta dasar masih di-bake App.bakeMinimap dari layer minimap (Fase 2: layer region)
     systems: [{ id: 'stadion.world', phase: 'world', update: (dt, ctx) => world.update(dt, ctx.time, ctx.focus), dispose() {} }],
     seatSamples: world.seatSamples,

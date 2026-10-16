@@ -8,7 +8,7 @@ import './ui/touch.css';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/jetbrains-mono';
 import { CameraRig } from './core/CameraRig.js';
-import { createCollider, isCameraClear } from './core/Collider.js';
+import { createCollider, createCompositeCollider, localized } from './core/Collider.js';
 import { createPovSource } from './core/povSource.js';
 import { POVS } from './core/cameraPresets.js';
 import { createAudioBus } from './core/AudioBus.js';
@@ -61,7 +61,6 @@ async function main() {
   const input = new Input();
   const hud = new HUD(document.getElementById('hud'));
   const rig = new CameraRig(app.camera, app.renderer.domElement);
-  rig.setObstacleTest(isCameraClear);
   // Kontrol sentuh + gamepad menulis ke Input yang sama dengan keyboard.
   const touchUi = new TouchControls(document.body, { input, rig, surface: app.renderer.domElement });
   const gamepad = createGamepadPoller(input, { lookBy: (dx, dy) => rig.lookBy(dx, dy) });
@@ -88,6 +87,11 @@ async function main() {
   });
   app.scene.add(region.group);
   freezeStatic(region.group); // dunia statis: matriks dihitung sekali, tidak per frame
+  const colliders = createCompositeCollider({
+    regions: [{ region: stadionRegion, colliders: region.colliders }],
+    fallback: localized(stadionRegion, region.colliders), // Fase 0: tanah region (1,4 km) masih menutup seluruh dunia; Fase 2: TileCollider
+  });
+  rig.setObstacleTest(colliders.isCameraClear);
   const blenderModels = createModelGroup();
   app.scene.add(blenderModels);
   const modelsReady = loadBlenderModels(blenderModels, region, hud);
@@ -98,7 +102,7 @@ async function main() {
   const wallet = createWallet();
   const ents = buildEntities({ start: START_POS, world: region, wallet, camera: app.camera });
   app.scene.add(ents.group);
-  ents.bike.setCollider(createCollider(START_POS));
+  ents.bike.setCollider(createCollider(START_POS, colliders.isWalkable));
   rig.attachSource(createPovSource(ents));
   ents.bike.setAudioBus(audioBus);
   ents.updatables.forEach((e, i) => app.addSystem({ id: `entities.${i}`, phase: 'sim', update: (dt, ctx) => e.update(dt, ctx) }));
@@ -149,7 +153,7 @@ async function main() {
   // Latar menu: kamera orbit sinematik mengelilingi stadion (sepeda dibekukan, cerita dijeda) sampai pemain menekan Mulai.
   rig.handlePovKey(POVS.find((p) => p.id === 'orbit').key);
   menu.ready({ hasProgress: hasStoryProgress(story.state), touch });
-  if (import.meta.env.DEV) exposeDevTools({ app, ents, rig, time, weather, store, audioBus, story });
+  if (import.meta.env.DEV) exposeDevTools({ app, ents, rig, time, weather, store, audioBus, story, colliders });
 }
 
 /**
