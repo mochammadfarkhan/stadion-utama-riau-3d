@@ -10,6 +10,29 @@
 
 ---
 
+## Amandemen 2026-10-17 (keputusan user): angkot & bus **mangkal**, tidak dinonaktifkan
+
+User memutuskan angkot & bus kota (dari PR #4) **dipindah dan mangkal** di lokasi nyata, bukan dinonaktifkan. Amandemen ini mengalahkan teks lain di rencana ini yang menyebut "angkot/bus dinonaktifkan".
+
+- **Task 8:** tetap hapus 5 entri `kendaraan/*.glb` dari `LAYOUT.blenderModels` (`tests/layoutModels.test.js` tetap mengharapkan `[]`), karena kendaraan bukan lagi konten region. Komentar pengganti di `layout.js` diubah menjadi: `// Angkot & bus kota pindah ke src/city/parkedVehicles.js (mangkal di lokasi nyata, Plan C Task 18b).`
+- **Task 18b (BARU, dikerjakan setelah Task 18 dan sebelum Task 19):** kendaraan mangkal sebagai prop kota.
+  - **Files:** Create `src/city/parkedVehicles.js`, `tests/parkedVehicles.test.js`. Modify `src/city/index.js` (createCity memasang dan melepas grup kendaraan di scope kota) dan `src/world/assets/models.js` bila perlu memuat ke scope kota.
+  - **Data fakta (Overpass 2026-10-17):** satu-satunya `highway=bus_stop` dalam radius 1,5 km dari stadion adalah node **4561327395** `{name: "Halte", bench: "yes"}`, di sekitar dunia (x ≈ 558, z ≈ −775). Langkah 1 wajib memverifikasi lat/lon persisnya dengan `node(4561327395);out;` di Overpass, lalu menulisnya sebagai konstanta (lat/lon + komentar sumber) dan mengonversinya dengan `createProjection(ORIGIN).toWorld`. Bila node tidak ada lagi, BERHENTI dan laporkan.
+  - **Penempatan:**
+    - (a) **Bus kota**: di bahu jalan terdekat dengan halte tersebut.
+    - (b) **2–3 angkot ngetem** di bahu Jl. Naga Sakti OSM (polyline bernama "Jalan Naga Sakti" di `public/tiles/*.data.json`) dekat gapura (x ∈ [−40, 40]), di sisi yang menghadap stadion. Jarak antar-angkot 7–9 m.
+    - Cara posisi dihitung: proyeksikan titik target ke segmen polyline jalan terdekat, geser tegak lurus ke bahu sebesar `lebarJalan/2 − 1,2 m` (lebar dari kelas jalan di `tools/citybake/config.js`), lalu yaw sejajar segmen.
+  - **Fungsi murni** `computeParkedSlots(roads, targets)` → `[{model, x, z, yaw}]`.
+  - **Tes (TDD):**
+    - Setiap slot berada 2–6 m dari sumbu jalannya.
+    - Yaw sejajar segmen ±5°.
+    - Slot tidak berada di dalam footprint bangunan tile.
+    - Angkot tidak saling tumpang tindih (jarak ≥ 6 m).
+    - Hasilnya deterministik.
+  - **Perilaku:** statis (mangkal); lampu emissive GLB didaftarkan ke registry malam lewat scope kota; collider berupa lingkaran sederhana per kendaraan di `TileCollider` atau di collider komposit kota.
+  - **Kriteria terima E2E (Task 22):** sesudah fast travel kembali ke stadion, kendaraan tetap ada dan tidak terduplikasi.
+  - **Commit:** `feat: angkot dan bus kota mangkal di lokasi nyata (halte OSM, bahu Jl. Naga Sakti dekat gapura)`.
+
 ## Konvensi eksekusi
 
 - Tes satu berkas: `node node_modules/vitest/vitest.mjs run <file>` (jangan `npx`). Seluruh suite: `node node_modules/vitest/vitest.mjs run`.
