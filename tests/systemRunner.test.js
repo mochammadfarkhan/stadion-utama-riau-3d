@@ -152,3 +152,34 @@ describe('SystemRunner: remove, snapshot, dispose LIFO (Plan C)', () => {
     expect(r.ids).toEqual([]);
   });
 });
+
+describe('SystemRunner: sistem yang dinonaktifkan tetap dilepas', () => {
+  it('runner.dispose() memanggil dispose sistem nonaktif tepat sekali, urutan LIFO bersama sistem aktif', () => {
+    const r = createSystemRunner({ logger: quietLogger() });
+    const order = [];
+    r.add(sys('a', 'sim', () => {}, { dispose: () => order.push('a') }));
+    r.add(sys('rusak', 'world', boom, { dispose: () => order.push('rusak') }));
+    r.add(sys('c', 'ui', () => {}, { dispose: () => order.push('c') }));
+    for (let i = 0; i < MAX_CONSECUTIVE_FAILURES; i += 1) r.update(0.016, {});
+    expect(r.disabled).toEqual(['rusak']);
+    expect(order).toEqual([]); // belum dilepas saat dinonaktifkan
+    r.dispose();
+    expect(order).toEqual(['c', 'rusak', 'a']);
+    r.dispose();
+    expect(order).toEqual(['c', 'rusak', 'a']); // tidak dobel
+  });
+
+  it('galat dispose sistem nonaktif dicatat, tidak menghentikan pelepasan lain', () => {
+    const logger = quietLogger();
+    const r = createSystemRunner({ logger });
+    const order = [];
+    r.add(sys('a', 'sim', () => {}, { dispose: () => order.push('a') }));
+    r.add(sys('rusak', 'world', boom, { dispose: boom }));
+    for (let i = 0; i < MAX_CONSECUTIVE_FAILURES; i += 1) r.update(0.016, {});
+    const before = logger.calls.length;
+    r.dispose();
+    expect(order).toEqual(['a']);
+    expect(logger.calls).toHaveLength(before + 1);
+    expect(logger.calls.at(-1)[0]).toContain('"rusak"');
+  });
+});

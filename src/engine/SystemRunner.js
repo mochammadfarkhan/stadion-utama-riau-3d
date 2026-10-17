@@ -4,7 +4,8 @@
  * sistem lain; setelah MAX_CONSECUTIVE_FAILURES galat beruntun sistem dinonaktifkan dan id-nya dicatat.
  * remove(id) memanggil dispose() sistem (kecuali {dispose:false}); sistem yang dicabut di tengah frame
  * tidak dijalankan lagi pada frame itu. dispose() melepas semua sistem terbalik dari urutan pendaftaran
- * (LIFO). Lapisan engine: tanpa impor three/world/ui.
+ * (LIFO), termasuk sistem yang sudah dinonaktifkan (masing-masing tepat sekali). Lapisan engine: tanpa
+ * impor three/world/ui.
  */
 export const PHASES = Object.freeze(['input', 'sim', 'world', 'camera', 'ui']);
 export const MAX_CONSECUTIVE_FAILURES = 3;
@@ -27,6 +28,7 @@ function assertSystem(system) {
 export function createSystemRunner({ logger = console } = {}) {
   let entries = []; // { system, failures, seq, removed } terurut fase lalu pendaftaran
   const disabled = [];
+  let disabledEntries = []; // entri nonaktif: belum di-dispose, dilepas saat runner.dispose()
   let seq = 0;
 
   const insert = (entry) => {
@@ -51,6 +53,7 @@ export function createSystemRunner({ logger = console } = {}) {
       entry.removed = true;
       entries = entries.filter((e) => e !== entry);
       disabled.push(id);
+      disabledEntries = [...disabledEntries, entry];
     } else if (entry.failures === 1) {
       logger.error(`Sistem "${id}" galat (dicoba lagi pada frame berikutnya):`, err);
     }
@@ -92,10 +95,11 @@ export function createSystemRunner({ logger = console } = {}) {
         }
       }
     },
-    /** Lepas semua sistem terbalik dari urutan pendaftaran (LIFO, lintas fase). */
+    /** Lepas semua sistem (aktif & nonaktif) terbalik dari urutan pendaftaran (LIFO, lintas fase). */
     dispose() {
-      const list = [...entries].sort((a, b) => b.seq - a.seq);
+      const list = [...entries, ...disabledEntries].sort((a, b) => b.seq - a.seq);
       entries = [];
+      disabledEntries = [];
       for (const entry of list) {
         entry.removed = true;
         disposeSystem(entry.system);
