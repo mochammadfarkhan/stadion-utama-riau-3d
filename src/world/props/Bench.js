@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { instanceParts, localMatrix, placeObject, groupFromParts } from '../siteutil/instanceParts.js';
 import { roundedBox } from '../siteutil/rounded.js';
+import { currentScope } from '../../engine/ResourceScope.js';
 
 /**
  * Bangku taman gaya cozy: 'semen' (dudukan tebal membulat + dua kaki gemuk)
@@ -15,18 +16,18 @@ export const BENCH = Object.freeze({
 const EDGE = Object.freeze({ seat: 0.06, leg: 0.05, slat: 0.03 });
 const SLAT = Object.freeze({ thick: 0.07, width: 0.13 });
 
-const matSemen = new THREE.MeshLambertMaterial({ color: BENCH.colors.semen });
-const matBilah = new THREE.MeshLambertMaterial({ color: BENCH.colors.bilah });
-const matKaki = new THREE.MeshLambertMaterial({ color: BENCH.colors.kaki });
+const matSemen = () => currentScope().get('Bench:matSemen', () => new THREE.MeshLambertMaterial({ color: BENCH.colors.semen }));
+const matBilah = () => currentScope().get('Bench:matBilah', () => new THREE.MeshLambertMaterial({ color: BENCH.colors.bilah }));
+const matKaki = () => currentScope().get('Bench:matKaki', () => new THREE.MeshLambertMaterial({ color: BENCH.colors.kaki }));
 
 /** Part bangku semen: dudukan tebal membulat, dua kaki balok gemuk. */
 function semenParts() {
   const seat = roundedBox(BENCH.length, 0.16, BENCH.seatDepth, EDGE.seat);
   const leg = roundedBox(0.34, BENCH.seatH, BENCH.seatDepth - 0.08, EDGE.leg);
   return [
-    { geometry: seat, material: matSemen, matrix: localMatrix(0, BENCH.seatH + 0.08, 0), name: 'dudukan' },
-    { geometry: leg, material: matSemen, matrix: localMatrix(-0.62, BENCH.seatH / 2, 0), name: 'kakiKiri' },
-    { geometry: leg, material: matSemen, matrix: localMatrix(0.62, BENCH.seatH / 2, 0), name: 'kakiKanan' },
+    { geometry: seat, material: matSemen(), matrix: localMatrix(0, BENCH.seatH + 0.08, 0), name: 'dudukan' },
+    { geometry: leg, material: matSemen(), matrix: localMatrix(-0.62, BENCH.seatH / 2, 0), name: 'kakiKiri' },
+    { geometry: leg, material: matSemen(), matrix: localMatrix(0.62, BENCH.seatH / 2, 0), name: 'kakiKanan' },
   ];
 }
 
@@ -38,15 +39,15 @@ function besiParts() {
   const parts = [];
   for (let i = 0; i < BENCH.slatCount; i += 1) {
     const z = -BENCH.seatDepth / 2 + 0.08 + i * (BENCH.seatDepth - 0.16) / (BENCH.slatCount - 1);
-    parts.push({ geometry: slat, material: matBilah, matrix: localMatrix(0, BENCH.seatH, z), name: `bilah-${i}` });
+    parts.push({ geometry: slat, material: matBilah(), matrix: localMatrix(0, BENCH.seatH, z), name: `bilah-${i}` });
   }
   for (let i = 0; i < 2; i += 1) {
     const y = BENCH.seatH + 0.16 + i * 0.2;
-    parts.push({ geometry: slat, material: matBilah, matrix: localMatrix(0, y, -BENCH.seatDepth / 2 - 0.02, -0.15), name: `sandaran-${i}` });
+    parts.push({ geometry: slat, material: matBilah(), matrix: localMatrix(0, y, -BENCH.seatDepth / 2 - 0.02, -0.15), name: `sandaran-${i}` });
   }
   [-0.75, 0.75].forEach((x) => {
-    parts.push({ geometry: leg, material: matKaki, matrix: localMatrix(x, BENCH.seatH / 2, 0), name: 'kaki' });
-    parts.push({ geometry: backLeg, material: matKaki, matrix: localMatrix(x, BENCH.seatH + BENCH.backH / 2, -BENCH.seatDepth / 2 - 0.03, -0.15), name: 'tiangSandaran' });
+    parts.push({ geometry: leg, material: matKaki(), matrix: localMatrix(x, BENCH.seatH / 2, 0), name: 'kaki' });
+    parts.push({ geometry: backLeg, material: matKaki(), matrix: localMatrix(x, BENCH.seatH + BENCH.backH / 2, -BENCH.seatDepth / 2 - 0.03, -0.15), name: 'tiangSandaran' });
   });
   return parts;
 }

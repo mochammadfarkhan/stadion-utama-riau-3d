@@ -3,6 +3,7 @@ import { makeTextMaterial } from '../siteutil/textCanvas.js';
 import { groupFromParts, localMatrix, placeObject } from '../siteutil/instanceParts.js';
 import { roundedBox, mergeAll } from '../siteutil/rounded.js';
 import { applyWind } from '../shaders/wind.js';
+import { currentScope } from '../../engine/ResourceScope.js';
 
 /**
  * Gerobak PKL gaya cozy (badan membulat, roda tebal, atap sedikit melengkung),
@@ -18,29 +19,26 @@ export const FOOD_STALL = Object.freeze({ colors: { arang: 0xff3b00, jagung: 0xf
 const EDGE = Object.freeze({ body: 0.08, small: 0.03, seat: 0.04 });
 const ROOF_BEND_R = 4; // radius lengkung atap seng (semakin besar semakin datar)
 
-const woodMat = new THREE.MeshLambertMaterial({ color: CART.colors.kayu });
-const zincMat = new THREE.MeshLambertMaterial({ color: CART.colors.seng, side: THREE.DoubleSide });
-const glassMat = new THREE.MeshStandardMaterial({ color: CART.colors.kaca, transparent: true, opacity: 0.3, roughness: 0.1 });
-const wheelMat = new THREE.MeshLambertMaterial({ color: CART.colors.roda });
-const whiteMat = new THREE.MeshLambertMaterial({ color: 0xfafafa });
+const woodMat = () => currentScope().get('Cart:woodMat', () => new THREE.MeshLambertMaterial({ color: CART.colors.kayu }));
+const zincMat = () => currentScope().get('Cart:zincMat', () => new THREE.MeshLambertMaterial({ color: CART.colors.seng, side: THREE.DoubleSide }));
+const glassMat = () => currentScope().get('Cart:glassMat', () => new THREE.MeshStandardMaterial({ color: CART.colors.kaca, transparent: true, opacity: 0.3, roughness: 0.1 }));
+const wheelMat = () => currentScope().get('Cart:wheelMat', () => new THREE.MeshLambertMaterial({ color: CART.colors.roda }));
+const whiteMat = () => currentScope().get('Cart:whiteMat', () => new THREE.MeshLambertMaterial({ color: 0xfafafa }));
 /** Kubah payung: satu material bersama (vertex color) + goyangan konstan kecil. */
-const canopyMat = applyWind(
+const canopyMat = () => currentScope().get('Cart:canopyMat', () => applyWind(
   new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }),
   { weightMode: 'constant', weight: 0.3, amplitude: 0.12 },
-);
-const thermosMat = new THREE.MeshLambertMaterial({ color: 0x5c8dd6 });
-const stallMats = Object.freeze({
+));
+const thermosMat = () => currentScope().get('Cart:thermosMat', () => new THREE.MeshLambertMaterial({ color: 0x5c8dd6 }));
+const stallMats = () => currentScope().get('Cart:stallMats', () => Object.freeze({
   table: new THREE.MeshLambertMaterial({ color: FOOD_STALL.colors.meja }),
   grill: new THREE.MeshLambertMaterial({ color: 0x546e7a }),
   coal: new THREE.MeshStandardMaterial({ color: 0x3a1a0a, emissive: FOOD_STALL.colors.arang, emissiveIntensity: 1.6, roughness: 0.9 }),
   corn: new THREE.MeshLambertMaterial({ color: FOOD_STALL.colors.jagung }),
-});
-const matCache = new Map();
-
-/** Material Lambert di-cache per warna agar banyak lapak berbagi material (bisa digabung). */
+}));
+/** Material Lambert di-cache per warna (per ResourceScope aktif) agar banyak lapak berbagi material. */
 function lambert(color) {
-  if (!matCache.has(color)) matCache.set(color, new THREE.MeshLambertMaterial({ color }));
-  return matCache.get(color);
+  return currentScope().get(`Cart:lambert:${color}`, () => new THREE.MeshLambertMaterial({ color }));
 }
 
 /** Roda tebal: silinder + bola kecil sebagai poros, sumbu Z. */
@@ -62,17 +60,17 @@ function curvedRoof(w, d) {
 function cartFrameParts() {
   const { bodyW, bodyH, bodyD, wheelR, roofY } = CART;
   const parts = [
-    { geometry: roundedBox(bodyW, bodyH, bodyD, EDGE.body), material: woodMat, matrix: localMatrix(0, wheelR + bodyH / 2 - 0.1, 0), castShadow: true, name: 'badan' },
-    { geometry: roundedBox(bodyW - 0.2, 0.7, bodyD - 0.15, EDGE.body), material: glassMat, matrix: localMatrix(0, wheelR + bodyH + 0.25, 0), name: 'etalase' },
-    { geometry: curvedRoof(bodyW + 0.5, bodyD + 0.5), material: zincMat, matrix: localMatrix(0, roofY + 0.08, 0), castShadow: true, name: 'atapSeng' },
+    { geometry: roundedBox(bodyW, bodyH, bodyD, EDGE.body), material: woodMat(), matrix: localMatrix(0, wheelR + bodyH / 2 - 0.1, 0), castShadow: true, name: 'badan' },
+    { geometry: roundedBox(bodyW - 0.2, 0.7, bodyD - 0.15, EDGE.body), material: glassMat(), matrix: localMatrix(0, wheelR + bodyH + 0.25, 0), name: 'etalase' },
+    { geometry: curvedRoof(bodyW + 0.5, bodyD + 0.5), material: zincMat(), matrix: localMatrix(0, roofY + 0.08, 0), castShadow: true, name: 'atapSeng' },
   ];
   const wheelGeo = thickWheel(wheelR, 0.14);
-  [-1, 1].forEach((s) => parts.push({ geometry: wheelGeo, material: wheelMat, matrix: localMatrix(-0.2, wheelR, s * (bodyD / 2 + 0.09)), name: 'roda' }));
+  [-1, 1].forEach((s) => parts.push({ geometry: wheelGeo, material: wheelMat(), matrix: localMatrix(-0.2, wheelR, s * (bodyD / 2 + 0.09)), name: 'roda' }));
   const handleGeo = new THREE.CapsuleGeometry(0.04, 0.92, 2, 6).rotateZ(Math.PI / 2);
-  [-1, 1].forEach((s) => parts.push({ geometry: handleGeo, material: woodMat, matrix: localMatrix(-bodyW / 2 - 0.4, wheelR + 0.6, s * 0.3), name: 'gagang' }));
+  [-1, 1].forEach((s) => parts.push({ geometry: handleGeo, material: woodMat(), matrix: localMatrix(-bodyW / 2 - 0.4, wheelR + 0.6, s * 0.3), name: 'gagang' }));
   const postGeo = new THREE.CylinderGeometry(0.035, 0.035, roofY - wheelR - bodyH + 0.1, 6);
   [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([sx, sz]) => parts.push({
-    geometry: postGeo, material: woodMat, matrix: localMatrix(sx * (bodyW / 2 - 0.1), (roofY + wheelR + bodyH - 0.1) / 2, sz * (bodyD / 2 - 0.1)), name: 'tiangAtap',
+    geometry: postGeo, material: woodMat(), matrix: localMatrix(sx * (bodyW / 2 - 0.1), (roofY + wheelR + bodyH - 0.1) / 2, sz * (bodyD / 2 - 0.1)), name: 'tiangAtap',
   }));
   return parts;
 }
@@ -84,8 +82,8 @@ function drinkContentParts() {
   const parts = [0xa1887f, 0xffb74d, 0x64b5f6, 0x81c784, 0xef5350].map((c, i) => ({
     geometry: bottle, material: lambert(c), matrix: localMatrix(-0.6 + i * 0.22, y + 0.14, 0.2), name: 'botol',
   }));
-  parts.push({ geometry: new THREE.CapsuleGeometry(0.15, 0.28, 2, 10), material: thermosMat, matrix: localMatrix(0.5, y + 0.25, -0.15), name: 'termos' });
-  parts.push({ geometry: new THREE.CylinderGeometry(0.06, 0.05, 0.4, 8), material: glassMat, matrix: localMatrix(-0.1, y + 0.2, -0.2), name: 'gelasTumpuk' });
+  parts.push({ geometry: new THREE.CapsuleGeometry(0.15, 0.28, 2, 10), material: thermosMat(), matrix: localMatrix(0.5, y + 0.25, -0.15), name: 'termos' });
+  parts.push({ geometry: new THREE.CylinderGeometry(0.06, 0.05, 0.4, 8), material: glassMat(), matrix: localMatrix(-0.1, y + 0.2, -0.2), name: 'gelasTumpuk' });
   return parts;
 }
 
@@ -134,7 +132,7 @@ function umbrellaCanopy() {
     for (let k = 0; k < 3; k += 1) colors.push(c.r, c.g, c.b);
   }
   geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  return new THREE.Mesh(geo, canopyMat);
+  return new THREE.Mesh(geo, canopyMat());
 }
 
 /** Kursi plastik membulat: dudukan tebal, sandaran, 4 kaki bulat. */
@@ -155,14 +153,14 @@ function plasticChair(color) {
 export function createUmbrellaSet(opts = {}) {
   const g = new THREE.Group();
   g.name = 'tendaCeper';
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, UMBRELLA.height, 6), zincMat);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, UMBRELLA.height, 6), zincMat());
   pole.position.y = UMBRELLA.height / 2;
   const canopy = umbrellaCanopy();
   canopy.position.y = UMBRELLA.height - 0.45;
   canopy.castShadow = true;
-  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), whiteMat);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), whiteMat());
   knob.position.y = UMBRELLA.height + 0.33;
-  const table = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.07, 14), whiteMat);
+  const table = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.07, 14), whiteMat());
   table.position.y = 0.7;
   g.add(pole, canopy, knob, table);
   for (let i = 0; i < 4; i += 1) {
@@ -180,13 +178,13 @@ function grillContentParts() {
   const parts = [];
   const coalGeo = new THREE.SphereGeometry(0.05, 6, 4);
   for (let i = 0; i < 9; i += 1) {
-    parts.push({ geometry: coalGeo, material: stallMats.coal, matrix: localMatrix(-0.6 + (i % 5) * 0.17, 0.99, -0.1 + Math.floor(i / 5) * 0.2), name: 'arang' });
+    parts.push({ geometry: coalGeo, material: stallMats().coal, matrix: localMatrix(-0.6 + (i % 5) * 0.17, 0.99, -0.1 + Math.floor(i / 5) * 0.2), name: 'arang' });
   }
   const cornGeo = new THREE.CapsuleGeometry(0.035, 0.16, 2, 7).rotateZ(Math.PI / 2);
   for (let i = 0; i < 4; i += 1) {
-    parts.push({ geometry: cornGeo, material: stallMats.corn, matrix: localMatrix(-0.45 + i * 0.14, 1.06, 0.02), name: 'jagung' });
+    parts.push({ geometry: cornGeo, material: stallMats().corn, matrix: localMatrix(-0.45 + i * 0.14, 1.06, 0.02), name: 'jagung' });
   }
-  parts.push({ geometry: roundedBox(0.5, 0.12, 0.3, EDGE.seat), material: stallMats.corn, matrix: localMatrix(0.5, 0.89, 0), name: 'tumpukanJagung' });
+  parts.push({ geometry: roundedBox(0.5, 0.12, 0.3, EDGE.seat), material: stallMats().corn, matrix: localMatrix(0.5, 0.89, 0), name: 'tumpukanJagung' });
   return parts;
 }
 
@@ -194,11 +192,11 @@ function grillContentParts() {
 export function createFoodStall(opts = {}) {
   const legGeo = new THREE.CylinderGeometry(0.035, 0.04, 0.78, 6);
   const parts = [
-    { geometry: roundedBox(1.6, 0.08, 0.7, EDGE.seat), material: stallMats.table, matrix: localMatrix(0, 0.8, 0), castShadow: true, name: 'meja' },
-    { geometry: roundedBox(0.9, 0.2, 0.42, EDGE.seat), material: stallMats.grill, matrix: localMatrix(-0.25, 0.92, 0), name: 'pemanggang' },
+    { geometry: roundedBox(1.6, 0.08, 0.7, EDGE.seat), material: stallMats().table, matrix: localMatrix(0, 0.8, 0), castShadow: true, name: 'meja' },
+    { geometry: roundedBox(0.9, 0.2, 0.42, EDGE.seat), material: stallMats().grill, matrix: localMatrix(-0.25, 0.92, 0), name: 'pemanggang' },
     ...grillContentParts(),
   ];
-  [[-0.75, -0.3], [-0.75, 0.3], [0.75, -0.3], [0.75, 0.3]].forEach(([x, z]) => parts.push({ geometry: legGeo, material: stallMats.table, matrix: localMatrix(x, 0.39, z), name: 'kaki' }));
+  [[-0.75, -0.3], [-0.75, 0.3], [0.75, -0.3], [0.75, 0.3]].forEach(([x, z]) => parts.push({ geometry: legGeo, material: stallMats().table, matrix: localMatrix(x, 0.39, z), name: 'kaki' }));
   const g = groupFromParts(parts, 'lapakJagungBakar');
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.3), makeTextMaterial(opts.label ?? 'JAGUNG BAKAR', { bg: '#ffd54f', fg: '#222222', width: 768, height: 192, side: THREE.DoubleSide }));
   sign.position.set(0, 0.6, 0.36);

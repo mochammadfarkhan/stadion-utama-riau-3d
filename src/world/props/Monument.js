@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { SITE } from '../../config/constants.js';
 import { makeTextMaterial } from '../siteutil/textCanvas.js';
 import { placeObject } from '../siteutil/instanceParts.js';
+import { currentScope } from '../../engine/ResourceScope.js';
 
 /**
  * Tugu kapal layar Lancang Kuning (cat putih) di atas pedestal 3 tingkat
@@ -16,13 +17,13 @@ export const LANCANG = Object.freeze({
 });
 export const TANJAK = Object.freeze({ height: 2.4, pedestalR: 1.2, colors: { emas: 0xd4a017, pedestal: 0xb8b4aa } });
 
-const whiteMat = new THREE.MeshStandardMaterial({ color: LANCANG.colors.putih, roughness: 0.7 });
-const sailMat = new THREE.MeshLambertMaterial({ color: LANCANG.colors.layar, side: THREE.DoubleSide });
-const pedestalMat = new THREE.MeshLambertMaterial({ color: LANCANG.colors.pedestal });
-const poolMat = new THREE.MeshLambertMaterial({ color: LANCANG.colors.kolam });
-const goldMat = new THREE.MeshStandardMaterial({ color: TANJAK.colors.emas, metalness: 0.6, roughness: 0.35 });
-const hornMat = new THREE.MeshStandardMaterial({ color: LANCANG.colors.naga });
-const nozzleMat = new THREE.MeshLambertMaterial({ color: 0x6b6f72 });
+const whiteMat = () => currentScope().get('Monument:whiteMat', () => new THREE.MeshStandardMaterial({ color: LANCANG.colors.putih, roughness: 0.7 }));
+const sailMat = () => currentScope().get('Monument:sailMat', () => new THREE.MeshLambertMaterial({ color: LANCANG.colors.layar, side: THREE.DoubleSide }));
+const pedestalMat = () => currentScope().get('Monument:pedestalMat', () => new THREE.MeshLambertMaterial({ color: LANCANG.colors.pedestal }));
+const poolMat = () => currentScope().get('Monument:poolMat', () => new THREE.MeshLambertMaterial({ color: LANCANG.colors.kolam }));
+const goldMat = () => currentScope().get('Monument:goldMat', () => new THREE.MeshStandardMaterial({ color: TANJAK.colors.emas, metalness: 0.6, roughness: 0.35 }));
+const hornMat = () => currentScope().get('Monument:hornMat', () => new THREE.MeshStandardMaterial({ color: LANCANG.colors.naga }));
+const nozzleMat = () => currentScope().get('Monument:nozzleMat', () => new THREE.MeshLambertMaterial({ color: 0x6b6f72 }));
 
 /** Profil samping lambung (XY): buritan kiri, haluan naik di kanan. */
 function hullShape() {
@@ -44,7 +45,7 @@ function createHull() {
     depth: LANCANG.beam - 1.0, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.5, bevelSegments: 4, curveSegments: 12,
   });
   geo.translate(0, 0, -(LANCANG.beam - 1.0) / 2);
-  const hull = new THREE.Mesh(geo, whiteMat);
+  const hull = new THREE.Mesh(geo, whiteMat());
   hull.castShadow = true;
   hull.name = 'lambung';
   return hull;
@@ -56,13 +57,13 @@ function createMasts() {
   g.name = 'tiangLayar';
   const mastGeo = new THREE.CylinderGeometry(0.07, 0.1, LANCANG.mastH, 6).translate(0, LANCANG.mastH / 2, 0);
   LANCANG.mastXs.forEach((x, i) => {
-    const mast = new THREE.Mesh(mastGeo, whiteMat);
+    const mast = new THREE.Mesh(mastGeo, whiteMat());
     mast.position.set(x, LANCANG.deckY - 0.2, 0);
     mast.castShadow = true;
     g.add(mast);
     const h = LANCANG.mastH * (i === 1 ? 0.8 : 0.65);
     const shape = new THREE.Shape([new THREE.Vector2(0, 0.6), new THREE.Vector2(1.9, 0.6), new THREE.Vector2(1.4, h), new THREE.Vector2(0, h)]);
-    const sail = new THREE.Mesh(new THREE.ShapeGeometry(shape), sailMat);
+    const sail = new THREE.Mesh(new THREE.ShapeGeometry(shape), sailMat());
     sail.position.set(x + 0.08, LANCANG.deckY - 0.2, 0);
     sail.rotation.y = -0.25;
     sail.castShadow = true;
@@ -75,12 +76,12 @@ function createMasts() {
 function createDragonHead() {
   const g = new THREE.Group();
   g.name = 'haluanNaga';
-  const head = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.3, 8).rotateZ(-Math.PI / 2), whiteMat);
+  const head = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.3, 8).rotateZ(-Math.PI / 2), whiteMat());
   head.position.set(0.7, 0, 0);
-  const neck = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 6), whiteMat);
+  const neck = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 6), whiteMat());
   const hornGeo = new THREE.ConeGeometry(0.06, 0.5, 5);
   [-0.15, 0.15].forEach((z) => {
-    const horn = new THREE.Mesh(hornGeo, hornMat);
+    const horn = new THREE.Mesh(hornGeo, hornMat());
     horn.position.set(-0.1, 0.45, z);
     horn.rotation.z = -0.4;
     g.add(horn);
@@ -111,7 +112,7 @@ function createPedestal() {
   g.name = 'pedestal';
   let y = LANCANG.pool.waterY;
   LANCANG.pedestal.forEach((lvl) => {
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(lvl.r, lvl.r, lvl.h, 32), pedestalMat);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(lvl.r, lvl.r, lvl.h, 32), pedestalMat());
     m.position.y = y + lvl.h / 2;
     m.receiveShadow = true;
     m.castShadow = true;
@@ -134,11 +135,11 @@ function createFountainPool() {
   ringShape.holes.push(hole);
   const wallGeo = new THREE.ExtrudeGeometry(ringShape, { depth: wallH, bevelEnabled: false, curveSegments: 48 });
   wallGeo.rotateX(-Math.PI / 2);
-  const wall = new THREE.Mesh(wallGeo, poolMat);
+  const wall = new THREE.Mesh(wallGeo, poolMat());
   wall.castShadow = true;
   wall.receiveShadow = true;
   g.add(wall);
-  const floor = new THREE.Mesh(new THREE.CircleGeometry(rInner, 48), poolMat);
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(rInner, 48), poolMat());
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = 0.05;
   g.add(floor);
@@ -151,7 +152,7 @@ function createFountainPool() {
   const nozzleGeo = new THREE.CylinderGeometry(0.05, 0.07, 0.35, 6);
   for (let i = 0; i < nozzles; i += 1) {
     const a = (i / nozzles) * Math.PI * 2;
-    const n = new THREE.Mesh(nozzleGeo, nozzleMat);
+    const n = new THREE.Mesh(nozzleGeo, nozzleMat());
     n.position.set(Math.cos(a) * nozzleR, waterY + 0.12, Math.sin(a) * nozzleR);
     g.add(n);
   }
@@ -183,17 +184,17 @@ function tanjakShape() {
 export function createTanjakMonument(opts = {}) {
   const g = new THREE.Group();
   g.name = 'tuguTanjak';
-  const ped = new THREE.Mesh(new THREE.CylinderGeometry(TANJAK.pedestalR, TANJAK.pedestalR + 0.3, 1.0, 20), pedestalMat);
+  const ped = new THREE.Mesh(new THREE.CylinderGeometry(TANJAK.pedestalR, TANJAK.pedestalR + 0.3, 1.0, 20), pedestalMat());
   ped.position.y = 0.5;
   ped.castShadow = true;
   g.add(ped);
   const geo = new THREE.ExtrudeGeometry(tanjakShape(), { depth: 0.5, bevelEnabled: true, bevelSize: 0.08, bevelThickness: 0.08, bevelSegments: 2 });
   geo.translate(-0.6, 0, -0.25);
-  const cloth = new THREE.Mesh(geo, goldMat);
+  const cloth = new THREE.Mesh(geo, goldMat());
   cloth.position.y = 1.0;
   cloth.castShadow = true;
   g.add(cloth);
-  const fold = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.12, 0.7), goldMat);
+  const fold = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.12, 0.7), goldMat());
   fold.position.set(-0.1, 1.06, 0);
   g.add(fold);
   const c = SITE.tanjakMonument;

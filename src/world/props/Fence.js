@@ -5,6 +5,7 @@
 import { BoxGeometry, Group, Matrix4, Mesh, Quaternion, Vector3 } from 'three';
 import { Materials } from '../materials.js';
 import { instancedFromMatrices, segmentMatrix } from '../util/instancing.js';
+import { currentScope } from '../../engine/ResourceScope.js';
 
 const POST_SIZE = 0.08;
 const RAIL_SIZE = 0.05;
@@ -18,8 +19,8 @@ const BROKEN_YAW = 0.35;
 const BROKEN_LIFT = 0.4;   // engsel terangkat agar ujung daun tepat di tanah
 const BROKEN_BAR_SKIP = 3; // tiap jeruji ke-3 hilang
 
-const UNIT_UP = new BoxGeometry(1, 1, 1).translate(0, 0.5, 0); // alas di y=0
-const UNIT_Z = new BoxGeometry(1, 1, 1);
+const UNIT_UP = () => currentScope().get('Fence:UNIT_UP', () => new BoxGeometry(1, 1, 1).translate(0, 0.5, 0)); // alas di y=0
+const UNIT_Z = () => currentScope().get('Fence:UNIT_Z', () => new BoxGeometry(1, 1, 1));
 
 /** Normalisasi titik {x,z} atau [x,z] → Vector3 di y=0. */
 function toPath(points, closed) {
@@ -65,9 +66,9 @@ export function createFence({ points = [], height = 2, postSpacing = 3, barSpaci
     if (i < path.length - 1) collectSegment(p, path[i + 1], cfg, out);
   });
   const iron = Materials.iron();
-  group.add(instancedFromMatrices(UNIT_UP, iron, out.posts, 'fence-posts'));
-  group.add(instancedFromMatrices(UNIT_Z, iron, out.rails, 'fence-rails'));
-  group.add(instancedFromMatrices(UNIT_UP, iron, out.bars, 'fence-bars'));
+  group.add(instancedFromMatrices(UNIT_UP(), iron, out.posts, 'fence-posts'));
+  group.add(instancedFromMatrices(UNIT_Z(), iron, out.rails, 'fence-rails'));
+  group.add(instancedFromMatrices(UNIT_UP(), iron, out.bars, 'fence-bars'));
   group.userData = { height, length: path.reduce((s, p, i) => (i ? s + p.distanceTo(path[i - 1]) : 0), 0) };
   return group;
 }
@@ -94,7 +95,7 @@ export function createGateFence({ width = 8, height = 2.2, openAngle = 1.1, brok
   group.name = 'gate-fence';
   const iron = Materials.iron();
   [0, width].forEach((x, i) => {
-    const post = new Mesh(UNIT_UP, iron);
+    const post = new Mesh(UNIT_UP(), iron);
     post.scale.set(GATE_POST_SIZE, height + 0.3, GATE_POST_SIZE);
     post.position.x = x;
     post.name = `gate-post-${i}`;

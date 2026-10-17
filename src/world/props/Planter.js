@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { instancePart, instanceParts, placeObject, colorizeInstances } from '../siteutil/instanceParts.js';
 import { createRandom } from '../siteutil/rng.js';
 import { blobCluster, mergeAll } from '../siteutil/rounded.js';
+import { currentScope } from '../../engine/ResourceScope.js';
 
 /**
  * Pot bunga gaya cozy: pot bulat gemuk (lathe), tanaman 4 bola saling
@@ -29,20 +30,20 @@ function flowerGeometry() {
   return mergeAll(FLOWER_SPOTS.map(([x, y, z]) => new THREE.SphereGeometry(FLOWER_R, 6, 5).translate(x, PLANTER.height + y, z)));
 }
 
-const potGeo = potGeometry();
-const soilGeo = new THREE.CylinderGeometry(PLANTER.rTop * 0.88, PLANTER.rTop * 0.88, 0.05, 14).translate(0, PLANTER.height - 0.05, 0);
-const leafGeo = blobCluster({ count: 4, radius: 0.4, spread: 0.3, flat: 0.9, center: [0, PLANTER.height + 0.3, 0], vertical: 0.1 }, createRandom(55));
-const flowerGeo = flowerGeometry();
-const potMat = new THREE.MeshLambertMaterial({ color: PLANTER.colors.beton });
-const soilMat = new THREE.MeshLambertMaterial({ color: PLANTER.colors.tanah });
-const leafMat = new THREE.MeshLambertMaterial({ color: PLANTER.colors.daun });
+const potGeo = () => currentScope().get('Planter:potGeo', () => potGeometry());
+const soilGeo = () => currentScope().get('Planter:soilGeo', () => new THREE.CylinderGeometry(PLANTER.rTop * 0.88, PLANTER.rTop * 0.88, 0.05, 14).translate(0, PLANTER.height - 0.05, 0));
+const leafGeo = () => currentScope().get('Planter:leafGeo', () => blobCluster({ count: 4, radius: 0.4, spread: 0.3, flat: 0.9, center: [0, PLANTER.height + 0.3, 0], vertical: 0.1 }, createRandom(55)));
+const flowerGeo = () => currentScope().get('Planter:flowerGeo', () => flowerGeometry());
+const potMat = () => currentScope().get('Planter:potMat', () => new THREE.MeshLambertMaterial({ color: PLANTER.colors.beton }));
+const soilMat = () => currentScope().get('Planter:soilMat', () => new THREE.MeshLambertMaterial({ color: PLANTER.colors.tanah }));
+const leafMat = () => currentScope().get('Planter:leafMat', () => new THREE.MeshLambertMaterial({ color: PLANTER.colors.daun }));
 
 /** Part statis pot: pot, tanah, gumpalan daun. */
 function potParts() {
   return [
-    { geometry: potGeo, material: potMat, name: 'pot' },
-    { geometry: soilGeo, material: soilMat, name: 'tanah' },
-    { geometry: leafGeo, material: leafMat, name: 'daun' },
+    { geometry: potGeo(), material: potMat(), name: 'pot' },
+    { geometry: soilGeo(), material: soilMat(), name: 'tanah' },
+    { geometry: leafGeo(), material: leafMat(), name: 'daun' },
   ];
 }
 
@@ -56,7 +57,7 @@ export function createPlanter(opts = {}) {
     g.add(m);
   });
   const fMat = new THREE.MeshLambertMaterial({ color: opts.flowerColor ?? PLANTER.colors.bunga[0] });
-  const flowers = new THREE.Mesh(flowerGeo, fMat);
+  const flowers = new THREE.Mesh(flowerGeo(), fMat);
   flowers.name = 'bunga';
   g.add(flowers);
   return placeObject(g, opts);
@@ -69,7 +70,7 @@ export function createPlanters(positions = [], opts = {}) {
   if (!positions.length) return g;
   const rnd = createRandom(opts.seed ?? 5);
   g.add(instanceParts(potParts(), positions, 'potDanDaun'));
-  const flowers = instancePart({ geometry: flowerGeo, material: new THREE.MeshLambertMaterial({ color: 0xffffff }), name: 'bunga' }, positions);
+  const flowers = instancePart({ geometry: flowerGeo(), material: new THREE.MeshLambertMaterial({ color: 0xffffff }), name: 'bunga' }, positions);
   colorizeInstances(flowers, PLANTER.colors.bunga, rnd);
   g.add(flowers);
   g.userData.count = positions.length;

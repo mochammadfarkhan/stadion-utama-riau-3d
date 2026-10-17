@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { instanceParts, localMatrix, groupFromParts, placeObject, colorizeInstances } from '../siteutil/instanceParts.js';
 import { createRandom } from '../siteutil/rng.js';
 import { roundedBox, mergeAll } from '../siteutil/rounded.js';
+import { currentScope } from '../../engine/ResourceScope.js';
 
 /**
  * Kendaraan gaya cozy (proporsi mainan): mobil gemuk berkabin membulat & roda
@@ -18,8 +19,8 @@ export const VEHICLE_COLORS = Object.freeze({
 });
 const EDGE = Object.freeze({ body: 0.1, cabin: 0.16, small: 0.04, bus: 0.2 });
 
-const glassMat = new THREE.MeshLambertMaterial({ color: VEHICLE_COLORS.glass });
-const tireMat = new THREE.MeshLambertMaterial({ color: VEHICLE_COLORS.tire });
+const glassMat = () => currentScope().get('Vehicles:glassMat', () => new THREE.MeshLambertMaterial({ color: VEHICLE_COLORS.glass }));
+const tireMat = () => currentScope().get('Vehicles:tireMat', () => new THREE.MeshLambertMaterial({ color: VEHICLE_COLORS.tire }));
 
 /** Roda tebal: silinder + bola kecil sebagai velg, sumbu sepanjang Z. */
 function wheel(r, width) {
@@ -34,8 +35,8 @@ function wheelSet(r, width, spots) {
 }
 
 const CAR_WHEELS = [[1.35, 0.92], [1.35, -0.92], [-1.35, 0.92], [-1.35, -0.92]];
-const carWheelGeo = wheelSet(0.38, 0.32, CAR_WHEELS);
-const busWheelGeo = wheelSet(0.55, 0.4, [[4.2, 1.25], [4.2, -1.25], [-3.6, 1.25], [-3.6, -1.25], [-2.4, 1.25], [-2.4, -1.25]]);
+const carWheelGeo = () => currentScope().get('Vehicles:carWheelGeo', () => wheelSet(0.38, 0.32, CAR_WHEELS));
+const busWheelGeo = () => currentScope().get('Vehicles:busWheelGeo', () => wheelSet(0.55, 0.4, [[4.2, 1.25], [4.2, -1.25], [-3.6, 1.25], [-3.6, -1.25], [-2.4, 1.25], [-2.4, -1.25]]));
 
 /** Part mobil penumpang gemuk (panjang di sumbu X): body + kabin membulat, kaca, roda. */
 function carParts(bodyMat) {
@@ -43,8 +44,8 @@ function carParts(bodyMat) {
   const cabin = roundedBox(2.3, 0.75, 1.65, EDGE.cabin).clone().translate(-0.2, 1.3, 0);
   return [
     { geometry: mergeAll([body, cabin]), material: bodyMat, castShadow: true, name: 'body' },
-    { geometry: roundedBox(2.0, 0.42, 1.7, EDGE.cabin), material: glassMat, matrix: localMatrix(-0.2, 1.38, 0), name: 'kaca' },
-    { geometry: carWheelGeo, material: tireMat, name: 'roda' },
+    { geometry: roundedBox(2.0, 0.42, 1.7, EDGE.cabin), material: glassMat(), matrix: localMatrix(-0.2, 1.38, 0), name: 'kaca' },
+    { geometry: carWheelGeo(), material: tireMat(), name: 'roda' },
   ];
 }
 
@@ -59,7 +60,7 @@ function motorcycleParts(bodyMat) {
   ]);
   return [
     { geometry: new THREE.CapsuleGeometry(0.18, 0.75, 2, 8).rotateZ(Math.PI / 2).translate(0, 0.64, 0), material: bodyMat, castShadow: true, name: 'body' },
-    { geometry: dark, material: tireMat, name: 'rangka' },
+    { geometry: dark, material: tireMat(), name: 'rangka' },
   ];
 }
 
@@ -72,8 +73,8 @@ function angkotParts() {
   ]);
   return [
     { geometry: roundedBox(4.2, 1.8, 1.75, EDGE.cabin), material: bodyMat, matrix: localMatrix(0, 1.3, 0), castShadow: true, name: 'body' },
-    { geometry: glass, material: glassMat, name: 'jendela' },
-    { geometry: carWheelGeo, material: tireMat, name: 'roda' },
+    { geometry: glass, material: glassMat(), name: 'jendela' },
+    { geometry: carWheelGeo(), material: tireMat(), name: 'roda' },
   ];
 }
 
@@ -88,8 +89,8 @@ function transMetroParts() {
   return [
     { geometry: roundedBox(11, 2.7, 2.55, EDGE.bus), material: bodyMat, matrix: localMatrix(0, 2.05, 0), castShadow: true, name: 'body' },
     { geometry: roundedBox(11.04, 0.7, 2.6, EDGE.small), material: stripeMat, matrix: localMatrix(0, 1.2, 0), name: 'strip' },
-    { geometry: glass, material: glassMat, name: 'jendela' },
-    { geometry: busWheelGeo, material: tireMat, name: 'roda' },
+    { geometry: glass, material: glassMat(), name: 'jendela' },
+    { geometry: busWheelGeo(), material: tireMat(), name: 'roda' },
   ];
 }
 
