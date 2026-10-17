@@ -25,6 +25,21 @@ describe('FastTravelMenu', () => {
     expect(document.getElementById('hud-travel')).toBeNull();
   });
 
+  it('membuka panel melepas pointer lock (G saat kursor terkunci tetap bisa memilih tujuan)', () => {
+    let released = 0;
+    document.exitPointerLock = () => { released += 1; };
+    try {
+      const menu = new FastTravelMenu(document.body, { destinations: [{ id: 'stadion', label: 'Stadion Utama Riau' }], onTravel: () => {} });
+      menu.toggle();
+      expect(released).toBe(1);
+      menu.toggle(); // menutup: tidak melepas lagi
+      expect(released).toBe(1);
+      menu.dispose();
+    } finally {
+      delete document.exitPointerLock;
+    }
+  });
+
   it('layar perjalanan: show/hide teks status', () => {
     const s = createTravelScreen(document.body);
     s.show('Menuju Masjid Raya An-Nur…');

@@ -36,7 +36,11 @@ export class FastTravelMenu {
 
   get open() { return !this.panel.classList.contains('hidden'); }
 
-  toggle() { this.panel.classList.toggle('hidden'); }
+  /** Membuka melepas pointer lock (seperti toko/jurnal/panel): tujuan harus bisa diklik. */
+  toggle() {
+    this.panel.classList.toggle('hidden');
+    if (this.open) this.panel.ownerDocument.exitPointerLock?.();
+  }
 
   hide() { this.panel.classList.add('hidden'); }
 
