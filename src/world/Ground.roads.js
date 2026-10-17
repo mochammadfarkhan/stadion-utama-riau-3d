@@ -12,8 +12,8 @@ import { currentScope } from '../engine/ResourceScope.js';
 const DASH = Object.freeze({ length: 3, width: 0.15, thickness: 0.02, gap: 6 });
 const KERB_WIDTH = 0.35;
 const SIDEWALK_WIDTH = 2.5;
-const CONNECTOR_WIDTH = 8;
-const PARKING = Object.freeze({
+export const CONNECTOR_WIDTH = 8;
+export const PARKING = Object.freeze({
   carBayW: 2.5, carBayD: 5, motoBayW: 1.0, motoBayD: 2.2, lineW: 0.12,
 });
 
@@ -90,11 +90,36 @@ export function createConnectorRoads() {
   return g;
 }
 
+/** Apakah bay selebar bayW di x bertumpuk dengan jalan penghubung sumbu utara (badan kendaraan masuk aspal penghubung). */
+function overlapsConnector(x, bayW) {
+  return SITE.connectorXs.some((cx) => Math.abs(x - cx) < CONNECTOR_WIDTH / 2 + bayW / 2);
+}
+
+/**
+ * Titik garis bay blok parkir (dua baris di tepi utara & selatan, lorong di tengah), tanpa slot yang
+ * bertumpuk dengan jalan penghubung sumbu utara. Dipakai untuk garis marka dan posisi kendaraan parkir.
+ * @param {'car'|'moto'} kind
+ * @returns {Array<{x:number, z:number, y:number}>}
+ */
+export function parkingBays(kind = 'car') {
+  const cfg = kind === 'car' ? SITE.parkingCar : SITE.parkingMoto;
+  const bayW = kind === 'car' ? PARKING.carBayW : PARKING.motoBayW;
+  const bayD = kind === 'car' ? PARKING.carBayD : PARKING.motoBayD;
+  const pts = [];
+  const cols = Math.floor(cfg.w / bayW);
+  for (let i = 0; i <= cols; i += 1) {
+    const x = cfg.x - cfg.w / 2 + i * bayW;
+    if (overlapsConnector(x, bayW)) continue;
+    pts.push({ x, z: cfg.z - cfg.d / 2 + bayD / 2, y: LAYER_Y.parkingLine });
+    pts.push({ x, z: cfg.z + cfg.d / 2 - bayD / 2, y: LAYER_Y.parkingLine });
+  }
+  return pts;
+}
+
 /** Blok parkir aspal dengan garis bay putih. kind: 'car' | 'moto'. */
 export function createParkingLot(kind = 'car') {
   const m = groundMaterials();
   const cfg = kind === 'car' ? SITE.parkingCar : SITE.parkingMoto;
-  const bayW = kind === 'car' ? PARKING.carBayW : PARKING.motoBayW;
   const bayD = kind === 'car' ? PARKING.carBayD : PARKING.motoBayD;
   const g = new THREE.Group();
   g.name = kind === 'car' ? 'parkirMobil' : 'parkirMotor';
@@ -102,15 +127,8 @@ export function createParkingLot(kind = 'car') {
   lot.rotation.x = -Math.PI / 2;
   lot.position.set(cfg.x, LAYER_Y.road, cfg.z);
   g.add(lot);
-  // dua baris bay di tepi utara & selatan blok, lorong di tengah
   const lineGeo = new THREE.BoxGeometry(PARKING.lineW, DASH.thickness, bayD);
-  const pts = [];
-  const cols = Math.floor(cfg.w / bayW);
-  for (let i = 0; i <= cols; i += 1) {
-    const x = cfg.x - cfg.w / 2 + i * bayW;
-    pts.push({ x, z: cfg.z - cfg.d / 2 + bayD / 2, y: LAYER_Y.parkingLine });
-    pts.push({ x, z: cfg.z + cfg.d / 2 - bayD / 2, y: LAYER_Y.parkingLine });
-  }
+  const pts = parkingBays(kind);
   g.add(instancePart({ geometry: lineGeo, material: m.lineWhite, name: 'garisParkir' }, pts));
   g.userData.bays = pts;
   return g;
