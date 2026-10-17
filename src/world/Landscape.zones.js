@@ -3,15 +3,9 @@ import { insideEllipse } from './siteutil/ellipseGeo.js';
 
 /**
  * Zona terlarang untuk penempatan vegetasi/props agar tidak menimpa jalan,
- * parkir, danau, venue, dll. Semua angka dalam meter.
+ * parkir, dan tugu. Semua angka dalam meter.
  */
 export const ZONES = Object.freeze({
-  lake: { semiX: SITE.lake.semiX, semiZ: SITE.lake.semiZ, margin: 10 },
-  baseballRadius: 82,
-  helipadMargin: 8,
-  amphitheaterRadius: 26,
-  skate: { semiX: 32, semiZ: 20 },
-  riverMargin: 12,
   roadMargin: 10,
   parkingMargin: 5,
   connectorHalfWidth: 7,
@@ -39,15 +33,8 @@ export function onRoad(x, z) {
   return outer && !inner;
 }
 
-/** Terkena area bangunan/fasilitas khusus. */
+/** Terkena area fasilitas khusus (parkir, tugu tanjak). */
 export function onFacility(x, z) {
-  const L = SITE.lakeCenter;
-  if (insideEllipse(x - L.x, z - L.z, ZONES.lake.semiX + ZONES.lake.margin, ZONES.lake.semiZ + ZONES.lake.margin)) return true;
-  if (inCircle(x, z, SITE.baseballCenter.x, SITE.baseballCenter.z, ZONES.baseballRadius)) return true;
-  if (inCircle(x, z, SITE.helipadCenter.x, SITE.helipadCenter.z, SITE.helipadCenter.r + ZONES.helipadMargin)) return true;
-  if (inCircle(x, z, SITE.amphitheaterCenter.x, SITE.amphitheaterCenter.z, ZONES.amphitheaterRadius)) return true;
-  if (insideEllipse(x - SITE.skateCenter.x, z - SITE.skateCenter.z, ZONES.skate.semiX, ZONES.skate.semiZ)) return true;
-  if (Math.abs(x - SITE.riverX) < ZONES.riverMargin) return true;
   const pc = SITE.parkingCar;
   const pm = SITE.parkingMoto;
   if (inRect(x, z, pc.x, pc.z, pc.w, pc.d, ZONES.parkingMargin)) return true;

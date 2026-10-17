@@ -317,7 +317,7 @@ function grassClumpGeometry() {
   return mergeAll(geos);
 }
 
-/** Ilalang: rumpun di beberapa area (tepi danau, sungai, dll), warna kuning-hijau per instance. */
+/** Ilalang: rumpun di beberapa area kawasan, warna kuning-hijau per instance. */
 export function createWildGrass(seed = 41, centers = defaultGrassCenters()) {
   const rnd = createRandom(seed);
   const spots = [];
@@ -335,14 +335,9 @@ export function createWildGrass(seed = 41, centers = defaultGrassCenters()) {
   return colorizeNamed(g, 'ilalang', GRASS_PALETTE, rnd);
 }
 
-/** Pusat rumpun ilalang default: tepi danau, tepi sungai, sudut kawasan. */
+/** Pusat rumpun ilalang default: sudut kawasan (pusat tepi danau/sungai fiktif dihapus Plan C). */
 function defaultGrassCenters() {
-  const L = SITE.lakeCenter;
   return [
-    { x: L.x + 105, z: L.z, r: 24, force: true },
-    { x: L.x - 105, z: L.z + 10, r: 24, force: true },
-    { x: SITE.riverX + 20, z: 180, r: 26, force: true },
-    { x: SITE.riverX + 22, z: -220, r: 22, force: true },
     { x: -420, z: -200, r: 30 },
     { x: 380, z: 380, r: 30 },
   ];

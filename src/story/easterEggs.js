@@ -14,8 +14,9 @@ export const EASTER_EGGS = Object.freeze([
   egg({ id: 'pelanggan-setia', title: 'Pelanggan Setia', text: 'Bang Udin menyebutmu pelanggan setia dan mencatat namamu di buku kenangan.', hint: 'Es teh Bang Udin enak sekali, bukan?', trigger: 'es-teh-5', reward: { rupiah: 4000 } }),
   egg({ id: 'layar-hujan', title: 'Layar Lancang Kuning', text: 'Di bawah layar tugu saat hujan, terdengar bisikan lagu lama negeri Melayu.', hint: 'Layar tugu menyimpan cerita saat langit menangis.', trigger: 'rain-tugu', reward: { rupiah: 4000 } }),
   egg({ id: 'jejak-1', title: 'Jejak Pertama', text: 'Jejak pertama Air Molek: sebuah papan tua di dekat gerbang Jl. Naga Sakti.', hint: 'Dekat Gapura Jl. Naga Sakti.', at: { x: 0, z: SITE.gapuraZ + 14, radius: 9 }, reward: { rupiah: 1000 } }),
-  egg({ id: 'jejak-2', title: 'Jejak Kedua', text: 'Jejak kedua: riak di tepi danau menyebut nama "Air Molek".', hint: 'Di tepi danau utara.', at: { x: SITE.lakeCenter.x, z: SITE.lakeCenter.z + 60, radius: 25 }, reward: { rupiah: 1000 } }),
-  egg({ id: 'jejak-3', title: 'Jejak Ketiga', text: 'Jejak ketiga: anak-anak di taman papan seluncur bercerita tentang kota Air Molek.', hint: 'Di taman papan seluncur sisi timur.', at: { x: SITE.skateCenter.x, z: SITE.skateCenter.z, radius: 20 }, reward: { rupiah: 1000 } }),
+  // jejak-2 di sumbu pedestrian antara dua danau OSM (way 419836906 & 327378220); jejak-3 di Venue Baseball OSM (way 535214902).
+  egg({ id: 'jejak-2', title: 'Jejak Kedua', text: 'Jejak kedua: riak di antara dua danau utara menyebut nama "Air Molek".', hint: 'Di antara dua danau utara stadion.', at: { x: -5, z: -385, radius: 12 }, reward: { rupiah: 1000 } }),
+  egg({ id: 'jejak-3', title: 'Jejak Ketiga', text: 'Jejak ketiga: anak-anak di Venue Baseball bercerita tentang kota Air Molek.', hint: 'Di Venue Baseball sisi barat daya.', at: { x: -235, z: 227, radius: 20 }, reward: { rupiah: 1000 } }),
 ]);
 
 export const EGG_IDS = Object.freeze(EASTER_EGGS.map((e) => e.id));

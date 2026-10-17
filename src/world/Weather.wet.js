@@ -10,7 +10,7 @@ import { createMaterialRegistry } from '../engine/materialRegistry.js';
 // Nama mesh dasar (sebelum "+N" hasil merge) yang dianggap permukaan basah.
 const WET_MESH_NAMES = new Set([
   'rumput', 'plazaPaving', 'aspal', 'trotoar', 'trotoarLuar', 'trotoarDalam', 'kerb', 'kerbLuar', 'kerbDalam',
-  'joggingTrack', 'tartan', 'apron', 'helipad', 'lintasanSepatuRoda',
+  'joggingTrack', 'tartan', 'apron',
 ]);
 const PUDDLE_Y = 0.1;
 const PUDDLE_COLOR = 0x202c3a;

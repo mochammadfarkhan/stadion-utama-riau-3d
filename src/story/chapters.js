@@ -83,7 +83,7 @@ export const CHAPTERS = freezeDeep([
     steps: [
       {
         id: 'cari-jejak', text: 'Temukan 3 jejak Air Molek di sekitar kawasan',
-        say: ['Di lambung replika kapal tertulis "AIR MOLEK", kemungkinan nama kapalnya. Apa artinya?', 'Cari tiga jejak: dekat gapura Jl. Naga Sakti, tepi danau utara, dan taman papan seluncur timur.'],
+        say: ['Di lambung replika kapal tertulis "AIR MOLEK", kemungkinan nama kapalnya. Apa artinya?', 'Cari tiga jejak: dekat gapura Jl. Naga Sakti, di antara dua danau utara, dan Venue Baseball barat daya.'],
         objective: { type: 'find', ids: ['jejak-1', 'jejak-2', 'jejak-3'] },
       },
     ],

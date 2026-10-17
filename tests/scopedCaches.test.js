@@ -1,13 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { createResourceScope, withScope } from '../src/engine/ResourceScope.js';
-import { inTwoScopes, materialsOf, geometriesOf } from './helpers.js';
+import { inTwoScopes, geometriesOf } from './helpers.js';
 import { Materials } from '../src/world/materials.js';
 import { groundMaterials } from '../src/world/Ground.materials.js';
 import { asphaltTexture } from '../src/world/textures/surfaces.js';
 import { createDecalAtlas } from '../src/world/textures/decalAtlas.js';
 import { roundedBox } from '../src/world/siteutil/rounded.js';
 import { makeTextMaterial } from '../src/world/siteutil/textCanvas.js';
-import { createBaseballVenue } from '../src/world/Landscape.baseball.js';
 import { createRingRoad } from '../src/world/Ground.roads.js';
 import * as THREE from 'three';
 import { matFor } from '../src/entities/util.js';
@@ -56,15 +55,6 @@ describe('cache modul dunia memakai ResourceScope aktif', () => {
 });
 
 describe('material/geometri saat-impor kini lazy per scope', () => {
-  it('venue baseball: semua material milik scope a dan tidak dibagi dengan scope b', () => {
-    const { a, first, other } = inTwoScopes(() => createBaseballVenue());
-    const matsA = [...materialsOf(first)];
-    const matsB = materialsOf(other);
-    expect(matsA.length).toBeGreaterThan(0);
-    expect(matsA.every((m) => a.owns(m))).toBe(true);
-    expect(matsA.some((m) => matsB.has(m))).toBe(false);
-  });
-
   it('marka jalan lingkar: geometri dash dimiliki scope', () => {
     const { a, first, other } = inTwoScopes(() => createRingRoad());
     const owned = [...geometriesOf(first)].filter((g) => a.owns(g));

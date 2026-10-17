@@ -89,7 +89,7 @@ export const LAYOUT = Object.freeze({
   plazaSpots: {
     exercise: { x: -45, z: -178, yaw: 0 },
     badminton: { x: 48, z: -180, yaw: Math.PI / 2 },
-    skaters: [{ x: SITE.skateCenter.x, z: SITE.skateCenter.z }, { x: SITE.skateCenter.x + 6, z: SITE.skateCenter.z + 4 }],
+    // skaters: default Crowd.plaza (paving plaza); taman seluncur timur fiktif dihapus Plan C
   },
   vendors: [
     { id: 'v-teh', kind: 'minuman', waypoints: [{ x: -28, z: -188 }, { x: 28, z: -188 }] },

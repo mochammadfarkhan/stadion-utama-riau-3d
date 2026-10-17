@@ -12,7 +12,6 @@ import { insideEllipse } from './siteutil/ellipseGeo.js';
  */
 const STADIUM_MARGIN = 4;        // jarak dari cangkang stadion
 const PLAZA_MARGIN = 1;          // jarak dari tepi paving plaza
-const LAKE_RADIUS = 60;          // radius danau (selaras Collider)
 const MONUMENT_RADIUS = 24;      // ruang tugu Lancang Kuning (selaras isFreeInPlazaBelt)
 const KERB_SIDEWALK = 2.85;      // kerb 0,35 + trotoar 2,5 (Ground.roads)
 const ROAD_MARGIN = 1;
@@ -54,15 +53,13 @@ function onStadiumOrPlaza(x, z) {
 }
 
 /**
- * Apakah (x, z) titik berumput: di luar stadion, plaza, jalan, parkir, danau,
- * dan fasilitas (Naga Sakti, amphitheater, helipad, baseball, skate, sungai).
+ * Apakah (x, z) titik berumput: di luar stadion, plaza, jalan, parkir, dan fasilitas.
+ * (LAKE_RADIUS lama dihapus bersama danau fiktif, Plan C I4.)
  */
 export function isGrassSpot(x, z) {
   if (!Number.isFinite(x) || !Number.isFinite(z)) return false;
   if (Math.abs(x) > ZONES.groundHalf || Math.abs(z) > ZONES.groundHalf) return false;
   if (onStadiumOrPlaza(x, z)) return false;
-  const L = SITE.lakeCenter;
-  if (Math.hypot(x - L.x, z - L.z) < LAKE_RADIUS) return false;
   if (onRingRoadBand(x, z) || onStraightRoads(x, z)) return false;
   return !onFacility(x, z);
 }

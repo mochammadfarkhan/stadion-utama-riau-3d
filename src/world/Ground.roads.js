@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { SITE } from '../config/constants.js';
 import { ellipseRingGeometry, distributeOnEllipse } from './siteutil/ellipseGeo.js';
-import { instancePart, localMatrix } from './siteutil/instanceParts.js';
+import { instancePart } from './siteutil/instanceParts.js';
 import { groundMaterials, LAYER_Y, uvToMeters } from './Ground.materials.js';
 import { currentScope } from '../engine/ResourceScope.js';
 
@@ -159,17 +159,3 @@ export function createJoggingTrack() {
   return flatMesh(geo, m.joggingTrack, LAYER_Y.plaza, 'joggingTrack');
 }
 
-/** Lintasan sepatu roda: oval kecil aspal + kerb. */
-export function createSkateTrack() {
-  const m = groundMaterials();
-  const { x, z } = SITE.skateCenter;
-  const g = new THREE.Group();
-  g.name = 'lintasanSepatuRoda';
-  g.add(flatMesh(ellipseRingGeometry(28, 16, 18, 8, 64), m.asphaltPlain, LAYER_Y.road, 'aspal'));
-  g.add(flatMesh(ellipseRingGeometry(28.4, 16.4, 28, 16, 64), m.kerb, LAYER_Y.kerb, 'kerb'));
-  g.add(flatMesh(ellipseRingGeometry(18, 8, 17.6, 7.6, 64), m.kerb, LAYER_Y.kerb, 'kerbDalam'));
-  const dashes = distributeOnEllipse(23, 12, 14, 360).map((p) => ({ ...p, y: LAYER_Y.marking }));
-  g.add(instancePart({ geometry: dashGeometry(), material: m.lineYellow, matrix: localMatrix(0, 0, 0, 0, 0, 0, 0.6, 1, 1) }, dashes));
-  g.position.set(x, 0, z);
-  return g;
-}

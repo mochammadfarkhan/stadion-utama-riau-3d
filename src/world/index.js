@@ -32,7 +32,6 @@ const SEAT_INSET = 0.45;
 const SPECTATOR_SEED = 97;
 const CORRIDOR_CLEARANCE = 7; // penonton tidak ditempatkan di koridor terowongan
 const MINIMAP_SHELL_PARTS = ['roof', 'ribs'];
-const MINIMAP_LANDSCAPE_PARTS = ['danau', 'sungai'];
 const MINIMAP_TRIBUNE_PARTS = ['beton'];
 
 /**
@@ -58,7 +57,7 @@ export function buildWorld({ layout, site = SITE } = {}) {
   const ground = createGround();
   const lots = collectParkingLots(ground);
   add(ground, { minimap: true });
-  add(withMinimapParts(createLandscape(), MINIMAP_LANDSCAPE_PARTS));
+  add(createLandscape());
   add(createGrass(), { merge: false });
   add(withMinimapParts(createShell(), MINIMAP_SHELL_PARTS));
   add(createFacade());
