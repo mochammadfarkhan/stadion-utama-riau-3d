@@ -2,8 +2,8 @@
  * Konfigurasi citybake (Node, offline). Menambah kawasan kota baru = menambah entri AREAS saja.
  * Koordinat diverifikasi lewat Overpass/Nominatim 2026-10-16 (lihat komentar per entri).
  */
-import { SITE } from '../../src/config/constants.js';
 import { tileBounds, tilesInRect, TILE_SIZE } from '../../src/geo/tiles.js';
+import { stadionMaskWorld } from '../../src/regions/stadion/mask.js';
 
 export { TILE_SIZE };
 
@@ -143,33 +143,12 @@ export const BUILDING_COLORS = Object.freeze({
 /** Batas ukuran (laporan memberi peringatan, tidak menggagalkan bake). */
 export const BUDGET = Object.freeze({ tileBytes: 300 * 1024, totalBytes: 20 * 1024 * 1024 });
 
-/** Jumlah titik poligon pendekatan elips mask. */
-const MASK_SEGMENTS = 64;
-
-/** Margin (m) di luar jalan lingkar stadion yang ikut dibuang (lebar jalan + bahu + parkir tepi). */
-export const STADION_MASK_MARGIN = 60;
-
-/** Poligon elips region-lokal [[x, z], ...] (ring positif). */
-export function ellipseRing(semiX, semiZ, segments = MASK_SEGMENTS) {
-  const ring = [];
-  for (let i = 0; i < segments; i += 1) {
-    const t = (i / segments) * Math.PI * 2;
-    ring.push([Math.cos(t) * semiX, Math.sin(t) * semiZ]);
-  }
-  return ring;
-}
-
 /**
- * Mask region handmade dalam koordinat DUNIA ({id, ring}). Fase 1: elips jalan lingkar SITE + margin;
- * placement stadion {x: 0, z: 0, yaw: 0} sehingga ring region-lokal dipakai langsung sebagai ring dunia.
- * Fase 3 mengganti dengan poligon OSM kompleks stadion yang ditransformasi lewat regionTransform
- * (dibuat di Plan A Task 6).
+ * Mask region handmade dalam koordinat DUNIA ({id, ring}). Sumber tunggal: mask region klien
+ * (src/regions/stadion/mask.js) yang ditransformasi placement region (regionTransform.toWorld).
  */
 export const REGION_MASKS = Object.freeze([
-  Object.freeze({
-    id: 'stadion',
-    ring: ellipseRing(SITE.ringRoadSemiX + STADION_MASK_MARGIN, SITE.ringRoadSemiZ + STADION_MASK_MARGIN),
-  }),
+  Object.freeze({ id: 'stadion', ring: stadionMaskWorld() }),
 ]);
 
 /** Persegi dunia kawasan (sebelum dibulatkan ke grid). */

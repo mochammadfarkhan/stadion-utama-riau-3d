@@ -13,9 +13,10 @@ import { SITE } from './site.js';
 import { LAYOUT } from './layout.js';
 import { STADION_MASK } from './mask.js';
 import { stadionNightLights } from './lamps.js';
+import { STADION_PLACEMENT } from './placement.js';
 
 export const STADION_ID = 'stadion';
-export const STADION_PLACEMENT = Object.freeze({ x: 0, z: 0, yaw: 0 });
+export { STADION_PLACEMENT };
 
 /** Muat model GLB ke grup `models` di scope region (loadModel memanggil scope.get secara sinkron). */
 function loadModels(scope, models, worldGroup, enabled) {

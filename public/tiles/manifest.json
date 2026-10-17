@@ -846,24 +846,24 @@
       "ix": -1,
       "iz": -1,
       "area": "stadion",
-      "bytes": 41516,
+      "bytes": 42364,
       "lod": [
         {
           "level": 0,
           "file": "-1_-1.lod0.glb",
-          "bytes": 21848,
-          "triangles": 935
+          "bytes": 22236,
+          "triangles": 969
         },
         {
           "level": 1,
           "file": "-1_-1.lod1.glb",
-          "bytes": 13828,
-          "triangles": 389
+          "bytes": 14036,
+          "triangles": 405
         }
       ],
       "data": {
         "file": "-1_-1.data.json",
-        "bytes": 5840
+        "bytes": 6092
       }
     },
     {
@@ -871,13 +871,13 @@
       "ix": 0,
       "iz": -1,
       "area": "stadion",
-      "bytes": 41550,
+      "bytes": 41636,
       "lod": [
         {
           "level": 0,
           "file": "0_-1.lod0.glb",
-          "bytes": 23372,
-          "triangles": 1113
+          "bytes": 23396,
+          "triangles": 1119
         },
         {
           "level": 1,
@@ -888,7 +888,7 @@
       ],
       "data": {
         "file": "0_-1.data.json",
-        "bytes": 6318
+        "bytes": 6380
       }
     },
     {
@@ -996,24 +996,24 @@
       "ix": -1,
       "iz": 0,
       "area": "stadion",
-      "bytes": 23567,
+      "bytes": 23951,
       "lod": [
         {
           "level": 0,
           "file": "-1_0.lod0.glb",
-          "bytes": 11316,
-          "triangles": 336
+          "bytes": 11492,
+          "triangles": 365
         },
         {
           "level": 1,
           "file": "-1_0.lod1.glb",
-          "bytes": 10280,
-          "triangles": 202
+          "bytes": 10416,
+          "triangles": 225
         }
       ],
       "data": {
         "file": "-1_0.data.json",
-        "bytes": 1971
+        "bytes": 2043
       }
     },
     {
@@ -1021,13 +1021,13 @@
       "ix": 0,
       "iz": 0,
       "area": "stadion",
-      "bytes": 28011,
+      "bytes": 28145,
       "lod": [
         {
           "level": 0,
           "file": "0_0.lod0.glb",
-          "bytes": 14628,
-          "triangles": 542
+          "bytes": 14692,
+          "triangles": 556
         },
         {
           "level": 1,
@@ -1038,7 +1038,7 @@
       ],
       "data": {
         "file": "0_0.data.json",
-        "bytes": 2947
+        "bytes": 3017
       }
     },
     {

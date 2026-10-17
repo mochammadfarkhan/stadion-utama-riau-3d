@@ -1,10 +1,13 @@
 /**
- * Mask region stadion (region-lokal): fitur kota di dalamnya dibuang saat bake (Fase 1).
- * Fallback sampai poligon OSM tersedia (Fase 3): hull cembung elips jalan lingkar + jalur jogging
- * (dengan margin) dan blok parkir mobil & motor.
+ * Mask region stadion (region-lokal): SATU sumber untuk klien (collider komposit, regionContains) dan
+ * citybake (fitur kota di dalamnya dibuang saat bake, lewat stadionMaskWorld). Fallback: OSM tidak
+ * memiliki poligon kompleks stadion (diperiksa 2026-10-16), jadi mask = hull cembung elips jalan
+ * lingkar + jalur jogging (dengan margin) dan blok parkir mobil & motor.
  */
 import { SITE } from './site.js';
-import { convexHull } from '../../shared/polygon.js';
+import { STADION_PLACEMENT } from './placement.js';
+import { convexHull } from '../../geo/polygon.js';
+import { toWorld } from '../../geo/regionTransform.js';
 
 const MASK_MARGIN = 8;        // m di luar sumbu jalur jogging
 const ELLIPSE_SAMPLES = 48;
@@ -27,3 +30,11 @@ export function createStadionMask(site = SITE) {
 }
 
 export const STADION_MASK = createStadionMask();
+
+/** Mask dalam koordinat DUNIA (dipakai citybake): ring region-lokal ditransformasi placement. */
+export function stadionMaskWorld(placement = STADION_PLACEMENT, mask = STADION_MASK) {
+  return mask.map(([x, z]) => {
+    const w = toWorld(placement, x, z);
+    return [w.x, w.z];
+  });
+}

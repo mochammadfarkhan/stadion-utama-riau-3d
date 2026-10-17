@@ -2,7 +2,7 @@
  * Kontrak region handmade (spec §3.1) + helper validasi.
  */
 import { toLocal } from '../geo/regionTransform.js';
-import { pointInPolygon } from '../shared/polygon.js';
+import { pointInPolygon } from '../geo/polygon.js';
 
 /** @typedef {'input'|'sim'|'world'|'camera'|'ui'} Phase */
 /** @typedef {{id:string, phase:Phase, update(dt:number, ctx:object):void, dispose?():void}} System */

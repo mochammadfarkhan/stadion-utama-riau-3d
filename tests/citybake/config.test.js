@@ -3,8 +3,11 @@ import { createProjection } from '../../src/geo/projection.js';
 import { pointInPolygon, signedArea } from '../../src/geo/polygon.js';
 import {
   ORIGIN, AREAS, ROAD_CLASSES, LANDUSE_COLORS, LANDUSE_ORDER, LAYER_Y, REGION_MASKS, OVERTURE, OVERPASS_ENDPOINTS, USER_AGENT,
-  areaRect, areaTiles, areaFetchBBox, ellipseRing,
+  areaRect, areaTiles, areaFetchBBox,
 } from '../../tools/citybake/config.js';
+import { stadionMaskWorld, STADION_MASK } from '../../src/regions/stadion/mask.js';
+import { stadionRegion } from '../../src/regions/stadion/index.js';
+import { regionContains } from '../../src/regions/Region.js';
 
 const proj = createProjection({ lat0: ORIGIN.lat, lon0: ORIGIN.lon });
 
@@ -51,20 +54,32 @@ describe('citybake config', () => {
     expect(LAYER_Y.roadMinor).toBeLessThan(LAYER_Y.roadMajor);
   });
 
-  it('mask stadion: elips positif memuat stadion, tidak memuat Jl. Naga Sakti utara jauh', () => {
+  it('mask stadion: ring positif memuat stadion & parkir, tidak memuat Jl. Naga Sakti OSM (z ≈ −447)', () => {
     const m = REGION_MASKS.find((v) => v.id === 'stadion');
     expect(signedArea(m.ring)).toBeGreaterThan(0);
     expect(pointInPolygon(0, 0, m.ring)).toBe(true);
     expect(pointInPolygon(0, -340, m.ring)).toBe(true);
-    expect(pointInPolygon(0, -400, m.ring)).toBe(false);
+    expect(pointInPolygon(0, -447, m.ring)).toBe(false);
     expect(pointInPolygon(300, 0, m.ring)).toBe(false);
   });
 
-  it('ellipseRing: jumlah segmen & sumbu', () => {
-    const r = ellipseRing(10, 20, 4);
-    expect(r).toHaveLength(4);
-    expect(r[0][0]).toBeCloseTo(10, 9);
-    expect(r[1][1]).toBeCloseTo(20, 9);
+  it('satu sumber mask: ring bake = mask region klien setelah placement; keputusan sama di seluruh grid', () => {
+    const m = REGION_MASKS.find((v) => v.id === 'stadion');
+    expect(m.ring).toEqual(stadionMaskWorld());
+    expect(m.ring).toHaveLength(STADION_MASK.length);
+    const mismatch = [];
+    for (let x = -700; x <= 700; x += 17) {
+      for (let z = -700; z <= 700; z += 17) {
+        if (pointInPolygon(x, z, m.ring) !== regionContains(stadionRegion, x, z)) mismatch.push([x, z]);
+      }
+    }
+    expect(mismatch).toEqual([]);
+  });
+
+  it('stadionMaskWorld menerapkan placement (rotasi + geser)', () => {
+    const ring = stadionMaskWorld({ x: 10, z: 20, yaw: Math.PI / 2 }, [[1, 0], [0, 1], [-1, 0]]);
+    expect(ring[0][0]).toBeCloseTo(10, 9);
+    expect(ring[0][1]).toBeCloseTo(19, 9);
   });
 
   it('sumber data terkonfigurasi', () => {

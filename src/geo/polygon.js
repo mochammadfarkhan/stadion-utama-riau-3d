@@ -2,7 +2,8 @@
  * Geometri poligon 2D pada bidang (x, z). Ring = Array<[x, z]> TERBUKA (titik terakhir ≠ titik pertama).
  * signedArea > 0 berarti urutan (x, z) "positif" (searah jarum jam bila dilihat dari atas dengan
  * utara di atas, karena +Z = selatan). Untuk ring positif, normal luar sisi (dx, dz) = (dz, −dx).
- * Murni (tanpa three/DOM); dipakai citybake dan nanti TileCollider.
+ * Murni (tanpa three/DOM). SATU-SATUNYA implementasi poligon proyek: dipakai citybake, mask region,
+ * collider komposit, dan TileCollider.
  */
 
 /** Buang titik penutup duplikat dan titik berurutan yang berimpit (< eps). */
@@ -60,8 +61,12 @@ export function polygonCentroid(ring) {
   return { x: cx / (6 * a), z: cz / (6 * a) };
 }
 
-/** Titik di dalam poligon (aturan genap-ganjil; titik tepat di tepi tidak dijamin). */
+/**
+ * Titik di dalam poligon (aturan genap-ganjil, cekung boleh; titik tepat di tepi tidak dijamin).
+ * Input tak valid (ring < 3 titik / bukan array, koordinat tak hingga) = false.
+ */
 export function pointInPolygon(x, z, ring) {
+  if (!Array.isArray(ring) || ring.length < 3 || !Number.isFinite(x) || !Number.isFinite(z)) return false;
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
     const [xi, zi] = ring[i];
@@ -69,6 +74,27 @@ export function pointInPolygon(x, z, ring) {
     if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
   }
   return inside;
+}
+
+/** Hull cembung (Andrew monotone chain), luas bertanda positif, tanpa titik kolinear; titik tak hingga dibuang. */
+export function convexHull(points) {
+  const pts = points
+    .filter((p) => Number.isFinite(p[0]) && Number.isFinite(p[1]))
+    .map((p) => [p[0], p[1]])
+    .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  if (pts.length < 3) return pts;
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const half = (list) => {
+    const out = [];
+    for (const p of list) {
+      while (out.length >= 2 && cross(out[out.length - 2], out[out.length - 1], p) <= 0) out.pop();
+      out.push(p);
+    }
+    return out;
+  };
+  const lower = half(pts);
+  const upper = half([...pts].reverse());
+  return [...lower.slice(0, -1), ...upper.slice(0, -1)];
 }
 
 /** Bounding box ring/polyline. */

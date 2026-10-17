@@ -4,7 +4,7 @@
  * (Fase 2: TileCollider). Tidak mengimpor modul geometri stadion: geometri datang dari region.
  */
 import { toLocal } from '../geo/regionTransform.js';
-import { pointInPolygon } from '../shared/polygon.js';
+import { pointInPolygon } from '../geo/polygon.js';
 
 const OPEN = Object.freeze({ isWalkable: () => true, isCameraClear: () => true });
 
