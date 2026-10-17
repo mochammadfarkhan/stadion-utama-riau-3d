@@ -8,7 +8,7 @@ import { insideEllipse } from './siteutil/ellipseGeo.js';
  *
  * Tidak memakai `onRoad` dari Landscape.zones karena koridor jalan penghubung
  * di sana memanjang sampai z=0 (menembus sabuk rumput plaza); di sini panjang
- * penghubung mengikuti geometri sebenarnya (Naga Sakti → tepi jalan lingkar).
+ * penghubung mengikuti geometri sebenarnya (gapura → tepi jalan lingkar).
  */
 const STADIUM_MARGIN = 4;        // jarak dari cangkang stadion
 const PLAZA_MARGIN = 1;          // jarak dari tepi paving plaza
@@ -16,7 +16,6 @@ const MONUMENT_RADIUS = 24;      // ruang tugu Lancang Kuning (selaras isFreeInP
 const KERB_SIDEWALK = 2.85;      // kerb 0,35 + trotoar 2,5 (Ground.roads)
 const ROAD_MARGIN = 1;
 const CONNECTOR_HALF = 4 + ROAD_MARGIN; // lebar penghubung 8 m
-const NAGA_SAKTI_HALF = (SITE.nagaSaktiLanes * SITE.laneWidth) / 2 + KERB_SIDEWALK + ROAD_MARGIN;
 
 /** Z tepi utara jalan lingkar (negatif) pada x tertentu. */
 function ringRoadZAt(x) {
@@ -35,12 +34,11 @@ function onRingRoadBand(x, z) {
   return outer && !inner;
 }
 
-/** Jl. Naga Sakti (+ trotoar) dan jalan penghubung ke jalan lingkar. */
+/** Jalan penghubung sumbu utara (gapura → jalan lingkar). */
 function onStraightRoads(x, z) {
-  if (Math.abs(z - SITE.nagaSaktiZ) < NAGA_SAKTI_HALF) return true;
   return SITE.connectorXs.some((cx) => {
     const zEnd = ringRoadZAt(cx) + SITE.ringRoadWidth / 2 + ROAD_MARGIN;
-    return Math.abs(x - cx) < CONNECTOR_HALF && z > SITE.nagaSaktiZ && z < zEnd;
+    return Math.abs(x - cx) < CONNECTOR_HALF && z > SITE.gapuraZ && z < zEnd;
   });
 }
 

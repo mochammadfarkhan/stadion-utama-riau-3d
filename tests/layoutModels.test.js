@@ -12,9 +12,7 @@ describe('LAYOUT.blenderModels', () => {
       expect(m.rotY === undefined || Number.isFinite(m.rotY)).toBe(true);
     }
   });
-  it('kendaraan berada di badan Jl. Naga Sakti (|z − pusat jalan| ≤ setengah lebar jalan)', () => {
-    const vehicles = LAYOUT.blenderModels.filter((m) => m.path.includes('kendaraan'));
-    expect(vehicles.length).toBeGreaterThanOrEqual(4);
-    for (const v of vehicles) expect(Math.abs(v.z + 390)).toBeLessThanOrEqual(5.25);
+  it('angkot/bus bukan konten region (pindah ke prop kota Task 18b)', () => {
+    expect(LAYOUT.blenderModels.filter((m) => m.path.includes('kendaraan'))).toEqual([]);
   });
 });

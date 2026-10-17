@@ -12,7 +12,7 @@ const FLOOD_AIM = 0.25;   // titik bidik = 25% ke sisi seberang lapangan
 
 /** PJU menyala, region-lokal. */
 export function litLampPositions(layout) {
-  return [...layout.plazaLamps, ...layout.ringRoadLamps, ...layout.nagaSaktiLamps]
+  return [...layout.plazaLamps, ...layout.ringRoadLamps]
     .filter((p) => !p.broken)
     .map((p) => ({ x: p.x, z: p.z }));
 }

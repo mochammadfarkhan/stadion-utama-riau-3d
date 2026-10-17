@@ -43,14 +43,12 @@ export const SITE = Object.freeze({
   parkingNorthZ: -330,
   tugu: TUGU,
   // --- tambahan lanskap kawasan ---
-  nagaSaktiZ: -390,            // parkingNorthZ - 60; Jl. Naga Sakti sejajar sumbu X
-  nagaSaktiLanes: 3,
-  laneWidth: 3.5,
-  connectorXs: [0, 140],       // jalan penghubung Naga Sakti -> jalan lingkar
+  // Jl. Naga Sakti handmade (z −390) dihapus Plan C: jalan nyata dari tile OSM (z ≈ −445…−471).
+  connectorXs: [0],            // sumbu utara: gapura → jalan lingkar (sumbu pedestrian OSM way 1452277714)
   parkingCar: { x: 0, z: -330, w: 240, d: 50 },
   parkingMoto: { x: 190, z: -330, w: 80, d: 40 },
   joggingTrackOffset: 12,      // jarak jalur jogging dari sumbu jalan lingkar
   joggingTrackWidth: 2.5,
   tanjakMonument: { x: 190, z: 0 },
-  gapuraZ: -372,
+  gapuraZ: -436,               // ujung utara sumbu pedestrian OSM, ±11 m sebelum jalur Naga Sakti terdekat (z ≈ −447)
 });

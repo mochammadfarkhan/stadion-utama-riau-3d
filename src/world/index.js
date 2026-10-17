@@ -14,7 +14,6 @@ import { createSerinditStatue } from './stadium/Fixtures.props.js';
 import { createTunnels } from './stadium/Tunnels.js';
 import { createFlagpoles } from './props/Flagpole.js';
 import { createGuardPosts } from './props/GuardPost.js';
-import { createFence } from './props/Fence.js';
 import { createRoadSign, createBanner, createBillboard } from './props/Signage.js';
 import { createBenches } from './props/Bench.js';
 import { createTrashBins } from './props/TrashBin.js';
@@ -23,7 +22,6 @@ import { createPlanters } from './props/Planter.js';
 import { createLancangKuning, createTanjakMonument } from './props/Monument.js';
 import { createGapura } from './props/Gapura.js';
 import { createParkedCars, createParkedMotorcycles, pickParkingSpots } from './props/Vehicles.js';
-import { createCart, createUmbrellaSet, createFoodStall } from './props/Cart.js';
 import { mergeByMaterial } from './util/merge.js';
 import { distanceToGateCorridor } from './stadium/gateCorridor.js';
 
@@ -70,7 +68,6 @@ export function buildWorld({ layout, site = SITE } = {}) {
   add(createTunnels());
   addStadiumSurroundings(add, layout, site);
   addPlazaFurniture(add, layout);
-  addNagaSakti(add, layout);
   addParking(add, lots);
 
   const seatSamples = sampleSeats(tribune.userData.tiers, layout.spectatorCount);
@@ -126,28 +123,7 @@ function addPlazaFurniture(add, layout) {
   add(createLampPosts([
     ...layout.plazaLamps,
     ...layout.ringRoadLamps.map((p) => ({ ...p, double: true })),
-    ...layout.nagaSaktiLamps,
   ]));
-}
-
-function addNagaSakti(add, layout) {
-  for (const seg of layout.nagaSaktiFence) {
-    add(createFence({ points: [{ x: seg.from, z: seg.z }, { x: seg.to, z: seg.z }], height: 2 }));
-  }
-  const stalls = new THREE.Group();
-  stalls.name = 'lapakPKL';
-  layout.stalls.forEach((p, i) => stalls.add(placed(stallFor(i), p)));
-  add(stalls); // semua lapak digabung per material → belasan draw call
-}
-
-/** Variasi lapak PKL berselang-seling di trotoar Naga Sakti. */
-function stallFor(i) {
-  switch (i % 4) {
-    case 0: return createCart({ kind: 'minuman' });
-    case 1: return createUmbrellaSet();
-    case 2: return createFoodStall();
-    default: return createCart({ kind: 'buah' });
-  }
 }
 
 function addParking(add, lots) {

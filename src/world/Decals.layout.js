@@ -1,7 +1,8 @@
 /**
  * Tata letak dekal permukaan (data murni, deterministik): retak paving plaza,
- * noda parkir & Naga Sakti, bekas ban & panah jalan lingkar, lumut kaki rib &
- * tugu, grafiti dinding concourse, manhole trotoar, zebra cross, huruf "P".
+ * noda parkir, bekas ban & panah jalan lingkar, lumut kaki rib & tugu, grafiti
+ * dinding concourse, huruf "P". (Noda, manhole, dan zebra Jl. Naga Sakti handmade
+ * dihapus Plan C bersama jalannya.)
  * Item: { name, x, y, z, rotY, scale, aspect?, vertical? }
  *  - horizontal: "atas" tekstur (v) menunjuk −Z sebelum rotY; scale = panjang v (m)
  *  - vertical: bidang menghadap +Z lokal (rotY = yaw keluar); scale = tinggi (m)
@@ -16,12 +17,10 @@ import { distanceToGateCorridor } from './stadium/gateCorridor.js';
 const SEED = 20121;
 const TWO_PI = Math.PI * 2;
 // Ketinggian permukaan (selaras LAYER_Y Ground.materials) + offset kecil anti z-fighting
-const Y = Object.freeze({ plaza: 0.032, moss: 0.034, road: 0.042, letter: 0.046, zebra: 0.066, sidewalk: 0.128 });
-const COUNTS = Object.freeze({ cracks: 120, parkingStains: 30, nagaStains: 10, tire: 15, arrows: 8, manholes: 12 });
+const Y = Object.freeze({ plaza: 0.032, moss: 0.034, road: 0.042, letter: 0.046 });
+const COUNTS = Object.freeze({ cracks: 120, parkingStains: 30, tire: 15, arrows: 8 });
 const GATE_CLEARANCE = 7;                 // jarak retak dari koridor gate utama (m)
 const TUGU = Object.freeze({ x: SITE.tugu.x, z: SITE.tugu.z, clear: 14, wallR: 11.53, wallH: 0.7, moss: 6 });
-const NAGA = Object.freeze({ halfRoad: (SITE.nagaSaktiLanes * SITE.laneWidth) / 2, walk: 2.5 });
-const ZEBRA_WIDTH = 4;                    // lebar penyeberangan (sepanjang X)
 const RIB_FOOT_OUT = 1.1;                 // geser lumut keluar dari pusat kaki rib (m)
 const GRAFFITI_U = Object.freeze([0.125, 0.332, 0.425, 0.625, 0.825, 0.925]);
 const GRAFFITI_K = 0.0185;                // sedikit di luar dinding concourse (WALL_K 0.02)
@@ -66,18 +65,6 @@ function parkingStains(rnd) {
       scale: rnd.range(0.9, 2.0),
     };
   });
-}
-
-/** Noda di lajur Jl. Naga Sakti. */
-function nagaStains(rnd) {
-  return Array.from({ length: COUNTS.nagaStains }, () => ({
-    name: rnd.chance(0.5) ? 'oil' : 'water',
-    x: rnd.range(-320, 320),
-    y: Y.road,
-    z: SITE.nagaSaktiZ + rnd.range(-0.8, 0.8) * NAGA.halfRoad,
-    rotY: rnd.range(0, TWO_PI),
-    scale: rnd.range(1.0, 2.2),
-  }));
 }
 
 /** Titik & tangen pada elips jalan lingkar (sudut t, offset lajur meter; + = keluar). */
@@ -153,27 +140,6 @@ function graffiti() {
   });
 }
 
-/** Manhole di dua trotoar Naga Sakti (selang-seling, hindari gapura). */
-function manholes() {
-  const zs = [SITE.nagaSaktiZ + NAGA.halfRoad + NAGA.walk / 2, SITE.nagaSaktiZ - NAGA.halfRoad - NAGA.walk / 2];
-  return Array.from({ length: COUNTS.manholes }, (_, i) => ({
-    name: 'manhole',
-    x: -275 + i * 50 + (i >= 6 ? 12 : -12),
-    y: Y.sidewalk,
-    z: zs[i % 2],
-    rotY: i * 0.7,
-    scale: 0.9,
-  }));
-}
-
-/** Zebra cross melintasi Naga Sakti di mulut jalan penghubung (x=0 depan gapura, x=140). */
-function zebras() {
-  const len = NAGA.halfRoad * 2;
-  return SITE.connectorXs.map((x) => ({
-    name: 'zebra', x, y: Y.zebra, z: SITE.nagaSaktiZ, rotY: 0, scale: len, aspect: ZEBRA_WIDTH / len,
-  }));
-}
-
 /** Huruf "P" di lorong tengah tiap blok parkir (blok mobil digeser dari jalan penghubung). */
 function parkingLetters() {
   return [
@@ -188,13 +154,10 @@ export function createDecalLayout() {
   return Object.freeze([
     ...plazaCracks(rnd),
     ...parkingStains(rnd),
-    ...nagaStains(rnd),
     ...tireMarks(rnd),
     ...ringArrows(),
     ...mossPatches(rnd),
     ...graffiti(),
-    ...manholes(),
-    ...zebras(),
     ...parkingLetters(),
   ].map((d) => Object.freeze(d)));
 }

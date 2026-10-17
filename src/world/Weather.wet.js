@@ -70,7 +70,7 @@ function createRippleNormalTexture() {
   return tex;
 }
 
-/** Titik genangan: cincin plaza, jalan lingkar, dan Jl. Naga Sakti (deterministik). */
+/** Titik genangan: cincin plaza dan jalan lingkar (deterministik). */
 function puddleSpots(count) {
   const spots = [];
   const plazaA = (STADIUM.outerSemiX + SITE.plazaSemiX) / 2;
@@ -80,12 +80,11 @@ function puddleSpots(count) {
     const th = 0.2 + (i / ringN) * Math.PI * 2;
     spots.push({ x: plazaA * Math.cos(th), z: plazaB * Math.sin(th), i });
   }
-  const roadN = Math.max(2, Math.round(count * 0.3));
+  const roadN = Math.max(2, count - ringN);
   for (let i = 0; i < roadN; i += 1) {
     const th = 0.7 + (i / roadN) * Math.PI * 2;
     spots.push({ x: SITE.ringRoadSemiX * Math.cos(th), z: SITE.ringRoadSemiZ * Math.sin(th), i: i + 7 });
   }
-  while (spots.length < count) spots.push({ x: (spots.length - ringN - roadN) * 90 - 90, z: SITE.nagaSaktiZ, i: spots.length });
   return spots;
 }
 

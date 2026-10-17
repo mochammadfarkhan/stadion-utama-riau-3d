@@ -28,7 +28,7 @@ describe('kebenaran tunggal: PJU rusak', () => {
   it('flag broken di data layout; lampu malam memakai flag yang sama', () => {
     expect(LAYOUT.plazaLamps.map((p) => p.broken)).toEqual(LAYOUT.plazaLamps.map((_, i) => i % 7 === 3));
     expect(LAYOUT.ringRoadLamps.map((p) => p.broken)).toEqual(LAYOUT.ringRoadLamps.map((_, i) => i % 9 === 4));
-    const all = [...LAYOUT.plazaLamps, ...LAYOUT.ringRoadLamps, ...LAYOUT.nagaSaktiLamps];
+    const all = [...LAYOUT.plazaLamps, ...LAYOUT.ringRoadLamps];
     expect(litLampPositions(LAYOUT)).toEqual(all.filter((p) => !p.broken).map((p) => ({ x: p.x, z: p.z })));
   });
 });

@@ -20,12 +20,11 @@ function inCircle(x, z, cx, cz, r) {
   return Math.hypot(x - cx, z - cz) < r;
 }
 
-/** Terkena pita jalan (Naga Sakti, penghubung, jalan lingkar + jogging). */
+/** Terkena pita jalan (penghubung sumbu utara, jalan lingkar + jogging). */
 export function onRoad(x, z) {
   const { ringRoadSemiX: ax, ringRoadSemiZ: az, ringRoadWidth: w, joggingTrackOffset: off } = SITE;
-  if (Math.abs(z - SITE.nagaSaktiZ) < ZONES.roadMargin) return true;
   const onConnector = SITE.connectorXs.some(
-    (cx) => Math.abs(x - cx) < ZONES.connectorHalfWidth && z > SITE.nagaSaktiZ && z < 0,
+    (cx) => Math.abs(x - cx) < ZONES.connectorHalfWidth && z > SITE.gapuraZ - ZONES.roadMargin && z < 0,
   );
   if (onConnector) return true;
   const outer = insideEllipse(x, z, ax + off + 4, az + off + 4);

@@ -6,7 +6,7 @@ import { groundMaterials, LAYER_Y, uvToMeters } from './Ground.materials.js';
 import { currentScope } from '../engine/ResourceScope.js';
 
 /**
- * Jalan lingkar, Jl. Naga Sakti, jalan penghubung, parkir, jogging track.
+ * Jalan lingkar, jalan penghubung sumbu utara (gapura → jalan lingkar), parkir, jogging track.
  * Semua datar di bidang XZ; marka = InstancedMesh kotak tipis.
  */
 const DASH = Object.freeze({ length: 3, width: 0.15, thickness: 0.02, gap: 6 });
@@ -56,15 +56,6 @@ export function createRingRoad() {
   return g;
 }
 
-/** Marka putus-putus lurus sepanjang sumbu X pada z tertentu. */
-function dashesAlongX(z, xFrom, xTo, material) {
-  const pts = [];
-  for (let x = xFrom; x < xTo; x += DASH.length + DASH.gap) {
-    pts.push({ x: x + DASH.length / 2, z, y: LAYER_Y.marking, rotY: 0 });
-  }
-  return instancePart({ geometry: dashGeometry(), material }, pts);
-}
-
 /** Marka putus-putus lurus sepanjang sumbu Z pada x tertentu. */
 function dashesAlongZ(x, zFrom, zTo, material) {
   const pts = [];
@@ -74,32 +65,6 @@ function dashesAlongZ(x, zFrom, zTo, material) {
   return instancePart({ geometry: dashGeometry(), material }, pts);
 }
 
-/** Jl. Naga Sakti: 3 lajur sejajar X, marka lajur, garis tepi, trotoar. */
-export function createNagaSakti() {
-  const m = groundMaterials();
-  const g = new THREE.Group();
-  g.name = 'jlNagaSakti';
-  const len = SITE.groundSize * 0.98;
-  const width = SITE.nagaSaktiLanes * SITE.laneWidth;
-  const z = SITE.nagaSaktiZ;
-  const road = flatMesh(meterPlane(len, width), m.asphalt, LAYER_Y.road, 'aspal');
-  road.rotation.x = -Math.PI / 2;
-  road.position.z = z;
-  g.add(road);
-  for (let i = 1; i < SITE.nagaSaktiLanes; i += 1) {
-    g.add(dashesAlongX(z - width / 2 + i * SITE.laneWidth, -len / 2, len / 2, m.lineWhite));
-  }
-  [-1, 1].forEach((s) => {
-    const edge = flatMesh(new THREE.BoxGeometry(len, DASH.thickness, DASH.width), m.lineWhite, LAYER_Y.marking, 'garisTepi');
-    edge.position.z = z + s * (width / 2 - 0.3);
-    g.add(edge);
-    const walk = flatMesh(new THREE.BoxGeometry(len, 0.12, SIDEWALK_WIDTH), m.sidewalk, LAYER_Y.sidewalk, 'trotoar');
-    walk.position.z = z + s * (width / 2 + SIDEWALK_WIDTH / 2);
-    g.add(walk);
-  });
-  return g;
-}
-
 /** Z tepi jalan lingkar (sisi utara, negatif) pada x tertentu. */
 function ringRoadZAt(x) {
   const { ringRoadSemiX: ax, ringRoadSemiZ: az } = SITE;
@@ -107,13 +72,13 @@ function ringRoadZAt(x) {
   return -az * Math.sqrt(k);
 }
 
-/** Jalan penghubung lurus dari Jl. Naga Sakti ke jalan lingkar (sejajar Z). */
+/** Jalan penghubung lurus dari gapura (SITE.gapuraZ) ke jalan lingkar (sejajar Z). */
 export function createConnectorRoads() {
   const m = groundMaterials();
   const g = new THREE.Group();
   g.name = 'jalanPenghubung';
   SITE.connectorXs.forEach((x) => {
-    const zFrom = SITE.nagaSaktiZ;
+    const zFrom = SITE.gapuraZ;
     const zTo = ringRoadZAt(x) + SITE.ringRoadWidth / 2;
     const len = zTo - zFrom;
     const road = flatMesh(meterPlane(CONNECTOR_WIDTH, len), m.asphalt, LAYER_Y.road + 0.005, 'aspal');

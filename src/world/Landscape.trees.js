@@ -24,7 +24,6 @@ export const LEAF_PALETTE = Object.freeze([0x9ccc65, 0x7cb342, 0xc5e1a5, 0x9ccc6
 const SHRUB_PALETTE = Object.freeze([0x9ccc65, 0xaed581, 0x7cb342, 0xc5e1a5]);
 const GRASS_PALETTE = Object.freeze([0xdce775, 0xe6ee9c, 0xc5e1a5, 0xd4e157]);
 const TREE_COUNT_RANDOM = 260;
-const ROADSIDE_SPACING = 25;
 const YOUNG_TREE_COUNT = 150;
 const SHRUB_COUNT = 320;
 const VEGETATION_CELL = 200; // m: ukuran sel culling untuk instansi vegetasi
@@ -182,20 +181,13 @@ function randomTreeSpots(rnd, count) {
   return spots;
 }
 
-/** Pohon tepi jalan: sepanjang jalan lingkar luar & kedua sisi Jl. Naga Sakti. */
+/** Pohon tepi jalan lingkar luar (deret palem Jl. Naga Sakti handmade dihapus Plan C). */
 function roadsideTreeSpots(rnd) {
   const { ringRoadSemiX: ax, ringRoadSemiZ: az, joggingTrackOffset: off } = SITE;
   const ring = distributeOnEllipse(ax + off + 9, az + off + 9, 70)
-    .filter((p) => isFreeForBigTree(p.x, p.z) || Math.abs(p.z - SITE.nagaSaktiZ) > 12)
+    .filter((p) => isFreeForBigTree(p.x, p.z))
     .map((p) => ({ x: p.x, z: p.z, rotY: rnd.range(0, 6.28), scale: rnd.range(0.9, 1.1) }));
-  const len = SITE.groundSize * 0.95;
-  const sideZ = SITE.nagaSaktiLanes * SITE.laneWidth / 2 + 6;
-  const naga = [];
-  for (let x = -len / 2; x <= len / 2; x += ROADSIDE_SPACING) {
-    if (SITE.connectorXs.some((cx) => Math.abs(x - cx) < 9)) continue;
-    [-1, 1].forEach((s) => naga.push({ x, z: SITE.nagaSaktiZ + s * sideZ, rotY: rnd.range(0, 6.28), scale: rnd.range(0.85, 1.1) }));
-  }
-  return { ring, naga };
+  return { ring };
 }
 
 /** Bagi array posisi ke beberapa jenis pohon secara acak (bobot). */
@@ -236,10 +228,10 @@ export function createBigTrees(seed = 11) {
   const g = new THREE.Group();
   g.name = 'pohonBesar';
   Object.keys(TREE_TYPES).forEach((type) => {
-    const spots = [...random[type], ...ringSplit[type], ...(type === 'palem' ? road.naga : [])];
+    const spots = [...random[type], ...ringSplit[type]];
     g.add(attachCrownShadow(colorizeNamed(instanceParts(treeParts(type), spots, `pohon-${type}`), 'tajuk', type === 'sawit' ? SAWIT_PALETTE : LEAF_PALETTE, rnd)));
   });
-  g.userData.count = Object.values(random).flat().length + road.ring.length + road.naga.length;
+  g.userData.count = Object.values(random).flat().length + road.ring.length;
   return g;
 }
 

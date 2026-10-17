@@ -47,7 +47,6 @@ import { createLocalContext, pointToLocal, pointToWorld } from './app/regionCont
 import { createRegionFrame } from './geo/regionTransform.js';
 import { withPlacement } from './regions/Region.js';
 
-const START_LOCAL = { x: 0, z: -275, yaw: 0 }; // region-lokal: plaza utara, menghadap stadion
 const MODELS_TIMEOUT_MS = 8000;
 
 function showFatal(msg) {
@@ -127,7 +126,8 @@ async function main() {
   anchor.name = 'jangkarRegion';
   app.scene.add(anchor);
   lifecycle.add(() => anchor.removeFromParent());
-  const start = { ...frame.toWorld(START_LOCAL.x, START_LOCAL.z), yaw: frame.yawToWorld(START_LOCAL.yaw) };
+  const spawn = region.layout.spawn; // region-lokal: plaza utara, menghadap stadion
+  const start = { ...frame.toWorld(spawn.x, spawn.z), yaw: frame.yawToWorld(spawn.yaw) };
   const ents = buildEntities({ start, world: region, wallet, camera: app.camera });
   app.scene.add(ents.group);
   anchor.add(ents.regionGroup);

@@ -3,7 +3,7 @@ import { SITE, STADIUM, SURFACE_Y } from '../config/constants.js';
 import { ellipseRingGeometry } from './siteutil/ellipseGeo.js';
 import { groundMaterials, GROUND_COLORS, LAYER_Y } from './Ground.materials.js';
 import {
-  createRingRoad, createNagaSakti, createConnectorRoads,
+  createRingRoad, createConnectorRoads,
   createParkingLot, createJoggingTrack,
 } from './Ground.roads.js';
 
@@ -61,7 +61,6 @@ export function createGround(opts = {}) {
   g.add(createGrassPlane());
   g.add(createPlaza());
   g.add(createRingRoad());
-  g.add(createNagaSakti());
   g.add(createConnectorRoads());
   g.add(createParkingLot('car'));
   g.add(createParkingLot('moto'));
