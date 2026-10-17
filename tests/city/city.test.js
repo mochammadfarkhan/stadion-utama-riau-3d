@@ -132,6 +132,27 @@ describe('createCity', () => {
     city.dispose();
   });
 
+  it('kendaraan mangkal dipasang di grup kota (emissive ke registry malam, collider kota); dispose melepas', async () => {
+    const app = fakeApp();
+    const off = vi.fn(() => true);
+    const time = { registerEmissive: vi.fn(() => off) };
+    const city = await createCity({
+      app, fetchJson: (u) => (u.endsWith('manifest.json') ? Promise.resolve(realManifest()) : realJson(u)),
+      loadGltf: fakeGltf, createCanvas: fakeCanvas, logger: quiet, time,
+    });
+    const res = await city.vehicles.ready;
+    expect(res.placed).toBe(4);
+    const group = city.group.getObjectByName('kendaraanMangkal');
+    expect(group.children).toHaveLength(4);
+    expect(time.registerEmissive).toHaveBeenCalledWith(group);
+    const s = res.slots[1];
+    expect(city.collider.isWalkable(s.x, s.z)).toBe(false);
+    city.dispose();
+    expect(off).toHaveBeenCalledTimes(1);
+    expect(city.collider.isWalkable(s.x, s.z)).toBe(true);
+    expect(app.scene.children).toHaveLength(0);
+  });
+
   it('groundAnchor membulatkan ke grid 50 m', () => {
     expect(groundAnchor({ x: 26, z: -74 })).toEqual({ x: 50, z: -50 });
   });

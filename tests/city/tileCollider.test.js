@@ -173,3 +173,33 @@ describe('collider + TileCollider: sepeda terjebak hanya boleh bergerak keluar',
     expect(p.x).toBeLessThan(650);
   });
 });
+
+describe('TileCollider: rintangan lingkaran (kendaraan mangkal)', () => {
+  it('memblok di dalam lingkaran + jarak bebas, penetration naik ke pusat; removeObstacles membuka lagi', () => {
+    const c = createTileCollider();
+    c.addObstacles('kendaraan', [{ x: 10, z: 10, r: 1 }, { x: 30, z: 10, r: 1 }]);
+    expect(c.isWalkable(10, 10)).toBe(false);
+    expect(c.isWalkable(11.5, 10)).toBe(false); // < r + 0,6
+    expect(c.isWalkable(11.7, 10)).toBe(true);
+    expect(c.isWalkable(30, 10.9)).toBe(false);
+    expect(c.isCameraClear(11.7, 10)).toBe(false); // < r + 0,8
+    expect(c.isCameraClear(11.9, 10)).toBe(true);
+    expect(c.penetration(10, 10)).toBeCloseTo(1.6, 6);
+    expect(c.penetration(10.5, 10)).toBeCloseTo(1.1, 6);
+    expect(c.penetration(20, 10)).toBe(0);
+    expect(c.tileCount).toBe(0); // rintangan bukan tile
+    expect(c.removeObstacles('kendaraan')).toBe(true);
+    expect(c.removeObstacles('kendaraan')).toBe(false);
+    expect(c.isWalkable(10, 10)).toBe(true);
+    expect(c.cellCount).toBe(0);
+  });
+
+  it('rintangan dan tile hidup berdampingan: melepas tile tidak melepas rintangan di sel yang sama', () => {
+    const c = createTileCollider();
+    c.addTile('0_0', tile({ buildings: [{ height: 6, ring: square(0, 0, 5) }] }));
+    c.addObstacles('kendaraan', [{ x: 10, z: 10, r: 1 }]);
+    c.removeTile('0_0');
+    expect(c.isWalkable(2, 2)).toBe(true);
+    expect(c.isWalkable(10, 10)).toBe(false);
+  });
+});

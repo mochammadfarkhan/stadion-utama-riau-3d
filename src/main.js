@@ -116,7 +116,7 @@ async function main() {
 
   await loading.step(0.4, 'Menyiapkan peta kota (OpenStreetMap)…');
   // Kota: tile OSM di-stream di sekitar fokus. Manifest gagal → null: mode hanya-region (perilaku lama) + toast.
-  const city = await createCity({ app, baseUrl: import.meta.env.BASE_URL, weather, toast: (t, ok) => hud.toast(t, ok) });
+  const city = await createCity({ app, baseUrl: import.meta.env.BASE_URL, weather, time, toast: (t, ok) => hud.toast(t, ok) });
   if (city) {
     lifecycle.add(() => city.dispose());
     time.setFogLimit(STREAM.loadRadius); // batas muat tertutup kabut
