@@ -78,13 +78,75 @@ describe('ChunkStreamer', () => {
     expect(s.update({ x: -660, z: 250 })[0]).toMatchObject({ type: 'swap', lod: 1 });
   });
 
-  it('batal bila keluar radius sebelum selesai; hasil basi ditolak', () => {
+  it('batal bila keluar radius lepas (> 1300 m) sebelum selesai; hasil basi ditolak', () => {
     const s = createChunkStreamer({ tiles: [{ key: '0_0', ix: 0, iz: 0 }] });
     const [load] = s.update({ x: -900, z: 250 });
     expect(load.type).toBe('load');
-    expect(s.update({ x: -1100, z: 250 })).toEqual([{ type: 'cancel', key: '0_0', req: load.req }]);
+    expect(s.update({ x: -1100, z: 250 })).toEqual([]); // 1100 m: histeresis, muatan berjalan terus
+    expect(s.update({ x: -1400, z: 250 })).toEqual([{ type: 'cancel', key: '0_0', req: load.req }]);
     expect(s.loaded('0_0', load.lod, load.req)).toBe(false);
     expect(s.status('0_0')).toBe('idle');
+  });
+
+  it('muatan berjalan tidak thrash di batas 1000 m (999↔1001 m): tepat 1 load, 0 cancel', () => {
+    const s = createChunkStreamer({ tiles: [{ key: '0_0', ix: 0, iz: 0 }] });
+    const actions = [];
+    for (let i = 0; i < 10; i += 1) actions.push(...s.update({ x: i % 2 === 0 ? -999 : -1001, z: 250 }));
+    expect(actions.filter((a) => a.type === 'load')).toHaveLength(1);
+    expect(actions.filter((a) => a.type === 'cancel')).toHaveLength(0);
+    expect(s.status('0_0')).toBe('loading');
+  });
+
+  it('key tile ganda ditolak di konstruktor', () => {
+    const t = { key: '0_0', ix: 0, iz: 0 };
+    expect(() => createChunkStreamer({ tiles: [t, { ...t }] })).toThrow(/ganda.*0_0/);
+  });
+
+  it('swap LOD usang dibatalkan bila fokus berbalik (histeresis 50 m, tanpa thrash di 600 m)', () => {
+    const s = createChunkStreamer({ tiles: [{ key: '0_0', ix: 0, iz: 0 }] });
+    pump(s, { x: -800, z: 250 }); // LOD1
+    const [swap] = s.update({ x: -590, z: 250 });
+    expect(swap).toMatchObject({ type: 'swap', lod: 0 });
+    expect(s.update({ x: -610, z: 250 })).toEqual([]); // 610 ≤ 650: swap tetap berjalan
+    expect(s.update({ x: -700, z: 250 })).toEqual([{ type: 'cancel', key: '0_0', req: swap.req }]);
+    expect(s.loaded('0_0', 0, swap.req)).toBe(false);
+    expect(s.lodOf('0_0')).toBe(1);
+    expect(s.stats().inFlight).toBe(0);
+  });
+
+  it('swap LOD di rentang 1000–1300 m dibatalkan; tile tetap tampil dengan LOD lama', () => {
+    const s = createChunkStreamer({ tiles: [{ key: '0_0', ix: 0, iz: 0 }] });
+    pump(s, { x: -500, z: 250 }); // LOD0
+    const [swap] = s.update({ x: -700, z: 250 });
+    expect(swap).toMatchObject({ type: 'swap', lod: 1 });
+    expect(s.update({ x: -1100, z: 250 })).toEqual([{ type: 'cancel', key: '0_0', req: swap.req }]);
+    expect(s.status('0_0')).toBe('loaded');
+    expect(s.lodOf('0_0')).toBe(0);
+    expect(s.update({ x: -1100, z: 250 })).toEqual([]);
+  });
+
+  it('noSwap direset saat keluar radius muat: tukar LOD dicoba lagi tanpa harus dilepas', () => {
+    const s = createChunkStreamer({ tiles: [{ key: '0_0', ix: 0, iz: 0 }] });
+    pump(s, { x: -800, z: 250 });
+    const [swap] = s.update({ x: -500, z: 250 });
+    s.failed('0_0', swap.req);
+    expect(s.update({ x: -500, z: 250 })).toEqual([]);
+    expect(s.update({ x: -1100, z: 250 })).toEqual([]);
+    expect(s.status('0_0')).toBe('loaded');
+    expect(s.update({ x: -500, z: 250 })[0]).toMatchObject({ type: 'swap', key: '0_0', lod: 0 });
+  });
+
+  it('teleport 8 km dengan banyak tile: semua dilepas/dibatalkan, tanpa sisa', () => {
+    const s = createChunkStreamer({ tiles: grid(-4, 3) });
+    pump(s, { x: 0, z: 0 });
+    s.update({ x: 1600, z: 0 }); // beberapa muatan/swap baru sedang berjalan
+    const before = s.stats();
+    expect(before.inFlight).toBeGreaterThan(0);
+    const out = s.update({ x: 8000, z: 8000 });
+    expect(out.filter((a) => a.type === 'unload')).toHaveLength(before.loaded);
+    expect(out.filter((a) => a.type === 'cancel')).toHaveLength(before.inFlight);
+    expect(out.filter((a) => a.type === 'load' || a.type === 'swap')).toHaveLength(0);
+    expect(s.stats()).toEqual({ idle: grid(-4, 3).length, loading: 0, loaded: 0, failed: 0, inFlight: 0 });
   });
 
   it('gagal: tile ditandai gagal, tidak dicoba lagi sampai keluar >1300 m; settled menghitung gagal sebagai selesai', () => {
