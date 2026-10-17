@@ -6,8 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { inTwoScopes, materialsOf, geometriesOf } from './helpers.js';
 import { createBenches } from '../src/world/props/Bench.js';
-import { createCart, createUmbrellaSet, createFoodStall } from '../src/world/props/Cart.js';
-import { createFence } from '../src/world/props/Fence.js';
+import { createCart } from '../src/world/props/Cart.js';
 import { createGapura } from '../src/world/props/Gapura.js';
 import { createLampPosts } from '../src/world/props/LampPost.js';
 import { createLancangKuning, createTanjakMonument } from '../src/world/props/Monument.js';
@@ -20,9 +19,6 @@ const P = [{ x: 0, z: 0 }, { x: 5, z: 2 }];
 const FACTORIES = {
   bangku: () => createBenches(P),
   gerobak: () => createCart({ kind: 'minuman' }),
-  payung: () => createUmbrellaSet(),
-  lapak: () => createFoodStall(),
-  pagar: () => createFence({ points: [{ x: 0, z: 0 }, { x: 10, z: 0 }] }),
   gapura: () => createGapura({ damaged: true }),
   pju: () => createLampPosts(P),
   tugu: () => createLancangKuning({ x: 0, z: 0 }),

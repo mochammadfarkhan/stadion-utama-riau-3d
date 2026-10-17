@@ -61,7 +61,6 @@ export const Materials = Object.freeze({
   louvreGold: () => cached('louvreGold', () => uplit(louvreMaterial(COLORS.louvreGold), 0xffb860, 0.3)),
   gold: () => cached('gold', () => matte(COLORS.gold, ROUGH_SATIN)),
   steel: () => cached('steel', () => new MeshLambertMaterial({ color: COLORS.steel })),
-  iron: () => cached('iron', () => new MeshLambertMaterial({ color: COLORS.ironDark })),
   dark: () => cached('dark', () => new MeshLambertMaterial({ color: 0x3a3d46 })),
   navy: () => cached('navy', () => new MeshLambertMaterial({ color: COLORS.navy })),
   white: () => cached('white', () => new MeshLambertMaterial({ color: 0xfaf8f4 })),
