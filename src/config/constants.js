@@ -52,7 +52,6 @@ export const COLORS = Object.freeze({
   louvre: 0xc8956a,       // bilah louvre cokelat hangat lembut
   roofWhite: 0xfbf7ef,    // atap putih hangat
   sky: 0xbfe0f7,          // langit biru muda
-  water: 0x7fcfc9,        // air toska lembut
   acp: 0xf7f2e8,          // rib putih-krem (ACP)
   roofSilver: 0xf0efea,
   louvreGold: 0xdcb46e,   // emas lembut

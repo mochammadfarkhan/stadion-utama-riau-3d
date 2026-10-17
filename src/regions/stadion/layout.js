@@ -19,13 +19,6 @@ export function ringPositions(semiX, semiZ, count, { phase = 0, faceCenter = tru
   return out;
 }
 
-/** Titik sepanjang garis sejajar X pada z tetap. */
-export function linePositions(z, xFrom, xTo, step, { rotY = 0, skip = () => false } = {}) {
-  const out = [];
-  for (let x = xFrom; x <= xTo; x += step) if (!skip(x)) out.push({ x, z, rotY });
-  return out;
-}
-
 const PLAZA_RING = { semiX: STADIUM.outerSemiX + 22, semiZ: STADIUM.outerSemiZ + 30 };
 const RING_ROAD_SIDEWALK = { semiX: SITE.ringRoadSemiX + 8, semiZ: SITE.ringRoadSemiZ + 8 };
 
