@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { instancePart, localMatrix, placeObject } from '../siteutil/instanceParts.js';
 import { createRandom } from '../siteutil/rng.js';
 import { chubbyCylinder, dome, mergeAll } from '../siteutil/rounded.js';
+import { currentScope } from '../../engine/ResourceScope.js';
 
 /**
  * Tong sampah gaya cozy: silinder gemuk + tutup kubah (hijau organik / biru
@@ -30,9 +31,9 @@ function postGeometry() {
   return mergeAll([pole, cap]);
 }
 
-const bodyGeo = bodyGeometry();
-const postGeo = postGeometry();
-const postMat = new THREE.MeshLambertMaterial({ color: TRASH_BIN.colors.tiang });
+const bodyGeo = () => currentScope().get('TrashBin:bodyGeo', () => bodyGeometry());
+const postGeo = () => currentScope().get('TrashBin:postGeo', () => postGeometry());
+const postMat = () => currentScope().get('TrashBin:postMat', () => new THREE.MeshLambertMaterial({ color: TRASH_BIN.colors.tiang }));
 const POST_OFFSET_Z = -TRASH_BIN.radius - 0.05;
 
 function colorHex(kind) {
@@ -43,8 +44,8 @@ function colorHex(kind) {
 export function createTrashBin(opts = {}) {
   const g = new THREE.Group();
   g.name = 'tongSampah';
-  const body = new THREE.Mesh(bodyGeo, new THREE.MeshLambertMaterial({ color: colorHex(opts.kind) }));
-  const post = new THREE.Mesh(postGeo, postMat);
+  const body = new THREE.Mesh(bodyGeo(), new THREE.MeshLambertMaterial({ color: colorHex(opts.kind) }));
+  const post = new THREE.Mesh(postGeo(), postMat());
   post.position.z = POST_OFFSET_Z;
   g.add(body, post);
   g.userData.kind = opts.kind ?? 'hijau';
@@ -58,8 +59,8 @@ export function createTrashBins(positions = [], opts = {}) {
   if (positions.length === 0) return g;
   const rnd = createRandom(opts.seed ?? 7);
   const mat = new THREE.MeshLambertMaterial({ color: 0xffffff });
-  const body = instancePart({ geometry: bodyGeo, material: mat, name: 'badan' }, positions); // tanpa bayangan: kecil
-  const post = instancePart({ geometry: postGeo, material: postMat, matrix: localMatrix(0, 0, POST_OFFSET_Z), name: 'tiang' }, positions);
+  const body = instancePart({ geometry: bodyGeo(), material: mat, name: 'badan' }, positions); // tanpa bayangan: kecil
+  const post = instancePart({ geometry: postGeo(), material: postMat(), matrix: localMatrix(0, 0, POST_OFFSET_Z), name: 'tiang' }, positions);
   const c = new THREE.Color();
   positions.forEach((p, i) => body.setColorAt(i, c.setHex(colorHex(p.kind ?? (rnd.chance(0.5) ? 'hijau' : 'biru')))));
   body.instanceColor.needsUpdate = true;

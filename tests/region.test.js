@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { defineRegion, validateBuild, regionContains } from '../src/regions/Region.js';
 import { stadionRegion } from '../src/regions/stadion/index.js';
 import { STADION_MASK, createStadionMask } from '../src/regions/stadion/mask.js';
-import { litLampPositions } from '../src/regions/stadion/lamps.js';
+import { litLampPositions, stadionNightLights } from '../src/regions/stadion/lamps.js';
+import { STADION_PLACEMENT } from '../src/regions/stadion/placement.js';
 import { LAYOUT } from '../src/regions/stadion/layout.js';
 import { SITE } from '../src/regions/stadion/site.js';
 import { SITE as SITE_COMPAT } from '../src/config/constants.js';
@@ -36,14 +37,19 @@ describe('region stadion: data', () => {
   });
   it('mask memuat stadion, plaza, dan parkir; danau & area jauh di luar', () => {
     expect(createStadionMask(SITE)).toEqual(createStadionMask());
-    for (const [x, z] of [[0, 0], [0, -180], [0, -330], [190, -330], [240, 0]]) expect(regionContains(stadionRegion, x, z)).toBe(true);
-    for (const [x, z] of [[0, -500], [600, 0], [-60, -480]]) expect(regionContains(stadionRegion, x, z)).toBe(false);
+    for (const [x, z] of [[0, 0], [0, -180], [0, -330], [190, -330], [240, 0], [250, -60], [0, -385], [0, -436], [-27, -416]]) {
+      expect(regionContains(stadionRegion, x, z)).toBe(true);
+    }
+    // luar: Jl. Naga Sakti OSM (z −447), danau OSM barat (−60, −380) & timur (60, −385), area jauh
+    for (const [x, z] of [[0, -447], [0, -500], [600, 0], [-60, -480], [-60, -380], [60, -385]]) {
+      expect(regionContains(stadionRegion, x, z)).toBe(false);
+    }
     expect(stadionRegion.mask).toBe(STADION_MASK);
-    expect(stadionRegion.placement).toEqual({ x: 0, z: 0, yaw: 0 });
+    expect(stadionRegion.placement).toEqual(STADION_PLACEMENT);
   });
   it('PJU menyala: plaza i%7==3 dan jalan lingkar i%9==4 padam', () => {
     const lit = litLampPositions(LAYOUT);
-    expect(lit).toHaveLength(LAYOUT.plazaLamps.length - 4 + LAYOUT.ringRoadLamps.length - 5 + LAYOUT.nagaSaktiLamps.length);
+    expect(lit).toHaveLength(LAYOUT.plazaLamps.length - 4 + LAYOUT.ringRoadLamps.length - 5);
     expect(lit).not.toContainEqual({ x: LAYOUT.plazaLamps[3].x, z: LAYOUT.plazaLamps[3].z });
     expect(lit).not.toContainEqual({ x: LAYOUT.ringRoadLamps[4].x, z: LAYOUT.ringRoadLamps[4].z });
   });
@@ -60,7 +66,9 @@ describe('region stadion: build & dispose', () => {
     expect(built.systems.map((s) => s.id)).toEqual(['stadion.world']);
     expect(typeof built.colliders.isWalkable).toBe('function');
     expect(built.seatSamples.length).toBeGreaterThan(0);
-    expect(built.lamps).toEqual(litLampPositions(LAYOUT));
+    expect(built.nightLights).toEqual(stadionNightLights(LAYOUT, STADION_PLACEMENT)); // dunia (placement OSM)
+    expect(built.nightLights.lamps).toHaveLength(litLampPositions(LAYOUT).length);
+    expect(built.lateRoot.parent).toBe(built.group);
     expect(scope.size).toBeGreaterThan(0);
     built.dispose();
     built.dispose(); // idempoten

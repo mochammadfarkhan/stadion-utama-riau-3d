@@ -17,10 +17,9 @@ const ADAPTIVE_MIN_RATIO = 0.6;   // resolusi adaptif tidak turun di bawah ini
 const ADAPTIVE_TARGET_MS = 20;    // target waktu frame (50 fps)
 const AO_SAMPLES = 12;            // sampel GTAO per piksel (default 16; lebih ringan)
 const AO_DISTANCE_FALLOFF = 1.0;
-const MINIMAP_BAKE_PX = 1536;      // resolusi peta dasar (±0,9 m/piksel untuk dunia 1.400 m)
+const MINIMAP_BAKE_PX = 1536;      // resolusi peta dasar (±0,6 m/piksel untuk area region ±461 m)
 const MINIMAP_BAKE_HEIGHT = 400;
 const MINIMAP_BAKE_AMBIENT = 3;    // ambient ≈ albedo ×0,95 (tanpa IBL/kabut/matahari)
-const MINIMAP_BG = 0x2f5b32;
 
 /**
  * App: renderer, scene, kamera utama, post-processing, minimap, loop waktu.
@@ -279,20 +278,22 @@ export class App {
   }
 
   /**
-   * Bake peta dasar minimap SEKALI: tampak atas seluruh dunia dari kamera ortografis, hanya objek
+   * Bake peta dasar minimap SEKALI: tampak atas area region dari kamera ortografis, hanya objek
    * di RENDER_LAYERS.minimap, diterangi ambient merata (tanpa IBL, kabut, matahari) lalu disalin
-   * ke canvas 2D. Dipakai oleh ui/Minimap2D; tidak ada render 3D minimap per frame.
-   * @param {number} worldHalf setengah sisi dunia (m)
+   * ke canvas 2D. Latar TRANSPARAN: di luar tanah region (mask) layer tile kota di bawahnya tampak.
+   * Dipakai oleh ui/Minimap2D; tidak ada render 3D minimap per frame.
+   * @param {number} worldHalf setengah sisi area bake (m)
+   * @param {{x:number, z:number}} [center] pusat area bake di frame dunia (placement region); utara tetap di atas
    * @returns {HTMLCanvasElement}
    */
-  bakeMinimap(worldHalf) {
+  bakeMinimap(worldHalf, center = { x: 0, z: 0 }) {
     const r = this.renderer;
     const px = MINIMAP_BAKE_PX;
     const cam = new THREE.OrthographicCamera(-worldHalf, worldHalf, worldHalf, -worldHalf, 1, MINIMAP_BAKE_HEIGHT * 2);
     cam.up.set(0, 0, -1); // utara (−z) di atas layar
     cam.layers.set(RENDER_LAYERS.minimap);
-    cam.position.set(0, MINIMAP_BAKE_HEIGHT, 0);
-    cam.lookAt(0, 0, 0);
+    cam.position.set(center.x, MINIMAP_BAKE_HEIGHT, center.z);
+    cam.lookAt(center.x, 0, center.z);
     cam.updateMatrixWorld();
     const target = new THREE.WebGLRenderTarget(px, px, { type: THREE.UnsignedByteType, stencilBuffer: false });
     target.texture.colorSpace = THREE.SRGBColorSpace; // shader menulis sRGB; target bukan layar → tanpa tone mapping
@@ -308,7 +309,7 @@ export class App {
     this.scene.updateMatrixWorld();
     try {
       r.setRenderTarget(target);
-      r.setClearColor(MINIMAP_BG, 1);
+      r.setClearColor(0x000000, 0);
       r.clear();
       r.render(this.scene, cam);
       const buf = new Uint8ClampedArray(px * px * 4);

@@ -70,3 +70,39 @@ describe('polygon', () => {
     expect(clipPolylineToRect(loop, RECT10)).toEqual([loop]);
   });
 });
+
+describe('polygon: dipindah dari src/shared/polygon.js (satu implementasi)', () => {
+  it('pointInPolygon: input tak valid = di luar; poligon cekung', async () => {
+    const { pointInPolygon: pip } = await import('../../src/geo/polygon.js');
+    expect(pip(Number.NaN, 5, SQUARE)).toBe(false);
+    expect(pip(1, 1, [[0, 0], [1, 1]])).toBe(false);
+    expect(pip(1, 1, null)).toBe(false);
+    expect(pip(5, 15, L_SHAPE)).toBe(true);
+  });
+
+  it('convexHull: buang titik dalam, kolinear, tak hingga; luas positif; < 3 titik = salinan', async () => {
+    const { convexHull, signedArea: area } = await import('../../src/geo/polygon.js');
+    const hull = convexHull([[0, 0], [5, 0], [10, 0], [10, 10], [0, 10], [5, 5], [Number.NaN, 1]]);
+    expect(hull).toEqual([[0, 0], [10, 0], [10, 10], [0, 10]]);
+    expect(area(hull)).toBeGreaterThan(0);
+    const pts = [[1, 2]];
+    const one = convexHull(pts);
+    expect(one).toEqual([[1, 2]]);
+    expect(one[0]).not.toBe(pts[0]);
+  });
+});
+
+describe('polygon: jarak ke tepi (TileCollider)', () => {
+  it('distanceToSegment & distanceToRing (ring tertutup vs polyline terbuka)', async () => {
+    const { distanceToSegment, distanceToRing } = await import('../../src/geo/polygon.js');
+    expect(distanceToSegment(5, 3, [0, 0], [10, 0])).toBe(3);
+    expect(distanceToSegment(-4, 3, [0, 0], [10, 0])).toBe(5);
+    expect(distanceToSegment(1, 1, [0, 0], [0, 0])).toBeCloseTo(Math.SQRT2, 12);
+    expect(distanceToRing(5, 5, SQUARE)).toBe(5);
+    expect(distanceToRing(-1, 5, SQUARE)).toBe(1);
+    const L = [[0, 0], [10, 0], [10, 10]];
+    expect(distanceToRing(0, 10, L, false)).toBe(10);
+    expect(distanceToRing(0, 10, L, true)).toBeCloseTo(Math.SQRT2 * 5, 9);
+    expect(distanceToRing(0, 0, [[1, 1]], false)).toBe(Infinity);
+  });
+});

@@ -107,3 +107,79 @@ describe('SystemRunner: pendaftaran & dispose', () => {
     expect(r.ids).toEqual([]);
   });
 });
+
+describe('SystemRunner: remove, snapshot, dispose LIFO (Plan C)', () => {
+  it('remove memanggil dispose sistem sekali; {dispose:false} tidak', () => {
+    const r = createSystemRunner({ logger: quietLogger() });
+    const seen = [];
+    r.add(sys('a', 'sim', () => {}, { dispose: () => seen.push('a') }));
+    r.add(sys('b', 'sim', () => {}, { dispose: () => seen.push('b') }));
+    expect(r.remove('a')).toBe(true);
+    expect(r.remove('a')).toBe(false);
+    expect(r.remove('b', { dispose: false })).toBe(true);
+    expect(seen).toEqual(['a']);
+  });
+
+  it('galat dispose saat remove dicatat dengan id, sistem tetap tercabut', () => {
+    const logger = quietLogger();
+    const r = createSystemRunner({ logger });
+    r.add(sys('rapuh', 'ui', () => {}, { dispose: boom }));
+    expect(r.remove('rapuh')).toBe(true);
+    expect(r.has('rapuh')).toBe(false);
+    expect(logger.calls[0][0]).toContain('"rapuh"');
+  });
+
+  it('sistem yang dicabut sistem lain di tengah frame tidak dijalankan lagi pada frame itu', () => {
+    const r = createSystemRunner({ logger: quietLogger() });
+    const log = [];
+    r.add(sys('pencabut', 'sim', () => { log.push('pencabut'); r.remove('korban'); }));
+    r.add(sys('korban', 'world', () => log.push('korban')));
+    r.update(0.016, {});
+    r.update(0.016, {});
+    expect(log).toEqual(['pencabut', 'pencabut']);
+  });
+
+  it('dispose melepas terbalik dari urutan pendaftaran, lintas fase', () => {
+    const r = createSystemRunner({ logger: quietLogger() });
+    const order = [];
+    const mk = (id, phase) => sys(id, phase, () => {}, { dispose: () => order.push(id) });
+    r.add(mk('ui1', 'ui'));
+    r.add(mk('in1', 'input'));
+    r.add(mk('w1', 'world'));
+    r.dispose();
+    expect(order).toEqual(['w1', 'in1', 'ui1']);
+    r.update(0.016, {});
+    expect(r.ids).toEqual([]);
+  });
+});
+
+describe('SystemRunner: sistem yang dinonaktifkan tetap dilepas', () => {
+  it('runner.dispose() memanggil dispose sistem nonaktif tepat sekali, urutan LIFO bersama sistem aktif', () => {
+    const r = createSystemRunner({ logger: quietLogger() });
+    const order = [];
+    r.add(sys('a', 'sim', () => {}, { dispose: () => order.push('a') }));
+    r.add(sys('rusak', 'world', boom, { dispose: () => order.push('rusak') }));
+    r.add(sys('c', 'ui', () => {}, { dispose: () => order.push('c') }));
+    for (let i = 0; i < MAX_CONSECUTIVE_FAILURES; i += 1) r.update(0.016, {});
+    expect(r.disabled).toEqual(['rusak']);
+    expect(order).toEqual([]); // belum dilepas saat dinonaktifkan
+    r.dispose();
+    expect(order).toEqual(['c', 'rusak', 'a']);
+    r.dispose();
+    expect(order).toEqual(['c', 'rusak', 'a']); // tidak dobel
+  });
+
+  it('galat dispose sistem nonaktif dicatat, tidak menghentikan pelepasan lain', () => {
+    const logger = quietLogger();
+    const r = createSystemRunner({ logger });
+    const order = [];
+    r.add(sys('a', 'sim', () => {}, { dispose: () => order.push('a') }));
+    r.add(sys('rusak', 'world', boom, { dispose: boom }));
+    for (let i = 0; i < MAX_CONSECUTIVE_FAILURES; i += 1) r.update(0.016, {});
+    const before = logger.calls.length;
+    r.dispose();
+    expect(order).toEqual(['a']);
+    expect(logger.calls).toHaveLength(before + 1);
+    expect(logger.calls.at(-1)[0]).toContain('"rusak"');
+  });
+});

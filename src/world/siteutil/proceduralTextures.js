@@ -87,13 +87,3 @@ export function asphaltTexture(baseHex, repeat = 30) {
   tex.repeat.set(repeat, repeat);
   return tex;
 }
-
-/** Tekstur riak air (noise lembut) untuk animasi offset. */
-export function rippleTexture(repeat = 6) {
-  const tex = makeDataTexture(TEX_SIZE, (x, y) => {
-    const v = 200 + valueNoise(x / 12, y / 12) * 55;
-    return [v * 0.85, v * 0.95, v];
-  });
-  tex.repeat.set(repeat, repeat);
-  return tex;
-}

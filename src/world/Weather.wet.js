@@ -10,7 +10,7 @@ import { createMaterialRegistry } from '../engine/materialRegistry.js';
 // Nama mesh dasar (sebelum "+N" hasil merge) yang dianggap permukaan basah.
 const WET_MESH_NAMES = new Set([
   'rumput', 'plazaPaving', 'aspal', 'trotoar', 'trotoarLuar', 'trotoarDalam', 'kerb', 'kerbLuar', 'kerbDalam',
-  'joggingTrack', 'tartan', 'apron', 'helipad', 'lintasanSepatuRoda',
+  'joggingTrack', 'tartan', 'apron', 'roads', // 'roads' = mesh jalan tile kota
 ]);
 const PUDDLE_Y = 0.1;
 const PUDDLE_COLOR = 0x202c3a;
@@ -70,7 +70,7 @@ function createRippleNormalTexture() {
   return tex;
 }
 
-/** Titik genangan: cincin plaza, jalan lingkar, dan Jl. Naga Sakti (deterministik). */
+/** Titik genangan: cincin plaza dan jalan lingkar (deterministik). */
 function puddleSpots(count) {
   const spots = [];
   const plazaA = (STADIUM.outerSemiX + SITE.plazaSemiX) / 2;
@@ -80,12 +80,11 @@ function puddleSpots(count) {
     const th = 0.2 + (i / ringN) * Math.PI * 2;
     spots.push({ x: plazaA * Math.cos(th), z: plazaB * Math.sin(th), i });
   }
-  const roadN = Math.max(2, Math.round(count * 0.3));
+  const roadN = Math.max(2, count - ringN);
   for (let i = 0; i < roadN; i += 1) {
     const th = 0.7 + (i / roadN) * Math.PI * 2;
     spots.push({ x: SITE.ringRoadSemiX * Math.cos(th), z: SITE.ringRoadSemiZ * Math.sin(th), i: i + 7 });
   }
-  while (spots.length < count) spots.push({ x: (spots.length - ringN - roadN) * 90 - 90, z: SITE.nagaSaktiZ, i: spots.length });
   return spots;
 }
 
@@ -115,13 +114,18 @@ function createPuddles(normalMap) {
 
 /**
  * @param {THREE.Object3D} parent grup pemilik (Weather.group)
+ * @param {{placement?: {x:number, z:number, yaw:number}|null}} [opts] placement region pemilik titik genangan
  * @returns {{ update(dt, intensity): void, register(root): () => boolean, unregister(root): boolean,
  *   dispose(): void, group: THREE.Group, count: number }}
  */
-export function createWetSurfaces(parent) {
+export function createWetSurfaces(parent, { placement = null } = {}) {
   const registry = createMaterialRegistry(selectWet, { onRemove: (e) => applyWet(e, 0) });
   const normalMap = createRippleNormalTexture();
   const puddles = createPuddles(normalMap);
+  if (placement) { // titik genangan region-lokal (plaza, jalan lingkar) → frame dunia
+    puddles.group.position.set(placement.x, 0, placement.z);
+    puddles.group.rotation.y = placement.yaw;
+  }
   parent.add(puddles.group);
   let last = -1;
 

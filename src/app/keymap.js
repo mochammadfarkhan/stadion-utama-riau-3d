@@ -6,24 +6,43 @@ import { EXIT_KEY, POVS } from '../core/cameraPresets.js';
 import { routeEscape } from '../core/escapeRoute.js';
 import { nextPresetAfter, PRESET_HOURS } from '../sim/dayCycle.js';
 import { handleShopKey } from './shop.js';
+import { pointToLocal } from './regionContext.js';
 
 const HOURS = 24;
 
 /** Hotkey lama menulis ke store (binding menerapkan ke scene). */
-export function handleKeys(input, { rig, hud, ents, shop, time, store, story }) {
+export function handleKeys(input, { rig, hud, ents, shop, time, store, story, frame, travelMenu = null }) {
   const toggle = (key) => store.set(key, !store.get(key));
   handleCameraKeys(input, { rig, hud, store });
   if (input.consumePress('KeyM')) toggle('performance.minimap');
   if (input.consumePress('KeyO')) toggle('graphics.ao'); // matikan AO bila FPS rendah
   handleTimeWeatherKeys(input, hud, time, store);
   if (input.consumePress('KeyJ')) story.toggleJournal();
+  if (travelMenu) handleTravelKeys(input, travelMenu); // perjalanan cepat (Stadion / Masjid Raya An-Nur)
   const escTarget = input.consumePress('Escape')
-    ? routeEscape({ journalOpen: story.journal.open, shopOpen: hud.shopOpen })
+    ? routeEscape({ journalOpen: story.journal.open, shopOpen: hud.shopOpen, travelOpen: Boolean(travelMenu?.open) })
     : null;
   if (escTarget === 'journal') story.toggleJournal();
+  if (escTarget === 'travel') travelMenu.hide();
   if (input.consumePress('KeyE')) {
-    if (hud.shopOpen || !story.tryInteract(ents.bike.state)) handleShopKey(rig, hud, ents, shop);
+    if (hud.shopOpen || !story.tryInteract(pointToLocal(frame, ents.bike.state))) handleShopKey(rig, hud, ents, shop); // cerita region-lokal
   } else if (escTarget === 'shop') handleShopKey(rig, hud, ents, shop);
+}
+
+const TRAVEL_PREV = Object.freeze(['KeyW', 'ArrowUp', 'KeyA', 'ArrowLeft']);
+const TRAVEL_NEXT = Object.freeze(['KeyS', 'ArrowDown', 'KeyD', 'ArrowRight']);
+
+/**
+ * G / LB gamepad membuka-menutup panel perjalanan cepat. Saat terbuka: arah (WASD/panah, stick/D-pad
+ * gamepad) ganti pilihan, Space / A konfirmasi. Esc / B menutup lewat routeEscape.
+ */
+function handleTravelKeys(input, travelMenu) {
+  if (input.consumePress('KeyG')) travelMenu.toggle();
+  if (!travelMenu.open) return;
+  const pressed = (codes) => codes.reduce((hit, c) => input.consumePress(c) || hit, false);
+  if (pressed(TRAVEL_PREV)) travelMenu.focusNext(-1);
+  if (pressed(TRAVEL_NEXT)) travelMenu.focusNext(1);
+  if (input.consumePress('Space')) travelMenu.confirm();
 }
 
 /** V: ganti mode kamera pemain, atau keluar dari POV. Digit1..7 masuk POV, Digit0 keluar. */

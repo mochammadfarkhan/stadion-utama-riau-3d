@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { instanceParts, localMatrix, placeObject, groupFromParts } from '../siteutil/instanceParts.js';
 import { chubbyCylinder, dome, mergeAll } from '../siteutil/rounded.js';
+import { currentScope } from '../../engine/ResourceScope.js';
 
 /**
  * Tiang PJU 9 m gaya cozy: tiang silinder gemuk, pondasi membulat, lengan bulat,
@@ -19,17 +20,20 @@ function poleGeometry() {
   return mergeAll([pole, cap]);
 }
 
-const poleGeo = poleGeometry();
-const baseGeo = chubbyCylinder(0.26, 0.32, LAMP_POST.baseH, 10).translate(0, LAMP_POST.baseH / 2, 0);
-const armGeo = new THREE.CapsuleGeometry(0.06, LAMP_POST.armLen - 0.12, 2, 6).rotateZ(Math.PI / 2);
-const headGeo = dome(LAMP_POST.headR, 0.55, 10).rotateX(Math.PI).translate(0, 0.21, 0); // kubah menghadap ke bawah
-const bulbGeo = new THREE.SphereGeometry(LAMP_POST.headR * 0.62, 8, 5).scale(1, 0.45, 1);
-const poleMat = new THREE.MeshLambertMaterial({ color: LAMP_POST.colors.tiang });
-const headMat = new THREE.MeshLambertMaterial({ color: LAMP_POST.colors.rumah });
-const bulbMat = new THREE.MeshStandardMaterial({ color: LAMP_POST.colors.bohlam, emissive: LAMP_POST.colors.bohlam, emissiveIntensity: 1.2 });
-bulbMat.name = 'bohlamPJU';
-// Dibaca TimeOfDay: emissiveIntensity dinaikkan ke `on` saat lampu malam menyala, `off` saat siang.
-bulbMat.userData.nightEmissive = { on: 6.0, off: 0 };
+const poleGeo = () => currentScope().get('LampPost:poleGeo', () => poleGeometry());
+const baseGeo = () => currentScope().get('LampPost:baseGeo', () => chubbyCylinder(0.26, 0.32, LAMP_POST.baseH, 10).translate(0, LAMP_POST.baseH / 2, 0));
+const armGeo = () => currentScope().get('LampPost:armGeo', () => new THREE.CapsuleGeometry(0.06, LAMP_POST.armLen - 0.12, 2, 6).rotateZ(Math.PI / 2));
+const headGeo = () => currentScope().get('LampPost:headGeo', () => dome(LAMP_POST.headR, 0.55, 10).rotateX(Math.PI).translate(0, 0.21, 0)); // kubah menghadap ke bawah
+const bulbGeo = () => currentScope().get('LampPost:bulbGeo', () => new THREE.SphereGeometry(LAMP_POST.headR * 0.62, 8, 5).scale(1, 0.45, 1));
+const poleMat = () => currentScope().get('LampPost:poleMat', () => new THREE.MeshLambertMaterial({ color: LAMP_POST.colors.tiang }));
+const headMat = () => currentScope().get('LampPost:headMat', () => new THREE.MeshLambertMaterial({ color: LAMP_POST.colors.rumah }));
+const bulbMat = () => currentScope().get('LampPost:bulbMat', () => {
+  const v = new THREE.MeshStandardMaterial({ color: LAMP_POST.colors.bohlam, emissive: LAMP_POST.colors.bohlam, emissiveIntensity: 1.2 });
+  v.name = 'bohlamPJU';
+  // Dibaca TimeOfDay: emissiveIntensity dinaikkan ke `on` saat lampu malam menyala, `off` saat siang.
+  v.userData.nightEmissive = { on: 6.0, off: 0 };
+  return v;
+});
 
 /** Matriks lengan pada sisi s (+1 kanan, -1 kiri), sedikit naik ke ujung. */
 function armMatrix(s) {
@@ -48,9 +52,9 @@ function bulbMatrix(s) {
 function structureParts(double) {
   const sides = double ? [1, -1] : [1];
   return [
-    { geometry: baseGeo, material: poleMat, name: 'pondasi' },
-    { geometry: poleGeo, material: poleMat, castShadow: true, name: 'tiang' },
-    ...sides.map((s) => ({ geometry: armGeo, material: poleMat, matrix: armMatrix(s), castShadow: true, name: 'lengan' })),
+    { geometry: baseGeo(), material: poleMat(), name: 'pondasi' },
+    { geometry: poleGeo(), material: poleMat(), castShadow: true, name: 'tiang' },
+    ...sides.map((s) => ({ geometry: armGeo(), material: poleMat(), matrix: armMatrix(s), castShadow: true, name: 'lengan' })),
   ];
 }
 
@@ -58,8 +62,8 @@ function structureParts(double) {
 function lampParts(double) {
   const sides = double ? [1, -1] : [1];
   return sides.flatMap((s) => [
-    { geometry: headGeo, material: headMat, matrix: headMatrix(s), name: 'rumahLampu' },
-    { geometry: bulbGeo, material: bulbMat, matrix: bulbMatrix(s), name: 'bohlam' },
+    { geometry: headGeo(), material: headMat(), matrix: headMatrix(s), name: 'rumahLampu' },
+    { geometry: bulbGeo(), material: bulbMat(), matrix: bulbMatrix(s), name: 'bohlam' },
   ]);
 }
 

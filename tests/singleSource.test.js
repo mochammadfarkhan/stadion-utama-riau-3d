@@ -28,18 +28,17 @@ describe('kebenaran tunggal: PJU rusak', () => {
   it('flag broken di data layout; lampu malam memakai flag yang sama', () => {
     expect(LAYOUT.plazaLamps.map((p) => p.broken)).toEqual(LAYOUT.plazaLamps.map((_, i) => i % 7 === 3));
     expect(LAYOUT.ringRoadLamps.map((p) => p.broken)).toEqual(LAYOUT.ringRoadLamps.map((_, i) => i % 9 === 4));
-    const all = [...LAYOUT.plazaLamps, ...LAYOUT.ringRoadLamps, ...LAYOUT.nagaSaktiLamps];
+    const all = [...LAYOUT.plazaLamps, ...LAYOUT.ringRoadLamps];
     expect(litLampPositions(LAYOUT)).toEqual(all.filter((p) => !p.broken).map((p) => ({ x: p.x, z: p.z })));
   });
 });
 
-describe('kebenaran tunggal: danau', () => {
-  it('collider danau mengikuti elips air visual (ZONES.lake), bukan lingkaran r=70', () => {
-    const L = SITE.lake;
-    expect([ZONES.lake.semiX, ZONES.lake.semiZ]).toEqual([L.semiX, L.semiZ]);
-    expect(SITE.lakeCenter).toEqual({ x: L.x, z: L.z });
-    expect(isWalkable(L.x, L.z)).toBe(false);
-    expect(isWalkable(L.x + L.semiX - 5, L.z)).toBe(false); // di air, di luar lingkaran lama
-    expect(isWalkable(L.x, L.z + L.semiZ + 5)).toBe(true);  // tepi daratan, dulu terblokir lingkaran
+describe('fakta mengalahkan gaya: elemen fiktif dihapus (Plan C, I4)', () => {
+  it('danau, sungai, helipad, skate, amfiteater, baseball tidak lagi ada di data region', () => {
+    for (const k of ['lake', 'lakeCenter', 'riverX', 'riverWidth', 'bridgeZ', 'helipadCenter', 'skateCenter', 'amphitheaterCenter', 'baseballCenter']) {
+      expect(SITE[k], k).toBeUndefined();
+    }
+    expect(ZONES.lake).toBeUndefined();
+    expect(isWalkable(-60, -480)).toBe(true); // bekas danau fiktif: daratan (air nyata = TileCollider)
   });
 });

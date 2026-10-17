@@ -89,7 +89,7 @@ function createRainAudio(audioBus, eventTarget) {
  * @param {THREE.Scene} scene
  * @param {import('../core/App.js').App} app
  * @param {THREE.Group} lighting hasil createLighting
- * @param {{audioBus?: object, eventTarget?: EventTarget}} opts
+ * @param {{audioBus?: object, eventTarget?: EventTarget, puddlePlacement?: {x:number, z:number, yaw:number}|null}} opts
  * @returns {{group: THREE.Group, registerWet(root):() => boolean, unregisterWet(root):boolean,
  *   update(dt, ctx):void, toggleRain():boolean, setRaining(b):void, setIntensity(v):void,
  *   setWetness(v):void, setWind(v):void, setSoundEnabled(b):void,
@@ -98,13 +98,13 @@ function createRainAudio(audioBus, eventTarget) {
 const DAY_HEMI_INTENSITY = lightingPreset(12).hemiIntensity; // acuan "siang terang"
 const MIN_RAIN_BRIGHTNESS = 0.15;                              // hujan malam tetap samar terlihat
 
-export function createWeather(scene, app, lighting, { audioBus = null, eventTarget = globalThis.window } = {}) {
+export function createWeather(scene, app, lighting, { audioBus = null, eventTarget = globalThis.window, puddlePlacement = null } = {}) {
   const L = lighting.userData;
   // Hujan & genangan di grup sendiri (pemanggil menambahkannya ke scene); scene hanya untuk kabut/env.
   const group = new THREE.Group();
   group.name = 'cuaca';
   const rain = createRain(group);
-  const wet = createWetSurfaces(group);
+  const wet = createWetSurfaces(group, { placement: puddlePlacement });
   const audio = createRainAudio(audioBus, eventTarget);
   let raining = false;
   // Parameter settings (immutable; objek baru tiap perubahan).

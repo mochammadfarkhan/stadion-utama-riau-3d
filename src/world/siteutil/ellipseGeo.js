@@ -29,13 +29,6 @@ export function ellipseRingGeometry(outerX, outerZ, innerX, innerZ, segments = D
   return geo;
 }
 
-/** Geometri cakram elips datar. */
-export function ellipseDiscGeometry(semiX, semiZ, segments = DEFAULT_SEGMENTS) {
-  const geo = new THREE.ShapeGeometry(ellipseShape(semiX, semiZ), segments);
-  geo.rotateX(-Math.PI / 2);
-  return geo;
-}
-
 /** Titik pada elips untuk sudut t (radian) beserta rotasi Y searah tangen. */
 export function ellipsePoint(semiX, semiZ, t) {
   const x = semiX * Math.cos(t);

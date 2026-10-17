@@ -112,7 +112,7 @@ const _zero = new THREE.Vector3();
 const _axisY = new THREE.Vector3(0, 1, 0);
 
 /** Isi satu blok instance untuk sel (ix, iz): posisi acak deterministik, hanya di titik berumput. */
-function fillCell(buffers, block, ix, iz) {
+function fillCell(buffers, block, ix, iz, keep) {
   const rng = createRandom(cellSeed(ix, iz));
   const { matrix, scale, tint } = buffers;
   for (let i = 0; i < CLUMP; i += 1) {
@@ -124,7 +124,7 @@ function fillCell(buffers, block, ix, iz) {
     const bend = rng.range(GRASS.bendMin, GRASS.bendMax);
     const t = 1 + (rng.next() * 2 - 1) * GRASS.tintVariance;
     _quat.setFromAxisAngle(_axisY, yaw);
-    _mat.compose(_pos.set(x, 0, z), _quat, isGrassSpot(x, z) ? _one : _zero);
+    _mat.compose(_pos.set(x, 0, z), _quat, isGrassSpot(x, z) && keep(x, z) ? _one : _zero);
     _mat.toArray(matrix.array, slot * MATRIX_FLOATS);
     scale.array[slot * 2] = h;
     scale.array[slot * 2 + 1] = bend;
@@ -152,7 +152,7 @@ function markBlock(buffers, block) {
 }
 
 /** Pengelola sel ↔ blok pool. blockKey[b] = kunci sel pemilik blok b (FREE bila kosong). */
-function createCellPool(buffers, maxCells) {
+function createCellPool(buffers, maxCells, keep) {
   const { offsets, inSet } = buildCellOffsets(maxCells);
   // Float64Array: kunci sel bisa > 2^31 (ix >= 0) sehingga Int32Array akan meluap
   const blockKey = new Float64Array(maxCells).fill(FREE);
@@ -182,7 +182,7 @@ function createCellPool(buffers, maxCells) {
       const b = freeList.pop();
       blockKey[b] = key;
       cellBlock.set(key, b);
-      fillCell(buffers, b, ix, iz);
+      fillCell(buffers, b, ix, iz, keep);
       markBlock(buffers, b);
     }
   };
@@ -200,10 +200,11 @@ function attachLightSync(mesh, material) {
 }
 
 /**
- * @param {{count?: number}} opts jumlah bilah dalam pool
+ * @param {{count?: number, keep?: (x:number, z:number) => boolean}} opts jumlah bilah dalam pool;
+ *   keep = titik boleh berumput (mask region; di luar mask = tanah kota)
  * @returns {THREE.Group} berisi InstancedMesh; userData.update(dt, t, focus)
  */
-export function createGrass({ count = GRASS.count } = {}) {
+export function createGrass({ count = GRASS.count, keep = () => true } = {}) {
   const total = Math.max(CLUMP, Math.floor(count / GRASS.bladesPerClump));
   const maxCells = Math.floor(total / CLUMP);
   const geo = createClumpGeometry();
@@ -218,21 +219,24 @@ export function createGrass({ count = GRASS.count } = {}) {
   for (let b = 0; b < maxCells; b += 1) clearBlock(mesh.instanceMatrix, b);
   attachLightSync(mesh, material);
 
-  const pool = createCellPool({ matrix: mesh.instanceMatrix, scale, tint }, maxCells);
+  const pool = createCellPool({ matrix: mesh.instanceMatrix, scale, tint }, maxCells, keep);
   const last = { x: Number.NaN, z: Number.NaN };
   const focusU = material.uniforms.uFocus.value;
 
   const group = new THREE.Group();
   group.name = 'rumput';
   group.add(mesh);
+  const local = new THREE.Vector3();
   group.userData.update = (dt, t, focus) => {
     if (!focus) return;
-    focusU.copy(focus);
-    const moved = Math.hypot(focus.x - last.x, focus.z - last.z);
+    focusU.copy(focus); // fade shader: jarak di frame dunia
+    // Sel rumput diisi di koordinat lokal grup (di bawah region.group ber-placement): focus dunia → lokal.
+    const l = group.worldToLocal(local.set(focus.x, 0, focus.z));
+    const moved = Math.hypot(l.x - last.x, l.z - last.z);
     if (Number.isFinite(moved) && moved <= GRASS.moveThreshold) return;
-    last.x = focus.x;
-    last.z = focus.z;
-    pool.rebuild(Math.floor(focus.x / CELL), Math.floor(focus.z / CELL));
+    last.x = l.x;
+    last.z = l.z;
+    pool.rebuild(Math.floor(l.x / CELL), Math.floor(l.z / CELL));
   };
   return group;
 }

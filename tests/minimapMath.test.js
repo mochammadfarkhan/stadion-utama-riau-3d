@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sourceRect, projectToView, clampToEdge, flipRowsInPlace } from '../src/shared/minimapMath.js';
+import { sourceRect, projectToView, clampToEdge, flipRowsInPlace, snapRect } from '../src/shared/minimapMath.js';
 
 const WORLD_HALF = 700;
 const BASE_PX = 1400; // 1 px = 1 m agar angkanya mudah dicek
@@ -58,5 +58,15 @@ describe('flipRowsInPlace', () => {
     expect(Array.from(px.slice(16, 20))).toEqual([1, 1, 1, 1]); // baris 2 = baris 0 lama
     expect(Array.from(px.slice(8, 12))).toEqual([3, 3, 3, 3]); // baris tengah tetap
     expect(Array.from(px.slice(4, 8))).toEqual([6, 6, 6, 6]);
+  });
+});
+
+describe('snapRect (drawImage tile tanpa garis sambungan)', () => {
+  it('membulatkan tepi, bukan lebar: dua tile bersebelahan berbagi tepi piksel yang sama', () => {
+    const a = snapRect({ x: 10.4, y: 20.6, w: 99.3, h: 99.3 });
+    const b = snapRect({ x: 10.4 + 99.3, y: 20.6, w: 99.3, h: 99.3 });
+    expect(a).toEqual({ x: 10, y: 21, w: 100, h: 99 });
+    expect(b.x).toBe(a.x + a.w);
+    for (const v of [...Object.values(a), ...Object.values(b)]) expect(Number.isInteger(v)).toBe(true);
   });
 });

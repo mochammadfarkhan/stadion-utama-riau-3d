@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { pointInPolygon } from '../geo/polygon.js';
 import { RENDER_LAYERS, STADIUM, SITE } from '../config/constants.js';
 import { createGround } from './Ground.js';
 import { createLandscape } from './Landscape.js';
@@ -14,7 +15,6 @@ import { createSerinditStatue } from './stadium/Fixtures.props.js';
 import { createTunnels } from './stadium/Tunnels.js';
 import { createFlagpoles } from './props/Flagpole.js';
 import { createGuardPosts } from './props/GuardPost.js';
-import { createFence } from './props/Fence.js';
 import { createRoadSign, createBanner, createBillboard } from './props/Signage.js';
 import { createBenches } from './props/Bench.js';
 import { createTrashBins } from './props/TrashBin.js';
@@ -23,7 +23,6 @@ import { createPlanters } from './props/Planter.js';
 import { createLancangKuning, createTanjakMonument } from './props/Monument.js';
 import { createGapura } from './props/Gapura.js';
 import { createParkedCars, createParkedMotorcycles, pickParkingSpots } from './props/Vehicles.js';
-import { createCart, createUmbrellaSet, createFoodStall } from './props/Cart.js';
 import { mergeByMaterial } from './util/merge.js';
 import { distanceToGateCorridor } from './stadium/gateCorridor.js';
 
@@ -32,18 +31,20 @@ const SEAT_INSET = 0.45;
 const SPECTATOR_SEED = 97;
 const CORRIDOR_CLEARANCE = 7; // penonton tidak ditempatkan di koridor terowongan
 const MINIMAP_SHELL_PARTS = ['roof', 'ribs'];
-const MINIMAP_LANDSCAPE_PARTS = ['danau', 'sungai'];
 const MINIMAP_TRIBUNE_PARTS = ['beton'];
 
 /**
  * Merakit seluruh dunia statis region stadion. Setiap bagian statis digabung per material
  * (mergeByMaterial) agar jumlah draw call minimal; objek besar diberi layer minimap agar tampil
  * di peta kecil. `layout` WAJIB dari region (regions/stadion/layout.js); `site` default = SITE.
- * @param {{layout: object, site?: object}} opts
+ * `mask` (region-lokal): tanah berbentuk mask dan vegetasi/rumput hanya di dalam mask (di luar = kota).
+ * `vegetationKeep` (region-lokal): titik boleh ditanami pohon/semak (mis. berjarak dari tepi mask; default = di dalam mask).
+ * @param {{layout: object, site?: object, mask?: Array<[number, number]>|null, vegetationKeep?: ((x:number, z:number) => boolean)|null}} opts
  * @returns {{group: THREE.Group, update(dt:number, t:number, focus?:object):void, seatSamples: object[], layout: object}}
  */
-export function buildWorld({ layout, site = SITE } = {}) {
+export function buildWorld({ layout, site = SITE, mask = null, vegetationKeep = null } = {}) {
   if (!layout) throw new TypeError('buildWorld: layout wajib (diberikan region)');
+  const keep = mask ? (x, z) => pointInPolygon(x, z, mask) : () => true;
   const group = new THREE.Group();
   group.name = 'world';
   const updatables = [];
@@ -55,11 +56,11 @@ export function buildWorld({ layout, site = SITE } = {}) {
     return out;
   };
 
-  const ground = createGround();
+  const ground = createGround({ outline: mask });
   const lots = collectParkingLots(ground);
   add(ground, { minimap: true });
-  add(withMinimapParts(createLandscape(), MINIMAP_LANDSCAPE_PARTS));
-  add(createGrass(), { merge: false });
+  add(createLandscape({ keep: vegetationKeep ?? keep }));
+  add(createGrass({ keep }), { merge: false });
   add(withMinimapParts(createShell(), MINIMAP_SHELL_PARTS));
   add(createFacade());
   const tribune = add(withMinimapParts(createTribune(), MINIMAP_TRIBUNE_PARTS), { merge: false });
@@ -71,7 +72,6 @@ export function buildWorld({ layout, site = SITE } = {}) {
   add(createTunnels());
   addStadiumSurroundings(add, layout, site);
   addPlazaFurniture(add, layout);
-  addNagaSakti(add, layout);
   addParking(add, lots);
 
   const seatSamples = sampleSeats(tribune.userData.tiers, layout.spectatorCount);
@@ -127,28 +127,7 @@ function addPlazaFurniture(add, layout) {
   add(createLampPosts([
     ...layout.plazaLamps,
     ...layout.ringRoadLamps.map((p) => ({ ...p, double: true })),
-    ...layout.nagaSaktiLamps,
   ]));
-}
-
-function addNagaSakti(add, layout) {
-  for (const seg of layout.nagaSaktiFence) {
-    add(createFence({ points: [{ x: seg.from, z: seg.z }, { x: seg.to, z: seg.z }], height: 2 }));
-  }
-  const stalls = new THREE.Group();
-  stalls.name = 'lapakPKL';
-  layout.stalls.forEach((p, i) => stalls.add(placed(stallFor(i), p)));
-  add(stalls); // semua lapak digabung per material → belasan draw call
-}
-
-/** Variasi lapak PKL berselang-seling di trotoar Naga Sakti. */
-function stallFor(i) {
-  switch (i % 4) {
-    case 0: return createCart({ kind: 'minuman' });
-    case 1: return createUmbrellaSet();
-    case 2: return createFoodStall();
-    default: return createCart({ kind: 'buah' });
-  }
 }
 
 function addParking(add, lots) {

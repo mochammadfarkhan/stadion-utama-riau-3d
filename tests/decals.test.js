@@ -21,12 +21,12 @@ describe('Decals.layout', () => {
   it('jumlah per jenis sesuai rencana', () => {
     const c = countDecals(items);
     expect(c.crack1 + c.crack2).toBe(120);
-    expect(c.oil + c.water).toBe(40);
+    expect(c.oil + c.water).toBe(30); // noda Naga Sakti handmade dihapus (Plan C)
     expect(c.tire).toBe(15);
     expect(c.moss).toBeGreaterThanOrEqual(18);
     expect(c.graffiti1 + c.graffiti2).toBe(6);
-    expect(c.manhole).toBe(12);
-    expect(c.zebra).toBe(2);
+    expect(c.manhole).toBeUndefined();
+    expect(c.zebra).toBeUndefined();
     expect(c.arrow).toBe(8);
     expect(c.parkingP).toBe(2);
   });

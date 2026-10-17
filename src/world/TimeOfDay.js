@@ -41,6 +41,16 @@ const _sunDir = new THREE.Vector3();
 const _lightDir = new THREE.Vector3();
 const _moonDir = directionFromAngles(MOON_ELEVATION_DEG, MOON_AZIMUTH_DEG);
 
+/**
+ * Jarak kabut efektif: far dibatasi `limit` (radius muat tile kota) agar batas muat tidak terlihat;
+ * near diskalakan dengan rasio yang sama sehingga gradasi kabut tetap proporsional. Murni.
+ */
+export function fogRange(near, far, limit = Infinity) {
+  if (!(far > limit)) return { near, far };
+  const k = limit / far;
+  return { near: near * k, far: limit };
+}
+
 /** Kubah bintang sederhana (Points) yang mengikuti kamera; hanya tampak malam. */
 function createStars(count) {
   const pos = new Float32Array(count * 3);
@@ -66,20 +76,20 @@ function createStars(count) {
 
 /**
  * @param {THREE.Group} lightingGroup hasil createLighting (userData: sun, hemi, sky, ...)
- * @param {{lamps?: {x:number, z:number}[], lensRoot?: THREE.Object3D|null}} [opts]
- *   lamps: PJU menyala dari region; lensRoot: grup region tempat lensa floodlight
- * @returns {{group: THREE.Group, update(dt, ctx, bikeState?):void, registerEmissive(root):() => boolean,
+ * Lampu milik region (PJU, floodlight, lensa) didaftarkan lewat registerLamps() (koordinat dunia).
+ * @returns {{group: THREE.Group, update(dt, ctx, bikeState?):void, registerLamps(opts):() => boolean, registerEmissive(root):() => boolean,
  *   unregisterEmissive(root):boolean, setHour(h):void, nextPreset():string, toggleSpeed():boolean,
- *   setSpeed(v):void, setAzimuthOffset(deg):void, setCloudCover(v):void, setHaze(v):void, setFogDistance(m):void,
+ *   setSpeed(v):void, setAzimuthOffset(deg):void, setCloudCover(v):void, setHaze(v):void, setFogDistance(m):void, setFogLimit(m):void, fogLimit:number,
  *   dispose():void, hour:number, presetName:string, speed:number, preset:object, overrides:object}}
  */
-export function createTimeOfDay(lightingGroup, scene, renderer, app, { lamps = [], lensRoot = null } = {}) {
+export function createTimeOfDay(lightingGroup, scene, renderer, app) {
   const L = lightingGroup.userData;
   let state = createDayState();
   let preset = lightingPreset(state.hour);
   let lastDirHour = NaN;
   let envBucket = -1;
   let envTimer = DAY.envRebuildInterval;
+  let fogLimit = Infinity; // radius muat kota (setFogLimit); Infinity = tanpa batas
   // Semua objek siklus waktu di grup sendiri (pemanggil menambahkannya ke scene), bukan langsung ke scene.
   const group = new THREE.Group();
   group.name = 'siklusWaktu';
@@ -87,7 +97,7 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app, { lamps = [
   group.add(stars);
   const bodies = createCelestialBodies();
   group.add(bodies.group);
-  const night = createNightLights(group, { lamps, lensRoot: lensRoot ?? group });
+  const night = createNightLights(group);
   // Override settings (lihat komentar modul); objek baru tiap perubahan (immutable).
   let over = Object.freeze({ azimuthOffset: 0, cloudCover: L.defaults.cloudCoverage, haze: HAZE_DEFAULT, fogDistance: FOG_DEFAULT });
   const setOverride = (patch) => {
@@ -117,9 +127,10 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app, { lamps = [
     L.hemi.color.setHex(p.hemiSky);
     L.hemi.groundColor.setHex(p.hemiGround);
     const fogScale = over.fogDistance / FOG_DEFAULT;
+    const fog = fogRange(p.fogNear * fogScale, p.fogFar * fogScale, fogLimit);
     scene.fog.color.setHex(p.fogColor);
-    scene.fog.near = p.fogNear * fogScale;
-    scene.fog.far = p.fogFar * fogScale;
+    scene.fog.near = fog.near;
+    scene.fog.far = fog.far;
     scene.background.setHex(p.fogColor);
     if (app.setBaseExposure) app.setBaseExposure(p.exposure);
     else renderer.toneMappingExposure = p.exposure;
@@ -160,6 +171,8 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app, { lamps = [
 
   return {
     group,
+    /** Daftarkan PJU/floodlight/lensa milik region (koordinat dunia); kembalikan pencabut. */
+    registerLamps: (opts) => night.registerLamps(opts),
     /** Daftarkan material emissive di bawah root (region/entitas/GLB); kembalikan fungsi unregister. */
     registerEmissive: (root) => night.registerEmissive(root),
     unregisterEmissive: (root) => night.unregisterEmissive(root),
@@ -186,6 +199,9 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app, { lamps = [
     setCloudCover(v) { setOverride({ cloudCover: THREE.MathUtils.clamp(Number(v) || 0, 0, 1) }); },
     setHaze(v) { setOverride({ haze: Number.isFinite(Number(v)) ? Number(v) : HAZE_DEFAULT }); },
     setFogDistance(m) { setOverride({ fogDistance: Number(m) > 0 ? Number(m) : FOG_DEFAULT }); },
+    /** Batas atas fog.far (m), mis. radius muat tile kota; nilai ≤ 0/tak valid = tanpa batas. */
+    setFogLimit(m) { fogLimit = Number(m) > 0 ? Number(m) : Infinity; },
+    get fogLimit() { return fogLimit; },
     get overrides() { return over; },
     update(dt, ctx, bikeState) {
       state = stepDay(state, dt);

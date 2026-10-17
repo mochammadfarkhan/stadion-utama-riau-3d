@@ -1,6 +1,6 @@
 /**
  * Collider region stadion (koordinat region-lokal): mangkuk & cangkang stadion, koridor gate utama,
- * tugu padat, danau, dan batas tanah region. Data dari site.js (dapat diinjeksi untuk tes).
+ * tugu padat, dan batas tanah region. (Danau fiktif dihapus Plan C; air nyata = TileCollider.)
  */
 import { SITE, STADIUM } from './site.js';
 import { distanceToGateCorridor, inGateCorridor, GATE_HALF_WIDTH } from '../../world/stadium/gateCorridor.js';
@@ -25,8 +25,6 @@ export function createStadionColliders({ site = SITE, stadium = STADIUM } = {}) 
     Object.freeze({ name: 'tuguLancangKuning', x: site.tugu.x, z: site.tugu.z, r: site.tugu.poolR + BIKE_CLEARANCE }),
     Object.freeze({ name: 'tuguTanjak', x: site.tanjakMonument.x, z: site.tanjakMonument.z, r: TANJAK_R + BIKE_CLEARANCE }),
   ]);
-  /** Elips air danau (sama dengan Landscape.water / ZONES.lake). */
-  const inLake = (x, z) => ((x - site.lake.x) / site.lake.semiX) ** 2 + ((z - site.lake.z) / site.lake.semiZ) ** 2 < 1;
   // radiusOf: ekspresi radius dipertahankan persis seperti collider lama (paritas floating-point).
   const hitsObstacle = (x, z, radiusOf) => obstacles.some((o) => Math.hypot(x - o.x, z - o.z) < radiusOf(o));
   const walkRadius = (o) => o.r;
@@ -36,10 +34,9 @@ export function createStadionColliders({ site = SITE, stadium = STADIUM } = {}) 
     || ellipseRadius(x, z, stadium.outerSemiX + outerPad, stadium.outerSemiZ + outerPad) > 1
   );
 
-  /** Posisi valid: di dalam mangkuk, di luar cangkang, atau di koridor gate; tidak di danau; dalam batas tanah. */
+  /** Posisi valid: di dalam mangkuk, di luar cangkang, atau di koridor gate; dalam batas tanah. */
   function isWalkable(lx, lz) {
     if (Math.abs(lx) > limit || Math.abs(lz) > limit) return false;
-    if (inLake(lx, lz)) return false;
     if (hitsObstacle(lx, lz, walkRadius)) return false;
     if (inGateCorridor(lx, lz)) return true;
     return outsideWalls(lx, lz, 2, 1.5);

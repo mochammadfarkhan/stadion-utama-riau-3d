@@ -6,6 +6,7 @@ import { blobCluster, mergeAll } from './siteutil/rounded.js';
 import { distributeOnEllipse } from './siteutil/ellipseGeo.js';
 import { isFreeForBigTree, isFreeInPlazaBelt } from './Landscape.zones.js';
 import { applyWind, createWindDepthMaterial } from './shaders/wind.js';
+import { currentScope } from '../engine/ResourceScope.js';
 
 /**
  * Vegetasi prosedural gaya "cozy stylized": tajuk = gabungan 5-9 bola low-poly
@@ -22,15 +23,11 @@ export const TREE_TYPES = Object.freeze({
 /** Palet pastel: 3 tingkat hijau + sedikit kuning muda. */
 export const LEAF_PALETTE = Object.freeze([0x9ccc65, 0x7cb342, 0xc5e1a5, 0x9ccc65, 0x7cb342, 0xdce775]);
 const SHRUB_PALETTE = Object.freeze([0x9ccc65, 0xaed581, 0x7cb342, 0xc5e1a5]);
-const GRASS_PALETTE = Object.freeze([0xdce775, 0xe6ee9c, 0xc5e1a5, 0xd4e157]);
 const TREE_COUNT_RANDOM = 260;
-const ROADSIDE_SPACING = 25;
 const YOUNG_TREE_COUNT = 150;
 const SHRUB_COUNT = 320;
 const VEGETATION_CELL = 200; // m: ukuran sel culling untuk instansi vegetasi
-const GRASS_CLUMP = Object.freeze({ clusters: 6, perCluster: 120, radius: 28 });
 const PALM = Object.freeze({ leaves: 7, len: 3.4, width: 0.55, lift: 0.55, droop: 0.95 });
-const GRASS_BLADES = 5;
 const SAWIT = Object.freeze({ fronds: 22, segments: 11, length: 4.3, leafLen: 1.2, leafHalfBase: 0.22, ribbon: 0.08, ringStep: 0.55 });
 const SAWIT_PALETTE = Object.freeze([0x3f8f3a, 0x357f35, 0x4a9a3e, 0x2f7433]);
 
@@ -42,21 +39,25 @@ const WIND = Object.freeze({
   bigCrown: { weightMode: 'height', heightMin: -4, heightMax: 4, weightMin: 0.2, amplitude: 1 },
   youngCrown: { weightMode: 'height', heightMin: -0.7, heightMax: 0.7, weightMin: 0.3, amplitude: 0.15 },
   shrub: { weightMode: 'height', heightMin: 0, heightMax: 1.3, amplitude: 0.12 },
-  grass: { weightMode: 'height', heightMin: 0.1, heightMax: 1.4, amplitude: 0.35 },
 });
 
 // Kelapa sawit: helai daun tipis tanpa ketebalan → perlu DoubleSide (juga untuk bayangan).
-const sawitLeafMat = applyWind(new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide }), WIND.bigCrown);
-sawitLeafMat.shadowSide = THREE.DoubleSide;
-const sawitDepthMat = createWindDepthMaterial(WIND.bigCrown);
-sawitDepthMat.side = THREE.DoubleSide;
-const trunkMat = new THREE.MeshLambertMaterial({ color: 0x8d6e63 });
-const stakeMat = new THREE.MeshLambertMaterial({ color: 0xd7b98e });
-const leafMat = applyWind(new THREE.MeshLambertMaterial({ color: 0xffffff }), WIND.bigCrown); // warna via instanceColor
-const leafDepthMat = createWindDepthMaterial(WIND.bigCrown); // bayangan tajuk besar ikut bergoyang
-const youngLeafMat = applyWind(new THREE.MeshLambertMaterial({ color: 0xffffff }), WIND.youngCrown);
-const shrubMat = applyWind(new THREE.MeshLambertMaterial({ color: 0xffffff }), WIND.shrub);
-const grassMat = applyWind(new THREE.MeshLambertMaterial({ color: 0xffffff }), WIND.grass);
+const sawitLeafMat = () => currentScope().get('Landscape.trees:sawitLeafMat', () => {
+  const v = applyWind(new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide }), WIND.bigCrown);
+  v.shadowSide = THREE.DoubleSide;
+  return v;
+});
+const sawitDepthMat = () => currentScope().get('Landscape.trees:sawitDepthMat', () => {
+  const v = createWindDepthMaterial(WIND.bigCrown);
+  v.side = THREE.DoubleSide;
+  return v;
+});
+const trunkMat = () => currentScope().get('Landscape.trees:trunkMat', () => new THREE.MeshLambertMaterial({ color: 0x8d6e63 }));
+const stakeMat = () => currentScope().get('Landscape.trees:stakeMat', () => new THREE.MeshLambertMaterial({ color: 0xd7b98e }));
+const leafMat = () => currentScope().get('Landscape.trees:leafMat', () => applyWind(new THREE.MeshLambertMaterial({ color: 0xffffff }), WIND.bigCrown)); // warna via instanceColor
+const leafDepthMat = () => currentScope().get('Landscape.trees:leafDepthMat', () => createWindDepthMaterial(WIND.bigCrown)); // bayangan tajuk besar ikut bergoyang
+const youngLeafMat = () => currentScope().get('Landscape.trees:youngLeafMat', () => applyWind(new THREE.MeshLambertMaterial({ color: 0xffffff }), WIND.youngCrown));
+const shrubMat = () => currentScope().get('Landscape.trees:shrubMat', () => applyWind(new THREE.MeshLambertMaterial({ color: 0xffffff }), WIND.shrub));
 
 /** Satu pelepah palem: dua kapsul pipih (pangkal naik, ujung menjuntai) pada sudut a. */
 function palmLeaf(a) {
@@ -163,10 +164,17 @@ function treeParts(type) {
   const t = TREE_TYPES[type];
   const sawit = type === 'sawit';
   return [
-    { geometry: sawit ? sawitTrunkGeometry(t.trunkR, t.trunkH) : trunkGeometry(t.trunkR, t.trunkH), material: trunkMat, castShadow: true, name: `batang-${type}` },
-    { geometry: crownGeometry(t), material: sawit ? sawitLeafMat : leafMat, matrix: localMatrix(0, t.crownY, 0), castShadow: true, name: `tajuk-${type}` },
+    { geometry: sawit ? sawitTrunkGeometry(t.trunkR, t.trunkH) : trunkGeometry(t.trunkR, t.trunkH), material: trunkMat(), castShadow: true, name: `batang-${type}` },
+    { geometry: crownGeometry(t), material: sawit ? sawitLeafMat() : leafMat(), matrix: localMatrix(0, t.crownY, 0), castShadow: true, name: `tajuk-${type}` },
   ];
 }
+
+const ALL = () => true;
+/**
+ * Saring posisi dengan keep SESUDAH sampling: jumlah percobaan & urutan acak sama seperti tanpa keep,
+ * sehingga kepadatan per hektar di area keep tetap (membatasi, bukan memadatkan).
+ */
+const within = (spots, keep) => (keep === ALL ? spots : spots.filter((p) => keep(p.x, p.z)));
 
 /** Posisi acak bebas untuk pohon besar. */
 function randomTreeSpots(rnd, count) {
@@ -182,20 +190,13 @@ function randomTreeSpots(rnd, count) {
   return spots;
 }
 
-/** Pohon tepi jalan: sepanjang jalan lingkar luar & kedua sisi Jl. Naga Sakti. */
+/** Pohon tepi jalan lingkar luar (deret palem Jl. Naga Sakti handmade dihapus Plan C). */
 function roadsideTreeSpots(rnd) {
   const { ringRoadSemiX: ax, ringRoadSemiZ: az, joggingTrackOffset: off } = SITE;
   const ring = distributeOnEllipse(ax + off + 9, az + off + 9, 70)
-    .filter((p) => isFreeForBigTree(p.x, p.z) || Math.abs(p.z - SITE.nagaSaktiZ) > 12)
+    .filter((p) => isFreeForBigTree(p.x, p.z))
     .map((p) => ({ x: p.x, z: p.z, rotY: rnd.range(0, 6.28), scale: rnd.range(0.9, 1.1) }));
-  const len = SITE.groundSize * 0.95;
-  const sideZ = SITE.nagaSaktiLanes * SITE.laneWidth / 2 + 6;
-  const naga = [];
-  for (let x = -len / 2; x <= len / 2; x += ROADSIDE_SPACING) {
-    if (SITE.connectorXs.some((cx) => Math.abs(x - cx) < 9)) continue;
-    [-1, 1].forEach((s) => naga.push({ x, z: SITE.nagaSaktiZ + s * sideZ, rotY: rnd.range(0, 6.28), scale: rnd.range(0.85, 1.1) }));
-  }
-  return { ring, naga };
+  return { ring };
 }
 
 /** Bagi array posisi ke beberapa jenis pohon secara acak (bobot). */
@@ -222,24 +223,26 @@ function colorizeNamed(group, prefix, palette, rnd) {
 /** Pasang material kedalaman berangin pada tajuk pohon besar agar bayangannya ikut bergoyang. */
 function attachCrownShadow(group) {
   group.children
-    .filter((m) => m.isInstancedMesh && (m.material === leafMat || m.material === sawitLeafMat))
-    .forEach((crown) => { crown.customDepthMaterial = crown.material === sawitLeafMat ? sawitDepthMat : leafDepthMat; });
+    .filter((m) => m.isInstancedMesh && (m.material === leafMat() || m.material === sawitLeafMat()))
+    .forEach((crown) => { crown.customDepthMaterial = crown.material === sawitLeafMat() ? sawitDepthMat() : leafDepthMat(); });
   return group;
 }
 
 /** Semua pohon besar (sekitar 400) sebagai InstancedMesh per jenis (batang + tajuk). */
-export function createBigTrees(seed = 11) {
+export function createBigTrees(seed = 11, keep = ALL) {
   const rnd = createRandom(seed);
   const road = roadsideTreeSpots(rnd);
   const random = splitByType(randomTreeSpots(rnd, TREE_COUNT_RANDOM), rnd, { trembesi: 3, mahoni: 3, pulai: 2, palem: 1, sawit: 3 });
   const ringSplit = splitByType(road.ring, rnd, { trembesi: 2, mahoni: 1, sawit: 2 });
   const g = new THREE.Group();
   g.name = 'pohonBesar';
+  let count = 0;
   Object.keys(TREE_TYPES).forEach((type) => {
-    const spots = [...random[type], ...ringSplit[type], ...(type === 'palem' ? road.naga : [])];
+    const spots = within([...random[type], ...ringSplit[type]], keep);
+    count += spots.length;
     g.add(attachCrownShadow(colorizeNamed(instanceParts(treeParts(type), spots, `pohon-${type}`), 'tajuk', type === 'sawit' ? SAWIT_PALETTE : LEAF_PALETTE, rnd)));
   });
-  g.userData.count = Object.values(random).flat().length + road.ring.length + road.naga.length;
+  g.userData.count = count;
   return g;
 }
 
@@ -248,7 +251,7 @@ function stakeParts() {
   const geo = new THREE.CylinderGeometry(0.035, 0.045, 1.6, 5);
   return [0, 1, 2].map((i) => ({
     geometry: geo,
-    material: stakeMat,
+    material: stakeMat(),
     matrix: new THREE.Matrix4()
       .makeRotationY((i * Math.PI * 2) / 3)
       .multiply(localMatrix(0.4, 0.75, 0, 0, 0, 0.22)),
@@ -273,13 +276,13 @@ function youngTreeSpots(rnd) {
 }
 
 /** Pohon muda berajir (sekitar 150): tajuk 3 bola kecil, batang pendek, 3 bilah ajir. */
-export function createYoungTrees(seed = 23) {
+export function createYoungTrees(seed = 23, keep = ALL) {
   const rnd = createRandom(seed);
-  const spots = youngTreeSpots(rnd);
+  const spots = within(youngTreeSpots(rnd), keep);
   const crown = blobCluster({ count: 3, radius: 0.7, spread: 0.55, flat: 1.1, vertical: 0.3 }, createRandom(seed + 500));
   const parts = [
-    { geometry: trunkGeometry(0.09, 2.0, 6), material: trunkMat, name: 'batangMuda' },
-    { geometry: crown, material: youngLeafMat, matrix: localMatrix(0, 2.45, 0), name: 'tajukMuda' },
+    { geometry: trunkGeometry(0.09, 2.0, 6), material: trunkMat(), name: 'batangMuda' },
+    { geometry: crown, material: youngLeafMat(), matrix: localMatrix(0, 2.45, 0), name: 'tajukMuda' },
     ...stakeParts(),
   ];
   const g = colorizeNamed(instanceParts(parts, spots, 'pohonMuda'), 'tajuk', LEAF_PALETTE, rnd);
@@ -288,7 +291,7 @@ export function createYoungTrees(seed = 23) {
 }
 
 /** Semak bulat rendah tersebar di luar plaza: 6 bola gemuk saling tumpang tindih. */
-export function createShrubs(seed = 31) {
+export function createShrubs(seed = 31, keep = ALL) {
   const rnd = createRandom(seed);
   const spots = [];
   const half = SITE.groundSize / 2 - 40;
@@ -301,49 +304,6 @@ export function createShrubs(seed = 31) {
     if (ok) spots.push({ x, z, rotY: rnd.range(0, 6.28), scale: rnd.range(0.6, 1.5) });
   }
   const geo = blobCluster({ count: 6, radius: 0.8, spread: 0.85, flat: 0.75, center: [0, 0.45, 0], vertical: 0.15 }, createRandom(seed + 500));
-  const g = instanceParts([{ geometry: geo, material: shrubMat, name: 'semak' }], spots, 'semak', { cellSize: VEGETATION_CELL }); // tanpa bayangan
+  const g = instanceParts([{ geometry: geo, material: shrubMat(), name: 'semak' }], within(spots, keep), 'semak', { cellSize: VEGETATION_CELL }); // tanpa bayangan
   return colorizeNamed(g, 'semak', SHRUB_PALETTE, rnd);
-}
-
-/** Rumpun ilalang: 5 kerucut gemuk miring ke luar digabung jadi satu geometri. */
-function grassClumpGeometry() {
-  const rnd = createRandom(77);
-  const geos = [new THREE.ConeGeometry(0.3, 1.5, 5).translate(0, 0.75, 0)];
-  for (let i = 1; i < GRASS_BLADES; i += 1) {
-    const a = (i / (GRASS_BLADES - 1)) * Math.PI * 2 + rnd.range(-0.3, 0.3);
-    const h = rnd.range(0.9, 1.3);
-    geos.push(new THREE.ConeGeometry(0.22, h, 5).translate(0, h / 2, 0).rotateZ(0.28).rotateY(a).translate(Math.cos(a) * 0.1, 0, -Math.sin(a) * 0.1));
-  }
-  return mergeAll(geos);
-}
-
-/** Ilalang: rumpun di beberapa area (tepi danau, sungai, dll), warna kuning-hijau per instance. */
-export function createWildGrass(seed = 41, centers = defaultGrassCenters()) {
-  const rnd = createRandom(seed);
-  const spots = [];
-  centers.forEach((c) => {
-    for (let i = 0; i < GRASS_CLUMP.perCluster; i += 1) {
-      const a = rnd.range(0, Math.PI * 2);
-      const r = Math.sqrt(rnd.next()) * (c.r ?? GRASS_CLUMP.radius);
-      const x = c.x + Math.cos(a) * r;
-      const z = c.z + Math.sin(a) * r;
-      if (!isFreeForBigTree(x, z) && !c.force) continue;
-      spots.push({ x, z, rotY: rnd.range(0, 6.28), scale: rnd.range(0.7, 1.4) });
-    }
-  });
-  const g = instanceParts([{ geometry: grassClumpGeometry(), material: grassMat, name: 'ilalang' }], spots, 'ilalang', { cellSize: VEGETATION_CELL });
-  return colorizeNamed(g, 'ilalang', GRASS_PALETTE, rnd);
-}
-
-/** Pusat rumpun ilalang default: tepi danau, tepi sungai, sudut kawasan. */
-function defaultGrassCenters() {
-  const L = SITE.lakeCenter;
-  return [
-    { x: L.x + 105, z: L.z, r: 24, force: true },
-    { x: L.x - 105, z: L.z + 10, r: 24, force: true },
-    { x: SITE.riverX + 20, z: 180, r: 26, force: true },
-    { x: SITE.riverX + 22, z: -220, r: 22, force: true },
-    { x: -420, z: -200, r: 30 },
-    { x: 380, z: 380, r: 30 },
-  ];
 }

@@ -75,10 +75,10 @@ function makePoints(positions, { color, size, opacity, map }) {
  * @param {THREE.Object3D} parent grup pemilik halo
  * @param {{x:number, y:number, z:number}[]} lampPositions posisi bohlam PJU yang menyala
  * @param {THREE.Object3D} [lensRoot] tempat mencari lensa floodlight (default: parent)
- * @returns {{setLevel(level:number):void}}
+ * @returns {{group: THREE.Group|null, setLevel(level:number):void}}
  */
 export function createNightHalos(parent, lampPositions, lensRoot = parent) {
-  if (typeof document === 'undefined') return { setLevel() {} }; // Node/tes
+  if (typeof document === 'undefined') return { group: null, setLevel() {} }; // Node/tes
   const map = glowTexture();
   const group = new THREE.Group();
   group.name = 'halo-malam';
@@ -89,6 +89,7 @@ export function createNightHalos(parent, lampPositions, lensRoot = parent) {
   group.add(...sets);
   parent.add(group);
   return {
+    group,
     setLevel(level) {
       const k = haloLevel(level);
       for (const s of sets) {

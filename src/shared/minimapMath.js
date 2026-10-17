@@ -4,12 +4,15 @@
  */
 const fin = (v) => (Number.isFinite(v) ? v : 0);
 
-/** Persegi sumber (piksel peta dasar) untuk jendela ±halfExtent meter di sekitar fokus. */
-export function sourceRect(focus, halfExtent, worldHalf, basePx) {
+/**
+ * Persegi sumber (piksel peta dasar) untuk jendela ±halfExtent meter di sekitar fokus.
+ * `center` = pusat dunia peta dasar (posisi kamera bake; default origin).
+ */
+export function sourceRect(focus, halfExtent, worldHalf, basePx, center = null) {
   const k = basePx / (2 * worldHalf);
   return {
-    sx: (fin(focus?.x) + worldHalf - halfExtent) * k,
-    sy: (fin(focus?.z) + worldHalf - halfExtent) * k,
+    sx: (fin(focus?.x) - fin(center?.x) + worldHalf - halfExtent) * k,
+    sy: (fin(focus?.z) - fin(center?.z) + worldHalf - halfExtent) * k,
     sw: 2 * halfExtent * k,
     sh: 2 * halfExtent * k,
   };
@@ -48,4 +51,26 @@ export function flipRowsInPlace(pixels, width, height) {
     pixels.copyWithin(a, b, b + stride);
     pixels.set(tmp, b);
   }
+}
+
+/** Persegi dunia {minX, minZ, maxX, maxZ} → persegi tampilan (piksel) dengan fokus di tengah. */
+export function worldRectToView(b, focus, halfExtent, viewSize) {
+  const k = viewSize / (2 * halfExtent);
+  return {
+    x: viewSize / 2 + (b.minX - fin(focus?.x)) * k,
+    y: viewSize / 2 + (b.minZ - fin(focus?.z)) * k,
+    w: (b.maxX - b.minX) * k,
+    h: (b.maxZ - b.minZ) * k,
+  };
+}
+
+/**
+ * Bulatkan persegi tampilan ke piksel utuh per TEPI (bukan per lebar) agar tile yang bersebelahan berbagi
+ * tepi yang sama persis: tidak ada celah/garis tipis di sambungan saat drawImage.
+ * @param {{x:number, y:number, w:number, h:number}} r
+ */
+export function snapRect(r) {
+  const x = Math.round(r.x);
+  const y = Math.round(r.y);
+  return { x, y, w: Math.round(r.x + r.w) - x, h: Math.round(r.y + r.h) - y };
 }

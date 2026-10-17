@@ -39,16 +39,17 @@ describe('collider komposit', () => {
     expect(loc.isCameraClear(0, 0)).toBe(true);
   });
 
-  it('paritas: komposit stadion (placement identitas) = collider region di seluruh grid dunia', () => {
+  it('paritas: komposit stadion = collider region pada koordinat lokal (placement OSM) di seluruh grid', () => {
     const comp = createCompositeCollider({
       regions: [{ region: stadionRegion, colliders: stadionColliders }],
       fallback: localized(stadionRegion, stadionColliders),
     });
+    const loc = localized(stadionRegion, stadionColliders);
     const mismatch = [];
     for (let x = -700; x <= 700; x += 23) {
       for (let z = -700; z <= 700; z += 23) {
-        if (comp.isWalkable(x, z) !== stadionColliders.isWalkable(x, z)) mismatch.push(['walk', x, z]);
-        if (comp.isCameraClear(x, z) !== stadionColliders.isCameraClear(x, z)) mismatch.push(['cam', x, z]);
+        if (comp.isWalkable(x, z) !== loc.isWalkable(x, z)) mismatch.push(['walk', x, z]);
+        if (comp.isCameraClear(x, z) !== loc.isCameraClear(x, z)) mismatch.push(['cam', x, z]);
       }
     }
     expect(mismatch).toEqual([]);

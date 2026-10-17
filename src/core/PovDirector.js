@@ -69,9 +69,21 @@ export class PovDirector {
     this.#restart();
   }
 
-  /** Kembali ke pose pemain lewat transisi. */
-  exit() {
+  /**
+   * Kembali ke pose pemain lewat transisi. `instant`: langsung idle + FOV dasar (perjalanan cepat: tanpa
+   * terbang kilometeran ke tujuan; kamera pemain melompat ke posenya lewat snap CameraRig).
+   */
+  exit({ instant = false } = {}) {
     if (this.mode !== 'pov') return;
+    if (instant) {
+      this.mode = 'idle';
+      this.def = null;
+      if (Math.abs(this.camera.fov - this.baseFov) > 1e-3) {
+        this.camera.fov = this.baseFov;
+        this.camera.updateProjectionMatrix();
+      }
+      return;
+    }
     this.#captureFrom();
     this.mode = 'leaving';
     this.#restart();
@@ -161,7 +173,7 @@ export class PovDirector {
     }
     this._t = clamp01(this._t + dt / this._duration);
     const e = easeInOutCubic(this._t);
-    routeControl(f, d, this._c1, this._c2);
+    routeControl(f, d, this._c1, this._c2, src?.frame ?? null);
     const p = bezier3(f, this._c1, this._c2, d, e, this._point);
     this.#apply(
       p.x, p.y, p.z,

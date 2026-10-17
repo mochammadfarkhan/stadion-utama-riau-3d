@@ -3,6 +3,7 @@ import { SITE } from '../../config/constants.js';
 import { makeTextMaterial, dropLetters } from '../siteutil/textCanvas.js';
 import { placeObject } from '../siteutil/instanceParts.js';
 import { createRandom } from '../siteutil/rng.js';
+import { currentScope } from '../../engine/ResourceScope.js';
 
 /**
  * Gapura kawasan di Jl. Naga Sakti: dua pilar besar berkeramik + balok atas
@@ -18,11 +19,11 @@ export const GAPURA = Object.freeze({
 /** Kanvas papan: 2048×160 (aspek ≈ 13:1 sesuai signW:signH), font tebal kontras tinggi. */
 const SIGN_TEXT = Object.freeze({ bg: '#7a1f1f', fg: '#f6e3a1', width: 2048, height: 160, font: 'bold 124px sans-serif', padding: 48 });
 
-const tileMat = new THREE.MeshLambertMaterial({ color: GAPURA.colors.keramik });
-const beamMat = new THREE.MeshLambertMaterial({ color: GAPURA.colors.balok });
-const goldMat = new THREE.MeshStandardMaterial({ color: GAPURA.colors.emas, metalness: 0.5, roughness: 0.4 });
-const tanjakMat = new THREE.MeshLambertMaterial({ color: GAPURA.colors.tanjak });
-const stainMat = new THREE.MeshLambertMaterial({ color: GAPURA.colors.bercak });
+const tileMat = () => currentScope().get('Gapura:tileMat', () => new THREE.MeshLambertMaterial({ color: GAPURA.colors.keramik }));
+const beamMat = () => currentScope().get('Gapura:beamMat', () => new THREE.MeshLambertMaterial({ color: GAPURA.colors.balok }));
+const goldMat = () => currentScope().get('Gapura:goldMat', () => new THREE.MeshStandardMaterial({ color: GAPURA.colors.emas, metalness: 0.5, roughness: 0.4 }));
+const tanjakMat = () => currentScope().get('Gapura:tanjakMat', () => new THREE.MeshLambertMaterial({ color: GAPURA.colors.tanjak }));
+const stainMat = () => currentScope().get('Gapura:stainMat', () => new THREE.MeshLambertMaterial({ color: GAPURA.colors.bercak }));
 
 /** Dua pilar + pondasi. */
 function createPillars() {
@@ -31,10 +32,10 @@ function createPillars() {
   const geo = new THREE.BoxGeometry(GAPURA.pillarW, GAPURA.pillarH, GAPURA.pillarW);
   const baseGeo = new THREE.BoxGeometry(GAPURA.pillarW + 0.6, 0.5, GAPURA.pillarW + 0.6);
   [-1, 1].forEach((s) => {
-    const p = new THREE.Mesh(geo, tileMat);
+    const p = new THREE.Mesh(geo, tileMat());
     p.position.set(s * GAPURA.span / 2, GAPURA.pillarH / 2, 0);
     p.castShadow = true;
-    const b = new THREE.Mesh(baseGeo, beamMat);
+    const b = new THREE.Mesh(baseGeo, beamMat());
     b.position.set(s * GAPURA.span / 2, 0.25, 0);
     g.add(p, b);
   });
@@ -46,7 +47,7 @@ function createSelembayung(x, y) {
   const g = new THREE.Group();
   const geo = new THREE.BoxGeometry(0.12, 2.2, 0.12);
   [-0.5, 0.5].forEach((rz) => {
-    const m = new THREE.Mesh(geo, goldMat);
+    const m = new THREE.Mesh(geo, goldMat());
     m.position.set(x, y + 0.9, 0);
     m.rotation.z = rz;
     g.add(m);
@@ -59,12 +60,12 @@ function createTopBeam() {
   const g = new THREE.Group();
   g.name = 'balokAtas';
   const beamY = GAPURA.pillarH + GAPURA.beamH / 2;
-  const beam = new THREE.Mesh(new THREE.BoxGeometry(GAPURA.span + GAPURA.pillarW, GAPURA.beamH, GAPURA.pillarW), beamMat);
+  const beam = new THREE.Mesh(new THREE.BoxGeometry(GAPURA.span + GAPURA.pillarW, GAPURA.beamH, GAPURA.pillarW), beamMat());
   beam.position.y = beamY;
   beam.castShadow = true;
   g.add(beam);
   const tri = new THREE.Shape([new THREE.Vector2(-3.2, 0), new THREE.Vector2(3.2, 0), new THREE.Vector2(1.2, 1.6), new THREE.Vector2(0, 2.3), new THREE.Vector2(-1.6, 1.4)]);
-  const crown = new THREE.Mesh(new THREE.ExtrudeGeometry(tri, { depth: 1.0, bevelEnabled: false }), tanjakMat);
+  const crown = new THREE.Mesh(new THREE.ExtrudeGeometry(tri, { depth: 1.0, bevelEnabled: false }), tanjakMat());
   crown.position.set(0, GAPURA.pillarH + GAPURA.beamH, -0.5);
   crown.castShadow = true;
   g.add(crown);
@@ -97,7 +98,7 @@ function createDamage(seed) {
   g.name = 'kerusakan';
   const tileGeo = new THREE.BoxGeometry(0.3, 0.02, 0.3);
   for (let i = 0; i < 10; i += 1) {
-    const t = new THREE.Mesh(tileGeo, tileMat);
+    const t = new THREE.Mesh(tileGeo, tileMat());
     const s = rnd.chance(0.5) ? -1 : 1;
     t.position.set(s * GAPURA.span / 2 + rnd.range(-1.6, 1.6), 0.51 + rnd.range(0, 0.06), rnd.range(1.0, 2.2));
     t.rotation.set(rnd.range(-0.3, 0.3), rnd.range(0, 3.14), rnd.range(-0.2, 0.2));
@@ -105,7 +106,7 @@ function createDamage(seed) {
   }
   const stainGeo = new THREE.BoxGeometry(0.5, 0.7, 0.02);
   for (let i = 0; i < 6; i += 1) {
-    const st = new THREE.Mesh(stainGeo, stainMat);
+    const st = new THREE.Mesh(stainGeo, stainMat());
     const s = rnd.chance(0.5) ? -1 : 1;
     st.position.set(s * GAPURA.span / 2 + rnd.range(-0.5, 0.5), rnd.range(0.8, 5.5), GAPURA.pillarW / 2 + 0.01);
     g.add(st);

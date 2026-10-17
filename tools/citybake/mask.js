@@ -1,8 +1,6 @@
 /**
- * Buang fitur kota di dalam mask region handmade. Mask berupa ring dalam koordinat DUNIA.
- * Fase 1: placement stadion {x: 0, z: 0, yaw: 0}, jadi ring region-lokal = ring dunia. Saat placement
- * tidak nol (Fase 3), ubah ring dengan regionTransform milik Plan A (dibuat di Plan A Task 6) sebelum
- * memanggil applyMasks.
+ * Buang fitur kota di dalam mask region handmade. Mask berupa ring dalam koordinat DUNIA
+ * (config.REGION_MASKS = mask region klien yang sudah ditransformasi placement).
  *
  * Poligon (bangunan/air/landuse) dibuang bila centroid ring luarnya di dalam mask; polyline dipotong:
  * segmen yang titik tengahnya di dalam mask dibuang, sisa yang bersambung menjadi fitur baru (`<id>~k`).

@@ -86,6 +86,14 @@ describe('createGamepadPoller', () => {
     for (const code of ['Space', 'KeyV', 'KeyJ', 'Escape']) expect(input.consumePress(code)).toBe(true);
   });
 
+  it('LB = perjalanan cepat (KeyG), tidak bentrok dengan aksi lain', () => {
+    const input = new Input(fakeTarget());
+    const current = pad({ pressed: [4] });
+    createGamepadPoller(input, { getPads: () => [current], lookBy: () => {} }).update(0.016);
+    expect(input.consumePress('KeyG')).toBe(true);
+    for (const code of ['Space', 'KeyE', 'KeyV', 'Escape', 'KeyJ', 'KeyH']) expect(input.consumePress(code)).toBe(false);
+  });
+
   it('stick kanan memanggil lookBy proporsional dt; tanpa pad tidak melakukan apa pun', () => {
     const input = new Input(fakeTarget());
     const calls = [];

@@ -155,9 +155,11 @@ export class CameraRig {
     return 1;
   }
 
-  exitPov() {
+  /** Keluar POV; `instant` (perjalanan cepat): tanpa transisi, kamera pemain melompat ke posenya. */
+  exitPov({ instant = false } = {}) {
     const was = this.director.mode === 'pov';
-    this.director.exit();
+    this.director.exit({ instant });
+    if (was && instant) this._snap = true;
     return was;
   }
 

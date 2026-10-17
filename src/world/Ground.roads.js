@@ -1,19 +1,19 @@
 import * as THREE from 'three';
 import { SITE } from '../config/constants.js';
 import { ellipseRingGeometry, distributeOnEllipse } from './siteutil/ellipseGeo.js';
-import { instancePart, localMatrix } from './siteutil/instanceParts.js';
+import { instancePart } from './siteutil/instanceParts.js';
 import { groundMaterials, LAYER_Y, uvToMeters } from './Ground.materials.js';
 import { currentScope } from '../engine/ResourceScope.js';
 
 /**
- * Jalan lingkar, Jl. Naga Sakti, jalan penghubung, parkir, jogging track.
+ * Jalan lingkar, jalan penghubung sumbu utara (gapura → jalan lingkar), parkir, jogging track.
  * Semua datar di bidang XZ; marka = InstancedMesh kotak tipis.
  */
 const DASH = Object.freeze({ length: 3, width: 0.15, thickness: 0.02, gap: 6 });
 const KERB_WIDTH = 0.35;
 const SIDEWALK_WIDTH = 2.5;
-const CONNECTOR_WIDTH = 8;
-const PARKING = Object.freeze({
+export const CONNECTOR_WIDTH = 8;
+export const PARKING = Object.freeze({
   carBayW: 2.5, carBayD: 5, motoBayW: 1.0, motoBayD: 2.2, lineW: 0.12,
 });
 
@@ -56,15 +56,6 @@ export function createRingRoad() {
   return g;
 }
 
-/** Marka putus-putus lurus sepanjang sumbu X pada z tertentu. */
-function dashesAlongX(z, xFrom, xTo, material) {
-  const pts = [];
-  for (let x = xFrom; x < xTo; x += DASH.length + DASH.gap) {
-    pts.push({ x: x + DASH.length / 2, z, y: LAYER_Y.marking, rotY: 0 });
-  }
-  return instancePart({ geometry: dashGeometry(), material }, pts);
-}
-
 /** Marka putus-putus lurus sepanjang sumbu Z pada x tertentu. */
 function dashesAlongZ(x, zFrom, zTo, material) {
   const pts = [];
@@ -74,32 +65,6 @@ function dashesAlongZ(x, zFrom, zTo, material) {
   return instancePart({ geometry: dashGeometry(), material }, pts);
 }
 
-/** Jl. Naga Sakti: 3 lajur sejajar X, marka lajur, garis tepi, trotoar. */
-export function createNagaSakti() {
-  const m = groundMaterials();
-  const g = new THREE.Group();
-  g.name = 'jlNagaSakti';
-  const len = SITE.groundSize * 0.98;
-  const width = SITE.nagaSaktiLanes * SITE.laneWidth;
-  const z = SITE.nagaSaktiZ;
-  const road = flatMesh(meterPlane(len, width), m.asphalt, LAYER_Y.road, 'aspal');
-  road.rotation.x = -Math.PI / 2;
-  road.position.z = z;
-  g.add(road);
-  for (let i = 1; i < SITE.nagaSaktiLanes; i += 1) {
-    g.add(dashesAlongX(z - width / 2 + i * SITE.laneWidth, -len / 2, len / 2, m.lineWhite));
-  }
-  [-1, 1].forEach((s) => {
-    const edge = flatMesh(new THREE.BoxGeometry(len, DASH.thickness, DASH.width), m.lineWhite, LAYER_Y.marking, 'garisTepi');
-    edge.position.z = z + s * (width / 2 - 0.3);
-    g.add(edge);
-    const walk = flatMesh(new THREE.BoxGeometry(len, 0.12, SIDEWALK_WIDTH), m.sidewalk, LAYER_Y.sidewalk, 'trotoar');
-    walk.position.z = z + s * (width / 2 + SIDEWALK_WIDTH / 2);
-    g.add(walk);
-  });
-  return g;
-}
-
 /** Z tepi jalan lingkar (sisi utara, negatif) pada x tertentu. */
 function ringRoadZAt(x) {
   const { ringRoadSemiX: ax, ringRoadSemiZ: az } = SITE;
@@ -107,13 +72,13 @@ function ringRoadZAt(x) {
   return -az * Math.sqrt(k);
 }
 
-/** Jalan penghubung lurus dari Jl. Naga Sakti ke jalan lingkar (sejajar Z). */
+/** Jalan penghubung lurus dari gapura (SITE.gapuraZ) ke jalan lingkar (sejajar Z). */
 export function createConnectorRoads() {
   const m = groundMaterials();
   const g = new THREE.Group();
   g.name = 'jalanPenghubung';
   SITE.connectorXs.forEach((x) => {
-    const zFrom = SITE.nagaSaktiZ;
+    const zFrom = SITE.gapuraZ;
     const zTo = ringRoadZAt(x) + SITE.ringRoadWidth / 2;
     const len = zTo - zFrom;
     const road = flatMesh(meterPlane(CONNECTOR_WIDTH, len), m.asphalt, LAYER_Y.road + 0.005, 'aspal');
@@ -125,11 +90,36 @@ export function createConnectorRoads() {
   return g;
 }
 
+/** Apakah bay selebar bayW di x bertumpuk dengan jalan penghubung sumbu utara (badan kendaraan masuk aspal penghubung). */
+function overlapsConnector(x, bayW) {
+  return SITE.connectorXs.some((cx) => Math.abs(x - cx) < CONNECTOR_WIDTH / 2 + bayW / 2);
+}
+
+/**
+ * Titik garis bay blok parkir (dua baris di tepi utara & selatan, lorong di tengah), tanpa slot yang
+ * bertumpuk dengan jalan penghubung sumbu utara. Dipakai untuk garis marka dan posisi kendaraan parkir.
+ * @param {'car'|'moto'} kind
+ * @returns {Array<{x:number, z:number, y:number}>}
+ */
+export function parkingBays(kind = 'car') {
+  const cfg = kind === 'car' ? SITE.parkingCar : SITE.parkingMoto;
+  const bayW = kind === 'car' ? PARKING.carBayW : PARKING.motoBayW;
+  const bayD = kind === 'car' ? PARKING.carBayD : PARKING.motoBayD;
+  const pts = [];
+  const cols = Math.floor(cfg.w / bayW);
+  for (let i = 0; i <= cols; i += 1) {
+    const x = cfg.x - cfg.w / 2 + i * bayW;
+    if (overlapsConnector(x, bayW)) continue;
+    pts.push({ x, z: cfg.z - cfg.d / 2 + bayD / 2, y: LAYER_Y.parkingLine });
+    pts.push({ x, z: cfg.z + cfg.d / 2 - bayD / 2, y: LAYER_Y.parkingLine });
+  }
+  return pts;
+}
+
 /** Blok parkir aspal dengan garis bay putih. kind: 'car' | 'moto'. */
 export function createParkingLot(kind = 'car') {
   const m = groundMaterials();
   const cfg = kind === 'car' ? SITE.parkingCar : SITE.parkingMoto;
-  const bayW = kind === 'car' ? PARKING.carBayW : PARKING.motoBayW;
   const bayD = kind === 'car' ? PARKING.carBayD : PARKING.motoBayD;
   const g = new THREE.Group();
   g.name = kind === 'car' ? 'parkirMobil' : 'parkirMotor';
@@ -137,15 +127,8 @@ export function createParkingLot(kind = 'car') {
   lot.rotation.x = -Math.PI / 2;
   lot.position.set(cfg.x, LAYER_Y.road, cfg.z);
   g.add(lot);
-  // dua baris bay di tepi utara & selatan blok, lorong di tengah
   const lineGeo = new THREE.BoxGeometry(PARKING.lineW, DASH.thickness, bayD);
-  const pts = [];
-  const cols = Math.floor(cfg.w / bayW);
-  for (let i = 0; i <= cols; i += 1) {
-    const x = cfg.x - cfg.w / 2 + i * bayW;
-    pts.push({ x, z: cfg.z - cfg.d / 2 + bayD / 2, y: LAYER_Y.parkingLine });
-    pts.push({ x, z: cfg.z + cfg.d / 2 - bayD / 2, y: LAYER_Y.parkingLine });
-  }
+  const pts = parkingBays(kind);
   g.add(instancePart({ geometry: lineGeo, material: m.lineWhite, name: 'garisParkir' }, pts));
   g.userData.bays = pts;
   return g;
@@ -159,17 +142,3 @@ export function createJoggingTrack() {
   return flatMesh(geo, m.joggingTrack, LAYER_Y.plaza, 'joggingTrack');
 }
 
-/** Lintasan sepatu roda: oval kecil aspal + kerb. */
-export function createSkateTrack() {
-  const m = groundMaterials();
-  const { x, z } = SITE.skateCenter;
-  const g = new THREE.Group();
-  g.name = 'lintasanSepatuRoda';
-  g.add(flatMesh(ellipseRingGeometry(28, 16, 18, 8, 64), m.asphaltPlain, LAYER_Y.road, 'aspal'));
-  g.add(flatMesh(ellipseRingGeometry(28.4, 16.4, 28, 16, 64), m.kerb, LAYER_Y.kerb, 'kerb'));
-  g.add(flatMesh(ellipseRingGeometry(18, 8, 17.6, 7.6, 64), m.kerb, LAYER_Y.kerb, 'kerbDalam'));
-  const dashes = distributeOnEllipse(23, 12, 14, 360).map((p) => ({ ...p, y: LAYER_Y.marking }));
-  g.add(instancePart({ geometry: dashGeometry(), material: m.lineYellow, matrix: localMatrix(0, 0, 0, 0, 0, 0, 0.6, 1, 1) }, dashes));
-  g.position.set(x, 0, z);
-  return g;
-}

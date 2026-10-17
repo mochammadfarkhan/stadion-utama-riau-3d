@@ -14,11 +14,8 @@ export const GROUND_COLORS = Object.freeze({
   kerb: 0xf1ece2,
   sidewalk: 0xded7c9,
   lineWhite: 0xfbfaf6,
-  lineYellow: 0xf2d16a,
   joggingTrack: 0xe39a84,
   dirt: 0xb2956d,
-  helipadRing: 0xfcfcfa,
-  amphitheater: 0xd8d0bf,
 });
 
 /** Ketinggian lapisan agar tidak z-fighting (meter). */
@@ -69,14 +66,11 @@ function createGroundMaterials() {
     grass: surfaceMaterial('grass'),
     paving: surfaceMaterial('paving', { color: COLORS.concrete }),
     asphalt,
-    asphaltPlain: asphalt,
     concrete: surfaceMaterial('concrete', { color: COLORS.concrete }),
     kerb: new THREE.MeshLambertMaterial({ color: GROUND_COLORS.kerb }),
     sidewalk: surfaceMaterial('concrete', { color: GROUND_COLORS.sidewalk }),
     lineWhite: new THREE.MeshBasicMaterial({ color: GROUND_COLORS.lineWhite }),
-    lineYellow: new THREE.MeshBasicMaterial({ color: GROUND_COLORS.lineYellow }),
     joggingTrack: new THREE.MeshLambertMaterial({ color: GROUND_COLORS.joggingTrack }),
     dirt: new THREE.MeshLambertMaterial({ color: GROUND_COLORS.dirt }),
-    amphitheater: new THREE.MeshLambertMaterial({ color: GROUND_COLORS.amphitheater }),
   };
 }

@@ -1,0 +1,156 @@
+import { describe, it, expect } from 'vitest';
+import * as THREE from 'three';
+import { mountRegion, applyPlacement } from '../src/app/mountRegion.js';
+import { defineRegion, validateBuild } from '../src/regions/Region.js';
+import { createSystemRunner } from '../src/engine/SystemRunner.js';
+import { createResourceScope } from '../src/engine/ResourceScope.js';
+import { stadionRegion } from '../src/regions/stadion/index.js';
+
+const square = [[-10, -10], [10, -10], [10, 10], [-10, 10]];
+const quiet = { error() {} };
+
+function fakeApp() {
+  const runner = createSystemRunner({ logger: quiet });
+  return {
+    scene: new THREE.Scene(),
+    runner,
+    addSystem: (s) => runner.add(s),
+    removeSystem: (id) => runner.remove(id),
+  };
+}
+
+/** Registry palsu yang mencatat urutan daftar/cabut ke `log`. */
+function fakeRegistries(log) {
+  const reg = (name) => (root) => {
+    log.push(`+${name}:${root.name}`);
+    return () => { log.push(`-${name}:${root.name}`); return true; };
+  };
+  return {
+    time: {
+      registerEmissive: reg('emissive'),
+      registerLamps: (o) => { log.push(`+lamps:${o.lamps.length}`); return () => { log.push('-lamps'); return true; }; },
+    },
+    weather: { registerWet: reg('wet') },
+  };
+}
+
+function testRegion(log, { ready, fail = false } = {}) {
+  return defineRegion({
+    id: 'uji',
+    placement: { x: 100, z: -50, yaw: 0.3 },
+    mask: square,
+    build: async ({ scope, placement }) => {
+      if (fail) throw new Error('build rusak');
+      scope.get('mat', () => new THREE.MeshBasicMaterial());
+      const group = new THREE.Group();
+      group.name = 'region-uji';
+      const child = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial());
+      child.position.set(10, 0, 0);
+      group.add(child);
+      const late = new THREE.Group();
+      late.name = 'model-uji';
+      group.add(late);
+      log.push(`build:${placement.x}`);
+      return validateBuild({
+        group,
+        colliders: { isWalkable: () => true, isCameraClear: () => true },
+        minimapLayer: () => {},
+        systems: [{ id: 'uji.sistem', phase: 'world', update() {}, dispose: () => log.push('sistem.dispose') }],
+        nightLights: { lamps: [{ x: 1, z: 1 }], floods: [] },
+        lateRoot: late,
+        ready,
+        dispose: () => { log.push('region.dispose'); group.removeFromParent(); scope.dispose(); },
+      }, 'uji');
+    },
+  });
+}
+
+describe('applyPlacement', () => {
+  it('titik lokal → dunia sama dengan regionTransform.toWorld', () => {
+    const g = new THREE.Group();
+    applyPlacement(g, { x: 100, z: -50, yaw: 0.3 });
+    g.updateMatrixWorld(true);
+    const p = new THREE.Vector3(10, 0, 0).applyMatrix4(g.matrixWorld);
+    expect(p.x).toBeCloseTo(100 + Math.cos(0.3) * 10, 9);
+    expect(p.z).toBeCloseTo(-50 - Math.sin(0.3) * 10, 9);
+  });
+});
+
+describe('mountRegion / unmount', () => {
+  it('memasang grup bertransformasi, membekukan matriks, mendaftarkan registry & sistem', async () => {
+    const log = [];
+    const app = fakeApp();
+    const { time, weather } = fakeRegistries(log);
+    const m = await mountRegion(app, testRegion(log), { time, weather, logger: quiet });
+    const g = m.region.group;
+    expect(g.parent).toBe(app.scene);
+    expect(g.position.toArray()).toEqual([100, 0, -50]);
+    expect(g.rotation.y).toBe(0.3);
+    expect(g.children[0].matrixAutoUpdate).toBe(false);
+    const w = new THREE.Vector3().setFromMatrixPosition(g.children[0].matrixWorld);
+    expect(w.x).toBeCloseTo(100 + Math.cos(0.3) * 10, 9);
+    expect(app.runner.ids).toEqual(['uji.sistem']);
+    expect(log.slice(0, 4)).toEqual(['build:100', '+emissive:region-uji', '+lamps:1', '+wet:region-uji']);
+    await m.ready;
+    expect(log.at(-1)).toBe('+emissive:model-uji');
+  });
+
+  it('unmount terbalik: konten belakangan → sistem (dispose) → registry → region.dispose; idempoten', async () => {
+    const log = [];
+    const app = fakeApp();
+    const { time, weather } = fakeRegistries(log);
+    const m = await mountRegion(app, testRegion(log), { time, weather, logger: quiet });
+    await m.ready;
+    log.length = 0;
+    m.unmount();
+    m.unmount();
+    expect(log).toEqual(['-emissive:model-uji', 'sistem.dispose', '-wet:region-uji', '-lamps', '-emissive:region-uji', 'region.dispose']);
+    expect(app.runner.ids).toEqual([]);
+    expect(app.scene.children).toHaveLength(0);
+    expect(m.mounted).toBe(false);
+  });
+
+  it('build yang melempar melepas scope region dan meneruskan galat', async () => {
+    const scopes = [];
+    const createScope = (name) => { const s = createResourceScope(name); scopes.push(s); return s; };
+    await expect(mountRegion(fakeApp(), testRegion([], { fail: true }), { createScope })).rejects.toThrow(/build rusak/);
+    expect(scopes).toHaveLength(1);
+    expect(scopes[0].disposed).toBe(true);
+  });
+
+  it('galat setelah build (id sistem ganda) menggulung balik: region.dispose dipanggil, grup lepas', async () => {
+    const log = [];
+    const app = fakeApp();
+    app.addSystem({ id: 'uji.sistem', phase: 'ui', update() {} });
+    await expect(mountRegion(app, testRegion(log), { logger: quiet })).rejects.toThrow(/sudah terdaftar/);
+    expect(log).toContain('region.dispose');
+    expect(app.scene.children).toHaveLength(0);
+  });
+
+  it('unmount sebelum konten belakangan siap: konten itu tidak didaftarkan', async () => {
+    const log = [];
+    let resolve;
+    const ready = new Promise((r) => { resolve = r; });
+    const { time } = fakeRegistries(log);
+    const m = await mountRegion(fakeApp(), testRegion(log, { ready }), { time, logger: quiet });
+    m.unmount();
+    resolve({ failed: [] });
+    await m.ready;
+    expect(log.filter((l) => l.includes('model-uji'))).toEqual([]);
+  });
+
+  it('region stadion: mount → unmount 3× kembali ke scene kosong, scope dilepas', async () => {
+    for (let i = 0; i < 3; i += 1) {
+      const app = fakeApp();
+      const scopes = [];
+      const createScope = (name) => { const s = createResourceScope(name); scopes.push(s); return s; };
+      const m = await mountRegion(app, stadionRegion, { createScope, logger: quiet });
+      expect(app.runner.ids).toEqual(['stadion.world']);
+      m.unmount();
+      expect(app.scene.children).toHaveLength(0);
+      expect(app.runner.ids).toEqual([]);
+      expect(scopes[0].disposed).toBe(true);
+      expect(scopes[0].size).toBe(0);
+    }
+  }, 60000);
+});
