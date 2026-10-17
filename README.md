@@ -75,15 +75,22 @@ Unit test (Vitest) mencakup logika murni di `src/sim/` (fisika sepeda/bola, AI s
 ## Struktur
 ```
 src/
+  app/         composition helper: mountRegion, frame region, perjalanan cepat, keymap, devtools
+  engine/      SystemRunner, ResourceScope, disposeTree, freezeStatic, registry material
+  geo/         proyeksi ENU, grid tile, transform & placement region, poligon (murni)
+  regions/     region handmade (stadion: data, layout, mask, collider, footprint OSM)
+  city/        klien streaming tile kota: ChunkStreamer, TileLoader, TileCollider, minimap tile
   core/        App (renderer, loop, post-processing, bake minimap), Input, gamepad, CameraRig,
-               Collider, StoryDirector, adaptiveResolution, AudioBus
-  config/      constants.js — seluruh dimensi & warna
+               Collider komposit, StoryDirector, adaptiveResolution, AudioBus
+  config/      constants.js + stadionSite.js — dimensi, warna, data kawasan
   sim/         logika murni tanpa THREE.Mesh (unit-tested); sim/story = mesin cerita
   story/       data cerita (chapter, easter egg), pemicu, penyimpanan, pengaman uang
   settings/    skema, store, safeStorage (localStorage)
   world/       builder geometri statis: Ground, Landscape, stadium/*, props/*, langit/cuaca
   entities/    objek bergerak: Bicycle, Runner, Footballer, Vendor, Crowd, Humanoid (+ LOD)
-  ui/          HUD, panel pengaturan, TouchControls, Minimap2D, jurnal & HUD cerita
+  ui/          HUD, panel pengaturan, TouchControls, Minimap2D, perjalanan cepat, atribusi
+tools/citybake/ bake offline OSM + Overture → public/tiles (Node; tidak ikut bundle)
+public/tiles/  tile kota hasil bake (GLB meshopt + data.json + manifest + ATTRIBUTION.txt)
 public/models/ model Blender (GLB)
 assets-src/    sumber .blend + skrip ekspor (export_glb.py)
 docs/
@@ -96,8 +103,11 @@ Model GLB dihasilkan dari Blender lewat `assets-src/blender/export_glb.py` (alur
 ## Kredit
 Pola UI panel pengaturan diadaptasi dari [dgreenheck/tidewater](https://github.com/dgreenheck/tidewater) (lisensi MIT).
 
+## Data peta & atribusi
+Jalan, bangunan, air, dan tata guna lahan kota berasal dari © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors dan Overture Maps Foundation, di-bake offline oleh `tools/citybake` (`npm run bake -- --area stadion|pusat|all`; cache data mentah di `data-src/`, tidak di-commit). Data turunan di `public/tiles/` (`*.glb`, `*.data.json`) berlisensi **ODbL 1.0**; rincian sumber, waktu data, dan rilis Overture ada di `public/tiles/ATTRIBUTION.txt`. Atribusi juga tampil di pojok kiri bawah layar selama peta kota aktif.
+
 ## Lisensi
-MIT, lihat [LICENSE](LICENSE).
+Kode: MIT, lihat [LICENSE](LICENSE). Data tile kota (`public/tiles/`): ODbL 1.0 (lihat bagian "Data peta & atribusi").
 
 ## Sumber riset
 Lihat `docs/research/stadion-utama-riau.md` (Dispora Riau, StadiumDB, Wikipedia, liputan media lokal) dan `docs/research/threejs-teknis.md`.

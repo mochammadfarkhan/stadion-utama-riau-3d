@@ -48,6 +48,7 @@ import { createRegionFrame } from './geo/regionTransform.js';
 import { withPlacement } from './regions/Region.js';
 import { createCity } from './city/index.js';
 import { STREAM } from './city/ChunkStreamer.js';
+import { createAttribution } from './ui/Attribution.js';
 
 const MODELS_TIMEOUT_MS = 8000;
 
@@ -119,6 +120,7 @@ async function main() {
   if (city) {
     lifecycle.add(() => city.dispose());
     time.setFogLimit(STREAM.loadRadius); // batas muat tertutup kabut
+    lifecycle.add(createAttribution(document.body).dispose);
   }
   // Di dalam mask → collider region (lokal); di luar → TileCollider kota (tanpa kota: tanah region menutup dunia).
   // Komposit meneruskan `penetration` dari collider terpilih: sepeda terjebak hanya boleh keluar, tidak menembus.
