@@ -16,9 +16,9 @@ export function parsePlacementParam(search) {
   return { x, z, yaw };
 }
 
-export function exposeDevTools({ app, ents, rig, time, weather, store, audioBus, story, colliders, city = null, fastTravel = null, teardown }) {
+export function exposeDevTools({ app, ents, rig, time, weather, store, audioBus, story, colliders, city = null, remountRegion = null, fastTravel = null, teardown }) {
   window.__sim = {
-    app, ents, rig, time, weather, store, audioBus, story, city, fastTravel,
+    app, ents, rig, time, weather, store, audioBus, story, city, remountRegion, fastTravel,
     teleport(x, z, yaw = 0) {
       ents.bike.state = { ...ents.bike.state, x, z, yaw, v: 0 };
       ents.bike.setCollider(createCollider({ x, z }, colliders.isWalkable, colliders.penetration));

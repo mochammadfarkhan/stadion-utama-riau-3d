@@ -112,8 +112,14 @@ async function main() {
 
   await loading.step(0.2, 'Membangun stadion, tribun, dan lingkungan…');
   app.addSystem({ id: 'wind', phase: 'world', update: (dt) => updateWind(dt) }); // angin global tiap frame
-  const stadion = await mountRegion(app, stadionDef, { store, time, weather });
+  let stadion = await mountRegion(app, stadionDef, { store, time, weather });
   lifecycle.add(() => stadion.unmount()); // LIFO: dicabut sebelum time/weather di-dispose
+  /** Uji siklus hidup (dev/E2E): lepas lalu pasang ulang region; kembalikan Promise model siap. */
+  const remountRegion = async () => {
+    stadion.unmount();
+    stadion = await mountRegion(app, stadionDef, { store, time, weather });
+    return stadion.ready;
+  };
   const region = stadion.region;
 
   await loading.step(0.4, 'Menyiapkan peta kota (OpenStreetMap)…');
@@ -214,7 +220,7 @@ async function main() {
   menu.ready({ hasProgress: hasStoryProgress(story.state), touch });
   if (import.meta.env.DEV) {
     exposeDevTools({
-      app, ents, rig, time, weather, store, audioBus, story, colliders, city, fastTravel: (id) => travel.go(id), teardown: () => lifecycle.disposeAll(),
+      app, ents, rig, time, weather, store, audioBus, story, colliders, city, remountRegion, fastTravel: (id) => travel.go(id), teardown: () => lifecycle.disposeAll(),
     });
   }
 }
