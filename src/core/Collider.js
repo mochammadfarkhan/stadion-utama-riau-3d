@@ -45,7 +45,8 @@ export function createCompositeCollider({ regions = [], fallback = OPEN } = {}) 
 
 /**
  * Collider stateful: mengembalikan posisi valid terakhir bila posisi baru menabrak.
- * Mencoba meluncur (slide) di sumbu X atau Z agar tidak "lengket".
+ * Mencoba meluncur (slide) di sumbu X atau Z agar tidak "lengket". Bila posisi terakhir sendiri
+ * menjadi tidak valid (tile kota baru dimuat di bawah sepeda), gerakan dibebaskan agar tidak terkunci.
  * @param {{x:number, z:number}} start
  * @param {(x:number, z:number) => boolean} isWalkable
  */
@@ -54,6 +55,7 @@ export function createCollider(start = { x: 0, z: 0 }, isWalkable) {
   let last = { x: start.x, z: start.z };
   return (x, z) => {
     if (isWalkable(x, z)) return (last = { x, z });
+    if (!isWalkable(last.x, last.z)) return (last = { x, z }); // terjebak: biarkan keluar
     if (isWalkable(x, last.z)) return (last = { x, z: last.z });
     if (isWalkable(last.x, z)) return (last = { x: last.x, z });
     return { ...last };
