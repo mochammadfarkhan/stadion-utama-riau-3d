@@ -25,6 +25,15 @@ describe('validateTileData', () => {
     ['polyline pendek', (d) => { d.roads[0].pts = [0, 0]; }, /polyline/],
     ['lebar nol', (d) => { d.waterways[0].w = 0; }, /polyline/],
     ['array hilang', (d) => { delete d.roads; }, /roads/],
+    ['unit 0,01', (d) => { d.unit = 0.01; }, /unit/],
+    ['unit NaN', (d) => { d.unit = NaN; }, /unit/],
+    ['tinggi NaN', (d) => { d.buildings[0].h = NaN; }, /bangunan/],
+    ['koordinat NaN', (d) => { d.roads[0].pts[1] = NaN; }, /polyline/],
+    ['bangunan null', (d) => { d.buildings.push(null); }, /bangunan/],
+    ['air null', (d) => { d.water.push(null); }, /air/],
+    ['jalan null', (d) => { d.roads.push(null); }, /polyline/],
+    ['nama jalan angka', (d) => { d.roads[0].name = 42; }, /nama jalan/],
+    ['nama jalan null', (d) => { d.roads[0].name = null; }, /nama jalan/],
   ])('%s → ditolak', (_, mutate, re) => {
     const d = sample();
     mutate(d);
@@ -35,6 +44,11 @@ describe('validateTileData', () => {
 
   it('bukan objek → ditolak', () => {
     expect(validateTileData(null).ok).toBe(false);
+  });
+
+  it('pesan galat versi/unit memperlihatkan tipe nilai (JSON)', () => {
+    expect(validateTileData({ ...sample(), v: '1' }).error).toContain('"1"');
+    expect(validateTileData({ ...sample(), unit: '0.1' }).error).toContain('"0.1"');
   });
 
   it('semua data.json hasil bake di public/tiles lolos validasi', () => {
@@ -71,5 +85,33 @@ describe('validateManifest', () => {
     expect(validateManifest({ ...m, tiles: [{ ...m.tiles[0], key: '9_9' }] }).error).toMatch(/entri tile/);
     expect(validateManifest(null).ok).toBe(false);
     expect(validateManifest({ ...m, tiles: null }).ok).toBe(false);
+  });
+
+  it('unit ≠ 0,1, unit NaN, dan entri null ditolak', () => {
+    const m = JSON.parse(readFileSync('public/tiles/manifest.json', 'utf8'));
+    expect(validateManifest({ ...m, unit: 1 }).error).toMatch(/unit/);
+    expect(validateManifest({ ...m, unit: NaN }).error).toMatch(/unit/);
+    expect(validateManifest({ ...m, tiles: [...m.tiles, null] }).error).toMatch(/entri tile/);
+  });
+
+  it('pesan galat versi/unit memperlihatkan tipe nilai (JSON)', () => {
+    const m = JSON.parse(readFileSync('public/tiles/manifest.json', 'utf8'));
+    expect(validateManifest({ ...m, version: '1' }).error).toContain('"1"');
+    expect(validateManifest({ ...m, unit: '0.1' }).error).toContain('"0.1"');
+  });
+
+  it('key tile ganda ditolak', () => {
+    const m = JSON.parse(readFileSync('public/tiles/manifest.json', 'utf8'));
+    expect(validateManifest({ ...m, tiles: [...m.tiles, m.tiles[0]] }).error).toMatch(/ganda/);
+  });
+
+  it('nama file yang tidak cocok dengan key ditolak (cegah path traversal)', () => {
+    const m = JSON.parse(readFileSync('public/tiles/manifest.json', 'utf8'));
+    const t = m.tiles[0];
+    const withTile = (patch) => ({ ...m, tiles: [{ ...t, ...patch }, ...m.tiles.slice(1)] });
+    expect(validateManifest(withTile({ data: { ...t.data, file: '../../x' } })).error).toMatch(/entri tile/);
+    expect(validateManifest(withTile({ data: { ...t.data, file: `${m.tiles[1].key}.data.json` } })).error).toMatch(/entri tile/);
+    expect(validateManifest(withTile({ lod: [t.lod[0], { ...t.lod[1], file: `${t.key}.lod0.glb` }] })).error).toMatch(/entri tile/);
+    expect(validateManifest(withTile({ lod: [{ ...t.lod[0], file: '../../x.glb' }, t.lod[1]] })).error).toMatch(/entri tile/);
   });
 });

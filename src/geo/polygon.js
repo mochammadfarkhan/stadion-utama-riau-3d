@@ -227,7 +227,11 @@ export function distanceToSegment(x, z, a, b) {
   return Math.hypot(x - (a[0] + dx * t), z - (a[1] + dz * t));
 }
 
-/** Jarak titik ke tepi ring (closed = true) atau polyline (closed = false); Infinity bila < 2 titik. */
+/**
+ * Jarak titik ke tepi ring (closed = true) atau polyline (closed = false).
+ * Kasus tepi: ring tertutup 1 titik → jarak ke titik itu (segmen merosot); polyline < 2 titik atau
+ * ring kosong → Infinity.
+ */
 export function distanceToRing(x, z, ring, closed = true) {
   let best = Infinity;
   const n = ring.length;

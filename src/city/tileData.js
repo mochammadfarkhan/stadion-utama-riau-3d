@@ -13,21 +13,31 @@ const isInt = (v) => Number.isInteger(v);
 const isFlat = (a, min) => Array.isArray(a) && a.length >= min && a.length % 2 === 0 && a.every(isInt);
 
 /**
+ * Entri tile manifest valid: key = "{ix}_{iz}", lod tepat 2 dengan level = indeks, dan nama file persis
+ * sesuai kontrak (`{key}.lod{i}.glb`, `{key}.data.json`) sehingga path seperti `../x` tertolak.
+ */
+function isValidTileEntry(t) {
+  if (typeof t?.key !== 'string' || !isInt(t.ix) || !isInt(t.iz) || t.key !== `${t.ix}_${t.iz}`) return false;
+  const lodOk = Array.isArray(t.lod) && t.lod.length === 2 && t.lod.every((l, i) => l?.level === i && l.file === `${t.key}.lod${i}.glb`);
+  return lodOk && t.data?.file === `${t.key}.data.json`;
+}
+
+/**
  * @param {unknown} m isi manifest.json
  * @returns {{ok: true} | {ok: false, error: string}}
  */
 export function validateManifest(m) {
   if (!m || typeof m !== 'object') return { ok: false, error: 'manifest bukan objek' };
-  if (m.version !== TILE_FORMAT_VERSION) return { ok: false, error: `versi manifest ${m.version} tidak didukung` };
+  if (m.version !== TILE_FORMAT_VERSION) return { ok: false, error: `versi manifest ${JSON.stringify(m.version)} tidak didukung` };
   if (m.format !== TILE_FORMAT) return { ok: false, error: `format "${m.format}" bukan ${TILE_FORMAT}` };
   if (m.tileSize !== TILE_SIZE) return { ok: false, error: `tileSize ${m.tileSize} ≠ ${TILE_SIZE}` };
-  if (m.unit !== TILE_UNIT) return { ok: false, error: `unit ${m.unit} ≠ ${TILE_UNIT}` };
+  if (m.unit !== TILE_UNIT) return { ok: false, error: `unit ${JSON.stringify(m.unit)} ≠ ${TILE_UNIT}` };
   if (!Array.isArray(m.tiles) || !Array.isArray(m.areas)) return { ok: false, error: 'tiles/areas harus array' };
+  const seen = new Set();
   for (const t of m.tiles) {
-    const lodOk = Array.isArray(t?.lod) && t.lod.length === 2 && t.lod.every((l, i) => l?.level === i && typeof l.file === 'string');
-    if (typeof t?.key !== 'string' || !isInt(t.ix) || !isInt(t.iz) || t.key !== `${t.ix}_${t.iz}` || !lodOk || typeof t.data?.file !== 'string') {
-      return { ok: false, error: `entri tile tidak valid: ${JSON.stringify(t?.key ?? t)}` };
-    }
+    if (!isValidTileEntry(t)) return { ok: false, error: `entri tile tidak valid: ${JSON.stringify(t?.key ?? t)}` };
+    if (seen.has(t.key)) return { ok: false, error: `key tile ganda: ${JSON.stringify(t.key)}` };
+    seen.add(t.key);
   }
   return { ok: true };
 }
@@ -39,12 +49,12 @@ export function validateManifest(m) {
  */
 export function validateTileData(d, expectedKey) {
   if (!d || typeof d !== 'object') return { ok: false, error: 'data tile bukan objek' };
-  if (d.v !== TILE_FORMAT_VERSION) return { ok: false, error: `versi data tile ${d.v} tidak didukung` };
+  if (d.v !== TILE_FORMAT_VERSION) return { ok: false, error: `versi data tile ${JSON.stringify(d.v)} tidak didukung` };
   if (expectedKey !== undefined && d.key !== expectedKey) return { ok: false, error: `kunci ${d.key} ≠ ${expectedKey}` };
   if (!isInt(d.ix) || !isInt(d.iz) || d.key !== `${d.ix}_${d.iz}`) return { ok: false, error: 'ix/iz/key tidak konsisten' };
   const c = tileCenter(d.ix, d.iz);
   if (!Array.isArray(d.center) || d.center[0] !== c.x || d.center[1] !== c.z) return { ok: false, error: 'center ≠ pusat tile' };
-  if (d.unit !== TILE_UNIT) return { ok: false, error: `unit ${d.unit} ≠ ${TILE_UNIT}` };
+  if (d.unit !== TILE_UNIT) return { ok: false, error: `unit ${JSON.stringify(d.unit)} ≠ ${TILE_UNIT}` };
   for (const k of ['buildings', 'water', 'waterways', 'roads']) if (!Array.isArray(d[k])) return { ok: false, error: `${k} harus array` };
   if (!d.buildings.every((b) => isInt(b?.h) && b.h >= 0 && isFlat(b.ring, 6))) return { ok: false, error: 'bangunan tidak valid' };
   if (!d.water.every((w) => Array.isArray(w?.rings) && w.rings.length >= 1 && w.rings.every((r) => isFlat(r, 6)))) {
@@ -52,6 +62,9 @@ export function validateTileData(d, expectedKey) {
   }
   const lineOk = (l) => typeof l?.cls === 'string' && isInt(l.w) && l.w > 0 && isFlat(l.pts, 4);
   if (!d.waterways.every(lineOk) || !d.roads.every(lineOk)) return { ok: false, error: 'polyline tidak valid' };
+  if (!d.roads.every((l) => l.name === undefined || typeof l.name === 'string')) {
+    return { ok: false, error: 'nama jalan harus string bila ada' };
+  }
   return { ok: true };
 }
 
