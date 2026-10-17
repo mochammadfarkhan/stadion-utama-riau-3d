@@ -7,6 +7,8 @@ import { sourceRect } from '../src/shared/minimapMath.js';
 import { withPlacement, regionContains } from '../src/regions/Region.js';
 import { stadionRegion } from '../src/regions/stadion/index.js';
 import { SITE } from '../src/regions/stadion/site.js';
+import { LAYOUT } from '../src/regions/stadion/layout.js';
+import { litLampPositions, floodSpotsLocal } from '../src/regions/stadion/lamps.js';
 import { createSystemRunner } from '../src/engine/SystemRunner.js';
 import { mountRegion } from '../src/app/mountRegion.js';
 import { parsePlacementParam } from '../src/app/devtools.js';
@@ -88,8 +90,22 @@ describe('placement non-identitas ujung-ke-ujung (I1)', () => {
     const want = frame.toWorld(SITE.tugu.x, SITE.tugu.z);
     expect(tugu.x).toBeCloseTo(want.x, 6);
     expect(tugu.z).toBeCloseTo(want.z, 6);
-    const lamp0 = m.region.nightLights.lamps[0];
-    expect(lampsSeen[0].lamps[0]).toEqual(lamp0);
+    // Lampu & sorot yang didaftarkan = posisi region-lokal (data layout) yang diubah ke dunia lewat toWorld.
+    expect(lampsSeen).toHaveLength(1);
+    const localLamps = litLampPositions(LAYOUT);
+    expect(lampsSeen[0].lamps).toHaveLength(localLamps.length);
+    localLamps.forEach((l, i) => {
+      const w = frame.toWorld(l.x, l.z);
+      expect(lampsSeen[0].lamps[i].x).toBeCloseTo(w.x, 9);
+      expect(lampsSeen[0].lamps[i].z).toBeCloseTo(w.z, 9);
+    });
+    expect(Math.hypot(lampsSeen[0].lamps[0].x - localLamps[0].x, lampsSeen[0].lamps[0].z - localLamps[0].z)).toBeGreaterThan(50);
+    floodSpotsLocal().forEach((f, i) => {
+      const got = lampsSeen[0].floods[i];
+      const p = frame.toWorld(f.x, f.z);
+      const t = frame.toWorld(f.tx, f.tz);
+      for (const [k, v] of [['x', p.x], ['y', f.y], ['z', p.z], ['tx', t.x], ['ty', f.ty], ['tz', t.z]]) expect(got[k]).toBeCloseTo(v, 9);
+    });
     expect(m.region.lateRoot.parent).toBe(g); // model GLB ikut transform region
     expect(regionContains(def, want.x, want.z)).toBe(true);
     expect(regionContains(def, SITE.tugu.x, SITE.tugu.z - 300)).toBe(false);

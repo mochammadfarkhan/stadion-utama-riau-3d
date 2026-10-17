@@ -225,14 +225,17 @@ export function createGrass({ count = GRASS.count } = {}) {
   const group = new THREE.Group();
   group.name = 'rumput';
   group.add(mesh);
+  const local = new THREE.Vector3();
   group.userData.update = (dt, t, focus) => {
     if (!focus) return;
-    focusU.copy(focus);
-    const moved = Math.hypot(focus.x - last.x, focus.z - last.z);
+    focusU.copy(focus); // fade shader: jarak di frame dunia
+    // Sel rumput diisi di koordinat lokal grup (di bawah region.group ber-placement): focus dunia → lokal.
+    const l = group.worldToLocal(local.set(focus.x, 0, focus.z));
+    const moved = Math.hypot(l.x - last.x, l.z - last.z);
     if (Number.isFinite(moved) && moved <= GRASS.moveThreshold) return;
-    last.x = focus.x;
-    last.z = focus.z;
-    pool.rebuild(Math.floor(focus.x / CELL), Math.floor(focus.z / CELL));
+    last.x = l.x;
+    last.z = l.z;
+    pool.rebuild(Math.floor(l.x / CELL), Math.floor(l.z / CELL));
   };
   return group;
 }
