@@ -6,7 +6,7 @@
  */
 import { SITE } from './site.js';
 import { STADION_PLACEMENT } from './placement.js';
-import { convexHull } from '../../geo/polygon.js';
+import { convexHull, pointInPolygon, distanceToRing } from '../../geo/polygon.js';
 import { toWorld } from '../../geo/regionTransform.js';
 
 const MASK_MARGIN = 20;       // m di luar sumbu jalur jogging (memuat billboard x = ±250)
@@ -74,6 +74,22 @@ export function createStadionMask(site = SITE) {
 }
 
 export const STADION_MASK = createStadionMask();
+
+/** Jarak minimum batang pohon/semak dari tepi mask (m): tajuk trembesi ±6,5 m tidak menjorok ke tile kota. */
+export const VEGETATION_EDGE_CLEARANCE = 10;
+
+/**
+ * Koridor gapura & sumbu pedestrian utara (region-lokal): pita x koridor lebar, utara tepi parkir mobil
+ * (rantai utara hull di sana = tepi parkir). Bebas vegetasi: sumbu pejalan, gapura, angkot di bahu Naga Sakti.
+ */
+export function inNorthCorridor(x, z, c = NORTH_CORRIDOR, site = SITE) {
+  return x >= c.xWideWest && x <= c.xWideEast && z < site.parkingCar.z - site.parkingCar.d / 2;
+}
+
+/** Titik boleh ditanami pohon/semak: di dalam mask, ≥ VEGETATION_EDGE_CLEARANCE dari tepi, di luar koridor utara. */
+export function isVegetationSpot(x, z, mask = STADION_MASK) {
+  return pointInPolygon(x, z, mask) && distanceToRing(x, z, mask) >= VEGETATION_EDGE_CLEARANCE && !inNorthCorridor(x, z);
+}
 
 /** Mask dalam koordinat DUNIA (dipakai citybake): ring region-lokal ditransformasi placement. */
 export function stadionMaskWorld(placement = STADION_PLACEMENT, mask = STADION_MASK) {

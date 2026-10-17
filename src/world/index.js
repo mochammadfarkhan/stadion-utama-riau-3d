@@ -38,10 +38,11 @@ const MINIMAP_TRIBUNE_PARTS = ['beton'];
  * (mergeByMaterial) agar jumlah draw call minimal; objek besar diberi layer minimap agar tampil
  * di peta kecil. `layout` WAJIB dari region (regions/stadion/layout.js); `site` default = SITE.
  * `mask` (region-lokal): tanah berbentuk mask dan vegetasi/rumput hanya di dalam mask (di luar = kota).
- * @param {{layout: object, site?: object, mask?: Array<[number, number]>|null}} opts
+ * `vegetationKeep` (region-lokal): titik boleh ditanami pohon/semak (mis. berjarak dari tepi mask; default = di dalam mask).
+ * @param {{layout: object, site?: object, mask?: Array<[number, number]>|null, vegetationKeep?: ((x:number, z:number) => boolean)|null}} opts
  * @returns {{group: THREE.Group, update(dt:number, t:number, focus?:object):void, seatSamples: object[], layout: object}}
  */
-export function buildWorld({ layout, site = SITE, mask = null } = {}) {
+export function buildWorld({ layout, site = SITE, mask = null, vegetationKeep = null } = {}) {
   if (!layout) throw new TypeError('buildWorld: layout wajib (diberikan region)');
   const keep = mask ? (x, z) => pointInPolygon(x, z, mask) : () => true;
   const group = new THREE.Group();
@@ -58,7 +59,7 @@ export function buildWorld({ layout, site = SITE, mask = null } = {}) {
   const ground = createGround({ outline: mask });
   const lots = collectParkingLots(ground);
   add(ground, { minimap: true });
-  add(createLandscape({ keep }));
+  add(createLandscape({ keep: vegetationKeep ?? keep }));
   add(createGrass({ keep }), { merge: false });
   add(withMinimapParts(createShell(), MINIMAP_SHELL_PARTS));
   add(createFacade());

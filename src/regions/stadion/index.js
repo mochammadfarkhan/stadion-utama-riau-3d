@@ -11,7 +11,7 @@ import { createModelGroup, placeModels } from '../../world/assets/models.js';
 import { stadionColliders } from './collider.js';
 import { SITE } from './site.js';
 import { LAYOUT } from './layout.js';
-import { STADION_MASK } from './mask.js';
+import { STADION_MASK, isVegetationSpot } from './mask.js';
 import { stadionNightLights } from './lamps.js';
 import { STADION_PLACEMENT } from './placement.js';
 
@@ -30,7 +30,7 @@ function loadModels(scope, models, worldGroup, enabled, isCancelled) {
 /** ctx: scope (wajib), placement (default STADION_PLACEMENT), loadModels (default true). */
 function buildStadion({ scope, placement = STADION_PLACEMENT, loadModels: withModels = true }) {
   if (!scope) throw new TypeError('Region stadion: ctx.scope (ResourceScope) wajib');
-  const world = withScope(scope, () => buildWorld({ layout: LAYOUT, site: SITE, mask: STADION_MASK }));
+  const world = withScope(scope, () => buildWorld({ layout: LAYOUT, site: SITE, mask: STADION_MASK, vegetationKeep: isVegetationSpot }));
   const models = createModelGroup();
   world.group.add(models);
   let disposed = false;

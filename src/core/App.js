@@ -17,7 +17,7 @@ const ADAPTIVE_MIN_RATIO = 0.6;   // resolusi adaptif tidak turun di bawah ini
 const ADAPTIVE_TARGET_MS = 20;    // target waktu frame (50 fps)
 const AO_SAMPLES = 12;            // sampel GTAO per piksel (default 16; lebih ringan)
 const AO_DISTANCE_FALLOFF = 1.0;
-const MINIMAP_BAKE_PX = 1536;      // resolusi peta dasar (±0,9 m/piksel untuk dunia 1.400 m)
+const MINIMAP_BAKE_PX = 1536;      // resolusi peta dasar (±0,6 m/piksel untuk area region ±461 m)
 const MINIMAP_BAKE_HEIGHT = 400;
 const MINIMAP_BAKE_AMBIENT = 3;    // ambient ≈ albedo ×0,95 (tanpa IBL/kabut/matahari)
 

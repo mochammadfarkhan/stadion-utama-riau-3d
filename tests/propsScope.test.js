@@ -14,7 +14,7 @@ import { createLancangKuning, createTanjakMonument } from '../src/world/props/Mo
 import { createPlanters } from '../src/world/props/Planter.js';
 import { createTrashBins } from '../src/world/props/TrashBin.js';
 import { createParkedCars, createTransMetroBus } from '../src/world/props/Vehicles.js';
-import { createBigTrees, createYoungTrees, createShrubs, createWildGrass } from '../src/world/Landscape.trees.js';
+import { createBigTrees, createYoungTrees, createShrubs } from '../src/world/Landscape.trees.js';
 
 const P = [{ x: 0, z: 0 }, { x: 5, z: 2 }];
 const FACTORIES = {
@@ -34,7 +34,6 @@ const FACTORIES = {
   pohonBesar: () => createBigTrees(11),
   pohonMuda: () => createYoungTrees(23),
   semak: () => createShrubs(31),
-  ilalang: () => createWildGrass(41),
 };
 
 describe('props & vegetasi memakai ResourceScope aktif', () => {

@@ -8,8 +8,10 @@ import { readFileSync, existsSync } from 'node:fs';
 import { createGround } from '../src/world/Ground.js';
 import { createGrass } from '../src/world/Grass.js';
 import { createLandscape } from '../src/world/Landscape.js';
-import { createBigTrees, createShrubs } from '../src/world/Landscape.trees.js';
-import { STADION_MASK } from '../src/regions/stadion/mask.js';
+import { createBigTrees, createYoungTrees, createShrubs } from '../src/world/Landscape.trees.js';
+import {
+  STADION_MASK, isVegetationSpot, inNorthCorridor, VEGETATION_EDGE_CLEARANCE,
+} from '../src/regions/stadion/mask.js';
 import { pointInPolygon, ringBounds, distanceToRing } from '../src/geo/polygon.js';
 import { createResourceScope, withScope } from '../src/engine/ResourceScope.js';
 import { createCompositeCollider } from '../src/core/Collider.js';
@@ -102,7 +104,38 @@ describe('vegetasi & rumput hanya di dalam mask', () => {
     }
   });
 
-  it('createLandscape({keep}) — pohon besar/muda, semak, ilalang: tidak ada instans di luar mask', () => {
+  it('kepadatan tetap: jumlah dengan keep = jumlah lama (tanpa keep) yang jatuh di area keep (±15%)', () => {
+    const makers = {
+      pohonBesar: (k) => createBigTrees(11, k),
+      pohonMuda: (k) => createYoungTrees(23, k),
+      semak: (k) => createShrubs(31, k),
+    };
+    for (const [name, make] of Object.entries(makers)) {
+      const old = instancePositions(scoped(() => make(undefined))).filter(([x, z]) => isVegetationSpot(x, z)).length;
+      const now = instancePositions(scoped(() => make(isVegetationSpot))).length;
+      expect(old, name).toBeGreaterThan(0);
+      expect(now / old, name).toBeGreaterThanOrEqual(0.85);
+      expect(now / old, name).toBeLessThanOrEqual(1.15);
+    }
+  });
+
+  it('tajuk tidak menjorok: pohon/semak ≥ 10 m dari tepi mask dan tidak di koridor gapura/sumbu utara', () => {
+    expect(VEGETATION_EDGE_CLEARANCE).toBeGreaterThanOrEqual(10);
+    const pts = instancePositions(scoped(() => createLandscape({ keep: isVegetationSpot })));
+    expect(pts.length).toBeGreaterThan(0);
+    expect(pts.filter(([x, z]) => !inMask(x, z) || distanceToRing(x, z, STADION_MASK) < 10)).toEqual([]);
+    expect(pts.filter(([x, z]) => inNorthCorridor(x, z))).toEqual([]);
+    // titik yang dilaporkan review: trembesi di atas angkot dan di sumbu pejalan
+    for (const [x, z] of [[18, -439], [20, -435], [-8, -430], [-5, -385]]) expect(isVegetationSpot(x, z)).toBe(false);
+  });
+
+  it('kode ilalang mati dihapus: lanskap tanpa instans ilalang', () => {
+    const names = [];
+    scoped(() => createLandscape()).traverse((o) => names.push(o.name));
+    expect(names.filter((n) => n.startsWith('ilalang'))).toEqual([]);
+  });
+
+  it('createLandscape({keep}) — pohon besar/muda, semak: tidak ada instans di luar mask', () => {
     const all = instancePositions(scoped(() => createLandscape()));
     expect(all.filter(([x, z]) => !inMask(x, z)).length).toBeGreaterThan(0); // tanpa keep: ada di luar (kontrol)
     const pts = instancePositions(scoped(() => createLandscape({ keep: inMask })));
