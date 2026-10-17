@@ -1,10 +1,10 @@
 /**
- * Minimap 2D: peta dasar (tampak atas) di-bake SEKALI dari scene lewat kamera ortografis
- * (App.bakeMinimap), lalu per frame hanya `drawImage` jendela di sekitar pemain + marker pada
- * canvas 2D kecil. Tanpa render 3D tambahan, tidak terpengaruh siang/malam, dan murah.
- * Utara = atas; sepeda selalu di tengah.
+ * Minimap 2D: dua layer — (1) tile kota (canvas per tile dari city/tileMinimap.js, di bawah) dan
+ * (2) peta dasar region (tampak atas) yang di-bake SEKALI dari scene lewat kamera ortografis
+ * (App.bakeMinimap). Per frame hanya `drawImage` jendela di sekitar pemain + marker pada canvas 2D
+ * kecil. Tanpa render 3D tambahan, tidak terpengaruh siang/malam, dan murah. Utara = atas.
  */
-import { clampToEdge, projectToView, sourceRect } from '../shared/minimapMath.js';
+import { clampToEdge, projectToView, sourceRect, worldRectToView } from '../shared/minimapMath.js';
 
 const BG = '#2f5b32';
 const REDRAW_SEC = 1 / 15;     // 15 Hz cukup untuk peta
@@ -23,6 +23,7 @@ export class Minimap2D {
     this.base = null;
     this.worldHalf = 700;
     this.baseCenter = { x: 0, z: 0 };
+    this.tileLayer = null;
     this._last = -Infinity;
     this.canvas = document.createElement('canvas');
     this.canvas.id = 'minimap2d';
@@ -50,6 +51,12 @@ export class Minimap2D {
     this._last = -Infinity;
   }
 
+  /** @param {{tilesInView(focus:{x:number,z:number}, halfExtent:number): Array<{canvas: CanvasImageSource, bounds: object}>}|null} layer */
+  setTileLayer(layer) {
+    this.tileLayer = layer;
+    this._last = -Infinity;
+  }
+
   setVisible(visible) { this.canvas.classList.toggle('hidden', !visible); }
 
   get visible() { return !this.canvas.classList.contains('hidden'); }
@@ -68,6 +75,10 @@ export class Minimap2D {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = BG;
     ctx.fillRect(0, 0, S, S);
+    for (const t of this.tileLayer?.tilesInView(focus, this.halfExtent) ?? []) {
+      const r = worldRectToView(t.bounds, focus, this.halfExtent, S);
+      ctx.drawImage(t.canvas, r.x, r.y, r.w, r.h);
+    }
     if (this.base) {
       const r = sourceRect(focus, this.halfExtent, this.worldHalf, this.base.width, this.baseCenter);
       ctx.drawImage(this.base, r.sx, r.sy, r.sw, r.sh, 0, 0, S, S);

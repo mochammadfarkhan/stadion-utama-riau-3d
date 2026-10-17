@@ -52,3 +52,14 @@ export function flipRowsInPlace(pixels, width, height) {
     pixels.set(tmp, b);
   }
 }
+
+/** Persegi dunia {minX, minZ, maxX, maxZ} → persegi tampilan (piksel) dengan fokus di tengah. */
+export function worldRectToView(b, focus, halfExtent, viewSize) {
+  const k = viewSize / (2 * halfExtent);
+  return {
+    x: viewSize / 2 + (b.minX - fin(focus?.x)) * k,
+    y: viewSize / 2 + (b.minZ - fin(focus?.z)) * k,
+    w: (b.maxX - b.minX) * k,
+    h: (b.maxZ - b.minZ) * k,
+  };
+}
