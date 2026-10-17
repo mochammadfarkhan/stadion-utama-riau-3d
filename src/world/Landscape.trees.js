@@ -174,8 +174,10 @@ function treeParts(type) {
   ];
 }
 
+const ALL = () => true;
+
 /** Posisi acak bebas untuk pohon besar. */
-function randomTreeSpots(rnd, count) {
+function randomTreeSpots(rnd, count, keep) {
   const spots = [];
   const half = SITE.groundSize / 2 - 30;
   let guard = 0;
@@ -183,16 +185,16 @@ function randomTreeSpots(rnd, count) {
     guard += 1;
     const x = rnd.range(-half, half);
     const z = rnd.range(-half, half);
-    if (isFreeForBigTree(x, z)) spots.push({ x, z, rotY: rnd.range(0, Math.PI * 2), scale: rnd.range(0.8, 1.25) });
+    if (isFreeForBigTree(x, z) && keep(x, z)) spots.push({ x, z, rotY: rnd.range(0, Math.PI * 2), scale: rnd.range(0.8, 1.25) });
   }
   return spots;
 }
 
 /** Pohon tepi jalan lingkar luar (deret palem Jl. Naga Sakti handmade dihapus Plan C). */
-function roadsideTreeSpots(rnd) {
+function roadsideTreeSpots(rnd, keep) {
   const { ringRoadSemiX: ax, ringRoadSemiZ: az, joggingTrackOffset: off } = SITE;
   const ring = distributeOnEllipse(ax + off + 9, az + off + 9, 70)
-    .filter((p) => isFreeForBigTree(p.x, p.z))
+    .filter((p) => isFreeForBigTree(p.x, p.z) && keep(p.x, p.z))
     .map((p) => ({ x: p.x, z: p.z, rotY: rnd.range(0, 6.28), scale: rnd.range(0.9, 1.1) }));
   return { ring };
 }
@@ -227,10 +229,10 @@ function attachCrownShadow(group) {
 }
 
 /** Semua pohon besar (sekitar 400) sebagai InstancedMesh per jenis (batang + tajuk). */
-export function createBigTrees(seed = 11) {
+export function createBigTrees(seed = 11, keep = ALL) {
   const rnd = createRandom(seed);
-  const road = roadsideTreeSpots(rnd);
-  const random = splitByType(randomTreeSpots(rnd, TREE_COUNT_RANDOM), rnd, { trembesi: 3, mahoni: 3, pulai: 2, palem: 1, sawit: 3 });
+  const road = roadsideTreeSpots(rnd, keep);
+  const random = splitByType(randomTreeSpots(rnd, TREE_COUNT_RANDOM, keep), rnd, { trembesi: 3, mahoni: 3, pulai: 2, palem: 1, sawit: 3 });
   const ringSplit = splitByType(road.ring, rnd, { trembesi: 2, mahoni: 1, sawit: 2 });
   const g = new THREE.Group();
   g.name = 'pohonBesar';
@@ -256,7 +258,7 @@ function stakeParts() {
 }
 
 /** Posisi pohon muda di sabuk plaza (deterministik). */
-function youngTreeSpots(rnd) {
+function youngTreeSpots(rnd, keep) {
   const { ringRoadSemiX: ax, ringRoadSemiZ: az, plazaSemiX: px, plazaSemiZ: pz } = SITE;
   const spots = [];
   let guard = 0;
@@ -266,15 +268,15 @@ function youngTreeSpots(rnd) {
     const u = rnd.next();
     const x = (px + 6 + (ax - px - 24) * u) * Math.cos(t);
     const z = (pz + 6 + (az - pz - 24) * u) * Math.sin(t);
-    if (isFreeInPlazaBelt(x, z)) spots.push({ x, z, rotY: rnd.range(0, 6.28), scale: rnd.range(0.8, 1.2) });
+    if (isFreeInPlazaBelt(x, z) && keep(x, z)) spots.push({ x, z, rotY: rnd.range(0, 6.28), scale: rnd.range(0.8, 1.2) });
   }
   return spots;
 }
 
 /** Pohon muda berajir (sekitar 150): tajuk 3 bola kecil, batang pendek, 3 bilah ajir. */
-export function createYoungTrees(seed = 23) {
+export function createYoungTrees(seed = 23, keep = ALL) {
   const rnd = createRandom(seed);
-  const spots = youngTreeSpots(rnd);
+  const spots = youngTreeSpots(rnd, keep);
   const crown = blobCluster({ count: 3, radius: 0.7, spread: 0.55, flat: 1.1, vertical: 0.3 }, createRandom(seed + 500));
   const parts = [
     { geometry: trunkGeometry(0.09, 2.0, 6), material: trunkMat(), name: 'batangMuda' },
@@ -287,7 +289,7 @@ export function createYoungTrees(seed = 23) {
 }
 
 /** Semak bulat rendah tersebar di luar plaza: 6 bola gemuk saling tumpang tindih. */
-export function createShrubs(seed = 31) {
+export function createShrubs(seed = 31, keep = ALL) {
   const rnd = createRandom(seed);
   const spots = [];
   const half = SITE.groundSize / 2 - 40;
@@ -296,7 +298,7 @@ export function createShrubs(seed = 31) {
     guard += 1;
     const x = rnd.range(-half, half);
     const z = rnd.range(-half, half);
-    const ok = isFreeForBigTree(x, z) || isFreeInPlazaBelt(x, z);
+    const ok = (isFreeForBigTree(x, z) || isFreeInPlazaBelt(x, z)) && keep(x, z);
     if (ok) spots.push({ x, z, rotY: rnd.range(0, 6.28), scale: rnd.range(0.6, 1.5) });
   }
   const geo = blobCluster({ count: 6, radius: 0.8, spread: 0.85, flat: 0.75, center: [0, 0.45, 0], vertical: 0.15 }, createRandom(seed + 500));
@@ -317,7 +319,7 @@ function grassClumpGeometry() {
 }
 
 /** Ilalang: rumpun di beberapa area kawasan, warna kuning-hijau per instance. */
-export function createWildGrass(seed = 41, centers = defaultGrassCenters()) {
+export function createWildGrass(seed = 41, centers = defaultGrassCenters(), keep = ALL) {
   const rnd = createRandom(seed);
   const spots = [];
   centers.forEach((c) => {
@@ -326,7 +328,7 @@ export function createWildGrass(seed = 41, centers = defaultGrassCenters()) {
       const r = Math.sqrt(rnd.next()) * (c.r ?? GRASS_CLUMP.radius);
       const x = c.x + Math.cos(a) * r;
       const z = c.z + Math.sin(a) * r;
-      if (!isFreeForBigTree(x, z) && !c.force) continue;
+      if ((!isFreeForBigTree(x, z) && !c.force) || !keep(x, z)) continue;
       spots.push({ x, z, rotY: rnd.range(0, 6.28), scale: rnd.range(0.7, 1.4) });
     }
   });

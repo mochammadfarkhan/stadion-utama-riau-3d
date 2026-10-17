@@ -30,7 +30,7 @@ function loadModels(scope, models, worldGroup, enabled, isCancelled) {
 /** ctx: scope (wajib), placement (default STADION_PLACEMENT), loadModels (default true). */
 function buildStadion({ scope, placement = STADION_PLACEMENT, loadModels: withModels = true }) {
   if (!scope) throw new TypeError('Region stadion: ctx.scope (ResourceScope) wajib');
-  const world = withScope(scope, () => buildWorld({ layout: LAYOUT, site: SITE }));
+  const world = withScope(scope, () => buildWorld({ layout: LAYOUT, site: SITE, mask: STADION_MASK }));
   const models = createModelGroup();
   world.group.add(models);
   let disposed = false;

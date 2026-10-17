@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { pointInPolygon } from '../geo/polygon.js';
 import { RENDER_LAYERS, STADIUM, SITE } from '../config/constants.js';
 import { createGround } from './Ground.js';
 import { createLandscape } from './Landscape.js';
@@ -36,11 +37,13 @@ const MINIMAP_TRIBUNE_PARTS = ['beton'];
  * Merakit seluruh dunia statis region stadion. Setiap bagian statis digabung per material
  * (mergeByMaterial) agar jumlah draw call minimal; objek besar diberi layer minimap agar tampil
  * di peta kecil. `layout` WAJIB dari region (regions/stadion/layout.js); `site` default = SITE.
- * @param {{layout: object, site?: object}} opts
+ * `mask` (region-lokal): tanah berbentuk mask dan vegetasi/rumput hanya di dalam mask (di luar = kota).
+ * @param {{layout: object, site?: object, mask?: Array<[number, number]>|null}} opts
  * @returns {{group: THREE.Group, update(dt:number, t:number, focus?:object):void, seatSamples: object[], layout: object}}
  */
-export function buildWorld({ layout, site = SITE } = {}) {
+export function buildWorld({ layout, site = SITE, mask = null } = {}) {
   if (!layout) throw new TypeError('buildWorld: layout wajib (diberikan region)');
+  const keep = mask ? (x, z) => pointInPolygon(x, z, mask) : () => true;
   const group = new THREE.Group();
   group.name = 'world';
   const updatables = [];
@@ -52,11 +55,11 @@ export function buildWorld({ layout, site = SITE } = {}) {
     return out;
   };
 
-  const ground = createGround();
+  const ground = createGround({ outline: mask });
   const lots = collectParkingLots(ground);
   add(ground, { minimap: true });
-  add(createLandscape());
-  add(createGrass(), { merge: false });
+  add(createLandscape({ keep }));
+  add(createGrass({ keep }), { merge: false });
   add(withMinimapParts(createShell(), MINIMAP_SHELL_PARTS));
   add(createFacade());
   const tribune = add(withMinimapParts(createTribune(), MINIMAP_TRIBUNE_PARTS), { merge: false });

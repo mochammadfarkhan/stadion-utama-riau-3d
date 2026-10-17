@@ -12,17 +12,17 @@ import {
  * sepatu roda fiktif dihapus Plan C (I4). Tidak ada apa pun di dalam elips stadion.
  */
 
+/** Persegi tanah lama ±groundSize/2 (dipakai bila region tidak memberi outline). */
+const squareOutline = (half) => [[-half, -half], [half, -half], [half, half], [-half, half]];
+
 /**
- * Bidang tanah persegi dengan lubang elips di bawah stadion agar tidak berimpit
- * (z-fighting) dengan apron, lintasan, dan lapangan. UV ShapeGeometry = meter.
+ * Bidang tanah berbentuk `outline` (mask region, [[x, z], ...]) dengan lubang elips di bawah stadion
+ * agar tidak berimpit (z-fighting) dengan apron, lintasan, dan lapangan. Di luar outline: tanah
+ * tile kota (Plan C Fase 3). Titik Shape (x, −z) karena rotateX(−π/2) memetakan y → −z. UV = meter.
  */
-function createGroundWithHole() {
-  const half = SITE.groundSize / 2;
+function createGroundWithHole(outline) {
   const shape = new THREE.Shape();
-  shape.moveTo(-half, -half);
-  shape.lineTo(half, -half);
-  shape.lineTo(half, half);
-  shape.lineTo(-half, half);
+  outline.forEach(([x, z], i) => (i === 0 ? shape.moveTo(x, -z) : shape.lineTo(x, -z)));
   shape.closePath();
   const hole = new THREE.Path();
   const inset = SURFACE_Y.groundHoleInset;
@@ -33,10 +33,10 @@ function createGroundWithHole() {
   return geo;
 }
 
-/** Tanah rumput besar (UV dalam meter agar tekstur rumput berulang tiap 4 m). */
-function createGrassPlane() {
+/** Tanah rumput region (UV dalam meter agar tekstur rumput berulang tiap 4 m). */
+function createGrassPlane(outline) {
   const m = groundMaterials();
-  const mesh = new THREE.Mesh(createGroundWithHole(), m.grass);
+  const mesh = new THREE.Mesh(createGroundWithHole(outline), m.grass);
   mesh.position.y = LAYER_Y.ground;
   mesh.receiveShadow = true;
   mesh.name = 'rumput';
@@ -54,11 +54,14 @@ function createPlaza() {
   return mesh;
 }
 
-/** Group lengkap tanah & infrastruktur datar kawasan. */
+/**
+ * Group lengkap tanah & infrastruktur datar kawasan.
+ * @param {{outline?: Array<[number, number]>|null, name?: string}} [opts] outline = mask region (default persegi lama)
+ */
 export function createGround(opts = {}) {
   const g = new THREE.Group();
   g.name = 'ground';
-  g.add(createGrassPlane());
+  g.add(createGrassPlane(opts.outline ?? squareOutline(SITE.groundSize / 2)));
   g.add(createPlaza());
   g.add(createRingRoad());
   g.add(createConnectorRoads());

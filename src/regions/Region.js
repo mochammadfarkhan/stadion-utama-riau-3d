@@ -51,6 +51,15 @@ export function regionContains(region, x, z) {
   return pointInPolygon(l.x, l.z, region.mask);
 }
 
+/**
+ * Setengah sisi persegi berpusat placement yang memuat seluruh mask (m), mis. untuk bake minimap.
+ * Memakai jarak radial terjauh (bukan max |x|, |z|) agar tetap memuat mask untuk yaw placement apa pun
+ * (kamera bake sejajar sumbu dunia, utara di atas).
+ */
+export function maskHalfExtent(mask) {
+  return Math.max(...mask.map(([x, z]) => Math.hypot(x, z)));
+}
+
 /** Salinan definisi region dengan placement lain (uji placement non-identitas, mode dev). */
 export function withPlacement(region, placement) {
   return defineRegion({ ...region, placement });

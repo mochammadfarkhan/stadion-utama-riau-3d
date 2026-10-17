@@ -20,7 +20,6 @@ import { Minimap2D } from './ui/Minimap2D.js';
 import { MainMenu } from './ui/MainMenu.js';
 import { hasStoryProgress } from './ui/menuModel.js';
 import { createRotatePrompt } from './ui/orientation.js';
-import { SITE } from './config/constants.js';
 import { STORY_NPCS } from './story/chapters.js';
 import { updateWind } from './world/shaders/windState.js';
 import { buildEntities } from './entities/index.js';
@@ -45,12 +44,13 @@ import { createDisposerStack } from './app/lifecycle.js';
 import { mountRegion, applyPlacement } from './app/mountRegion.js';
 import { createLocalContext, pointToLocal, pointToWorld } from './app/regionContext.js';
 import { createRegionFrame } from './geo/regionTransform.js';
-import { withPlacement } from './regions/Region.js';
+import { withPlacement, maskHalfExtent } from './regions/Region.js';
 import { createCity } from './city/index.js';
 import { STREAM } from './city/ChunkStreamer.js';
 import { createAttribution } from './ui/Attribution.js';
 
 const MODELS_TIMEOUT_MS = 8000;
+const MINIMAP_BAKE_MARGIN = 20; // m di luar mask pada peta dasar region
 
 function showFatal(msg) {
   const panel = document.querySelector('#overlay .panel');
@@ -198,7 +198,8 @@ async function main() {
   await Promise.race([modelsReady, new Promise((resolve) => setTimeout(resolve, MODELS_TIMEOUT_MS))]);
   await loading.step(0.97, 'Menggambar peta…');
   try {
-    minimap.setBase(app.bakeMinimap(SITE.groundSize / 2, frame.placement), SITE.groundSize / 2, frame.placement);
+    const bakeHalf = Math.ceil(maskHalfExtent(stadionDef.mask)) + MINIMAP_BAKE_MARGIN; // area tanah region saja
+    minimap.setBase(app.bakeMinimap(bakeHalf, frame.placement), bakeHalf, frame.placement);
   } catch (err) {
     // Minimap hanya pelengkap: GPU yang gagal mengalokasikan target/readPixels tidak boleh menggagalkan game.
     console.error('Minimap dasar gagal dibuat, minimap memakai latar polos:', err);

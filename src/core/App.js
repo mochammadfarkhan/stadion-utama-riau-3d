@@ -20,7 +20,6 @@ const AO_DISTANCE_FALLOFF = 1.0;
 const MINIMAP_BAKE_PX = 1536;      // resolusi peta dasar (±0,9 m/piksel untuk dunia 1.400 m)
 const MINIMAP_BAKE_HEIGHT = 400;
 const MINIMAP_BAKE_AMBIENT = 3;    // ambient ≈ albedo ×0,95 (tanpa IBL/kabut/matahari)
-const MINIMAP_BG = 0x2f5b32;
 
 /**
  * App: renderer, scene, kamera utama, post-processing, minimap, loop waktu.
@@ -279,9 +278,10 @@ export class App {
   }
 
   /**
-   * Bake peta dasar minimap SEKALI: tampak atas seluruh dunia dari kamera ortografis, hanya objek
+   * Bake peta dasar minimap SEKALI: tampak atas area region dari kamera ortografis, hanya objek
    * di RENDER_LAYERS.minimap, diterangi ambient merata (tanpa IBL, kabut, matahari) lalu disalin
-   * ke canvas 2D. Dipakai oleh ui/Minimap2D; tidak ada render 3D minimap per frame.
+   * ke canvas 2D. Latar TRANSPARAN: di luar tanah region (mask) layer tile kota di bawahnya tampak.
+   * Dipakai oleh ui/Minimap2D; tidak ada render 3D minimap per frame.
    * @param {number} worldHalf setengah sisi area bake (m)
    * @param {{x:number, z:number}} [center] pusat area bake di frame dunia (placement region); utara tetap di atas
    * @returns {HTMLCanvasElement}
@@ -309,7 +309,7 @@ export class App {
     this.scene.updateMatrixWorld();
     try {
       r.setRenderTarget(target);
-      r.setClearColor(MINIMAP_BG, 1);
+      r.setClearColor(0x000000, 0);
       r.clear();
       r.render(this.scene, cam);
       const buf = new Uint8ClampedArray(px * px * 4);
