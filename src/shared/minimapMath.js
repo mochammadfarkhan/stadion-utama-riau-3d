@@ -63,3 +63,14 @@ export function worldRectToView(b, focus, halfExtent, viewSize) {
     h: (b.maxZ - b.minZ) * k,
   };
 }
+
+/**
+ * Bulatkan persegi tampilan ke piksel utuh per TEPI (bukan per lebar) agar tile yang bersebelahan berbagi
+ * tepi yang sama persis: tidak ada celah/garis tipis di sambungan saat drawImage.
+ * @param {{x:number, y:number, w:number, h:number}} r
+ */
+export function snapRect(r) {
+  const x = Math.round(r.x);
+  const y = Math.round(r.y);
+  return { x, y, w: Math.round(r.x + r.w) - x, h: Math.round(r.y + r.h) - y };
+}

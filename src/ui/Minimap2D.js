@@ -4,7 +4,7 @@
  * (App.bakeMinimap). Per frame hanya `drawImage` jendela di sekitar pemain + marker pada canvas 2D
  * kecil. Tanpa render 3D tambahan, tidak terpengaruh siang/malam, dan murah. Utara = atas.
  */
-import { clampToEdge, projectToView, sourceRect, worldRectToView } from '../shared/minimapMath.js';
+import { clampToEdge, projectToView, snapRect, sourceRect, worldRectToView } from '../shared/minimapMath.js';
 
 const BG = '#2f5b32';
 const REDRAW_SEC = 1 / 15;     // 15 Hz cukup untuk peta
@@ -76,7 +76,7 @@ export class Minimap2D {
     ctx.fillStyle = BG;
     ctx.fillRect(0, 0, S, S);
     for (const t of this.tileLayer?.tilesInView(focus, this.halfExtent) ?? []) {
-      const r = worldRectToView(t.bounds, focus, this.halfExtent, S);
+      const r = snapRect(worldRectToView(t.bounds, focus, this.halfExtent, S));
       ctx.drawImage(t.canvas, r.x, r.y, r.w, r.h);
     }
     if (this.base) {
