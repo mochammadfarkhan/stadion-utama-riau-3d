@@ -91,3 +91,18 @@ describe('polygon: dipindah dari src/shared/polygon.js (satu implementasi)', () 
     expect(one[0]).not.toBe(pts[0]);
   });
 });
+
+describe('polygon: jarak ke tepi (TileCollider)', () => {
+  it('distanceToSegment & distanceToRing (ring tertutup vs polyline terbuka)', async () => {
+    const { distanceToSegment, distanceToRing } = await import('../../src/geo/polygon.js');
+    expect(distanceToSegment(5, 3, [0, 0], [10, 0])).toBe(3);
+    expect(distanceToSegment(-4, 3, [0, 0], [10, 0])).toBe(5);
+    expect(distanceToSegment(1, 1, [0, 0], [0, 0])).toBeCloseTo(Math.SQRT2, 12);
+    expect(distanceToRing(5, 5, SQUARE)).toBe(5);
+    expect(distanceToRing(-1, 5, SQUARE)).toBe(1);
+    const L = [[0, 0], [10, 0], [10, 10]];
+    expect(distanceToRing(0, 10, L, false)).toBe(10);
+    expect(distanceToRing(0, 10, L, true)).toBeCloseTo(Math.SQRT2 * 5, 9);
+    expect(distanceToRing(0, 0, [[1, 1]], false)).toBe(Infinity);
+  });
+});

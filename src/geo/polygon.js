@@ -217,3 +217,24 @@ export function clipPolylineToRect(line, rect) {
   }
   return parts.filter((l) => l.length >= 2);
 }
+
+/** Jarak titik (x, z) ke segmen a→b. */
+export function distanceToSegment(x, z, a, b) {
+  const dx = b[0] - a[0];
+  const dz = b[1] - a[1];
+  const len2 = dx * dx + dz * dz;
+  const t = len2 > 0 ? Math.min(1, Math.max(0, ((x - a[0]) * dx + (z - a[1]) * dz) / len2)) : 0;
+  return Math.hypot(x - (a[0] + dx * t), z - (a[1] + dz * t));
+}
+
+/** Jarak titik ke tepi ring (closed = true) atau polyline (closed = false); Infinity bila < 2 titik. */
+export function distanceToRing(x, z, ring, closed = true) {
+  let best = Infinity;
+  const n = ring.length;
+  const last = closed ? n : n - 1;
+  for (let i = 0; i < last; i += 1) {
+    const d = distanceToSegment(x, z, ring[i], ring[(i + 1) % n]);
+    if (d < best) best = d;
+  }
+  return best;
+}
