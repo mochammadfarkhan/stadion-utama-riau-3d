@@ -183,3 +183,21 @@ body.is-photo .vendor-label { display: none !important; }
   pointer-events: auto;
 }
 #map-attribution a { color: inherit; padding: 4px 0; }
+/* Perjalanan cepat (tombol G): tombol HUD, panel tujuan, dan layar perjalanan. */
+#hud-travel {
+  position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 5;
+  padding: 4px 12px; border-radius: 999px; border: 1px solid var(--hud-accent);
+  background: rgba(10, 14, 20, 0.6); color: var(--hud-fg); font: 600 12px/1.4 system-ui, sans-serif; cursor: pointer;
+}
+#fast-travel {
+  position: fixed; top: 96px; left: 50%; transform: translateX(-50%); z-index: 7;
+  min-width: 260px; padding: 14px 16px; border-radius: 12px; background: rgba(10, 14, 20, 0.92); color: var(--hud-fg);
+}
+#fast-travel h2 { margin: 0 0 10px; font-size: 16px; }
+#fast-travel .travel-list { display: grid; gap: 8px; margin-bottom: 10px; }
+#fast-travel button { padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.06); color: inherit; cursor: pointer; }
+#fast-travel.hidden, #travel-screen.hidden { display: none; }
+#travel-screen {
+  position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
+  background: rgba(8, 12, 18, 0.88); color: #fff; font: 600 18px/1.4 system-ui, sans-serif;
+}

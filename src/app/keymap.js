@@ -11,13 +11,14 @@ import { pointToLocal } from './regionContext.js';
 const HOURS = 24;
 
 /** Hotkey lama menulis ke store (binding menerapkan ke scene). */
-export function handleKeys(input, { rig, hud, ents, shop, time, store, story, frame }) {
+export function handleKeys(input, { rig, hud, ents, shop, time, store, story, frame, travelMenu = null }) {
   const toggle = (key) => store.set(key, !store.get(key));
   handleCameraKeys(input, { rig, hud, store });
   if (input.consumePress('KeyM')) toggle('performance.minimap');
   if (input.consumePress('KeyO')) toggle('graphics.ao'); // matikan AO bila FPS rendah
   handleTimeWeatherKeys(input, hud, time, store);
   if (input.consumePress('KeyJ')) story.toggleJournal();
+  if (input.consumePress('KeyG')) travelMenu?.toggle(); // perjalanan cepat (Stadion / Masjid Raya An-Nur)
   const escTarget = input.consumePress('Escape')
     ? routeEscape({ journalOpen: story.journal.open, shopOpen: hud.shopOpen })
     : null;
