@@ -150,7 +150,7 @@ describe('vehicleCircles', () => {
 });
 
 describe('mountParkedVehicles', () => {
-  const realJson = (url) => Promise.resolve(JSON.parse(readFileSync(url.replace(/^\/tiles\//, 'public/tiles/'), 'utf8')));
+  const realTileData = (key) => Promise.resolve(loadTile(key));
   const manifest = () => JSON.parse(readFileSync('public/tiles/manifest.json', 'utf8'));
   const fakeGltf = () => {
     const scene = new THREE.Group();
@@ -169,7 +169,7 @@ describe('mountParkedVehicles', () => {
     const time = fakeTime();
     const urls = [];
     const v = mountParkedVehicles({
-      parent, manifest: manifest(), fetchJson: realJson, loadGltf: (u) => { urls.push(u); return fakeGltf(); },
+      parent, manifest: manifest(), loadTileData: realTileData, loadGltf: (u) => { urls.push(u); return fakeGltf(); },
       collider, time, logger: quiet,
     });
     expect(v.group.name).toBe(PARKED_GROUP_NAME);
@@ -200,7 +200,7 @@ describe('mountParkedVehicles', () => {
     let release;
     const gate = new Promise((r) => { release = r; });
     const v = mountParkedVehicles({
-      parent, manifest: manifest(), fetchJson: realJson, loadGltf: () => gate.then(fakeGltf), collider, time, logger: quiet,
+      parent, manifest: manifest(), loadTileData: realTileData, loadGltf: () => gate.then(fakeGltf), collider, time, logger: quiet,
     });
     await new Promise((r) => setTimeout(r, 0));
     v.dispose();
@@ -215,12 +215,28 @@ describe('mountParkedVehicles', () => {
 
   it('model gagal dimuat → kendaraan itu dilewati dan dilaporkan; yang lain tetap', async () => {
     const v = mountParkedVehicles({
-      parent: new THREE.Group(), manifest: manifest(), fetchJson: realJson, logger: quiet,
+      parent: new THREE.Group(), manifest: manifest(), loadTileData: realTileData, logger: quiet,
       loadGltf: (u) => (u.includes('bus') ? Promise.reject(new Error('404')) : fakeGltf()),
     });
     const res = await v.ready;
     expect(res.placed).toBe(3);
     expect(res.failed).toEqual([{ model: 'bus', error: '404' }]);
+    v.dispose();
+  });
+
+  it('data tile diambil lewat loadTileData (jalur muat TileLoader); tile gagal dicatat dan dilewati', async () => {
+    const asked = [];
+    const errors = [];
+    const keys = tilesForTargets(TARGETS);
+    const v = mountParkedVehicles({
+      parent: new THREE.Group(), manifest: manifest(), loadGltf: fakeGltf, logger: { error: (...a) => errors.push(a) },
+      loadTileData: (key) => { asked.push(key); return key === keys[0] ? Promise.reject(new Error('rusak')) : realTileData(key); },
+    });
+    const res = await v.ready;
+    const inManifest = new Set(manifest().tiles.map((t) => t.key));
+    expect(asked).toEqual(keys.filter((k) => inManifest.has(k)));
+    expect(errors.some((a) => String(a[0]).includes(keys[0]))).toBe(true);
+    expect(res.cancelled).toBe(false);
     v.dispose();
   });
 });

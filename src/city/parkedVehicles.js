@@ -12,7 +12,6 @@ import { pointInPolygon } from '../geo/polygon.js';
 import { tilesInRect } from '../geo/tiles.js';
 import { disposeTree } from '../engine/disposeTree.js';
 import { freezeStatic } from '../engine/freezeStatic.js';
-import { decodeTileData, validateTileData } from './tileData.js';
 
 export const PARKED_GROUP_NAME = 'kendaraanMangkal';
 export const PARKED_COLLIDER_KEY = 'kendaraanMangkal';
@@ -172,16 +171,14 @@ export function tilesForTargets(targets, margin = 30) {
   return [...keys].sort();
 }
 
-/** Data tile terdekode untuk kunci yang ada di manifest; tile gagal dicatat dan dilewati. */
-async function loadTiles(keys, { manifest, baseUrl, fetchJson, logger }) {
-  const files = new Map(manifest.tiles.map((t) => [t.key, t.data.file]));
-  const wanted = keys.filter((k) => files.has(k));
-  const results = await Promise.allSettled(wanted.map(async (key) => {
-    const json = await fetchJson(`${baseUrl}tiles/${files.get(key)}`);
-    const check = validateTileData(json, key);
-    if (!check.ok) throw new Error(`tile ${key}: ${check.error}`);
-    return decodeTileData(json);
-  }));
+/**
+ * Data tile terdekode untuk kunci yang ada di manifest, lewat jalur muat TileLoader (cache bila tile sudah
+ * dimuat streamer, selain itu unduh + retry + validasi); tile gagal dicatat dan dilewati.
+ */
+async function loadTiles(keys, { manifest, loadTileData, logger }) {
+  const known = new Set(manifest.tiles.map((t) => t.key));
+  const wanted = keys.filter((k) => known.has(k));
+  const results = await Promise.allSettled(wanted.map((key) => loadTileData(key)));
   return results.flatMap((r, i) => {
     if (r.status === 'fulfilled') return [r.value];
     logger.error(`Kendaraan mangkal: data tile ${wanted[i]} gagal dimuat:`, r.reason);
@@ -212,8 +209,8 @@ async function loadModels(models, { baseUrl, loadGltf }) {
 }
 
 /**
- * @param {{parent: THREE.Object3D, manifest: {tiles: Array<{key:string, data:{file:string}}>}, baseUrl?: string,
- *   fetchJson: (url:string) => Promise<unknown>, loadGltf: (url:string) => Promise<{scene: THREE.Object3D}>,
+ * @param {{parent: THREE.Object3D, manifest: {tiles: Array<{key:string}>}, baseUrl?: string,
+ *   loadTileData: (key:string) => Promise<ReturnType<typeof import('./tileData.js').decodeTileData>>, loadGltf: (url:string) => Promise<{scene: THREE.Object3D}>,
  *   collider?: {addObstacles(key:string, circles:object[]):void, removeObstacles(key:string):boolean}|null,
  *   time?: {registerEmissive(root: THREE.Object3D): () => boolean}|null,
  *   targets?: ReturnType<typeof parkedTargets>, logger?: {error: (...a: unknown[]) => void}}} opts
@@ -221,7 +218,7 @@ async function loadModels(models, { baseUrl, loadGltf }) {
  *   slots:Array<{model:string,x:number,z:number,yaw:number}>, cancelled:boolean}>, dispose(): void}}
  */
 export function mountParkedVehicles({
-  parent, manifest, baseUrl = '/', fetchJson, loadGltf, collider = null, time = null, targets = parkedTargets(), logger = console,
+  parent, manifest, baseUrl = '/', loadTileData, loadGltf, collider = null, time = null, targets = parkedTargets(), logger = console,
 }) {
   const group = new THREE.Group();
   group.name = PARKED_GROUP_NAME;
@@ -230,7 +227,7 @@ export function mountParkedVehicles({
   const undo = []; // LIFO
 
   const place = async () => {
-    const tiles = await loadTiles(tilesForTargets(targets), { manifest, baseUrl, fetchJson, logger });
+    const tiles = await loadTiles(tilesForTargets(targets), { manifest, loadTileData, logger });
     if (disposed) return { placed: 0, failed: [], slots: [], cancelled: true };
     const buildings = tiles.flatMap((t) => t.buildings);
     const slots = computeParkedSlots(tiles.flatMap((t) => t.roads), targets).filter((s) => {

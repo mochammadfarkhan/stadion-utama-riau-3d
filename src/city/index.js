@@ -75,7 +75,9 @@ export async function createCity({
     },
   });
   // Angkot & bus kota mangkal (statis): lampu ke registry malam, collider lingkaran di TileCollider kota.
-  const vehicles = mountParkedVehicles({ parent: group, manifest, baseUrl, fetchJson, loadGltf: gltf, collider, time, logger });
+  const vehicles = mountParkedVehicles({
+    parent: group, manifest, baseUrl, loadTileData: loader.loadTileData, loadGltf: gltf, collider, time, logger,
+  });
   const waiters = new Set();
   let disposed = false;
   /** Selesaikan penunggu sekali dan bersihkan timer habis-waktunya. */

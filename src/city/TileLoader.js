@@ -68,30 +68,38 @@ export function createTileLoader({
   const url = (file) => `${baseUrl}tiles/${file}`;
   let disposed = false; // setelah dispose(): hasil muatan async dibuang, tidak menyentuh scene/registry
 
-  const retry = async (fn) => {
+  const retry = async (label, fn) => {
     for (let attempt = 0; ; attempt += 1) {
       try {
         return await fn();
       } catch (caught) {
-        const err = asDataError(caught, 'tile');
+        const err = asDataError(caught, label);
         if (err instanceof TileDataError || attempt >= retries) throw err;
         await sleep(backoffMs[Math.min(attempt, backoffMs.length - 1)]);
       }
     }
   };
 
-  const loadData = async (t) => {
-    if (decoded.has(t.key)) return decoded.get(t.key);
-    const json = await retry(() => getJson(url(t.data.file)));
+  /** Unduh (dengan retry) + validasi + dekode data tile; tanpa cache. */
+  const fetchData = async (t) => {
+    const file = url(t.data.file);
+    const json = await retry(file, () => getJson(file));
     const check = validateTileData(json, t.key);
     if (!check.ok) throw new TileDataError(`tile ${t.key}: ${check.error}`);
-    const tile = decodeTileData(json);
+    return decodeTileData(json);
+  };
+
+  /** Data tile yang dikelola streamer: di-cache sampai tile dilepas. */
+  const loadData = async (t) => {
+    if (decoded.has(t.key)) return decoded.get(t.key);
+    const tile = await fetchData(t);
     if (!disposed) decoded.set(t.key, tile);
     return tile;
   };
 
   const buildRoot = async (t, lod) => {
-    const gltf = await retry(() => loadGltf(url(t.lod[lod].file)));
+    const file = url(t.lod[lod].file);
+    const gltf = await retry(file, () => loadGltf(file));
     const root = new THREE.Group();
     root.name = `tile:${t.key}:lod${lod}`;
     const c = tileCenter(t.ix, t.iz);
@@ -179,6 +187,16 @@ export function createTileLoader({
         case 'unload': unload(action.key); return Promise.resolve();
         default: return Promise.resolve(); // 'cancel': hasil basi dibuang saat streamer.loaded() = false
       }
+    },
+    /**
+     * Data tile terdekode untuk pemakai lain (mis. kendaraan mangkal): dari cache bila tile sedang dimuat
+     * streamer, selain itu lewat jalur muat yang sama (retry + validasi) tanpa di-cache.
+     * @param {string} key
+     */
+    loadTileData(key) {
+      const t = info.get(key);
+      if (!t) return Promise.reject(new TileDataError(`tile ${key}: tidak ada di manifest`));
+      return decoded.has(key) ? Promise.resolve(decoded.get(key)) : fetchData(t);
     },
     has: (key) => entries.has(key),
     lodOf: (key) => entries.get(key)?.lod ?? null,

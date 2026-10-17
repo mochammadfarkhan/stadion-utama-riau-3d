@@ -129,6 +129,34 @@ describe('TileLoader', () => {
     expect(s.streamer.status(KEY)).toBe('failed');
   });
 
+  it('loadTileData: tile termuat → data terdekode dari cache tanpa unduh ulang', async () => {
+    const s = setup();
+    await run(s, { x: 250, z: -250 });
+    expect(s.calls.json).toHaveLength(1);
+    const tile = await s.loader.loadTileData(KEY);
+    expect(tile.key).toBe(KEY);
+    expect(tile.buildings).toHaveLength(1);
+    expect(s.calls.json).toHaveLength(1);
+  });
+
+  it('loadTileData: tile belum termuat → jalur muat yang sama (retry, validasi), hasil tidak di-cache', async () => {
+    let n = 0;
+    const s = setup({ json: () => { n += 1; return n === 1 ? Promise.reject(new Error('jaringan')) : Promise.resolve(structuredClone(DATA)); } });
+    const tile = await s.loader.loadTileData(KEY);
+    expect(tile.key).toBe(KEY);
+    expect(n).toBe(2); // dicoba ulang setelah galat jaringan
+    await s.loader.loadTileData(KEY);
+    expect(n).toBe(3); // tidak di-cache (tile tidak dikelola streamer)
+    expect(s.parent.children).toHaveLength(0);
+  });
+
+  it('loadTileData: data tak valid → TileDataError; kunci asing → TileDataError tanpa unduh', async () => {
+    const s = setup({ json: () => Promise.resolve({ ...DATA, v: 9 }) });
+    await expect(s.loader.loadTileData(KEY)).rejects.toBeInstanceOf(TileDataError);
+    await expect(s.loader.loadTileData('9_9')).rejects.toBeInstanceOf(TileDataError);
+    expect(s.calls.json).toHaveLength(1);
+  });
+
   it('hasil yang datang setelah dibatalkan dibuang (tidak terpasang, geometri dilepas)', async () => {
     let resolve;
     const s = setup({ gltf: () => new Promise((r) => { resolve = r; }) });
