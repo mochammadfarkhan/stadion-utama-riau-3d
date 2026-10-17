@@ -50,6 +50,29 @@ describe('tileMinimap', () => {
     expect(cache.size).toBe(0);
   });
 
+  it('drop/clear melepas canvas tile (width = 0) sebelum dibuang', () => {
+    const created = [];
+    const cache = createTileMinimapCache({ createCanvas: (w, h) => { const c = { width: w, height: h, getContext: () => fakeCtx().ctx }; created.push(c); return c; } });
+    cache.add('0_-1', tile);
+    cache.add('5_5', { ...tile, ix: 5, iz: 5 });
+    cache.add('6_6', { ...tile, ix: 6, iz: 6 });
+    cache.drop('0_-1');
+    expect(created[0].width).toBe(0);
+    expect(created[1].width).toBe(256);
+    cache.drop('tidak-ada'); // aman tanpa entri
+    cache.clear();
+    expect(created.map((c) => c.width)).toEqual([0, 0, 0]);
+  });
+
+  it('add ulang key yang sama melepas canvas lama', () => {
+    const created = [];
+    const cache = createTileMinimapCache({ createCanvas: (w, h) => { const c = { width: w, height: h, getContext: () => fakeCtx().ctx }; created.push(c); return c; } });
+    cache.add('0_-1', tile);
+    cache.add('0_-1', tile);
+    expect(cache.size).toBe(1);
+    expect(created.map((c) => c.width)).toEqual([0, 256]);
+  });
+
   it('worldRectToView: persegi tile relatif fokus, skala tampilan', () => {
     const r = worldRectToView({ minX: 0, minZ: -500, maxX: 500, maxZ: 0 }, { x: 250, z: -250 }, 250, 200);
     expect(r).toEqual({ x: 0, y: 0, w: 200, h: 200 });

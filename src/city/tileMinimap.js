@@ -80,10 +80,17 @@ export function createTileMinimapCache({ createCanvas = defaultCanvas, px = TILE
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       drawTileLayer(ctx, tile, { px, tileSize });
+      release(tiles.get(key));
       tiles.set(key, { canvas, bounds: tileBounds(tile.ix, tile.iz, tileSize) });
     },
-    drop(key) { tiles.delete(key); },
-    clear() { tiles.clear(); },
+    drop(key) {
+      release(tiles.get(key));
+      tiles.delete(key);
+    },
+    clear() {
+      for (const t of tiles.values()) release(t);
+      tiles.clear();
+    },
     get size() { return tiles.size; },
     /** Tile yang beririsan dengan jendela ±halfExtent di sekitar fokus. */
     tilesInView(focus, halfExtent) {
@@ -97,6 +104,13 @@ export function createTileMinimapCache({ createCanvas = defaultCanvas, px = TILE
       return out;
     },
   };
+}
+
+/** Kosongkan backing store canvas (width/height = 0) agar memorinya lepas tanpa menunggu GC. */
+function release(entry) {
+  if (!entry) return;
+  entry.canvas.width = 0;
+  entry.canvas.height = 0;
 }
 
 function defaultCanvas(w, h) {
