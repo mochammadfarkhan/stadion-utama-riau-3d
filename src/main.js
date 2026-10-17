@@ -46,6 +46,8 @@ import { mountRegion, applyPlacement } from './app/mountRegion.js';
 import { createLocalContext, pointToLocal, pointToWorld } from './app/regionContext.js';
 import { createRegionFrame } from './geo/regionTransform.js';
 import { withPlacement } from './regions/Region.js';
+import { createCity } from './city/index.js';
+import { STREAM } from './city/ChunkStreamer.js';
 
 const MODELS_TIMEOUT_MS = 8000;
 
@@ -110,9 +112,19 @@ async function main() {
   const stadion = await mountRegion(app, stadionDef, { store, time, weather });
   lifecycle.add(() => stadion.unmount()); // LIFO: dicabut sebelum time/weather di-dispose
   const region = stadion.region;
+
+  await loading.step(0.4, 'Menyiapkan peta kota (OpenStreetMap)…');
+  // Kota: tile OSM di-stream di sekitar fokus. Manifest gagal → null: mode hanya-region (perilaku lama) + toast.
+  const city = await createCity({ app, baseUrl: import.meta.env.BASE_URL, weather, toast: (t, ok) => hud.toast(t, ok) });
+  if (city) {
+    lifecycle.add(() => city.dispose());
+    time.setFogLimit(STREAM.loadRadius); // batas muat tertutup kabut
+  }
+  // Di dalam mask → collider region (lokal); di luar → TileCollider kota (tanpa kota: tanah region menutup dunia).
+  // Komposit meneruskan `penetration` dari collider terpilih: sepeda terjebak hanya boleh keluar, tidak menembus.
   const colliders = createCompositeCollider({
     regions: [{ region: stadionDef, colliders: region.colliders }],
-    fallback: localized(stadionDef, region.colliders), // Fase 0: tanah region (1,4 km) masih menutup seluruh dunia; Fase 2: TileCollider
+    fallback: city ? city.collider : localized(stadionDef, region.colliders),
   });
   rig.setObstacleTest(colliders.isCameraClear);
   const modelsReady = stadion.ready
@@ -154,6 +166,7 @@ async function main() {
   const story = setupStory({ app, ents, hud, rig, anchor, toLocalCtx });
   const shop = setupShop(hud, ents, story);
   const minimap = setupMinimap(app, ents, story, frame);
+  if (city) minimap.setTileLayer(city.minimap);
   addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, frame });
 
   // Binding store -> scene (satu sumber kebenaran). Dipasang setelah semua objek ada.
@@ -192,7 +205,7 @@ async function main() {
   rig.handlePovKey(POVS.find((p) => p.id === 'orbit').key);
   menu.ready({ hasProgress: hasStoryProgress(story.state), touch });
   if (import.meta.env.DEV) {
-    exposeDevTools({ app, ents, rig, time, weather, store, audioBus, story, colliders, teardown: () => lifecycle.disposeAll() });
+    exposeDevTools({ app, ents, rig, time, weather, store, audioBus, story, colliders, city, teardown: () => lifecycle.disposeAll() });
   }
 }
 
