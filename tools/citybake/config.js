@@ -3,6 +3,7 @@
  * Koordinat diverifikasi lewat Overpass/Nominatim 2026-10-16 (lihat komentar per entri).
  */
 import { tileBounds, tilesInRect, TILE_SIZE } from '../../src/geo/tiles.js';
+import { WORLD_ORIGIN } from '../../src/config/constants.js';
 import { stadionMaskWorld } from '../../src/regions/stadion/mask.js';
 
 export { TILE_SIZE };
@@ -12,9 +13,9 @@ export const FORMAT_VERSION = 1;
 
 /**
  * Origin frame dunia = centroid luas poligon OSM way 327365495 "Stadion Utama Riau"
- * (leisure=stadium, 53 titik), dihitung dari `out geom` Overpass 2026-10-16.
+ * (leisure=stadium, 53 titik), dihitung dari `out geom` Overpass 2026-10-16. Sumber: src/config/constants.js.
  */
-export const ORIGIN = Object.freeze({ lat: 0.4835954, lon: 101.3895277 });
+export const ORIGIN = WORLD_ORIGIN;
 
 /**
  * Kawasan bake. center = lat/lon; halfSize = setengah sisi persegi (m) di frame dunia.

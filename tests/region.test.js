@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { defineRegion, validateBuild, regionContains } from '../src/regions/Region.js';
 import { stadionRegion } from '../src/regions/stadion/index.js';
 import { STADION_MASK, createStadionMask } from '../src/regions/stadion/mask.js';
-import { litLampPositions } from '../src/regions/stadion/lamps.js';
+import { litLampPositions, stadionNightLights } from '../src/regions/stadion/lamps.js';
+import { STADION_PLACEMENT } from '../src/regions/stadion/placement.js';
 import { LAYOUT } from '../src/regions/stadion/layout.js';
 import { SITE } from '../src/regions/stadion/site.js';
 import { SITE as SITE_COMPAT } from '../src/config/constants.js';
@@ -44,7 +45,7 @@ describe('region stadion: data', () => {
       expect(regionContains(stadionRegion, x, z)).toBe(false);
     }
     expect(stadionRegion.mask).toBe(STADION_MASK);
-    expect(stadionRegion.placement).toEqual({ x: 0, z: 0, yaw: 0 });
+    expect(stadionRegion.placement).toEqual(STADION_PLACEMENT);
   });
   it('PJU menyala: plaza i%7==3 dan jalan lingkar i%9==4 padam', () => {
     const lit = litLampPositions(LAYOUT);
@@ -65,7 +66,8 @@ describe('region stadion: build & dispose', () => {
     expect(built.systems.map((s) => s.id)).toEqual(['stadion.world']);
     expect(typeof built.colliders.isWalkable).toBe('function');
     expect(built.seatSamples.length).toBeGreaterThan(0);
-    expect(built.nightLights.lamps).toEqual(litLampPositions(LAYOUT));
+    expect(built.nightLights).toEqual(stadionNightLights(LAYOUT, STADION_PLACEMENT)); // dunia (placement OSM)
+    expect(built.nightLights.lamps).toHaveLength(litLampPositions(LAYOUT).length);
     expect(built.lateRoot.parent).toBe(built.group);
     expect(scope.size).toBeGreaterThan(0);
     built.dispose();
