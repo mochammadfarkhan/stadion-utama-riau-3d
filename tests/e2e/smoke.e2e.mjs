@@ -153,10 +153,28 @@ const PAGE = {
    * Siklus pasang/lepas region. Baseline diambil SETELAH satu siklus pemanasan: pada muat pertama model
    * GLB sudah siap sebelum frame pertama, sedangkan saat dipasang ulang versi prosedural cadangan
    * (tugu, serindit) sempat tergambar (terunggah ke GPU) sebelum GLB tiba — selisih tetap, bukan bocor.
+   * Sebelum tiap snapshot semua level LOD humanoid (detail penuh + mesh gabungan, tanpa frustum culling)
+   * dirender sekali: geometri diunggah ke GPU saat pertama tergambar, jadi pelari (`runner-*`, entitas
+   * non-region) yang baru melintasi ambang LOD di tengah siklus tidak lagi menaikkan hitungan.
    */
   async memoryCycle() {
     const s = window.__sim;
+    const warmHumanoids = () => {
+      const saved = [];
+      const force = (o, key, value) => { saved.push([o, key, o[key]]); o[key] = value; };
+      s.app.scene.traverse((o) => {
+        const info = o.userData?.humanoidLod;
+        if (!info) return;
+        for (const part of [info.body, info.mesh]) {
+          force(part, 'visible', true);
+          part.traverse((m) => { if (m.isMesh) force(m, 'frustumCulled', false); });
+        }
+      });
+      s.app.renderFrame();
+      for (let i = saved.length - 1; i >= 0; i -= 1) saved[i][0][saved[i][1]] = saved[i][2];
+    };
     const snap = async () => {
+      warmHumanoids();
       for (let i = 0; i < 5; i += 1) await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
       const m = s.app.renderer.info.memory;
       return { geometries: m.geometries, textures: m.textures };
