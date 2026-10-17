@@ -3,7 +3,7 @@
  * {key}.lod{n}.glb (GLTFLoader + MeshoptDecoder), memasang grup tile di pusat tile, mengganti
  * material berdasarkan nama mesh, freezeStatic per tile, mendaftarkan collider/minimap/permukaan
  * basah, dan melepas semuanya saat tile dilepas. Galat jaringan dicoba ulang `retries`× dengan
- * backoff; data tak valid tidak dicoba ulang (tile dilewati, spec §5).
+ * backoff; data tak valid (termasuk JSON rusak/SyntaxError) tidak dicoba ulang (tile dilewati, spec §5).
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -19,10 +19,15 @@ export const TILE_BACKOFF_MS = Object.freeze([500, 1500]);
 
 /** Galat yang tidak layak dicoba ulang (data rusak/tak valid). */
 export class TileDataError extends Error {
-  constructor(message) {
-    super(message);
+  constructor(message, options) {
+    super(message, options);
     this.name = 'TileDataError';
   }
+}
+
+/** SyntaxError (JSON rusak) → TileDataError (tidak dicoba ulang); galat lain diteruskan apa adanya. */
+function asDataError(err, label) {
+  return err instanceof SyntaxError ? new TileDataError(`${label}: JSON tidak valid (${err.message})`, { cause: err }) : err;
 }
 
 /** GLTFLoader dengan dekoder meshopt (EXT_meshopt_compression + KHR_mesh_quantization). */
@@ -32,11 +37,15 @@ export function createGltfLoader() {
   return (url) => loader.loadAsync(url);
 }
 
-/** fetch JSON dengan galat HTTP eksplisit. */
+/** fetch JSON dengan galat HTTP eksplisit; badan bukan JSON → TileDataError. */
 export async function fetchJson(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
-  return res.json();
+  try {
+    return await res.json();
+  } catch (err) {
+    throw asDataError(err, url);
+  }
 }
 
 /**
@@ -63,7 +72,8 @@ export function createTileLoader({
     for (let attempt = 0; ; attempt += 1) {
       try {
         return await fn();
-      } catch (err) {
+      } catch (caught) {
+        const err = asDataError(caught, 'tile');
         if (err instanceof TileDataError || attempt >= retries) throw err;
         await sleep(backoffMs[Math.min(attempt, backoffMs.length - 1)]);
       }

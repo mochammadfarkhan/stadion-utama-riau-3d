@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import * as THREE from 'three';
 import { readFileSync } from 'node:fs';
-import { createTileLoader, TileDataError } from '../../src/city/TileLoader.js';
+import { createTileLoader, TileDataError, fetchJson } from '../../src/city/TileLoader.js';
 import { createCityMaterials, CITY_LAYERS } from '../../src/city/cityMaterials.js';
 import { createChunkStreamer } from '../../src/city/ChunkStreamer.js';
 import { createTileCollider } from '../../src/city/TileCollider.js';
@@ -119,6 +119,16 @@ describe('TileLoader', () => {
     expect(s.parent.children).toHaveLength(0);
   });
 
+  it('JSON rusak (SyntaxError) tidak dicoba ulang: dibungkus TileDataError, tile dilewati', async () => {
+    let n = 0;
+    const s = setup({ json: () => { n += 1; return Promise.reject(new SyntaxError('Unexpected token < in JSON')); } });
+    await run(s, { x: 250, z: -250 });
+    expect(n).toBe(1);
+    expect(s.fails[0][1]).toBeInstanceOf(TileDataError);
+    expect(s.fails[0][1].cause).toBeInstanceOf(SyntaxError);
+    expect(s.streamer.status(KEY)).toBe('failed');
+  });
+
   it('hasil yang datang setelah dibatalkan dibuang (tidak terpasang, geometri dilepas)', async () => {
     let resolve;
     const s = setup({ gltf: () => new Promise((r) => { resolve = r; }) });
@@ -201,5 +211,24 @@ describe('TileLoader', () => {
     gltf.scene.traverse((o) => { if (o.isMesh) names.push(o.name); });
     expect(names.length).toBeGreaterThan(0);
     for (const n of names) expect(Object.keys(CITY_LAYERS)).toContain(n);
+  });
+});
+
+describe('fetchJson', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('respons OK dengan badan bukan JSON → TileDataError (cause SyntaxError, url disebut)', async () => {
+    vi.stubGlobal('fetch', async () => ({ ok: true, status: 200, json: async () => { throw new SyntaxError('Unexpected token <'); } }));
+    const err = await fetchJson('/tiles/x.data.json').catch((e) => e);
+    expect(err).toBeInstanceOf(TileDataError);
+    expect(err.cause).toBeInstanceOf(SyntaxError);
+    expect(err.message).toContain('/tiles/x.data.json');
+  });
+
+  it('galat HTTP tetap galat biasa (boleh dicoba ulang)', async () => {
+    vi.stubGlobal('fetch', async () => ({ ok: false, status: 503, json: async () => ({}) }));
+    const err = await fetchJson('/tiles/x.data.json').catch((e) => e);
+    expect(err).not.toBeInstanceOf(TileDataError);
+    expect(err.message).toContain('HTTP 503');
   });
 });
