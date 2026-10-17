@@ -196,6 +196,7 @@ body.is-photo .vendor-label { display: none !important; }
 #fast-travel h2 { margin: 0 0 10px; font-size: 16px; }
 #fast-travel .travel-list { display: grid; gap: 8px; margin-bottom: 10px; }
 #fast-travel button { padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.06); color: inherit; cursor: pointer; }
+#fast-travel button.selected, #fast-travel button:focus-visible { border-color: var(--hud-accent); background: rgba(242, 183, 5, 0.18); outline: none; }
 #fast-travel.hidden, #travel-screen.hidden { display: none; }
 #travel-screen {
   position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;

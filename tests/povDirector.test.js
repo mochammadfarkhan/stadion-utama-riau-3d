@@ -81,6 +81,19 @@ describe('PovDirector', () => {
     expect(d.update(1 / 60, 9, src, playerPose)).toBe(false);
   });
 
+  it('keluar instan (perjalanan cepat): langsung idle dan FOV dipulihkan, tanpa transisi terbang', () => {
+    const cam = makeCamera();
+    const d = new PovDirector(cam);
+    d.setBaseFov(60);
+    d.enter(POV_BY_ID.udara, src);
+    run(d, 4);
+    d.exit({ instant: true });
+    expect(d.active).toBe(false);
+    expect(d.povId).toBeNull();
+    expect(cam.fov).toBeCloseTo(60, 3);
+    expect(d.update(1 / 60, 9, src, playerPose)).toBe(false);
+  });
+
   it('transisi mulus: tidak ada lompatan posisi antar frame', () => {
     const cam = makeCamera();
     const d = new PovDirector(cam);

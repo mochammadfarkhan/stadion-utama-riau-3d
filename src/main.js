@@ -173,8 +173,8 @@ async function main() {
   const shop = setupShop(hud, ents, story);
   const minimap = setupMinimap(app, ents, story, frame);
   if (city) minimap.setTileLayer(city.minimap);
-  const travel = setupFastTravel({ lifecycle, hud, ents, colliders, city, frame, spawn: region.layout.spawn });
-  addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, frame, travelMenu: travel.menu });
+  const travel = setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, spawn: region.layout.spawn, touch });
+  addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, frame, travel });
 
   // Binding store -> scene (satu sumber kebenaran). Dipasang setelah semua objek ada.
   lifecycle.add(bindAll(store, {
@@ -185,7 +185,7 @@ async function main() {
   app.start((dt, t, rawDt) => {
     bikePos.set(ents.bike.state.x, 0, ents.bike.state.z);
     // focus = titik pusat tampilan (sepeda, atau titik pandang saat POV); sepeda beku di POV tanpa kendali
-    return { dt, rawDt, time: t, bikePos, focus: rig.focus, input: hud.shopOpen || rig.freezesBike || travel.busy ? null : input };
+    return { dt, rawDt, time: t, bikePos, focus: rig.focus, input: hud.shopOpen || rig.freezesBike || travel.blocksInput ? null : input };
   });
   // LIFO: loop berhenti lebih dulu, sebelum sistem kehilangan sumber dayanya (App.dispose mengulanginya, idempoten).
   lifecycle.add(() => app.renderer.setAnimationLoop(null));
@@ -224,18 +224,18 @@ async function main() {
  * (efeknya terlihat satu frame lebih awal; tidak ada perbedaan visual), cerita di sim, kamera di camera,
  * HUD dan input.endFrame di ui (endFrame terdaftar terakhir di antara konsumen tombol).
  */
-function addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, frame, travelMenu }) {
+function addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, frame, travel }) {
   app.addSystem({
     id: 'keymap',
     phase: 'input',
-    update: () => { if (session.started) handleKeys(input, { rig, hud, ents, shop, time, store, story, frame, travelMenu }); }, // menu terbuka: tombol game diabaikan
+    update: () => { if (session.started) handleKeys(input, { rig, hud, ents, shop, time, store, story, frame, travelMenu: travel.menu }); }, // menu terbuka: tombol game diabaikan
   });
   app.addSystem({
     id: 'story',
     phase: 'sim',
     update: (dt, ctx) => story.update(dt, {
       time: ctx.time, bikePos: pointToLocal(frame, ents.bike.state), hour: time.hour, // cerita region-lokal
-      raining: Boolean(store.get('weather.raining')), paused: hud.shopOpen || rig.freezesBike,
+      raining: Boolean(store.get('weather.raining')), paused: hud.shopOpen || rig.freezesBike || travel.busy, // timer misi beku selama perjalanan
     }),
   });
   app.addSystem({
@@ -267,20 +267,28 @@ function addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, stor
  * Perjalanan cepat (G / tombol HUD): Stadion & Masjid Raya An-Nur; teleport menunggu tile tujuan
  * dimuat streamer sebelum layar perjalanan ditutup. Tanpa kota: hanya Stadion.
  */
-function setupFastTravel({ lifecycle, hud, ents, colliders, city, frame, spawn }) {
+function setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, spawn, touch }) {
   const screen = createTravelScreen(document.body);
   lifecycle.add(() => screen.dispose());
   const travel = createFastTravel({
     destinations: travelDestinations({ manifest: city?.manifest ?? null, frame, spawn }), bike: ents.bike, colliders, city, screen,
+    isCameraClear: colliders.isCameraClear, rig, // POV ditutup dulu (menu & devtools); muncul dengan ruang kamera
   });
   const menu = new FastTravelMenu(document.body, {
     destinations: travel.destinations,
+    touch,
     onTravel: (id) => travel.go(id)
-      .then((ok) => { if (!ok) hud.toast('Sebagian peta tujuan belum termuat', false); })
+      .then((status) => { if (status === 'timeout') hud.toast('Sebagian peta tujuan belum termuat', false); })
       .catch((err) => console.error('Perjalanan cepat gagal:', err)),
   });
   lifecycle.add(() => menu.dispose());
-  return { menu, get busy() { return travel.busy; }, go: (id) => travel.go(id) };
+  return {
+    menu,
+    get busy() { return travel.busy; },
+    /** Selama perjalanan atau panel terbuka sepeda tidak dikayuh (pola toko): WASD memilih tujuan. */
+    get blocksInput() { return travel.busy || menu.open; },
+    go: (id) => travel.go(id),
+  };
 }
 
 /** Cerita (region-lokal): NPC, penanda tujuan, HUD, jurnal; progres dimuat dari localStorage. */

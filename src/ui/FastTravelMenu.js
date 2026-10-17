@@ -11,11 +11,14 @@ const el = (doc, tag, props = {}, ...children) => {
 export class FastTravelMenu {
   /**
    * @param {HTMLElement} root
-   * @param {{destinations: Array<{id:string, label:string}>, onTravel: (id:string) => void}} opts
+   * @param {{destinations: Array<{id:string, label:string}>, onTravel: (id:string) => void, touch?: boolean}} opts
+   *   `touch`: perangkat sentuh, label tanpa petunjuk tombol "(G)".
    */
-  constructor(root, { destinations, onTravel }) {
+  constructor(root, { destinations, onTravel, touch = false }) {
     const doc = root.ownerDocument ?? document;
-    this.list = el(doc, 'div', { className: 'travel-list' }, ...destinations.map((d) => {
+    const key = touch ? '' : ' (G)';
+    this.selected = 0;
+    this.items = destinations.map((d) => {
       const b = el(doc, 'button', { type: 'button', textContent: d.label });
       b.dataset.id = d.id;
       b.addEventListener('click', () => {
@@ -23,26 +26,57 @@ export class FastTravelMenu {
         onTravel(d.id);
       });
       return b;
-    }));
-    const close = el(doc, 'button', { type: 'button', className: 'travel-close', textContent: 'Tutup (G)' });
+    });
+    this.list = el(doc, 'div', { className: 'travel-list' }, ...this.items);
+    const close = el(doc, 'button', { type: 'button', className: 'travel-close', textContent: `Tutup${key}` });
     close.addEventListener('click', () => this.hide());
     this.panel = el(doc, 'div', { id: 'fast-travel', className: 'hidden' }, el(doc, 'h2', {}, 'Perjalanan cepat'), this.list, close);
     this.panel.setAttribute('role', 'dialog');
     this.panel.setAttribute('aria-label', 'Perjalanan cepat');
-    this.button = el(doc, 'button', { type: 'button', id: 'hud-travel', textContent: 'Perjalanan cepat (G)' });
+    this.button = el(doc, 'button', { type: 'button', id: 'hud-travel', textContent: `Perjalanan cepat${key}` });
     this.button.addEventListener('click', () => this.toggle());
     root.append(this.panel, this.button);
   }
 
   get open() { return !this.panel.classList.contains('hidden'); }
 
-  /** Membuka melepas pointer lock (seperti toko/jurnal/panel): tujuan harus bisa diklik. */
+  /**
+   * Membuka melepas pointer lock (seperti toko/jurnal/panel) agar tujuan bisa diklik, dan memilih tujuan
+   * pertama (keyboard/gamepad: arah ganti pilihan, A/Space konfirmasi).
+   */
   toggle() {
-    this.panel.classList.toggle('hidden');
-    if (this.open) this.panel.ownerDocument.exitPointerLock?.();
+    if (this.open) {
+      this.hide();
+      return;
+    }
+    this.panel.classList.remove('hidden');
+    this.panel.ownerDocument.exitPointerLock?.();
+    this.#select(0);
   }
 
-  hide() { this.panel.classList.add('hidden'); }
+  /** Pilih tujuan berikutnya (dir = 1) / sebelumnya (dir = −1), berputar. */
+  focusNext(dir = 1) {
+    if (!this.open || !this.items.length) return;
+    const n = this.items.length;
+    this.#select((((this.selected + Math.sign(dir || 1)) % n) + n) % n);
+  }
+
+  /** Jalankan tujuan terpilih (sama dengan mengklik tombolnya). Panel tertutup: tidak melakukan apa pun. */
+  confirm() {
+    if (this.open) this.items[this.selected]?.click();
+  }
+
+  hide() {
+    const active = this.panel.ownerDocument.activeElement;
+    if (active && this.panel.contains(active)) active.blur(); // Space tidak tertahan di tombol tersembunyi (bel)
+    this.panel.classList.add('hidden');
+  }
+
+  #select(i) {
+    this.selected = i;
+    this.items.forEach((b, j) => b.classList.toggle('selected', j === i));
+    this.items[i]?.focus({ preventScroll: true });
+  }
 
   dispose() {
     this.panel.remove();
