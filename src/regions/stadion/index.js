@@ -18,10 +18,13 @@ import { STADION_PLACEMENT } from './placement.js';
 export const STADION_ID = 'stadion';
 export { STADION_PLACEMENT };
 
-/** Muat model GLB ke grup `models` di scope region (loadModel memanggil scope.get secara sinkron). */
-function loadModels(scope, models, worldGroup, enabled) {
-  if (!enabled) return Promise.resolve({ placed: 0, failed: [], replaced: [] });
-  return withScope(scope, () => placeModels(models, LAYOUT.blenderModels, { world: worldGroup }));
+/**
+ * Muat model GLB ke grup `models` di scope region (loadModel memanggil scope.get secara sinkron).
+ * `isCancelled` true setelah region dibongkar: muatan yang telat dibuang, bukan dipasang.
+ */
+function loadModels(scope, models, worldGroup, enabled, isCancelled) {
+  if (!enabled) return Promise.resolve({ placed: 0, failed: [], replaced: [], cancelled: false });
+  return withScope(scope, () => placeModels(models, LAYOUT.blenderModels, { world: worldGroup, isCancelled }));
 }
 
 /** ctx: scope (wajib), placement (default STADION_PLACEMENT), loadModels (default true). */
@@ -30,8 +33,8 @@ function buildStadion({ scope, placement = STADION_PLACEMENT, loadModels: withMo
   const world = withScope(scope, () => buildWorld({ layout: LAYOUT, site: SITE }));
   const models = createModelGroup();
   world.group.add(models);
-  const ready = loadModels(scope, models, world.group, withModels);
   let disposed = false;
+  const ready = loadModels(scope, models, world.group, withModels, () => disposed);
   return validateBuild({
     group: world.group,
     colliders: stadionColliders,

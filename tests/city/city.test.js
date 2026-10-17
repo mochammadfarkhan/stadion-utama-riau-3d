@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
 import { readFileSync } from 'node:fs';
 import { createCity, groundAnchor } from '../../src/city/index.js';
@@ -80,6 +80,56 @@ describe('createCity', () => {
     const p = city.whenSettled(6800, -4750, 600, 1);
     fire();
     expect(await p).toBe(false);
+  });
+
+  it('muatan yang masih berjalan saat dispose dibuang: tanpa attach/registerWet/collider/minimap, geometri dilepas', async () => {
+    const app = fakeApp();
+    const held = [];
+    const wet = [];
+    const city = await createCity({
+      app, fetchJson: (u) => (u.endsWith('manifest.json') ? Promise.resolve(realManifest()) : realJson(u)),
+      loadGltf: () => new Promise((r) => { held.push(r); }), createCanvas: fakeCanvas, logger: quiet,
+      weather: { registerWet: (root) => { wet.push(root.name); return () => true; } },
+    });
+    app.runner.update(0.016, { focus: { x: 0, z: -275 } });
+    expect(held.length).toBeGreaterThan(0);
+    const addTile = vi.spyOn(city.collider, 'addTile');
+    const minimapAdd = vi.spyOn(city.minimap, 'add');
+    city.dispose();
+    const geos = [];
+    for (const resolve of held) {
+      const scene = new THREE.Group();
+      const m = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial());
+      m.name = 'buildings_walls';
+      scene.add(m);
+      let disposed = false;
+      m.geometry.addEventListener('dispose', () => { disposed = true; });
+      geos.push(() => disposed);
+      resolve({ scene });
+    }
+    for (let i = 0; i < 5; i += 1) await new Promise((r) => setTimeout(r, 0));
+    expect(wet).toEqual([]);
+    expect(addTile).not.toHaveBeenCalled();
+    expect(minimapAdd).not.toHaveBeenCalled();
+    expect(city.collider.tileCount).toBe(0);
+    expect(city.minimap.size).toBe(0);
+    expect(city.group.children.filter((c) => c.name.startsWith('tile:'))).toHaveLength(0);
+    expect(geos.every((d) => d())).toBe(true);
+  });
+
+  it('whenSettled yang selesai membersihkan timer habis-waktunya', async () => {
+    const app = fakeApp();
+    const cleared = [];
+    const city = await createCity({
+      app, fetchJson: (u) => (u.endsWith('manifest.json') ? Promise.resolve(realManifest()) : realJson(u)),
+      loadGltf: fakeGltf, createCanvas: fakeCanvas, logger: quiet,
+      setTimer: () => 'timer-1', clearTimer: (h) => cleared.push(h),
+    });
+    const p = city.whenSettled(0, -275, 300, 5000);
+    await frames(app, { x: 0, z: -275 });
+    expect(await p).toBe(true);
+    expect(cleared).toEqual(['timer-1']);
+    city.dispose();
   });
 
   it('groundAnchor membulatkan ke grid 50 m', () => {

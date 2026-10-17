@@ -134,6 +134,62 @@ describe('TileLoader', () => {
     expect(disposed).toBe(true);
   });
 
+  it('muatan yang selesai setelah dispose dibuang: tanpa attach/registerWet/collider/minimap/onFail, geometri dilepas', async () => {
+    let resolve;
+    const wet = [];
+    const s = setup({
+      gltf: () => new Promise((r) => { resolve = r; }),
+      weather: { registerWet: (r) => { wet.push(r.name); return () => true; } },
+    });
+    const [load] = s.streamer.update({ x: 250, z: -250 });
+    const pending = s.loader.execute(load, s.streamer);
+    s.loader.dispose();
+    const late = fakeGltf();
+    let disposed = 0;
+    late.scene.children.forEach((m) => m.geometry.addEventListener('dispose', () => { disposed += 1; }));
+    resolve(late);
+    await pending;
+    expect(s.parent.children).toHaveLength(0);
+    expect(wet).toEqual([]);
+    expect(s.collider.tileCount).toBe(0);
+    expect(s.minimap.added).toEqual([]);
+    expect(s.loader.stats().tiles).toBe(0);
+    expect(disposed).toBe(late.scene.children.length);
+  });
+
+  it('galat muatan setelah dispose tidak melapor gagal (onFail)', async () => {
+    let reject;
+    const s = setup({ gltf: () => new Promise((_, r) => { reject = r; }) });
+    const [load] = s.streamer.update({ x: 250, z: -250 });
+    const pending = s.loader.execute(load, s.streamer);
+    s.loader.dispose();
+    reject(new TileDataError('rusak'));
+    await pending;
+    expect(s.fails).toEqual([]);
+  });
+
+  it('tukar LOD yang selesai setelah dispose dibuang: LOD baru tidak terpasang, geometrinya dilepas', async () => {
+    let held = null;
+    const wet = [];
+    const s = setup({
+      gltf: (u) => (u.endsWith('lod0.glb') ? new Promise((r) => { held = r; }) : Promise.resolve(fakeGltf())),
+      weather: { registerWet: (r) => { wet.push(`+${r.name}`); return () => { wet.push(`-${r.name}`); return true; }; } },
+    });
+    await run(s, { x: 250, z: -1100 }); // LOD1
+    const [swap] = s.streamer.update({ x: 250, z: -700 });
+    expect(swap.type).toBe('swap');
+    const pending = s.loader.execute(swap, s.streamer);
+    s.loader.dispose();
+    const late = fakeGltf(['roads']);
+    let disposed = false;
+    late.scene.children[0].geometry.addEventListener('dispose', () => { disposed = true; });
+    held(late);
+    await pending;
+    expect(s.parent.children).toHaveLength(0);
+    expect(wet).toEqual(['+tile:0_-1:lod1', '-tile:0_-1:lod1']);
+    expect(disposed).toBe(true);
+  });
+
   it('GLB nyata dari public/tiles termuat lewat GLTFLoader + MeshoptDecoder (Node)', async () => {
     const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
     const { MeshoptDecoder } = await import('three/addons/libs/meshopt_decoder.module.js');

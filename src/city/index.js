@@ -35,11 +35,12 @@ export function groundAnchor(focus, snap = CITY_GROUND.snap) {
  *   baseUrl?: string, weather?: object|null, toast?: (text:string, ok:boolean) => void,
  *   fetchJson?: (url:string) => Promise<unknown>, loadGltf?: (url:string) => Promise<{scene: THREE.Object3D}>,
  *   createCanvas?: (w:number, h:number) => object, logger?: {error: (...a: unknown[]) => void}, config?: typeof STREAM,
- *   setTimer?: (fn: () => void, ms: number) => unknown}} opts
+ *   setTimer?: (fn: () => void, ms: number) => unknown, clearTimer?: (handle: unknown) => void}} opts
  */
 export async function createCity({
   app, baseUrl = '/', weather = null, toast = () => {}, fetchJson = defaultFetchJson, loadGltf = null,
   createCanvas = null, logger = console, config = STREAM, setTimer = (fn, ms) => setTimeout(fn, ms),
+  clearTimer = (handle) => clearTimeout(handle),
 }) {
   let manifest;
   try {
@@ -71,6 +72,13 @@ export async function createCity({
     },
   });
   const waiters = new Set();
+  let disposed = false;
+  /** Selesaikan penunggu sekali dan bersihkan timer habis-waktunya. */
+  const settle = (w, value) => {
+    if (!waiters.delete(w)) return;
+    clearTimer(w.timer);
+    w.resolve(value);
+  };
   const system = {
     id: 'city.stream',
     phase: 'world',
@@ -83,9 +91,7 @@ export async function createCity({
         loader.execute(action, streamer).catch((err) => logger.error(`Aksi tile ${action.key} gagal:`, err));
       }
       for (const w of waiters) {
-        if (!streamer.settled(w.x, w.z, w.r)) continue;
-        waiters.delete(w);
-        w.resolve(true);
+        if (streamer.settled(w.x, w.z, w.r)) settle(w, true);
       }
     },
     dispose() {},
@@ -95,19 +101,21 @@ export async function createCity({
     manifest, group, collider, minimap, streamer, loader,
     /** Selesai bila semua tile dalam radius r dari (x, z) tampil/gagal; false bila habis waktu. */
     whenSettled(x, z, r = config.lod0Radius, timeoutMs = SETTLE_TIMEOUT_MS) {
+      if (disposed) return Promise.resolve(false);
       if (streamer.settled(x, z, r)) return Promise.resolve(true);
       return new Promise((resolve) => {
-        const w = { x, z, r, resolve };
+        const w = { x, z, r, resolve, timer: null };
         waiters.add(w);
-        setTimer(() => { if (waiters.delete(w)) resolve(false); }, timeoutMs);
+        w.timer = setTimer(() => { if (waiters.delete(w)) resolve(false); }, timeoutMs);
       });
     },
     stats: () => ({ ...streamer.stats(), ...loader.stats() }),
     dispose() {
+      if (disposed) return;
+      disposed = true;
       app.removeSystem(system.id);
-      for (const w of waiters) w.resolve(false);
-      waiters.clear();
-      loader.dispose();
+      for (const w of [...waiters]) settle(w, false);
+      loader.dispose(); // muatan yang masih berjalan dibuang saat selesai (tidak dipasang/didaftarkan)
       group.removeFromParent();
       ground.geometry.dispose();
       materials.dispose();

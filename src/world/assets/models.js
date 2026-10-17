@@ -64,12 +64,15 @@ function prepare(root) {
  * menghentikan yang lain; dikembalikan ringkasan agar pemanggil bisa melapor.
  * Item dengan `replaces` menyembunyikan objek prosedural bernama itu di `world`
  * HANYA bila model berhasil dimuat (versi prosedural tetap jadi cadangan).
+ * `isCancelled()` true saat muatan selesai (pemilik sudah dibongkar) → tidak ada yang dipasang
+ * maupun dilaporkan gagal; hasil `{cancelled: true}`.
  * @param {THREE.Object3D} group
  * @param {{path:string, x?:number, y?:number, z?:number, rotY?:number, scale?:number, replaces?:string}[]} items
- * @param {{world?: THREE.Object3D}} [opts]
+ * @param {{world?: THREE.Object3D, isCancelled?: () => boolean}} [opts]
  */
-export async function placeModels(group, items, { world = null } = {}) {
+export async function placeModels(group, items, { world = null, isCancelled = () => false } = {}) {
   const results = await Promise.allSettled(items.map((it) => instantiateModel(it.path, it)));
+  if (isCancelled()) return { placed: 0, failed: [], replaced: [], cancelled: true };
   const failed = [];
   const replaced = [];
   results.forEach((r, i) => {
@@ -84,7 +87,7 @@ export async function placeModels(group, items, { world = null } = {}) {
       replaced.push(items[i].replaces);
     }
   });
-  return { placed: results.length - failed.length, failed, replaced };
+  return { placed: results.length - failed.length, failed, replaced, cancelled: false };
 }
 
 export const MODEL_GROUP_NAME = 'modelBlender';

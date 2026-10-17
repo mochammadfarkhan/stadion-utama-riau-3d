@@ -57,6 +57,7 @@ export function createTileLoader({
   const entries = new Map(); // key → {root, lod, offWet, meshes, triangles}
   const decoded = new Map(); // key → data tile terdekode (dipakai ulang saat tukar LOD)
   const url = (file) => `${baseUrl}tiles/${file}`;
+  let disposed = false; // setelah dispose(): hasil muatan async dibuang, tidak menyentuh scene/registry
 
   const retry = async (fn) => {
     for (let attempt = 0; ; attempt += 1) {
@@ -75,7 +76,7 @@ export function createTileLoader({
     const check = validateTileData(json, t.key);
     if (!check.ok) throw new TileDataError(`tile ${t.key}: ${check.error}`);
     const tile = decodeTileData(json);
-    decoded.set(t.key, tile);
+    if (!disposed) decoded.set(t.key, tile);
     return tile;
   };
 
@@ -108,6 +109,7 @@ export function createTileLoader({
   };
 
   const fail = (streamer, action, err) => {
+    if (disposed) return; // galat yang datang setelah loader dibongkar tidak dilaporkan
     if (streamer.failed(action.key, action.req)) {
       logger.error(`Tile ${action.key} gagal dimuat:`, err);
       onFail(action.key, err);
@@ -124,8 +126,8 @@ export function createTileLoader({
       fail(streamer, action, err);
       return;
     }
-    if (!streamer.loaded(action.key, action.lod, action.req)) {
-      discard(built.root); // dibatalkan sementara dimuat
+    if (disposed || !streamer.loaded(action.key, action.lod, action.req)) {
+      discard(built.root); // dibongkar/dibatalkan sementara dimuat
       return;
     }
     attach(action.key, built, action.lod);
@@ -142,7 +144,7 @@ export function createTileLoader({
       fail(streamer, action, err);
       return;
     }
-    if (!streamer.loaded(action.key, action.lod, action.req)) {
+    if (disposed || !streamer.loaded(action.key, action.lod, action.req)) {
       discard(built.root);
       return;
     }
@@ -160,7 +162,7 @@ export function createTileLoader({
   return {
     /** Eksekusi satu aksi streamer; muatan berjalan async (hasil dilaporkan ke streamer). */
     execute(action, streamer) {
-      if (!info.has(action.key)) return Promise.resolve();
+      if (disposed || !info.has(action.key)) return Promise.resolve();
       switch (action.type) {
         case 'load': return load(action, streamer);
         case 'swap': return swap(action, streamer);
@@ -179,6 +181,11 @@ export function createTileLoader({
       }
       return { tiles: entries.size, meshes, triangles };
     },
-    dispose() { for (const key of [...entries.keys()]) unload(key); },
+    /** Lepas semua tile; muatan yang masih berjalan dibuang saat selesai (geometrinya dilepas). */
+    dispose() {
+      disposed = true;
+      for (const key of [...entries.keys()]) unload(key);
+      decoded.clear();
+    },
   };
 }

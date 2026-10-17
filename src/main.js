@@ -130,7 +130,9 @@ async function main() {
   });
   rig.setObstacleTest(colliders.isCameraClear);
   const modelsReady = stadion.ready
-    .then(({ failed }) => { if (failed.length) hud.toast(`${failed.length} model 3D gagal dimuat`, false); })
+    .then(({ failed, cancelled }) => { // region dibongkar sebelum selesai: tidak ada yang dilaporkan
+      if (!cancelled && stadion.mounted && failed.length) hud.toast(`${failed.length} model 3D gagal dimuat`, false);
+    })
     .catch((err) => console.error('Model 3D region gagal diproses:', err));
 
   await loading.step(0.55, 'Menyiapkan pemain, pelari, pedagang, dan penonton…');
