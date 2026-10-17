@@ -135,7 +135,7 @@ async function main() {
     ents.bike.dispose();
     for (const g of [ents.group, ents.regionGroup]) { g.removeFromParent(); disposeTree(g); }
   });
-  ents.bike.setCollider(createCollider(start, colliders.isWalkable));
+  ents.bike.setCollider(createCollider(start, colliders.isWalkable, colliders.penetration));
   rig.attachSource(createPovSource(ents, frame));
   ents.bike.setAudioBus(audioBus);
   // Sepeda di frame dunia; entitas region menerima ctx region-lokal (bikePos/focus dikonversi sekali per frame).

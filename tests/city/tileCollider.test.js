@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createTileCollider } from '../../src/city/TileCollider.js';
 import { decodeTileData } from '../../src/city/tileData.js';
-import { createCompositeCollider, localized } from '../../src/core/Collider.js';
+import { createCollider, createCompositeCollider, localized } from '../../src/core/Collider.js';
 import { stadionRegion } from '../../src/regions/stadion/index.js';
 import { stadionColliders } from '../../src/regions/stadion/collider.js';
 
@@ -77,5 +77,99 @@ describe('TileCollider', () => {
     expect(comp.isWalkable(610, -290)).toBe(false);       // bangunan kota
     expect(comp.isWalkable(700, -290)).toBe(true);
     expect(localized(stadionRegion, stadionColliders).isWalkable(610, -290)).toBe(true); // dulu: tanah region menutup dunia
+  });
+});
+
+describe('TileCollider: sel diagonal & bangunan lintas batas tile', () => {
+  it('sel luar diagonal bangunan lintas sel tetap memblok; di luar bbox terbuka', () => {
+    const c = createTileCollider();
+    c.addTile('0_0', tile({ buildings: [{ height: 6, ring: square(20, 20, 40) }] }));
+    expect(c.isWalkable(21, 55)).toBe(false);
+    expect(c.isWalkable(55, 21)).toBe(false);
+    expect(c.isWalkable(18, 62)).toBe(true);
+  });
+
+  it('bangunan yang menjorok melewati batas tile ke koordinat negatif terdeteksi di sel negatif', () => {
+    const c = createTileCollider();
+    c.addTile('0_0', tile({ buildings: [{ height: 6, ring: square(-30, -12, 40) }] }));
+    for (const [x, z] of [[-29, -11], [-1, -1], [-26, 5], [9, 27]]) expect(c.isWalkable(x, z)).toBe(false);
+    expect(c.isWalkable(-31, -13)).toBe(true);
+    c.removeTile('0_0');
+    expect(c.cellCount).toBe(0);
+  });
+
+  it('addTile ulang dengan kunci sama mengganti bentuk lama (tetap benar bila method dilepas dari objek)', () => {
+    const c = createTileCollider();
+    const { addTile } = c;
+    addTile('0_0', tile({ buildings: [{ height: 6, ring: square(10, 10, 10) }] }));
+    addTile('0_0', tile({ buildings: [{ height: 6, ring: square(60, 60, 10) }] }));
+    expect(c.tileCount).toBe(1);
+    expect(c.isWalkable(15, 15)).toBe(true);
+    expect(c.isWalkable(65, 65)).toBe(false);
+  });
+});
+
+describe('TileCollider.penetration', () => {
+  it('jarak ke tepi terdekat di dalam bangunan/air; 0 di luar dan di jembatan', () => {
+    const c = createTileCollider();
+    c.addTile('0_0', tile({
+      buildings: [{ height: 6, ring: square(200, 0, 100) }],
+      water: [{ outer: square(0, 0, 100), holes: [square(40, 40, 10)] }],
+      roads: [{ cls: 'primary', width: 14, name: null, pts: [[-10, 80], [110, 80]] }],
+    }));
+    expect(c.penetration(202, 50)).toBeGreaterThan(c.penetration(201, 50));
+    expect(c.penetration(250, 50)).toBeGreaterThan(c.penetration(220, 50));
+    expect(c.penetration(320, 50)).toBe(0);
+    expect(c.penetration(20, 20)).toBeCloseTo(20, 9);
+    expect(c.penetration(45, 45)).toBe(0); // pulau
+    expect(c.penetration(50, 85)).toBe(0); // jembatan
+    expect(c.penetration(38, 45)).toBeCloseTo(2, 9); // tepi terdekat = lubang
+    expect(c.penetration(Number.NaN, 0)).toBe(Number.POSITIVE_INFINITY);
+  });
+});
+
+describe('collider + TileCollider: sepeda terjebak hanya boleh bergerak keluar', () => {
+  const walkOut = (c, start, dx, steps) => {
+    const collide = createCollider(start, c.isWalkable, c.penetration);
+    let p = start;
+    for (let i = 1; i <= steps; i += 1) p = collide(p.x + dx, p.z); // langkah relatif posisi sekarang
+    return p;
+  };
+
+  for (const [label, over] of [
+    ['bangunan', { buildings: [{ height: 6, ring: square(0, 0, 100) }] }],
+    ['air', { water: [{ outer: square(0, 0, 100), holes: [] }] }],
+  ]) {
+    it(`tidak bisa menembus seluruh ${label} 100 m (mulai 2 m di dalam, maju +x)`, () => {
+      const c = createTileCollider();
+      c.addTile('0_0', tile(over));
+      const p = walkOut(c, { x: 2, z: 50 }, 1, 150);
+      expect(p.x).toBeLessThan(50);
+    });
+
+    it(`sepeda terjebak di ${label} keluar lewat tepi terdekat (−x) dalam ≤ 3 langkah`, () => {
+      const c = createTileCollider();
+      c.addTile('0_0', tile(over));
+      const collide = createCollider({ x: 2, z: 50 }, c.isWalkable, c.penetration);
+      let p = { x: 2, z: 50 };
+      for (let i = 1; i <= 3; i += 1) p = collide(p.x - 1, p.z);
+      expect(c.isWalkable(p.x, p.z)).toBe(true);
+      expect(p.x).toBe(-1);
+      expect(collide(5, 50)).toEqual({ x: -1, z: 50 }); // sudah keluar: tabrakan normal lagi
+    });
+  }
+
+  it('lewat collider komposit: penetration diteruskan ke fallback kota', () => {
+    const city = createTileCollider();
+    city.addTile('1_-1', tile({ key: '1_-1', buildings: [{ height: 6, ring: square(600, -300, 100) }] }));
+    const comp = createCompositeCollider({ regions: [{ region: stadionRegion, colliders: stadionColliders }], fallback: city });
+    expect(comp.penetration(602, -250)).toBeCloseTo(city.penetration(602, -250), 9);
+    expect(comp.penetration(Number.NaN, 0)).toBe(Number.POSITIVE_INFINITY);
+    const tugu = stadionColliders.obstacles[0];
+    expect(comp.penetration(tugu.x, tugu.z)).toBe(0); // region tanpa penetration → 0
+    const collide = createCollider({ x: 602, z: -250 }, comp.isWalkable, comp.penetration);
+    let p = { x: 602, z: -250 };
+    for (let i = 1; i <= 150; i += 1) p = collide(p.x + 1, p.z);
+    expect(p.x).toBeLessThan(650);
   });
 });

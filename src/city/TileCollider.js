@@ -5,6 +5,8 @@
  * - bangunan memblok sepeda (di dalam footprint atau < `clearance` dari dinding) dan kamera;
  * - air memblok sepeda kecuali di atas jalan (jembatan = jalan yang melintasi poligon air);
  * - tile yang belum dimuat = terbuka (spec §5: area tetap dapat dilalui).
+ * `penetration(x, z)` = kedalaman titik di zona terhalang (0 bila walkable), dipakai `createCollider`
+ * agar sepeda yang terjebak (tile dimuat di bawahnya) hanya boleh bergerak keluar, tidak menembus.
  * Murni (tanpa three/DOM); memakai pointInPolygon/distanceToRing dari geo/polygon.js.
  */
 import { pointInPolygon, distanceToRing } from '../geo/polygon.js';
@@ -55,28 +57,54 @@ export function createTileCollider({ cellSize = TILE_COLLIDER.cellSize, clearanc
   const onRoad = (x, z) => shapesAt(x, z).some((s) => s.kind === 'road' && inBox(s, x, z)
     && distanceToRing(x, z, s.pts, false) <= s.half);
 
+  /** Kedalaman di zona terlarang bangunan (footprint + jarak bebas): naik terus ke arah dalam. */
+  const buildingDepth = (s, x, z) => {
+    const d = distanceToRing(x, z, s.ring);
+    return pointInPolygon(x, z, s.ring) ? d + clearance : Math.max(0, clearance - d);
+  };
+  const waterDepth = (s, x, z) => {
+    if (!pointInPolygon(x, z, s.outer) || s.holes.some((h) => pointInPolygon(x, z, h))) return 0;
+    return s.holes.reduce((m, h) => Math.min(m, distanceToRing(x, z, h)), distanceToRing(x, z, s.outer));
+  };
+  const penetration = (x, z) => {
+    if (!Number.isFinite(x) || !Number.isFinite(z)) return Infinity;
+    const bridge = onRoad(x, z);
+    let depth = 0;
+    for (const s of shapesAt(x, z)) {
+      if (!inBox(s, x, z)) continue;
+      if (s.kind === 'building') depth = Math.max(depth, buildingDepth(s, x, z));
+      else if (s.kind === 'water' && !bridge) depth = Math.max(depth, waterDepth(s, x, z));
+    }
+    return depth;
+  };
+
+  const removeTile = (key) => {
+    const rec = tiles.get(key);
+    if (!rec) return false;
+    const owned = new Set(rec.shapes);
+    for (const k of rec.cellKeys) {
+      const rest = (cells.get(k) ?? []).filter((s) => !owned.has(s));
+      if (rest.length) cells.set(k, rest);
+      else cells.delete(k);
+    }
+    tiles.delete(key);
+    return true;
+  };
+
+  /** Daftarkan tile terdekode (decodeTileData); pendaftaran ulang kunci yang sama mengganti. */
+  const addTile = (key, tile) => {
+    if (tiles.has(key)) removeTile(key);
+    const rec = { cellKeys: new Set(), shapes: [] };
+    for (const b of tile.buildings) insert(rec, { kind: 'building', ring: b.ring, bbox: bboxOf(b.ring, pad) });
+    for (const w of tile.water) insert(rec, { kind: 'water', outer: w.outer, holes: w.holes, bbox: bboxOf(w.outer, 0) });
+    for (const r of tile.roads) insert(rec, { kind: 'road', pts: r.pts, half: r.width / 2, bbox: bboxOf(r.pts, r.width / 2) });
+    tiles.set(key, rec);
+  };
+
   return {
-    /** Daftarkan tile terdekode (decodeTileData); pendaftaran ulang kunci yang sama mengganti. */
-    addTile(key, tile) {
-      if (tiles.has(key)) this.removeTile(key);
-      const rec = { cellKeys: new Set(), shapes: [] };
-      for (const b of tile.buildings) insert(rec, { kind: 'building', ring: b.ring, bbox: bboxOf(b.ring, pad) });
-      for (const w of tile.water) insert(rec, { kind: 'water', outer: w.outer, holes: w.holes, bbox: bboxOf(w.outer, 0) });
-      for (const r of tile.roads) insert(rec, { kind: 'road', pts: r.pts, half: r.width / 2, bbox: bboxOf(r.pts, r.width / 2) });
-      tiles.set(key, rec);
-    },
-    removeTile(key) {
-      const rec = tiles.get(key);
-      if (!rec) return false;
-      const owned = new Set(rec.shapes);
-      for (const k of rec.cellKeys) {
-        const rest = (cells.get(k) ?? []).filter((s) => !owned.has(s));
-        if (rest.length) cells.set(k, rest);
-        else cells.delete(k);
-      }
-      tiles.delete(key);
-      return true;
-    },
+    addTile,
+    removeTile,
+    penetration,
     has: (key) => tiles.has(key),
     get tileCount() { return tiles.size; },
     get cellCount() { return cells.size; },
