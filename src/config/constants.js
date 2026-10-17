@@ -30,9 +30,9 @@ export const TRACK = Object.freeze({
   lineColor: 0xffffff,
 });
 
-// Data kawasan stadion dipindah ke region (regions/stadion/site.js). Re-export ini menjaga impor lama
-// tetap jalan (utang Fase 0: hapus setelah semua builder menerima `site` lewat parameter).
-export { STADIUM, SITE } from '../regions/stadion/site.js';
+// Data kawasan stadion (region-lokal) bersumber di config/stadionSite.js; regions/stadion/site.js
+// me-re-export. Arah dependensi benar: config tidak mengimpor regions (Plan C, M1).
+export { STADIUM, SITE } from './stadionSite.js';
 
 // Layer render (THREE.Layers): 0 = kamera utama, 1 = objek besar yang ikut tampil di minimap
 export const RENDER_LAYERS = Object.freeze({ main: 0, minimap: 1 });
