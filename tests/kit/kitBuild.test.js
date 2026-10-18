@@ -7,6 +7,8 @@ import { createResourceScope } from '../../src/engine/ResourceScope.js';
 import { ATLAS_CELLS, ATLAS_SIZE, cellUv, PAINTERS } from '../../src/world/kit/atlas.js';
 import { ARCHETYPE_IDS, HERO_IDS, VARIANTS } from '../../src/world/kit/archetypes.js';
 import { ORNAMENT_IDS } from '../../src/world/kit/ornaments.js';
+import { HERO_BUILDERS } from '../../src/world/kit/hero/index.js';
+import { isRegionOwned } from '../../src/world/kit/hero/regionOwned.js';
 
 const rect = (w, d) => [[0, 0], [w, 0], [w, d], [0, d]];
 // Spesimen tipikal katalog aset §1 + batas segitiga LOD0 (kolom "Segitiga", batas atas).
@@ -59,8 +61,12 @@ describe('buildBuilding (kit lengkap, Node tanpa canvas)', () => {
     expect(warn.mock.calls.filter(([m]) => /atlas|ornamen/.test(String(m)))).toEqual([]);
   });
 
-  it('semua id hero punya builder dan menghasilkan geometri', () => {
-    for (const h of HERO_IDS) expect(buildBuilding(plan([h, rect(40, 24), 2, {}]), mats).length).toBeGreaterThan(0);
+  it('semua id hero punya builder; hero distrik menghasilkan geometri, hero milik region kosong', () => {
+    for (const h of HERO_IDS) {
+      const parts = buildBuilding(plan([h, rect(40, 24), 2, {}]), mats);
+      if (isRegionOwned(HERO_BUILDERS[h])) expect(parts).toEqual([]);
+      else expect(parts.length).toBeGreaterThan(0);
+    }
   });
 
   it('perakitan gagal → K12 (dengan input) atau lempar (tanpa input)', () => {

@@ -11,6 +11,7 @@ import { appendBuildingSteps } from '../kitAssemble.js';
 import { facePoint, primaryFace } from '../planGeom.js';
 import { yawOf } from '../kitShapes.js';
 import { domeOnRoof } from '../roofs.js';
+import { regionOwnedHero } from './regionOwned.js';
 
 const KREM = linearColor(0xeee2c2);
 const OKER = linearColor(0xc79a3c);
@@ -81,30 +82,15 @@ function gerbang(plan, mats) {
   return sink.toParts(mats, `${plan.archetype}:${plan.id}`);
 }
 
-/** Tribun Stadion Mini: 10 undakan beton naik ke belakang + dinding belakang [INF bentuk]. */
-function tribun(plan, mats) {
-  const sink = createKitSink();
-  const { obb } = plan.masses[0];
-  const rows = 10;
-  const step = obb.d / rows;
-  const c = Math.cos(obb.yaw);
-  const s = Math.sin(obb.yaw);
-  for (let i = 0; i < rows; i += 1) {
-    const lz = obb.d / 2 - step * (i + 0.5);
-    const h = 0.45 * (i + 1);
-    sink.opak.box(obb.cx + lz * s, plan.groundY + h / 2, obb.cz + lz * c, obb.w, h, step, obb.yaw, cellUv('beton'), linearColor(0xd6d2c8));
-  }
-  return sink.toParts(mats, `${plan.archetype}:${plan.id}`);
-}
-
 export const HERO_BUILDERS = Object.freeze({
   'hero:rektorat': placeholder(rektoratFront),
   'hero:masjid-arfaunnas': placeholder(masjidDome),
   'hero:gerbang-sm-amin': gerbang,
   'hero:ggm': placeholder(ggmCone),
-  'hero:sekretariat-lembaga': placeholder(),
-  'hero:student-center': placeholder(),
-  'hero:stadion-mini': tribun,
+  // M4: dirender penuh oleh region unri-lembaga (proxy saat jauh); distrik tidak menggambar ulang gedung ini.
+  'hero:sekretariat-lembaga': regionOwnedHero('unri-lembaga'),
+  'hero:student-center': regionOwnedHero('unri-lembaga'),
+  'hero:stadion-mini': regionOwnedHero('unri-lembaga'),
 });
 
 if (HERO_IDS.some((id) => !HERO_BUILDERS[id])) throw new Error('HERO_BUILDERS tidak lengkap');
