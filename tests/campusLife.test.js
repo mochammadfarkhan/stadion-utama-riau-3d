@@ -145,6 +145,16 @@ describe('bangku diskusi', () => {
       expect(s.yaw).toBeCloseTo(-Math.PI / 2, 9);
     });
   });
+  it('bahu jalan: bangku hanya bila shoulderSpacing, di sisi luar (menjauhi badan jalan)', () => {
+    const kanan = measurePath([[3, 0], [3, 200]], 'bahu', 8, -1); // jalan di x = 0, arah +z
+    const kiri = measurePath([[-3, 0], [-3, 200]], 'bahu', 8, 1);
+    expect(benchSpotsFromPaths([kanan, kiri])).toEqual([]);
+    const spots = benchSpotsFromPaths([kanan, kiri], { shoulderSpacing: 100 });
+    expect(spots).toHaveLength(4);
+    expect(spots[0].x).toBeCloseTo(5.4, 9);   // jalur kanan → bangku di +x (luar)
+    expect(spots[2].x).toBeCloseTo(-5.4, 9);  // jalur kiri → bangku di −x (luar)
+    expect(seatsOf(spots.slice(2, 3))[0].yaw).toBeCloseTo(Math.PI / 2, 9);
+  });
   it('sitterCount ±25% dibatasi jumlah kursi', () => {
     expect(sitterCount(10, 4)).toBe(3);
     expect(sitterCount(10, 2)).toBe(2);

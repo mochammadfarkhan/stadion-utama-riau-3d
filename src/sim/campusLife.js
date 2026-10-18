@@ -86,14 +86,14 @@ export function offsetPolyline(pts, d) {
 }
 
 /** Jalur terukur {pts, cum, length, kind}; null bila < 2 titik atau lebih pendek dari minLength. */
-export function measurePath(pts, kind, minLength = 8) {
+export function measurePath(pts, kind, minLength = 8, side = 0) {
   if (!Array.isArray(pts) || pts.length < 2) return null;
   const cum = [0];
   for (let i = 1; i < pts.length; i += 1) {
     cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
   }
   const length = cum[cum.length - 1];
-  return length >= minLength ? Object.freeze({ pts, cum, length, kind }) : null;
+  return length >= minLength ? Object.freeze({ pts, cum, length, kind, side }) : null;
 }
 
 /**
@@ -107,7 +107,8 @@ export function pathsFromGround(ground, { scale = 1 } = {}) {
     .flatMap((r) => {
       const pts = toPoints(r.pts, scale);
       const d = r.w / 2 + SHOULDER_GAP;
-      return [measurePath(offsetPolyline(pts, d), 'bahu'), measurePath(offsetPolyline(pts, -d), 'bahu')];
+      // side = +1 bila jalur di sisi kiri jalan (arah gambar), −1 di kanan: dipakai bangku agar menghadap jalan dari luar.
+      return [measurePath(offsetPolyline(pts, d), 'bahu', 8, 1), measurePath(offsetPolyline(pts, -d), 'bahu', 8, -1)];
     });
   return [...walks, ...shoulders].filter(Boolean);
 }
@@ -139,7 +140,7 @@ export function chopPath(path, maxLen = 120) {
     const a = pointAt(path, s0);
     const b = pointAt(path, s1);
     const inner = path.pts.filter((_, i) => path.cum[i] > s0 && path.cum[i] < s1);
-    const piece = measurePath([[a.x, a.z], ...inner, [b.x, b.z]], path.kind, 0);
+    const piece = measurePath([[a.x, a.z], ...inner, [b.x, b.z]], path.kind, 0, path.side);
     if (piece) out.push(piece);
   }
   return out;
@@ -254,19 +255,26 @@ export const SEAT_OFFSET = 0.45;
 
 /**
  * Bangku diskusi (P04, "bangku diskusi di bawah pohon" riset §4 [T]) di sisi kanan jalur `walk` tiap
- * BENCH_SPACING m; panjang bangku sejajar jalur. @returns {Array<{x,z,rotY,pathYaw}>}
+ * BENCH_SPACING m; panjang bangku sejajar jalur. Bahu jalan (`bahu`) hanya mendapat bangku bila `shoulderSpacing`
+ * diberikan (OSM kampus hanya punya segelintir footway): bangku di sisi LUAR bahu (menjauhi badan jalan), menghadap
+ * jalur. @returns {Array<{x,z,rotY,pathYaw}>}
  */
-export function benchSpotsFromPaths(paths, { spacing = BENCH_SPACING, offset = BENCH_OFFSET } = {}) {
+export function benchSpotsFromPaths(paths, { spacing = BENCH_SPACING, offset = BENCH_OFFSET, shoulderSpacing = null } = {}) {
   const out = [];
   for (const p of paths) {
-    if (p.kind !== 'walk') continue;
-    for (let s = spacing / 2; s < p.length; s += spacing) {
+    const shoulder = p.kind === 'bahu';
+    if (p.kind !== 'walk' && !(shoulder && shoulderSpacing)) continue;
+    const step = shoulder ? shoulderSpacing : spacing;
+    // Sisi kanan arah jalur (k = 1) = luar untuk bahu kanan jalan; bahu kiri jalan (side +1) dibalik ke kiri.
+    const k = shoulder && p.side > 0 ? -1 : 1;
+    for (let s = step / 2; s < p.length; s += step) {
       const q = pointAt(p, s);
       out.push(Object.freeze({
-        x: q.x + Math.cos(q.yaw) * offset,
-        z: q.z - Math.sin(q.yaw) * offset,
-        rotY: q.yaw - Math.PI / 2,
+        x: q.x + Math.cos(q.yaw) * offset * k,
+        z: q.z - Math.sin(q.yaw) * offset * k,
+        rotY: q.yaw - (Math.PI / 2) * k,
         pathYaw: q.yaw,
+        face: -(Math.PI / 2) * k, // arah hadap kursi relatif pathYaw (menuju jalur)
       }));
     }
   }
@@ -278,7 +286,7 @@ export function seatsOf(spots) {
   return spots.flatMap((b) => [-1, 1].map((k) => Object.freeze({
     x: b.x + Math.sin(b.pathYaw) * SEAT_OFFSET * k,
     z: b.z + Math.cos(b.pathYaw) * SEAT_OFFSET * k,
-    yaw: b.pathYaw - Math.PI / 2,
+    yaw: b.pathYaw + (b.face ?? -Math.PI / 2),
   })));
 }
 

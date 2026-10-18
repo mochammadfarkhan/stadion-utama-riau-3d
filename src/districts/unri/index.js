@@ -13,6 +13,7 @@ import { createTerrainMaterial } from '../../world/terrain/TerrainMesh.js';
 import { createUnriGroundLayer } from './groundLayer.js';
 import { createUnriCollider } from './collider.js';
 import { mountBuildings } from './buildings.js';
+import { createCampusLife } from './life.js';
 
 export const UNRI_DIR = 'districts/unri/';
 export const DISTRICT_FORMAT = 'unri-district';
@@ -99,6 +100,18 @@ async function buildUnri(ctx) {
     dev: import.meta.env?.DEV === true,
   });
   if (gedung) group.add(gedung.group);
+  // M7: kehidupan kampus (mahasiswa, satpam; parkir motor & props menyusul). Humanoid lewat ctx.services (D1).
+  const life = createCampusLife({
+    scope: ctx.scope,
+    terrain: { heightAt: (x, z) => ctx.terrain.heightAt(x, z), has: (k) => ctx.terrain.field.has(k) },
+    scheduler: ctx.scheduler,
+    services: ctx.services ?? {},
+    baseUrl: `${ctx.baseUrl}${UNRI_DIR}`,
+    chunkKeys: manifest.ground?.chunks ?? [],
+    fetchJson: ctx.fetchJson,
+    logger: ctx.logger,
+  });
+  group.add(life.group);
   const chunks = createTerrainChunks({
     header, baseUrl: `${ctx.baseUrl}${UNRI_DIR}`, field: ctx.terrain.field, parent: group, materials: { terrain: material },
     cellGrid, cellMask, hole, onHoleChange: ctx.groundHoleChanged, scheduler: ctx.scheduler, owner: ctx.owner,
@@ -124,7 +137,8 @@ async function buildUnri(ctx) {
   };
   return {
     group,
-    systems: [system, ground.system, ...(gedung ? [gedung.system] : [])],
+    systems: [system, ground.system, ...(gedung ? [gedung.system] : []), ...life.systems],
+    life,
     colliders: collider,
     minimapLayer(ctx2d, view) {
       drawBoundary(ctx2d, view);
@@ -146,6 +160,7 @@ async function buildUnri(ctx) {
       if (disposed) return;
       disposed = true;
       for (const w of [...waiters]) settle(w, false);
+      life.dispose(); // pertama: NPC/props memakai material scope & collider
       gedung?.dispose(); // sebelum ground (collider & registri emisif masih hidup)
       ground.dispose(); // sebelum terrain: material terrain asli dipulihkan sebelum mesh dilepas
       chunks.dispose();
