@@ -1,0 +1,60 @@
+/**
+ * Material tanah distrik UNRI (satu set per ResourceScope distrik). Permukaan bertekstur surfaceMaps
+ * (UV dunia bersatuan meter) dengan polygonOffset berjenjang (lapisan lebih atas = offset lebih besar) di atas
+ * lift drape (DRAPE.lift) → tidak ada z-fighting antar lapisan maupun dengan terrain. Nama material untuk debug;
+ * registry basah memilih berdasarkan NAMA MESH (ground.js), malam berdasarkan userData.nightEmissive.
+ */
+import { MeshLambertMaterial, MeshStandardMaterial } from 'three';
+import { currentScope } from '../../engine/ResourceScope.js';
+import { COLORS } from '../../config/constants.js';
+import { GROUND_COLORS, surfaceMaterial } from '../../world/Ground.materials.js';
+
+/**
+ * Pengali warna. asphalt: tekstur aspal (basis COLORS.asphalt) × 0xb3b0a9 ≈ jalan tersier kota #484b51 (linear:
+ * 0,065/0,147 ≈ 0,44) agar sambungan kota–distrik tidak berganti nada. pitch: rumput lapangan sedikit lebih
+ * terang. water: WATER_COLOR citybake (#3f6f8f). ditch: air parit keruh [INFERENSI].
+ */
+export const UNRI_GROUND_COLORS = Object.freeze({
+  asphalt: 0xb3b0a9, marking: 0xf4f1e8, pitch: 0xdcefc4, water: 0x3f6f8f, ditch: 0x4b5a4a,
+});
+
+const offset = (m, f) => {
+  m.polygonOffset = true;
+  m.polygonOffsetFactor = f;
+  m.polygonOffsetUnits = f * 2;
+  return m;
+};
+
+function createSet() {
+  const terrain = surfaceMaterial('grass', { color: 0xffffff });
+  terrain.vertexColors = true;
+  terrain.name = 'unri:tanahTerrain';
+  const marking = offset(new MeshLambertMaterial({ color: UNRI_GROUND_COLORS.marking }), -2);
+  marking.name = 'unri:marka';
+  const water = new MeshStandardMaterial({ color: UNRI_GROUND_COLORS.water, roughness: 0.35, metalness: 0 });
+  water.name = 'unri:air';
+  const ditch = offset(new MeshStandardMaterial({ color: UNRI_GROUND_COLORS.ditch, roughness: 0.25, metalness: 0 }), -1);
+  ditch.name = 'unri:parit';
+  return {
+    terrain,
+    asphalt: offset(surfaceMaterial('asphalt', { color: UNRI_GROUND_COLORS.asphalt }), -1),
+    marking,
+    paving: offset(surfaceMaterial('paving', { color: COLORS.concrete }), -2),
+    walk: offset(surfaceMaterial('concrete', { color: GROUND_COLORS.sidewalk }), -3),
+    pitch: offset(surfaceMaterial('grass', { color: UNRI_GROUND_COLORS.pitch }), -1),
+    water,
+    ditch,
+  };
+}
+
+function disposeSet(set) {
+  for (const m of Object.values(set)) {
+    for (const k of ['map', 'normalMap', 'roughnessMap']) m[k]?.dispose();
+    m.dispose();
+  }
+}
+
+/** Panggil di dalam withScope(scopeDistrik, …). */
+export function createUnriGroundMaterials() {
+  return currentScope().get('unri:groundMaterials', createSet, { dispose: disposeSet });
+}
