@@ -4,10 +4,14 @@ Data distrik Kampus UNRI Bina Widya di direktori ini adalah karya turunan dari:
     https://s3.amazonaws.com/elevation-tiles-prod/skadi/N00/N00E101.hgt.gz
     Shuttle Radar Topography Mission (Februari 2000) — domain publik, disebut sebagai sumber.
   © OpenStreetMap contributors — https://www.openstreetmap.org/copyright
-    (batas kampus, jalan, gedung, danau; data 2026-10-18T09:56:36Z)
+    (batas kampus, jalan, trotoar/selasar, parkir, gedung, danau, tata guna lahan; data 2026-10-18T09:56:36Z)
 
 Lisensi data OSM: Open Database License (ODbL) 1.0 — https://opendatacommons.org/licenses/odbl/1-0/
-File terrain/*.bin dibentuk dengan geometri OSM (pengondisian jalan, pad gedung, danau) sehingga tunduk
-pada ODbL; kode proyek tetap berlisensi MIT.
+File terrain/*.bin, ground/*.json, dan buildings.json dibentuk dari geometri OSM (pengondisian jalan, pad gedung,
+danau, footprint) sehingga tunduk pada ODbL; elevasi SRTM domain publik; kode proyek tetap berlisensi MIT.
 
-Dihasilkan oleh tools/campusbake (npm run bake:campus -- terrain).
+Catatan: Halte Trans Metro Pekanbaru (OSM node 4559431711 dan 4559433677, Jl. HR Soebrantas, di barat dan selatan
+poligon kampus) berada di luar batas distrik sehingga tidak dipasang (model P02 tersedia di
+public/models/unri/p02-halte-tmp.glb).
+
+Dihasilkan oleh tools/campusbake (npm run bake:campus -- all).

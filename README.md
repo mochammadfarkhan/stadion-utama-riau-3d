@@ -106,8 +106,10 @@ Pola UI panel pengaturan diadaptasi dari [dgreenheck/tidewater](https://github.c
 ## Data peta & atribusi
 Jalan, bangunan, air, dan tata guna lahan kota berasal dari © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors dan Overture Maps Foundation, di-bake offline oleh `tools/citybake` (`npm run bake -- --area stadion|pusat|all`; cache data mentah di `data-src/`, tidak di-commit). Data turunan di `public/tiles/` (`*.glb`, `*.data.json`) berlisensi **ODbL 1.0**; rincian sumber, waktu data, dan rilis Overture ada di `public/tiles/ATTRIBUTION.txt`. Atribusi juga tampil di pojok kiri bawah layar selama peta kota aktif.
 
+Kawasan Kampus UNRI Bina Widya (`public/districts/unri/`) di-bake oleh `tools/campusbake` (`npm run bake:campus -- all`) dari © OpenStreetMap contributors (ODbL 1.0) dan elevasi **SRTM 1 Arc-Second Global (NASA/USGS, domain publik)**; rincian di `public/districts/unri/ATTRIBUTION.txt`. Atribusi OSM + SRTM juga tampil di pojok kiri bawah layar.
+
 ## Lisensi
-Kode: MIT, lihat [LICENSE](LICENSE). Data tile kota (`public/tiles/`): ODbL 1.0 (lihat bagian "Data peta & atribusi").
+Kode: MIT, lihat [LICENSE](LICENSE). Data tile kota (`public/tiles/`): ODbL 1.0 (lihat bagian "Data peta & atribusi"). Data distrik kampus (`public/districts/unri/`): ODbL 1.0 untuk bagian OSM; elevasi SRTM domain publik.
 
 ## Sumber riset
 Lihat `docs/research/stadion-utama-riau.md` (Dispora Riau, StadiumDB, Wikipedia, liputan media lokal) dan `docs/research/threejs-teknis.md`.
