@@ -12,6 +12,7 @@ import { chunkCellGrid, createTerrainChunks } from '../terrainChunks.js';
 import { createTerrainMaterial } from '../../world/terrain/TerrainMesh.js';
 import { createUnriGroundLayer } from './groundLayer.js';
 import { createUnriCollider } from './collider.js';
+import { mountBuildings } from './buildings.js';
 
 export const UNRI_DIR = 'districts/unri/';
 export const DISTRICT_FORMAT = 'unri-district';
@@ -83,6 +84,21 @@ async function buildUnri(ctx) {
     logger: ctx.logger,
   });
   group.add(ground.group);
+  const gedung = await mountBuildings({
+    url: `${ctx.baseUrl}${UNRI_DIR}${manifest.buildings ?? 'buildings.json'}`,
+    fetchJson: ctx.fetchJson,
+    scope: ctx.scope,
+    scheduler: ctx.scheduler,
+    registries: ctx.registries,
+    collider,
+    terrain: { heightAt: (x, z) => ctx.terrain.heightAt(x, z), has: (k) => ctx.terrain.field.has(k) },
+    terrainChunks: manifest.terrain?.chunks ?? [],
+    anisotropy: ctx.renderer?.capabilities?.getMaxAnisotropy?.() ?? 8,
+    toast: ctx.toast,
+    logger: ctx.logger,
+    dev: import.meta.env?.DEV === true,
+  });
+  if (gedung) group.add(gedung.group);
   const chunks = createTerrainChunks({
     header, baseUrl: `${ctx.baseUrl}${UNRI_DIR}`, field: ctx.terrain.field, parent: group, materials: { terrain: material },
     cellGrid, cellMask, hole, onHoleChange: ctx.groundHoleChanged, scheduler: ctx.scheduler, owner: ctx.owner,
@@ -108,10 +124,13 @@ async function buildUnri(ctx) {
   };
   return {
     group,
-    systems: [system, ground.system],
+    systems: [system, ground.system, ...(gedung ? [gedung.system] : [])],
     colliders: collider,
-    minimapLayer: drawBoundary,
-    excludeIds: new Set(),
+    minimapLayer(ctx2d, view) {
+      drawBoundary(ctx2d, view);
+      gedung?.drawMinimap(ctx2d, (x) => view.toCanvas(x, 0)[0], (z) => view.toCanvas(0, z)[1]);
+    },
+    excludeIds: gedung?.excludeIds ?? new Set(),
     groundHole: { ...cellGrid, data: hole },
     stats: () => chunks.stats(),
     /** Selesai bila chunk terrain dalam SETTLE.radius dari (x, z) tampil/gagal; false bila habis waktu/dilepas. */
@@ -121,12 +140,13 @@ async function buildUnri(ctx) {
         const w = { x, z, resolve, timer: null };
         waiters.add(w);
         w.timer = setTimer(() => { if (waiters.delete(w)) resolve(false); }, timeoutMs);
-      }).then((ok) => (ok ? ground.whenIdle().then(() => true) : ok));
+      }).then((ok) => (ok ? Promise.all([ground.whenIdle(), gedung ? gedung.whenSettled(x, z) : true]).then(() => true) : ok));
     },
     dispose() {
       if (disposed) return;
       disposed = true;
       for (const w of [...waiters]) settle(w, false);
+      gedung?.dispose(); // sebelum ground (collider & registri emisif masih hidup)
       ground.dispose(); // sebelum terrain: material terrain asli dipulihkan sebelum mesh dilepas
       chunks.dispose();
       group.removeFromParent();

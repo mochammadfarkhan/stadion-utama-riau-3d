@@ -73,7 +73,7 @@ export async function mountDistrict(app, def, {
   try {
     district = validateDistrictBuild(await def.build({
       scene: app.scene, scope, terrain, scheduler, owner, baseUrl, fetchJson, fetchArrayBuffer, createStreamer, logger,
-      registries, isReserved,
+      registries, isReserved, toast,
       onTerrainFail: () => {
         if (warned) return;
         warned = true;
