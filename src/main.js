@@ -52,6 +52,12 @@ import { createLocalContext, pointToWorld } from './app/regionContext.js';
 import { withPlacement, regionContains } from './regions/Region.js';
 import { unriLembagaRegion } from './regions/unri-lembaga/index.js';
 import { LEMBAGA_LAYOUT } from './regions/unri-lembaga/layout.js';
+import { createInteriorPortal, createStubInterior, appStage } from './app/interiorPortal.js';
+import { appViewPort } from './app/appView.js';
+import { createPortalTrigger } from './app/portalTrigger.js';
+import { createFadeOverlay } from './ui/FadeOverlay.js';
+import { sekreExitTo } from './regions/unri-lembaga/portalDoors.js';
+import { PLAYER_ROOM_INDEX } from './regions/unri-lembaga/sekre.data.js';
 import { createCity } from './city/index.js';
 import { STREAM } from './city/ChunkStreamer.js';
 import { createAttribution } from './ui/Attribution.js';
@@ -205,7 +211,9 @@ async function main() {
   });
   if (unri) lifecycle.add(() => unri.dispose()); // LIFO: dilepas sebelum kota, time, weather
   const travel = setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, spawn: region.layout.spawn, touch });
+  const portalKit = setupPortal({ app, input, hud, rig, ents, regions, colliders, lifecycle }); // sebelum addFrameSystems: 'portal.trigger' lebih dulu dari 'keymap'
   addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel });
+  portalKit.trigger.installPrompt(); // sesudah sistem 'hud'
 
   // Binding store -> scene (satu sumber kebenaran). Dipasang setelah semua objek ada.
   lifecycle.add(bindAll(store, {
@@ -248,6 +256,7 @@ async function main() {
       app, ents, rig, time, weather, store, audioBus, story, colliders, city, remountRegion, regions, scheduler, terrain, district: unri,
       fastTravel: (id) => travel.go(id), teardown: () => lifecycle.disposeAll(),
     });
+    window.__sim.portal = portalKit.portal; // E2E: siklus masuk/keluar interior
   }
 }
 
@@ -337,6 +346,51 @@ function setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, sp
     get blocksInput() { return travel.busy || menu.open; },
     go: (id) => travel.go(id),
   };
+}
+
+/**
+ * Pintu-portal interior (M4 stub): pintu sekre pemain → interior kotak abu; keluar → sepeda di tempat semula
+ * (dipindah ke depan pintu hanya bila > 3 m darinya). Interior sekre penuh di M5.
+ */
+function setupPortal({ app, input, hud, rig, ents, regions, colliders, lifecycle }) {
+  const fader = createFadeOverlay(document.body);
+  lifecycle.add(() => fader.dispose());
+  const ormawa = LEMBAGA_LAYOUT.rooms[PLAYER_ROOM_INDEX];
+  const placeBike = (exitTo) => {
+    const frame = regions.frameOf(exitTo.region);
+    const b = ents.bike.state;
+    if (!frame) {
+      ents.bike.state = { ...b, v: 0 };
+      return;
+    }
+    const w = frame.toWorld(exitTo.x, exitTo.z);
+    if (Math.hypot(b.x - w.x, b.z - w.z) <= 3) {
+      ents.bike.state = { ...b, v: 0 };
+      return;
+    }
+    ents.bike.state = { ...b, x: w.x, z: w.z, yaw: frame.yawToWorld(exitTo.yaw), v: 0 };
+    ents.bike.setCollider(createCollider({ x: w.x, z: w.z }, colliders.isWalkable, colliders.penetration));
+  };
+  const portal = createInteriorPortal({
+    interiors: { sekre: createStubInterior({ id: 'sekre', label: `Sekretariat ${ormawa.nama}`, exitTo: sekreExitTo() }) },
+    view: appViewPort(app), stage: appStage(app), fader, input,
+    prompt: (text) => hud.setPrompt(text),
+    onToast: (text, ok) => hud.toast(text, ok),
+    onEntered: () => {
+      ents.bike.state = { ...ents.bike.state, v: 0 };
+      document.exitPointerLock?.();
+    },
+    onExited: placeBike,
+  });
+  lifecycle.add(() => portal.dispose());
+  const trigger = createPortalTrigger({
+    app, portal, input, hud,
+    getActive: () => regions.active(),
+    getBike: () => ents.bike.state,
+    isBlocked: () => hud.shopOpen || rig.freezesBike,
+  });
+  lifecycle.add(() => trigger.dispose());
+  return { portal, trigger };
 }
 
 /**
