@@ -57,7 +57,7 @@ describe('collider distrik UNRI', () => {
     expect(c.isWalkable(Number.NaN, 0)).toBe(false);
     expect(c.penetration(Infinity, 0)).toBe(Infinity);
     expect(c.isCameraClear(10, 10)).toBe(true);
-    expect(c.stats()).toEqual({ chunks: 0, cells: 0 });
+    expect(c.stats()).toEqual({ chunks: 0, cells: 0, buildingClusters: 0 });
   });
 
   it('colliderDataFromGround: air, jalan + trotoar, lingkaran PJU/bangku/tong (keep menyaring)', () => {

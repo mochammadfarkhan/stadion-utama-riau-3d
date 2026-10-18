@@ -3,7 +3,7 @@
  * gorong-gorong), lereng > 35 % tidak walkable (tanggul curam), rintangan lingkaran (PJU, bangku, tong).
  * Chunk ground yang belum dimuat = terbuka (sama dengan TileCollider kota). penetration(x, z) = kedalaman di zona
  * terhalang (createCollider memakainya agar sepeda yang terjebak hanya bisa keluar). Kamera: uji 2D tetap bebas
- * (terrain ditangani CameraRig M1). Koordinat dunia; murni (tanpa three). M3 menambah footprint gedung.
+ * (terrain ditangani CameraRig M1). Koordinat dunia; murni (tanpa three). M3: footprint gedung per klaster (`addBuildings/removeBuildings`).
  */
 import { distanceToRing, distanceToSegment, pointInPolygon } from '../../geo/polygon.js';
 
@@ -52,6 +52,7 @@ export function createUnriCollider({
 } = {}) {
   const cells = new Map();
   const chunks = new Map();
+  const buildings = new Map(); // M3: kunci klaster → rec footprint gedung
   const keyOf = (cx, cz) => `${cx},${cz}`;
   const n = { x: 0, y: 1, z: 0 };
 
@@ -87,6 +88,19 @@ export function createUnriCollider({
     for (const s of at(x, z)) if (s.kind === 'circle') d = Math.max(d, s.r + clearance - Math.hypot(x - s.x, z - s.z));
     return d;
   };
+  /** M3: kedalaman di zona gedung (footprint + jarak bebas), naik ke arah dalam — aturan TileCollider kota. */
+  const buildingDepth = (x, z) => {
+    let depth = 0;
+    for (const s of at(x, z)) {
+      if (s.kind !== 'building' || !inBox(s, x, z)) continue;
+      if (s.holes.some((h) => pointInPolygon(x, z, h))) continue; // halaman dalam
+      const d = distanceToRing(x, z, s.outer);
+      depth = Math.max(depth, pointInPolygon(x, z, s.outer) ? d + clearance : Math.max(0, clearance - d));
+    }
+    return depth;
+  };
+  const insideBuilding = (x, z) => at(x, z).some((s) => s.kind === 'building' && inBox(s, x, z)
+    && pointInPolygon(x, z, s.outer) && !s.holes.some((h) => pointInPolygon(x, z, h)));
   const gradeAt = (x, z) => {
     if (!terrain?.normalAt) return 0;
     const v = terrain.normalAt(x, z, n);
@@ -94,23 +108,36 @@ export function createUnriCollider({
   };
   const penetration = (x, z) => {
     if (!Number.isFinite(x) || !Number.isFinite(z)) return Infinity;
-    const c = circleDepth(x, z);
+    const c = Math.max(circleDepth(x, z), buildingDepth(x, z));
     if (c > 0) return c;
     const w = waterDepth(x, z);
     if (w > 0 && !onRoad(x, z)) return w;
     return gradeAt(x, z) > maxGrade ? UNRI_COLLIDER.steepPenetration : 0;
   };
 
-  function removeChunk(key) {
-    const rec = chunks.get(key);
+  function removeFrom(map, key) {
+    const rec = map.get(key);
     if (!rec) return false;
     for (const k of rec.cellKeys) {
       const list = cells.get(k).filter((s) => !rec.shapes.has(s));
       if (list.length) cells.set(k, list);
       else cells.delete(k);
     }
-    chunks.delete(key);
+    map.delete(key);
     return true;
+  }
+  const removeChunk = (key) => removeFrom(chunks, key);
+  /** M3: lepas footprint gedung satu klaster. */
+  const removeBuildings = (key) => removeFrom(buildings, key);
+
+  /** M3: daftarkan footprint gedung satu klaster [{ring, holes?}] (dunia); kunci sama mengganti. */
+  function addBuildings(key, footprints = []) {
+    removeBuildings(key);
+    const rec = { cellKeys: new Set(), shapes: new Set() };
+    for (const f of footprints) {
+      insert(rec, { kind: 'building', outer: f.ring, holes: f.holes ?? [], bbox: bboxOf(f.ring, clearance) });
+    }
+    buildings.set(key, rec);
   }
 
   function addChunk(key, { water = [], roads = [], circles = [] } = {}) {
@@ -130,10 +157,12 @@ export function createUnriCollider({
   return Object.freeze({
     addChunk,
     removeChunk,
+    addBuildings,
+    removeBuildings,
     isWalkable: (x, z) => penetration(x, z) === 0,
-    isCameraClear: (x, z) => Number.isFinite(x) && Number.isFinite(z),
+    isCameraClear: (x, z) => Number.isFinite(x) && Number.isFinite(z) && !insideBuilding(x, z),
     penetration,
     gradeAt,
-    stats: () => ({ chunks: chunks.size, cells: cells.size }),
+    stats: () => ({ chunks: chunks.size, cells: cells.size, buildingClusters: buildings.size }),
   });
 }
