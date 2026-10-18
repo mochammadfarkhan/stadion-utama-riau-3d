@@ -1,6 +1,6 @@
 /**
  * Evaluator objective cerita (murni, immutable). Setiap jenis objective memutuskan
- * apakah sebuah event menyelesaikan/memajukannya.
+ * apakah sebuah event menyelesaikan/memajukannya. Jenis: goto, buy, deliver, laps, find, interact (M7).
  * @returns {{progress:{count:number,found:string[]}, done:boolean, effects:object[]}}
  */
 const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -18,6 +18,8 @@ export function applyObjective(objective, progress, event) {
     case 'deliver': return deliver(objective, progress, event);
     case 'laps': return laps(objective, progress, event);
     case 'find': return find(objective, progress, event);
+    case 'interact': // M7: '<region|interior>:<id>' (NPC ber-zone atau barang interior); `at` hanya untuk penanda
+      return event.type === 'interact' && event.target === objective.target ? finish(progress) : pass(progress);
     default: return pass(progress);
   }
 }
