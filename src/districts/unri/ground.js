@@ -16,6 +16,8 @@ export const MARKED_CLASSES = Object.freeze(['primary', 'secondary', 'tertiary',
 export const DASH = Object.freeze({ length: 3, gap: 5, width: 0.12, minRoadWidth: 6 });
 /** Tambahan lift LOD1: presisi depth ±0,13 m di 800 m (near 0,3 / far 2.500, depth 24-bit). */
 export const LOD1_EXTRA_LIFT = 0.2;
+/** Pecahan drape LOD1 (m): sel permukaan LOD1 16 m, jadi 8 m cukup (LOD0 memakai DRAPE.segment/maxEdge = 2 m). */
+export const LOD1_SEGMENT = 8;
 
 /** Interval [s0, s1] marka sepanjang polyline sepanjang `length` m (mulai gap/2). */
 export function dashIntervals(length, dash = DASH) {
@@ -47,7 +49,8 @@ export function mergedMesh(list, material, name) {
  */
 export function* buildGroundMeshes(data, surface, { lod, materials, rect, key }) {
   const extra = lod === 0 ? 0 : LOD1_EXTRA_LIFT;
-  const opts = (lift) => ({ lift: lift + extra, clipRect: rect });
+  const seg = lod === 0 ? {} : { segment: LOD1_SEGMENT, maxEdge: LOD1_SEGMENT };
+  const opts = (lift) => ({ lift: lift + extra, clipRect: rect, ...seg });
   const geos = { aspal: [], marka: [], trotoar: [], plazaPaving: [], rumput: [] };
   for (const r of data.roads) {
     geos.aspal.push(drapePolyline(r.pts, r.w, surface, opts(DRAPE.lift.road)));

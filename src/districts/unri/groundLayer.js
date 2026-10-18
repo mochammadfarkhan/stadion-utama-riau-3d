@@ -27,7 +27,7 @@ export const GROUND_LAYER = Object.freeze({
   owner: 'unri:ground',
   terrainRenderOrder: -5,
   lod1Stride: 4,
-  detailRadius: 650,
+  detailRadius: 450,
   visibilityInterval: 0.5,
   chunkSize: 500,
 });

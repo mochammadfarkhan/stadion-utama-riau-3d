@@ -75,7 +75,7 @@ export const VEG_SPECIES = Object.freeze(['mahoni', 'angsana', 'saga', 'sawit', 
  * aspal (di luar parit yang 2,5–3,5 m dari tepi).
  */
 export const VEG = Object.freeze({
-  forest: Object.freeze({ spacing: 16, jitter: 0.35, mix: Object.freeze([['mahoni', 0.5], ['angsana', 0.3], ['saga', 0.2]]) }),
+  forest: Object.freeze({ spacing: 20, jitter: 0.35, mix: Object.freeze([['mahoni', 0.5], ['angsana', 0.3], ['saga', 0.2]]) }),
   park: Object.freeze({ spacing: 24, jitter: 0.4, keep: 0.6, mix: Object.freeze([['angsana', 0.45], ['mahoni', 0.35], ['saga', 0.2]]) }),
   grass: Object.freeze({ spacing: 30, jitter: 0.45, keep: 0.25, mix: Object.freeze([['saga', 0.5], ['angsana', 0.5]]) }),
   orchard: Object.freeze({ spacing: 12, jitter: 0.15, mix: Object.freeze([['saga', 1]]) }), // kebun tanpa spesies OSM → pohon buah [INFERENSI]
@@ -92,7 +92,7 @@ export const VEG = Object.freeze({
 
 /** Props kampus (P03 PJU, P04 bangku, P05 tong sampah). Jarak [INFERENSI]. */
 export const PROPS = Object.freeze({
-  lamp: Object.freeze({ spacing: Object.freeze({ tertiary: 35, tertiary_link: 35, residential: 40, service: 50 }), offset: 1.0 }),
+  lamp: Object.freeze({ spacing: Object.freeze({ tertiary: 35, tertiary_link: 35, residential: 40, service: 70 }), offset: 1.0 }),
   bench: Object.freeze({ spacing: 30, offset: 1.6, minWalk: 20 }),
   bin: Object.freeze({ every: 2, along: 1.4 }),
   clear: Object.freeze({ road: 0.8, walk: 0.5, building: 1.5, water: 1 }),
