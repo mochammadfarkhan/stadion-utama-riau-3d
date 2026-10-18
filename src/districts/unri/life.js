@@ -1,5 +1,5 @@
 /**
- * Kehidupan kampus (spec UNRI §8.4): komposisi mahasiswa dan satpam di atas umpan data ground (groundFeed),
+ * Kehidupan kampus (spec UNRI §8.4): komposisi mahasiswa, satpam, dan parkir motor di atas umpan data ground (groundFeed),
  * satu sistem fase `sim`. Humanoid lewat `services.npc` (D1); tanpa services distrik tetap jalan tanpa NPC.
  * Data ground diteruskan setelah chunk terrain-nya ada (`terrain.has`) agar tinggi bangku/kursi benar; batas
  * tunggu TERRAIN_WAIT_MS (chunk terrain gagal = datar, spec §10).
@@ -9,6 +9,7 @@ import { withScope } from '../../engine/ResourceScope.js';
 import { createGroundFeed, defaultFetchJson } from './groundFeed.js';
 import { createStudents } from './students.js';
 import { createGuards } from './guards.js';
+import { createMotorParking } from './motorParking.js';
 
 /** Satuan titik ground (Task 0 Step 4): 1 = meter dunia, 0.1 = desimeter. */
 export const GROUND_SCALE = 1;
@@ -30,9 +31,11 @@ export function createCampusLife({
   const withNpc = Boolean(npc && camera);
   const students = withNpc ? createStudents({ npc, terrain, scheduler, scope, hour, camera, groundScale: GROUND_SCALE }) : null;
   const guards = withNpc ? createGuards({ npc, terrain, scheduler, scope, camera }) : null;
-  const parts = [students, guards].filter(Boolean);
+  const excludeAt = typeof services.excludeAt === 'function' ? services.excludeAt : () => false;
+  const motors = createMotorParking({ scope, terrain, scheduler, hour, camera, excludeAt, groundScale: GROUND_SCALE, logger });
+  const parts = [students, guards, motors].filter(Boolean);
   parts.forEach((p) => group.add(p.group));
-  const consumers = [students].filter(Boolean);
+  const consumers = [students, motors].filter(Boolean);
 
   const waiting = new Map(); // chunkKey -> { data, since }
   const added = new Set();
@@ -65,6 +68,7 @@ export function createCampusLife({
       flushWaiting();
       students?.update(dt, focus);
       guards?.update(dt);
+      motors.update(dt);
     },
   };
 
@@ -73,6 +77,7 @@ export function createCampusLife({
     systems: [system],
     students,
     guards,
+    motors,
     feed,
     dispose() {
       disposed = true;

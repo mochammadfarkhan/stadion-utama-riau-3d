@@ -14,7 +14,7 @@ export const MOTOR_SLOT = Object.freeze({
   margin: 0.6,    // jarak dari tepi poligon
   halfW: 0.37,
   halfL: 0.98,
-  maxSlots: 600,  // budget per area
+  maxSlots: 600,  // budget per area (CPU BatchedMesh)
 });
 
 /** Bobot varian A01–A04 [INFERENSI: matic & bebek dominan di parkiran kampus]. */
@@ -74,23 +74,40 @@ export function parkingSlots(ring, opts = {}) {
     minB = Math.min(minB, b);
     maxB = Math.max(maxB, b);
   }
-  const slots = [];
+  const rows = [];
   let b = minB + o.margin + o.halfL;
   let row = 0;
   while (b <= maxB - o.margin - o.halfL + 1e-9) {
     const face = row % 2 === 0 ? -1 : 1;
     const rotY = round(Math.atan2(-v.x * face, -v.z * face), 4);
+    const cells = [];
     for (let a = minA + o.margin + o.halfW; a <= maxA - o.margin - o.halfW + 1e-9; a += o.pitch) {
       const x = a * u.x + b * v.x;
       const z = a * u.z + b * v.z;
       if (!footprintInside(ring, x, z, u, v, o)) continue;
-      slots.push(Object.freeze({ x: round(x, 2), z: round(z, 2), rotY }));
-      if (slots.length >= o.maxSlots) return slots;
+      cells.push(Object.freeze({ x: round(x, 2), z: round(z, 2), rotY }));
     }
+    rows.push(cells);
     b += row % 2 === 0 ? o.pairGap : o.aisle;
     row += 1;
   }
-  return slots;
+  return capSlots(rows, o.maxSlots);
+}
+
+/**
+ * Bila jumlah slot melebihi `max`, buang SELURUH pasangan baris secara merata (baris yang tersisa tetap rapat, area terasa
+ * sedang tidak penuh) alih-alih memotong di satu sisi lahan; sisa kelebihan dipangkas dari ujung.
+ */
+function capSlots(rows, max) {
+  const total = rows.reduce((n, r) => n + r.length, 0);
+  if (total <= max) return rows.flat();
+  const pairs = Math.ceil(rows.length / 2);
+  const keepRatio = max / total;
+  const kept = [];
+  for (let p = 0; p < pairs; p += 1) {
+    if (Math.ceil((p + 1) * keepRatio) > Math.ceil(p * keepRatio)) kept.push(...rows.slice(p * 2, p * 2 + 2));
+  }
+  return (kept.length ? kept : rows.slice(0, 2)).flat().slice(0, max);
 }
 
 /** Permutasi deterministik 0..n−1 (Fisher–Yates): k slot pertama = yang terisi bila isi = k/n. */
@@ -121,4 +138,47 @@ export function assignVariants(n, seed, weights = VARIANT_WEIGHTS) {
 /** Benih tak bertanda dari titik (pusat area parkir, presisi 0,1 m). */
 export function seedOf(x, z) {
   return (Math.imul(Math.round(x * 10), 73856093) ^ Math.imul(Math.round(z * 10), 19349663)) >>> 0;
+}
+
+/** Ambang LOD motor parkir (m): model detail ≤ hi, model ±1k segitiga ≤ lo, model ±150 segitiga ≤ far, di luar itu tidak digambar. */
+export const MOTOR_LOD = Object.freeze({ hi: 28, lo: 80, far: 220 });
+
+/** Tier LOD dari jarak kuadrat ke kamera: 'hi' | 'lo' | 'far' | null (terlalu jauh). NaN dianggap dekat. */
+export function motorLodTier(dist2, t = MOTOR_LOD) {
+  if (!(dist2 > t.hi * t.hi)) return 'hi';
+  if (dist2 <= t.lo * t.lo) return 'lo';
+  return dist2 <= t.far * t.far ? 'far' : null;
+}
+
+/**
+ * Jatah instans per tier LOD untuk SELURUH distrik (bukan per area): mengunci beban segitiga di mana pun pemain berdiri
+ * (hi ≈ 3,7k, lo ≈ 1k, far ≈ 150 segitiga per motor → ≤ ~200k bila semua jatah terpakai). Mitigasi spec §9.3 langkah 2.
+ */
+export const MOTOR_BUDGET = Object.freeze({ hi: 10, lo: 60, far: 700 });
+const TIER_CODE = Object.freeze({ hi: 1, lo: 2, far: 3 });
+
+/**
+ * Tentukan tier tiap kandidat dari jarak kuadratnya ke kamera: terdekat dulu; tier ideal menurut MOTOR_LOD, diturunkan
+ * (hi → lo → far) bila jatah tier itu habis; tersisa → tersembunyi (0). Kode: 0 tersembunyi, 1 hi, 2 lo, 3 far.
+ * @param {ArrayLike<number>} d2s jarak kuadrat per kandidat (NaN/Infinity = tersembunyi)
+ * @returns {Uint8Array}
+ */
+export function assignMotorTiers(d2s, limits = MOTOR_LOD, budget = MOTOR_BUDGET) {
+  const n = d2s.length;
+  const out = new Uint8Array(n);
+  const order = [];
+  const far2 = limits.far * limits.far;
+  for (let i = 0; i < n; i += 1) if (d2s[i] <= far2) order.push(i);
+  order.sort((a, b) => d2s[a] - d2s[b]);
+  const left = { hi: budget.hi, lo: budget.lo, far: budget.far };
+  for (const i of order) {
+    const ideal = motorLodTier(d2s[i], limits);
+    for (const tier of ['hi', 'lo', 'far']) {
+      if (TIER_CODE[tier] < TIER_CODE[ideal] || left[tier] <= 0) continue;
+      left[tier] -= 1;
+      out[i] = TIER_CODE[tier];
+      break;
+    }
+  }
+  return out;
 }

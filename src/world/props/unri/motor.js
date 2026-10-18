@@ -13,16 +13,17 @@ import { loadModel } from '../../assets/models.js';
 import { boxAt } from './geom.js';
 
 export const MOTOR = Object.freeze({
-  bebek: Object.freeze({ id: 'A01', nama: 'motor-bebek', w: 0.7, l: 1.9, h: 1.05, wheelR: 0.29, glb: 'models/unri/a01-motor-bebek.glb' }),
-  matic: Object.freeze({ id: 'A02', nama: 'motor-matic', w: 0.7, l: 1.85, h: 1.1, wheelR: 0.25, glb: 'models/unri/a02-motor-matic.glb' }),
+  bebek: Object.freeze({ id: 'A01', nama: 'motor-bebek', w: 0.7, l: 1.9, h: 1.05, wheelR: 0.29, glb: 'models/unri/a01-motor-bebek.glb', glbLod: 'models/unri/a01-motor-bebek-lod.glb', glbFar: 'models/unri/a01-motor-bebek-far.glb' }),
+  matic: Object.freeze({ id: 'A02', nama: 'motor-matic', w: 0.7, l: 1.85, h: 1.1, wheelR: 0.25, glb: 'models/unri/a02-motor-matic.glb', glbLod: 'models/unri/a02-motor-matic-lod.glb', glbFar: 'models/unri/a02-motor-matic-far.glb' }),
 });
 export const MOTOR_COLORS = Object.freeze([0xc62828, 0x1565c0, 0x212121, 0xeeeeee, 0x6d6d6d, 0x2e7d32, 0xf9a825, 0x8e24aa, 0x37474f, 0xd84315]);
 
 /**
- * true setelah Task 25 (Blender) mengekspor public/models/unri/a01-motor-bebek.glb & a02-motor-matic.glb. Selama false
- * region tidak meminta GLB (hindari HTTP 404 di konsol/E2E); placeholder prosedural = versi final sementara.
+ * true: GLB Blender M7 (assets-src/blender/unri/m7_motor.py) tersedia — `<slug>.glb` (detail, dilihat dari dekat) dan
+
+ * `<slug>-lod.glb` (±1k segitiga) dan `<slug>-far.glb` (±110 segitiga, siluet) untuk parkir padat/jauh. Placeholder prosedural tetap menjadi cadangan bila GLB gagal.
  */
-export const MOTOR_GLB_READY = false;
+export const MOTOR_GLB_READY = true;
 
 const named = (mat, name) => {
   mat.name = name;
@@ -132,22 +133,24 @@ export function createMotorPlaceholders(kind, positions = [], { seed = 19, cellS
 
 /**
  * Motor dari GLB Blender, di-instance. Panggil DI DALAM withScope(scope) (loadModel memakai currentScope()
- * secara sinkron). null bila GLB gagal/dibatalkan (pemanggil mempertahankan placeholder).
+ * secara sinkron). null bila GLB gagal/dibatalkan (pemanggil mempertahankan placeholder). `variant` = 'hi' (detail, bayangan) | 'lo' | 'far'
+ * (lot padat; tanpa bayangan).
  */
-export function loadMotorInstances(kind, positions, { seed = 19, cellSize = 0, isCancelled = () => false, logger = console } = {}) {
+export function loadMotorInstances(kind, positions, { seed = 19, cellSize = 0, variant = 'hi', isCancelled = () => false, logger = console } = {}) {
   const spec = MOTOR[kind];
-  return loadModel(spec.glb).then((source) => {
+  const path = { hi: spec.glb, lo: spec.glbLod, far: spec.glbFar }[variant] ?? spec.glb;
+  return loadModel(path).then((source) => {
     if (isCancelled()) return null;
     source.updateMatrixWorld(true);
     const parts = [];
     source.traverse((o) => {
       if (!o.isMesh) return;
-      parts.push({ geometry: o.geometry.clone().applyMatrix4(o.matrixWorld), material: o.material, castShadow: true, name: o.material.name });
+      parts.push({ geometry: o.geometry.clone().applyMatrix4(o.matrixWorld), material: o.material, castShadow: variant === 'hi', name: o.material.name });
     });
     if (!parts.length) return null;
-    return colorBodies(instanceParts(parts, positions, `${spec.id}-${spec.nama}-glb`, { cellSize }), seed);
+    return colorBodies(instanceParts(parts, positions, `${spec.id}-${spec.nama}-${variant}`, { cellSize }), seed);
   }, (err) => {
-    logger.warn(`Model ${spec.id} (${spec.glb}) gagal dimuat, placeholder dipakai:`, err?.message ?? err);
+    logger.warn(`Model ${spec.id} (${path}) gagal dimuat, placeholder dipakai:`, err?.message ?? err);
     return null;
   });
 }

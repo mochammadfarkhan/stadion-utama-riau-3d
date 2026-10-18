@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parkingSlots, visibleOrder, assignVariants, seedOf, MOTOR_SLOT, VARIANT_WEIGHTS } from '../src/sim/parkingSlots.js';
+import { parkingSlots, visibleOrder, assignVariants, seedOf, motorLodTier, assignMotorTiers, MOTOR_LOD, MOTOR_SLOT, VARIANT_WEIGHTS } from '../src/sim/parkingSlots.js';
 import { pointInPolygon } from '../src/geo/polygon.js';
 
 const rect = [[0, 0], [20, 0], [20, 10], [0, 10]];
@@ -39,7 +39,13 @@ describe('parkingSlots', () => {
     expect(parkingSlots([[0, 0], [1, 0]])).toEqual([]);
     expect(parkingSlots(null)).toEqual([]);
     expect(parkingSlots([[0, 0], [1, 0], [1, 1], [0, 1]])).toEqual([]);
-    expect(parkingSlots([[0, 0], [200, 0], [200, 200], [0, 200]])).toHaveLength(MOTOR_SLOT.maxSlots);
+    const big = parkingSlots([[0, 0], [200, 0], [200, 200], [0, 200]]);
+    expect(big.length).toBeLessThanOrEqual(MOTOR_SLOT.maxSlots);
+    expect(big.length).toBeGreaterThan(MOTOR_SLOT.maxSlots * 0.6);
+    // pasangan baris dibuang merata: baris terdekat dan terjauh dari sisi lahan sama-sama terisi
+    const zs = big.map((s) => s.z);
+    expect(Math.min(...zs)).toBeLessThan(10);
+    expect(Math.max(...zs)).toBeGreaterThan(150);
     expect(parkingSlots(rect)).toEqual(parkingSlots(rect));
   });
 });
@@ -61,5 +67,35 @@ describe('urutan tampil, varian, benih', () => {
     expect(seedOf(-969.2, 970.4)).toBe(seedOf(-969.2, 970.4));
     expect(seedOf(-969.2, 970.4)).toBeGreaterThanOrEqual(0);
     expect(seedOf(1, 2)).not.toBe(seedOf(2, 1));
+  });
+});
+
+describe('motorLodTier', () => {
+  it('hi ≤ 28 m, lo ≤ 80 m, far ≤ 220 m, null di luar; batas inklusif; NaN = dekat', () => {
+    expect(motorLodTier(0)).toBe('hi');
+    expect(motorLodTier(MOTOR_LOD.hi ** 2)).toBe('hi');
+    expect(motorLodTier(MOTOR_LOD.hi ** 2 + 1)).toBe('lo');
+    expect(motorLodTier(MOTOR_LOD.lo ** 2)).toBe('lo');
+    expect(motorLodTier(MOTOR_LOD.lo ** 2 + 1)).toBe('far');
+    expect(motorLodTier(MOTOR_LOD.far ** 2)).toBe('far');
+    expect(motorLodTier(MOTOR_LOD.far ** 2 + 1)).toBeNull();
+    expect(motorLodTier(Number.NaN)).toBe('hi');
+  });
+});
+
+describe('assignMotorTiers (jatah per tier se-distrik)', () => {
+  const d = (m) => m * m;
+  it('menurut jarak bila jatah cukup; di luar far tersembunyi; NaN tersembunyi', () => {
+    const t = assignMotorTiers([d(5), d(50), d(150), d(400), Number.NaN], MOTOR_LOD, { hi: 9, lo: 9, far: 9 });
+    expect([...t]).toEqual([1, 2, 3, 0, 0]);
+  });
+  it('terdekat menang; jatah habis → turun ke tier berikut, lalu tersembunyi', () => {
+    const near = Array.from({ length: 6 }, (_, i) => d(2 + i)); // semua ideal hi
+    const t = assignMotorTiers(near, MOTOR_LOD, { hi: 2, lo: 2, far: 1 });
+    expect([...t]).toEqual([1, 1, 2, 2, 3, 0]);
+  });
+  it('urutan masukan tidak memengaruhi siapa yang terdekat', () => {
+    const t = assignMotorTiers([d(20), d(3), d(10)], MOTOR_LOD, { hi: 1, lo: 5, far: 5 });
+    expect([...t]).toEqual([2, 1, 2]);
   });
 });

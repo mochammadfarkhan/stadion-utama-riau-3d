@@ -60,6 +60,7 @@ const PAGE = {
     const focusAt = view.eye ? view.eye : [view.near[0], 0, view.near[1]];
     s.teleport(focusAt[0], focusAt[2], 0);
     s.rig.focus.set(focusAt[0], h(focusAt[0], focusAt[2]), focusAt[2]);
+    cam.position.set(focusAt[0], h(focusAt[0], focusAt[2]) + 3, focusAt[2]); // kamera bebas: jarak LOD/pemuatan memakai posisi kamera
     await new Promise((r) => requestAnimationFrame(r));
     if (s.city) await s.city.whenSettled(focusAt[0], focusAt[2], 1000, 90000);
     if (s.district?.whenSettled) await s.district.whenSettled(focusAt[0], focusAt[2], 400);
@@ -99,7 +100,30 @@ const PAGE = {
     cam.updateMatrixWorld(true);
     const ri = s.app.renderer.info.render;
     s.app.renderFrame();
-    return { ...info, totalCalls: ri.calls, totalTriangles: ri.triangles, eyeY: +ey.toFixed(2) };
+    const out = { ...info, totalCalls: ri.calls, totalTriangles: ri.triangles, eyeY: +ey.toFixed(2) };
+    const life = s.district?.district?.life;
+    const benches = [];
+    life?.students?.group.traverse((o) => { if (o.name?.startsWith('bangkuDiskusi:')) benches.push(o); });
+    const humanoids = [];
+    life?.students?.group.children.forEach((o) => { if (o.name?.startsWith('mahasiswa-')) humanoids.push(o); });
+    const render2 = () => { s.app.renderFrame(); s.app.renderFrame(); };
+    render2();
+    out.totalCalls = ri.calls;
+    out.totalTriangles = ri.triangles;
+    // Selisih draw call/segitiga bila bagian kehidupan kampus disembunyikan (pass bayangan ikut terhitung).
+    for (const [label, nodes] of [['motor', [life?.motors?.group]], ['mahasiswa', humanoids], ['bangku', benches], ['satpam', [life?.guards?.group]], ['kehidupan', [life?.group]]]) {
+      const list = nodes.filter(Boolean);
+      if (!list.length) continue;
+      const prev = list.map((n) => n.visible);
+      list.forEach((n) => { n.visible = false; });
+      render2();
+      out[`${label}Calls`] = out.totalCalls - ri.calls;
+      out[`${label}Triangles`] = out.totalTriangles - ri.triangles;
+      list.forEach((n, i) => { n.visible = prev[i]; });
+    }
+    if (life?.motors) out.motorStats = life.motors.stats;
+    s.app.renderFrame();
+    return out;
   },
 };
 

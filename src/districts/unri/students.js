@@ -6,8 +6,8 @@
  * `npc` yang disuntik (D1). Kolam tidak pernah dilepas selama distrik hidup → memori GPU stabil (E2E §9.1).
  */
 import * as THREE from 'three';
-import { withScope } from '../../engine/ResourceScope.js';
-import { createBenches } from '../../world/props/Bench.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { withScope, currentScope } from '../../engine/ResourceScope.js';
 import {
   pathsFromGround, bucketPaths, cellCenter, studentDensity, targetCount, allocateStudents, createWalker,
   stepWalker, walkerPose, benchSpotsFromPaths, seatsOf, sitterCount, mulberry32, hashString,
@@ -18,8 +18,51 @@ export const STUDENT_POOL = 40;
 export const ACTIVE_RADIUS = 300;
 export const RELEASE_RADIUS = 420;
 /** Jarak bangku di bahu jalan kampus (m); trotoar/selasar `walk` memakai BENCH_SPACING. */
-export const SHOULDER_BENCH_SPACING = 150;
+export const SHOULDER_BENCH_SPACING = 220;
 const THINK_SEC = 0.5;
+/** Tinggi dudukan bangku diskusi (m) dan pengangkatan humanoid agar duduk di atasnya (pose kursi mendudukkan pinggul di 0,45 m). */
+const BENCH_SEAT_TOP = 0.46;
+const SEAT_LIFT = 0.02;
+
+/**
+ * Bangku diskusi beton (4 kotak ≈ 48 segitiga; bangku taman M2 membulat ±900 segitiga dan terlalu mahal untuk ratusan
+ * bangku di bahu jalan): dudukan, dua kaki, sandaran rendah. Geometri & bahan sekali per ResourceScope.
+ */
+function benchAssets() {
+  return currentScope().get('unri:bangkuDiskusi', () => {
+    const box = (w, h, d, x, y, z) => new THREE.BoxGeometry(w, h, d).translate(x, y, z);
+    const geometry = mergeGeometries([
+      box(1.8, 0.09, 0.46, 0, BENCH_SEAT_TOP - 0.045, 0),
+      box(0.14, BENCH_SEAT_TOP - 0.09, 0.4, -0.7, (BENCH_SEAT_TOP - 0.09) / 2, 0),
+      box(0.14, BENCH_SEAT_TOP - 0.09, 0.4, 0.7, (BENCH_SEAT_TOP - 0.09) / 2, 0),
+      box(1.8, 0.26, 0.07, 0, BENCH_SEAT_TOP + 0.13, -0.2),
+    ], false);
+    return { geometry, material: new THREE.MeshLambertMaterial({ color: 0xcdc8bd }) };
+  }, { dispose: (a) => { a.geometry.dispose(); a.material.dispose(); } });
+}
+
+const _bm = new THREE.Matrix4();
+const _bq = new THREE.Quaternion();
+const _bp = new THREE.Vector3();
+const _bUp = new THREE.Vector3(0, 1, 0);
+const _bOne = new THREE.Vector3(1, 1, 1);
+
+/** InstancedMesh bangku diskusi untuk titik [{x, z, rotY}] (satu draw call per chunk ground). */
+function createDiscussionBenches(spots, heightAt) {
+  const { geometry, material } = benchAssets();
+  const mesh = new THREE.InstancedMesh(geometry, material, Math.max(1, spots.length));
+  spots.forEach((b, i) => {
+    _bp.set(b.x, heightAt(b.x, b.z), b.z);
+    _bq.setFromAxisAngle(_bUp, b.rotY);
+    mesh.setMatrixAt(i, _bm.compose(_bp, _bq, _bOne));
+  });
+  mesh.count = spots.length;
+  mesh.instanceMatrix.needsUpdate = true;
+  mesh.castShadow = false;
+  mesh.receiveShadow = true;
+  mesh.computeBoundingSphere();
+  return mesh;
+}
 const SIT_POSES = Object.freeze(['sitChairTyping', 'drinkCup']);
 
 /**
@@ -74,7 +117,7 @@ export function createStudents({ npc, terrain, scheduler, scope, hour, camera, g
 
   function seatMember(slot, cell, index, rng) {
     const s = cell.seats[index];
-    slot.h.group.position.set(s.x, terrain.heightAt(s.x, s.z), s.z);
+    slot.h.group.position.set(s.x, terrain.heightAt(s.x, s.z) + SEAT_LIFT, s.z);
     slot.h.group.rotation.y = s.yaw;
     return { slot, seatIndex: index, pose: SIT_POSES[rng() < 0.5 ? 0 : 1], phase: rng() * 10 };
   }
@@ -171,7 +214,7 @@ export function createStudents({ npc, terrain, scheduler, scope, hour, camera, g
       const buckets = bucketPaths(pathsFromGround(data, { scale: groundScale }));
       const cells = new Map([...buckets].map(([cellKey, paths]) => [cellKey, { paths, spots: benchSpotsFromPaths(paths, { shoulderSpacing: SHOULDER_BENCH_SPACING }) }]));
       const spots = [...cells.values()].flatMap((c) => c.spots);
-      const benches = createBenches(spots.map((s) => ({ x: s.x, z: s.z, y: terrain.heightAt(s.x, s.z), rotY: s.rotY, type: 'semen' })));
+      const benches = createDiscussionBenches(spots, terrain.heightAt);
       benches.name = `bangkuDiskusi:${key}`;
       group.add(benches);
       chunks.set(key, { cells, benches });
@@ -181,11 +224,7 @@ export function createStudents({ npc, terrain, scheduler, scope, hour, camera, g
       if (!c) return;
       for (const cellKey of c.cells.keys()) release(cellKey);
       c.benches.removeFromParent();
-      c.benches.traverse((o) => {
-        if (!o.isInstancedMesh) return;
-        o.geometry.dispose(); // geometri gabungan unik per createBenches; material milik scope
-        o.dispose();
-      });
+      c.benches.dispose(); // geometri & bahan bersama milik scope distrik
       chunks.delete(key);
     },
     /** @param {number} dt @param {{x:number, z:number}|null} focus titik dunia */
