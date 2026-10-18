@@ -196,7 +196,10 @@ export function validateOverrides(table) -> string[]   // daftar galat; kosong =
 Aturan default (urut, pertama yang cocok menang): `hero:*` override → nama `/dekanat/i` → K02 → `/lab|laborator/i`
 → K04 → `/kantin|food/i` → K07 → `/mus(h)?oll?a|mushola/i` → K06 → `/pendopo|balai bahasa/i` → K08 →
 `/auditorium|gelanggang|aula/i` → K05 → `/mangkrak/i` → K10 → `building=apartments` → K09 → luas < 60 m² → K11 →
-`/gedung [a-h]\b|kuliah|classroom/i` atau `amenity=university|college` → K01 → lainnya K12.
+`/gedung [a-h]\b|kuliah|classroom/i` atau `amenity=university|college` → K01 → **tanpa padanan: luas < 150 m² → K11, lainnya → K01
+[INFERENSI pola blok koridor kampus negeri; D1 plan M3]**. K12 tidak lagi hasil aturan nama; K12 = cadangan geometri
+(dekomposisi gagal, footprint berlubang/lengkung) dan cadangan galat perakitan (§10). Field aditif: `variant` (lihat `VARIANTS`
+di `src/world/kit/archetypes.js`) dan `aturan` (alasan aturan yang cocok).
 Lantai: override → `building:levels` (rentang "4-7" → nilai **minimum** 4 kecuali override) → default arketipe.
 
 ### 4.8 Interior (`src/interiors/Interior.js`, M5)
@@ -318,7 +321,7 @@ Daftar lengkap di laporan kode §2. Prinsip: semua posisi y = `terrain.heightAt(
 | K09 | `rusun` | Rusunawa / Wisma Binawidya | 5 lt | blok koridor, balkon berjemuran, tangga terbuka di ujung, tandon air atap |
 | K10 | `mangkrak` | FH Panam, Gedung Mangkrak FISIP | sesuai OSM | rangka beton tanpa finishing, besi tulangan menjuntai, coretan, ilalang, tanpa kaca |
 | K11 | `utilitas` | pos satpam, toilet, gudang, TK, luas < 60 m² | 1 lt | atap pelana/datar, pintu & jendela kecil |
-| K12 | `ekstrusi-rapi` | footprint tak beraturan | sesuai OSM | ekstrusi + parapet + modul jendela beratlas (cadangan terakhir, tetap bertekstur) |
+| K12 | `ekstrusi-rapi` | cadangan geometri (dekomposisi gagal, berlubang, lengkung) & cadangan galat | sesuai OSM | ekstrusi + parapet + modul jendela beratlas (cadangan terakhir, tetap bertekstur) |
 
 Hero (handmade, satu kali pakai, dipasang via override `archetype:'hero:<id>'`):
 `hero:rektorat`, `hero:masjid-arfaunnas`, `hero:gerbang-sm-amin`, `hero:ggm`, `hero:sekretariat-lembaga`,
@@ -345,6 +348,7 @@ pintu gulung, papan nama kosong. UV mengacu atlas; mipmaps; `anisotropy` maksima
 - Klaster = sel 250 m. Per klaster: gabung per material → target 10–14 draw call LOD0.
 - LOD0 ≤ 250 m (penuh), LOD1 ≤ 900 m (massa + atap + atlas, tanpa ornamen/selasar), di luar: tidak dirender
   (kabut).
+- Penggabungan per material dilakukan inkremental ke satu sink per klaster (D4 plan M3): opak + potong + papan ≤ 3 mesh/klaster; radius klaster LOD0 250 m, LOD1 900 m, lepas 930 m (pemilih LOD sendiri, bukan ChunkStreamer).
 - Perakitan time-sliced ≤ 4 ms/frame lewat `src/engine/scheduler.js`.
 
 ## 8. Zona hero dan interior
