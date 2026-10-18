@@ -8,7 +8,7 @@ import './ui/touch.css';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/jetbrains-mono';
 import { CameraRig } from './core/CameraRig.js';
-import { createCollider, createDynamicCompositeCollider, localized } from './core/Collider.js';
+import { createCollider, createDynamicCompositeCollider, createDistrictCollider, localized } from './core/Collider.js';
 import { createPovSource } from './core/povSource.js';
 import { POVS } from './core/cameraPresets.js';
 import { createAudioBus } from './core/AudioBus.js';
@@ -46,6 +46,8 @@ import { createDisposerStack } from './app/lifecycle.js';
 import { applyPlacement } from './app/mountRegion.js';
 import { createRegionManager } from './app/regionManager.js';
 import { createTerrainService } from './app/terrainService.js';
+import { mountDistrict } from './app/districtMount.js';
+import { unriDistrict } from './districts/unri/index.js';
 import { createLocalContext, pointToWorld } from './app/regionContext.js';
 import { withPlacement } from './regions/Region.js';
 import { createCity } from './city/index.js';
@@ -113,6 +115,7 @@ async function main() {
   await loading.step(0.2, 'Membangun stadion, tribun, dan lingkungan…');
   app.addSystem({ id: 'wind', phase: 'world', update: (dt) => updateWind(dt) }); // angin global tiap frame
   const { regions, scheduler, terrain, colliders } = createRegionLayer({ app, store, time, weather, lifecycle });
+  rig.setTerrain(terrain); // fokus/target/lantai kamera & pose POV relatif tanah (M1)
   const stadion = await regions.register(stadionDef); // persistent: dipasang sekarang (urutan muat seperti sebelum M0)
   const frame = regions.frameOf(STADION_ID); // frame region stadion: entitas, cerita NPC, kamera, minimap
   const toLocalCtx = createLocalContext(frame);
@@ -134,7 +137,9 @@ async function main() {
   }
   // Di dalam mask region aktif → collider region (lokal); di luar → TileCollider kota (tanpa kota: tanah stadion
   // menutup dunia). Komposit meneruskan `penetration`: sepeda terjebak hanya boleh keluar, tidak menembus.
-  colliders.setFallback(city ? city.collider : localized(stadionDef, region.colliders));
+  // Urutan spec §4.2: region (komposit dinamis M0) → distrik (rantai M1) → tile kota.
+  const districtColliders = createDistrictCollider({ fallback: city ? city.collider : localized(stadionDef, region.colliders) });
+  colliders.setFallback(districtColliders);
   rig.setObstacleTest(colliders.isCameraClear);
   const modelsReady = stadion.ready
     .then(({ failed, cancelled }) => { // region dibongkar sebelum selesai: tidak ada yang dilaporkan
@@ -159,6 +164,7 @@ async function main() {
     for (const g of [ents.group, ents.regionGroup]) { g.removeFromParent(); disposeTree(g); }
   });
   ents.bike.setCollider(createCollider(start, colliders.isWalkable, colliders.penetration));
+  ents.bike.setTerrain(terrain); // y, pitch, grade fisika (M1)
   rig.attachSource(createPovSource(ents, frame, { regions }));
   regions.on('unmount', () => { if (rig.povId === 'region') rig.exitPov(); }); // POV region yang dilepas tidak boleh membeku
   ents.bike.setAudioBus(audioBus);
@@ -175,10 +181,16 @@ async function main() {
 
   hud.setWallet(wallet);
   hud.setCameraMode(rig.mode);
-  const story = setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle });
+  const story = setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle, terrain });
   const shop = setupShop(hud, ents, story);
   const minimap = setupMinimap(app, ents, story, frame, regions);
   if (city) minimap.setTileLayer(city.minimap);
+  // Distrik kampus UNRI (M1: terrain). Gagal → null + toast; permainan berlanjut tanpa distrik (spec §10).
+  const unri = await mountDistrict(app, unriDistrict, {
+    terrain, scheduler, collider: districtColliders, minimap, city, weather, baseUrl: import.meta.env.BASE_URL,
+    toast: (t, ok) => hud.toast(t, ok),
+  });
+  if (unri) lifecycle.add(() => unri.dispose()); // LIFO: dilepas sebelum kota, time, weather
   const travel = setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, spawn: region.layout.spawn, touch });
   addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel });
 
@@ -189,9 +201,13 @@ async function main() {
 
   const bikePos = new THREE.Vector3();
   app.start((dt, t, rawDt) => {
-    bikePos.set(ents.bike.state.x, 0, ents.bike.state.z);
-    // focus = titik pusat tampilan (sepeda, atau titik pandang saat POV); sepeda beku di POV tanpa kendali
-    return { dt, rawDt, time: t, bikePos, focus: rig.focus, input: hud.shopOpen || rig.freezesBike || travel.blocksInput ? null : input };
+    bikePos.set(ents.bike.state.x, ents.bike.groundY, ents.bike.state.z);
+    // focus = titik pusat tampilan (sepeda, atau titik pandang saat POV); sepeda beku di POV tanpa kendali.
+    // heightAt/terrain (M1): tanah dunia untuk entitas, lampu, cuaca (ctx region-lokal membungkus heightAt).
+    return {
+      dt, rawDt, time: t, bikePos, focus: rig.focus, heightAt: terrain.heightAt, terrain,
+      input: hud.shopOpen || rig.freezesBike || travel.blocksInput ? null : input,
+    };
   });
   // LIFO: loop berhenti lebih dulu, sebelum sistem kehilangan sumber dayanya (App.dispose mengulanginya, idempoten).
   lifecycle.add(() => app.renderer.setAnimationLoop(null));
@@ -216,7 +232,7 @@ async function main() {
   menu.ready({ hasProgress: hasStoryProgress(story.state), touch });
   if (import.meta.env.DEV) {
     exposeDevTools({
-      app, ents, rig, time, weather, store, audioBus, story, colliders, city, remountRegion, regions, scheduler, terrain,
+      app, ents, rig, time, weather, store, audioBus, story, colliders, city, remountRegion, regions, scheduler, terrain, district: unri,
       fastTravel: (id) => travel.go(id), teardown: () => lifecycle.disposeAll(),
     });
   }
@@ -314,10 +330,10 @@ function setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, sp
  * Cerita: NPC (region-lokal stadion, di bawah jangkar) dan penanda tujuan (DUNIA: tujuan bisa di region mana
  * pun), HUD, jurnal; progres dimuat dari localStorage (save v3 menyimpan tempat pemain sebagai titik ber-region).
  */
-function setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle }) {
+function setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle, terrain }) {
   const root = document.getElementById('hud');
   const npcs = new StoryNpcs();
-  const markers = createStoryMarkers();
+  const markers = createStoryMarkers({ ground: terrain.heightAt }); // penanda di koordinat dunia (M0), di atas tanah (M1)
   anchor.add(npcs.group);
   app.scene.add(markers.group); // goalPoint() StoryDirector kini titik dunia
   lifecycle.add(() => markers.group.removeFromParent());
@@ -327,6 +343,7 @@ function setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycl
     phase: 'ui',
     update: (dt, ctx) => {
       const local = toLocalCtx(ctx);
+      npcs.placeOnGround(local.heightAt); // NPC region-lokal stadion (heightAt lokal dari ctx frame)
       npcs.refreshLabels(local.focus ?? local.bikePos, ents.vendors.labelsEnabled);
     },
   });

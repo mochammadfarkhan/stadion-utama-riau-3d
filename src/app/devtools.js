@@ -26,10 +26,10 @@ export function parseFlagParam(search, name) {
 
 export function exposeDevTools({
   app, ents, rig, time, weather, store, audioBus, story, colliders, city = null, remountRegion = null, fastTravel = null,
-  regions = null, scheduler = null, terrain = null, teardown,
+  regions = null, scheduler = null, terrain = null, district = null, teardown,
 }) {
   window.__sim = {
-    app, ents, rig, time, weather, store, audioBus, story, city, remountRegion, fastTravel, regions, scheduler, terrain,
+    app, ents, rig, time, weather, store, audioBus, story, city, remountRegion, fastTravel, regions, scheduler, terrain, district,
     teleport(x, z, yaw = 0) {
       ents.bike.state = { ...ents.bike.state, x, z, yaw, v: 0 };
       ents.bike.setCollider(createCollider({ x, z }, colliders.isWalkable, colliders.penetration));
