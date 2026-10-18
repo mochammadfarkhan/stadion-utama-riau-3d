@@ -1,4 +1,4 @@
-# M4 Zona Lembaga — Implementation Plan
+| A10 | ya: districtMount.js menerima isReserved dan meneruskannya ke ctx distrik | tidak ada || A9 | ya: createRegionLayer(...) lokal di main.js memberi regions/scheduler/terrain/colliders; addFrameSystems, mountDistrict(app, def, {...}) | Task 21/24 || A8 | buildBuilding/appendPlan memanggil HERO_BUILDERS[plan.archetype]; hero:sekretariat-lembaga & student-center = placeholder(), hero:stadion-mini = tribun; override w327530276/w1480014538/w282225436 sudah ada di buildings.data.js | Task 20 || A7 | planBuilding(input), buildBuilding(plan,kitMaterials,{lod,input,logger}), appendPlan/appendPlanSteps, createKitMaterials(scope,opts), ARCHETYPES ada | kitAdapter.js || A6 | REGION_PADS (tools/campusbake/config.js, kosong, dipakai cli.js); golden: tests/campusbake/golden.test.js + groundBake.test.js | Task 3 (coding saja: bake dijalankan, golden diperbarui tanpa menjalankan tes) || A5 | ya: UNRI_BOUNDARY = ring dunia [[x,z],...] | tidak ada || A4 | ya: povSource memanggil pov.pose(frame, ctx) -> {px,py,pz,tx,ty,tz,fov} | tidak ada || A3 | ya: proxy(ctx:{scope,placement,terrain}) di regionManager; lateRoot/ready/nightLights diperiksa di Task 20 | tidak ada || A2 | ya: ctx.schedule(task) (fungsi/generator via scheduler.schedule(task,{owner})), ctx.heightAtLocal, ctx.terrain.heightAt | tidak ada || A1 | ya: normalizePads membuang field id (pad region hanya {ring,y}); id hanya dipakai di LEMBAGA_PADS/campusbake | tidak ada || A10 | ya: districtMount.js menerima isReserved dan meneruskannya ke ctx distrik | tidak ada || A9 | ya: createRegionLayer(...) lokal di main.js memberi regions/scheduler/terrain/colliders; addFrameSystems, mountDistrict(app, def, {...}) | Task 21/24 || A8 | buildBuilding/appendPlan memanggil HERO_BUILDERS[plan.archetype]; hero:sekretariat-lembaga & student-center = placeholder(), hero:stadion-mini = tribun; override w327530276/w1480014538/w282225436 sudah ada di buildings.data.js | Task 20 || A7 | planBuilding(input), buildBuilding(plan,kitMaterials,{lod,input,logger}), appendPlan/appendPlanSteps, createKitMaterials(scope,opts), ARCHETYPES ada | kitAdapter.js || A6 | REGION_PADS (tools/campusbake/config.js, kosong, dipakai cli.js); golden: tests/campusbake/golden.test.js + groundBake.test.js | Task 3 (coding saja: bake dijalankan, golden diperbarui tanpa menjalankan tes) || A5 | ya: UNRI_BOUNDARY = ring dunia [[x,z],...] | tidak ada || A4 | ya: povSource memanggil pov.pose(frame, ctx) -> {px,py,pz,tx,ty,tz,fov} | tidak ada || A3 | ya: proxy(ctx:{scope,placement,terrain}) di regionManager; lateRoot/ready/nightLights diperiksa di Task 20 | tidak ada || A2 | ya: ctx.schedule(task) (fungsi/generator via scheduler.schedule(task,{owner})), ctx.heightAtLocal, ctx.terrain.heightAt | tidak ada || A1 | ya: normalizePads membuang field id (pad region hanya {ring,y}); id hanya dipakai di LEMBAGA_PADS/campusbake | tidak ada |# M4 Zona Lembaga — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task (satu implementer untuk seluruh tonggak, satu review di akhir tonggak; lihat "Aturan eksekusi" di `docs/superpowers/plans/2026-10-17-unri-00-index.md`). Langkah memakai checkbox (`- [ ]`) untuk dilacak.
 
@@ -5931,17 +5931,17 @@ git commit -m "docs(unri): status M4 zona Lembaga selesai"
 
 ## Catatan eksekusi
 
-(Diisi implementer.)
+Diisi implementer 2026-10-18 (mode coding saja: tanpa menjalankan tes/lint/build).
 
 | Asumsi | Hasil verifikasi Task 0 | Penyesuaian (file) |
 |---|---|---|
-| A1 | | |
-| A2 | | |
-| A3 | | |
-| A4 | | |
-| A5 | | |
-| A6 | | |
-| A7 | | |
-| A8 | | |
-| A9 | | |
-| A10 | | |
+| A1 | ya: normalizePads membuang field id (pad region hanya {ring,y}); id hanya dipakai di LEMBAGA_PADS/campusbake | tidak ada |
+| A2 | ya: ctx.schedule(task) (fungsi/generator via scheduler.schedule(task,{owner})), ctx.heightAtLocal, ctx.terrain.heightAt | tidak ada |
+| A3 | ya: proxy(ctx:{scope,placement,terrain}) di regionManager; lateRoot/ready/nightLights diperiksa di Task 20 | tidak ada |
+| A4 | ya: povSource memanggil pov.pose(frame, ctx) -> {px,py,pz,tx,ty,tz,fov} | tidak ada |
+| A5 | ya: UNRI_BOUNDARY = ring dunia [[x,z],...] | tidak ada |
+| A6 | REGION_PADS (tools/campusbake/config.js, kosong, dipakai cli.js); golden: tests/campusbake/golden.test.js + groundBake.test.js | Task 3 (coding saja: bake dijalankan, golden diperbarui tanpa menjalankan tes) |
+| A7 | planBuilding(input), buildBuilding(plan,kitMaterials,{lod,input,logger}), appendPlan/appendPlanSteps, createKitMaterials(scope,opts), ARCHETYPES ada | kitAdapter.js |
+| A8 | buildBuilding/appendPlan memanggil HERO_BUILDERS[plan.archetype]; hero:sekretariat-lembaga & student-center = placeholder(), hero:stadion-mini = tribun; override w327530276/w1480014538/w282225436 sudah ada di buildings.data.js | Task 20 |
+| A9 | ya: createRegionLayer(...) lokal di main.js memberi regions/scheduler/terrain/colliders; addFrameSystems, mountDistrict(app, def, {...}) | Task 21/24 |
+| A10 | ya: districtMount.js menerima isReserved dan meneruskannya ke ctx distrik | tidak ada |
