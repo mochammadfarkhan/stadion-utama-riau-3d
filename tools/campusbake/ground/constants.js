@@ -41,7 +41,7 @@ export const WATER = Object.freeze({ drop: 0.4, carvedMin: 0.3, edgeStep: 2, gri
  * (diperiksa di Task 0). `osmWidth` = lebar parit OSM (WATERWAY_WIDTHS.ditch citybake).
  */
 export const DITCH = Object.freeze({
-  enabled: true, classes: Object.freeze(['tertiary', 'tertiary_link']), width: 1.0, centerOffset: 3.0,
+  enabled: true, classes: Object.freeze(['primary', 'secondary', 'tertiary', 'tertiary_link']), width: 1.0, centerOffset: 3.0,
   step: 1, minRun: 4, clearRoad: 1.5, clearWalk: 0.5, clearBuilding: 1, osmWidth: 1.5,
 });
 
