@@ -11,6 +11,11 @@ describe('lodLevelFor', () => {
     expect(lodLevelFor(LOD_FAR * LOD_FAR)).toBe(1);
     expect(lodLevelFor(LOD_FAR * LOD_FAR + 1)).toBe(2);
   });
+  it('ambang kustom (mahasiswa kampus: 30 / 220 m)', () => {
+    expect(lodLevelFor(30 * 30, 30, 220)).toBe(0);
+    expect(lodLevelFor(31 * 31, 30, 220)).toBe(1);
+    expect(lodLevelFor(221 * 221, 30, 220)).toBe(2);
+  });
   it('NaN diperlakukan sebagai terdekat (aman: jangan menghilangkan humanoid)', () => {
     expect(lodLevelFor(Number.NaN)).toBe(0);
   });

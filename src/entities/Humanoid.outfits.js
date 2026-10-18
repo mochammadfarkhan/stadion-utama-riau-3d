@@ -175,3 +175,54 @@ export function footballKit(team, isKeeper, rng) {
     rng,
   };
 }
+
+/** Warna jas almamater (alias ALMAMATER_UNRI M5) dan palet ransel/seragam satpam kampus. */
+export const ALMAMATER_COLOR = ALMAMATER_UNRI;
+export const BACKPACK_COLORS = Object.freeze([0x222222, 0x1f3a5f, 0x5d4037, 0x2e7d32, 0x8e24aa, 0x37474f]);
+/** Seragam satpam kampus [INFERENSI pola umum Perpol 4/2020: atasan krem, bawahan coklat tua, pet coklat]. */
+export const GUARD_UNIFORM = Object.freeze({ shirt: 0xd9c8a0, pants: 0x4e3b2a, hat: 0x3e2f22, badge: 0xc9a227 });
+
+/**
+ * Mahasiswa (katalog C01/C02): basis kasual; ±30% berjas almamater biru langit (lengan panjang + lencana), ±70%
+ * beransel; tanpa topi/rompi/caping; celana pendek diganti celana panjang [POLA UMUM kampus negeri].
+ */
+export function randomStudentOutfit(rng, { almamaterChance = 0.3, backpackChance = 0.7 } = {}) {
+  const base = randomCasualOutfit(rng);
+  const almamater = rng() < almamaterChance;
+  const backpack = rng() < backpackChance ? pick(rng, BACKPACK_COLORS) : null;
+  const caping = base.hair === 'caping';
+  const shorts = base.bottom === 'shorts';
+  return {
+    ...base,
+    hair: caping ? pick(rng, HAIR_STYLES) : base.hair,
+    hairColor: caping ? pick(rng, HAIR_COLORS) : base.hairColor,
+    hat: null,
+    vest: null,
+    shirt: almamater ? ALMAMATER_COLOR : base.shirt,
+    longSleeve: almamater,
+    badge: almamater ? ALMAMATER_BADGE : null,
+    bottom: shorts ? 'pants' : base.bottom,
+    pants: shorts ? pick(rng, PANTS_COLORS) : base.pants,
+    backpack,
+    rng,
+  };
+}
+
+/** Satpam kampus (katalog C10): seragam GUARD_UNIFORM, pet, rambut cepak. */
+export function campusGuardOutfit(rng) {
+  return {
+    skin: pick(rng, SKIN_TONES),
+    shirt: GUARD_UNIFORM.shirt,
+    pants: GUARD_UNIFORM.pants,
+    hair: 'buzz',
+    hairColor: 0x222222,
+    hijab: null,
+    hat: GUARD_UNIFORM.hat,
+    badge: GUARD_UNIFORM.badge,
+    bottom: 'pants',
+    longSleeve: false,
+    shoes: 0x111111,
+    height: range(rng, 1.62, 1.8),
+    rng,
+  };
+}
