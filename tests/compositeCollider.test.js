@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createCollider, createCompositeCollider, localized } from '../src/core/Collider.js';
+import { createCollider, createCompositeCollider, createDynamicCompositeCollider, localized } from '../src/core/Collider.js';
 import { stadionColliders, createStadionColliders } from '../src/regions/stadion/collider.js';
 import { stadionRegion } from '../src/regions/stadion/index.js';
 import { defineRegion } from '../src/regions/Region.js';
@@ -64,5 +64,30 @@ describe('createCollider & collider stadion', () => {
     const c = createStadionColliders();
     expect(c.isWalkable(0, 0)).toBe(true);
     expect(c.obstacles.map((o) => o.name)).toEqual(['tuguLancangKuning', 'tuguTanjak']);
+  });
+});
+
+describe('collider komposit dinamis (M0)', () => {
+  it('region & fallback dapat diganti; fungsi tetap sama (aman disimpan CameraRig/sepeda)', () => {
+    const region = defineRegion({ id: 'uji', placement: { x: 100, z: 0, yaw: 0 }, mask: square, build: async () => ({}) });
+    const blocked = { isWalkable: () => false, isCameraClear: () => false };
+    const dyn = createDynamicCompositeCollider();
+    const walk = dyn.isWalkable;
+    expect(walk(100, 0)).toBe(true); // tanpa region & fallback: terbuka
+    dyn.setRegions([{ region, colliders: blocked }]);
+    expect(walk(100, 0)).toBe(false);
+    expect(dyn.isCameraClear(100, 0)).toBe(false);
+    expect(walk(0, 0)).toBe(true);
+    dyn.setFallback(blocked);
+    expect(walk(0, 0)).toBe(false);
+    dyn.setRegions([]);
+    expect(walk(100, 0)).toBe(false); // kini lewat fallback
+    expect(dyn.penetration(Number.NaN, 0)).toBe(Infinity);
+  });
+
+  it('input tidak sah ditolak', () => {
+    const dyn = createDynamicCompositeCollider();
+    expect(() => dyn.setRegions(null)).toThrow(TypeError);
+    expect(() => dyn.setFallback({})).toThrow(TypeError);
   });
 });

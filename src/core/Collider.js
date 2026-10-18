@@ -51,6 +51,37 @@ export function createCompositeCollider({ regions = [], fallback = OPEN } = {}) 
   });
 }
 
+/**
+ * Collider komposit DINAMIS (M0 multi-region): daftar region aktif dan fallback dapat diganti saat
+ * region dipasang/dilepas (regionManager memanggil setRegions). Fungsi isWalkable/isCameraClear/penetration
+ * stabil (aman disimpan CameraRig & collider sepeda) dan selalu membaca komposit terbaru.
+ * @param {{fallback?: {isWalkable(x:number,z:number):boolean, isCameraClear(x:number,z:number):boolean}}} [opts]
+ */
+export function createDynamicCompositeCollider({ fallback = OPEN } = {}) {
+  let regions = [];
+  let fb = fallback;
+  let inner = createCompositeCollider({ regions, fallback: fb });
+  const rebuild = () => { inner = createCompositeCollider({ regions, fallback: fb }); };
+  return Object.freeze({
+    isWalkable: (x, z) => inner.isWalkable(x, z),
+    isCameraClear: (x, z) => inner.isCameraClear(x, z),
+    penetration: (x, z) => inner.penetration(x, z),
+    /** @param {Array<{region:{placement:object, mask:Array<[number,number]>}, colliders:object}>} list */
+    setRegions(list) {
+      if (!Array.isArray(list)) throw new TypeError('setRegions: list harus array {region, colliders}');
+      regions = [...list];
+      rebuild();
+    },
+    setFallback(next) {
+      if (typeof next?.isWalkable !== 'function' || typeof next?.isCameraClear !== 'function') {
+        throw new TypeError('setFallback: collider butuh isWalkable(x,z) dan isCameraClear(x,z)');
+      }
+      fb = next;
+      rebuild();
+    },
+  });
+}
+
 const TRAPPED_EPS = 1e-6;
 
 /**
