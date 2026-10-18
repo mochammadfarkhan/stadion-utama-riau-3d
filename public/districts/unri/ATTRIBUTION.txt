@@ -1,0 +1,13 @@
+Data distrik Kampus UNRI Bina Widya di direktori ini adalah karya turunan dari:
+
+  SRTM GL1 1″ (NASA/USGS, domain publik) via AWS Open Data Terrain Tiles (skadi)
+    https://s3.amazonaws.com/elevation-tiles-prod/skadi/N00/N00E101.hgt.gz
+    Shuttle Radar Topography Mission (Februari 2000) — domain publik, disebut sebagai sumber.
+  © OpenStreetMap contributors — https://www.openstreetmap.org/copyright
+    (batas kampus, jalan, gedung, danau; data 2026-10-18T09:56:36Z)
+
+Lisensi data OSM: Open Database License (ODbL) 1.0 — https://opendatacommons.org/licenses/odbl/1-0/
+File terrain/*.bin dibentuk dengan geometri OSM (pengondisian jalan, pad gedung, danau) sehingga tunduk
+pada ODbL; kode proyek tetap berlisensi MIT.
+
+Dihasilkan oleh tools/campusbake (npm run bake:campus -- terrain).

@@ -1,0 +1,56 @@
+{
+  "format": "unri-district",
+  "version": 1,
+  "terrain": {
+    "format": "unri-terrain",
+    "version": 1,
+    "size": 500,
+    "step": 4,
+    "n": 126,
+    "unit": 0.01,
+    "bias": -5000,
+    "chunks": [
+      "-3_-1",
+      "-2_-1",
+      "-1_-1",
+      "-4_0",
+      "-3_0",
+      "-2_0",
+      "-1_0",
+      "0_0",
+      "-4_1",
+      "-3_1",
+      "-2_1",
+      "-1_1",
+      "0_1",
+      "-4_2",
+      "-3_2",
+      "-2_2",
+      "-1_2",
+      "-3_3",
+      "-2_3",
+      "-3_4",
+      "-2_4"
+    ],
+    "hRef": 32.49,
+    "water": [
+      {
+        "id": "w373856980",
+        "name": "Danau Buatan Universitas Riau",
+        "level": -1.86,
+        "bed": -3.36
+      },
+      {
+        "id": "w327366050",
+        "name": "Waduk UNRI",
+        "level": -4.7,
+        "bed": -6.2
+      }
+    ]
+  },
+  "ground": {
+    "chunks": []
+  },
+  "buildings": "buildings.json",
+  "attribution": "ATTRIBUTION.txt"
+}

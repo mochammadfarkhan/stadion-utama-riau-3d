@@ -6,7 +6,7 @@
  * Opsi: --out <dir> (default public/districts/unri), --cache <dir> (default data-src).
  */
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
 import {
@@ -125,6 +125,7 @@ export async function main(argv, log = console) {
   try {
     if (opts.command === 'boundary') {
       const { source, result } = await runBoundary({ ...opts, log });
+      await mkdir(dirname(PATHS.boundaryModule), { recursive: true });
       await writeFile(PATHS.boundaryModule, source);
       log.info(`Batas distrik: ${result.ring.length} titik, ${Math.round(result.area)} m² (kampus ${Math.round(result.campusArea)} m², `
         + `${result.pieces} potongan, dibuang ${Math.round(result.droppedArea)} m²) → ${PATHS.boundaryModule}`);
