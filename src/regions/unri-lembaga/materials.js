@@ -31,7 +31,7 @@ function createMaterials(atlas) {
   const rabat = surfaceMaterial('concrete', { color: 0xc9c4b8 });
   rabat.name = 'rabatBeton';
   return {
-    dinding: std('dindingKrem', { color: 0xe8dcc0, roughness: 0.92, ...surfaceMaps('concrete', 2) }),
+    dinding: std('dindingKrem', { color: 0xede2c8, roughness: 0.92, ...surfaceMaps('concrete', 0.9), normalScale: new THREE.Vector2(0.45, 0.45) }),
     plint: std('plintAbu', { color: 0x8d8c86, roughness: 0.95 }),
     putih: std('putihKusam', { color: 0xf3efe6, roughness: 0.85 }),
     pintu: std('pintuCat', { vertexColors: true, roughness: 0.65 }),
