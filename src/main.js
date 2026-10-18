@@ -49,6 +49,7 @@ import { createTerrainService } from './app/terrainService.js';
 import { mountDistrict } from './app/districtMount.js';
 import { unriDistrict } from './districts/unri/index.js';
 import { createStudentKit } from './entities/Student.js';
+import { UNRI_VENDORS } from './story/chapters.unri.js';
 import { createLocalContext, pointToWorld } from './app/regionContext.js';
 import { withPlacement, regionContains } from './regions/Region.js';
 import { unriLembagaRegion } from './regions/unri-lembaga/index.js';
@@ -181,7 +182,7 @@ async function main() {
   lifecycle.add(() => anchor.removeFromParent());
   const spawn = region.layout.spawn; // region-lokal: plaza utara, menghadap stadion
   const start = { ...frame.toWorld(spawn.x, spawn.z), yaw: frame.yawToWorld(spawn.yaw) };
-  const ents = buildEntities({ start, world: region, wallet, camera: app.camera });
+  const ents = buildEntities({ start, world: region, wallet, camera: app.camera, extraVendors: UNRI_VENDORS });
   app.scene.add(ents.group);
   anchor.add(ents.regionGroup);
   lifecycle.add(() => {

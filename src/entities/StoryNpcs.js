@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { createHumanoid } from './Humanoid.js';
-import { randomCasualOutfit } from './Humanoid.outfits.js';
+import { randomCasualOutfit, randomStudentOutfit } from './Humanoid.outfits.js';
 import { makeRng } from './util.js';
 import { STORY_NPCS } from '../story/chapters.js';
 
@@ -28,6 +28,11 @@ function addLabel(group, name) {
   return label;
 }
 
+/** NPC kampus berjas almamater (look 'almamater'); NPC lain berpakaian kasual. */
+const outfitFor = (npc, rng) => (npc.look === 'almamater'
+  ? randomStudentOutfit(rng, { almamaterChance: 1, backpackChance: 0 })
+  : randomCasualOutfit(rng));
+
 export class StoryNpcs {
   group = new THREE.Group();
   #labels = []; // { npc, label } (label dibuat sinkron di browser)
@@ -36,7 +41,7 @@ export class StoryNpcs {
   constructor() {
     this.group.name = 'storyNpcs';
     STORY_NPCS.forEach((npc, i) => {
-      const h = createHumanoid(randomCasualOutfit(makeRng(OUTFIT_SEED + i)));
+      const h = createHumanoid(outfitFor(npc, makeRng(OUTFIT_SEED + i)));
       h.group.name = `npc-${npc.id}`;
       h.group.position.set(npc.x, 0, npc.z);
       h.group.rotation.y = npc.yaw;
