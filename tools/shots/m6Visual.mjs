@@ -46,6 +46,7 @@ const VIEWS = [
   { id: 'danau-atas', area: 'danau', eye: rg(305, 95, -50), look: rg(215, 0, 35), fov: 55 },
   { id: 'danau-batu-pijakan', area: 'danau', eye: rg(222, 1.7, 8), look: rg(240, 0.3, 44), fov: 60 },
   { id: 'danau-batu-dekat', area: 'danau', eye: rg(224, 2.6, 12), look: rg(233, 0, 30), fov: 60 },
+  { id: 'danau-batu-samping', area: 'danau', eye: rg(262, 2.2, 38), look: rg(233, 0, 30), fov: 60 },
   { id: 'danau-trotoar', area: 'danau', eye: rg(200, 1.7, 64), look: rg(242, 1, 40), fov: 62 },
   { id: 'danau-papan-batu', area: 'danau', eye: rg(296, 1.7, 10), look: rg(285.5, 1.1, 10), fov: 55 },
   { id: 'danau-papan-batu-jauh', area: 'danau', eye: rg(316, 2.2, 16), look: rg(285.5, 1.2, 10), fov: 55 },
@@ -85,7 +86,7 @@ const PAGE = {
     s.store.set('camera.mode', 'third');
     s.app.systems.remove('cameraRig'); // kamera bebas
     const st = document.createElement('style'); // sembunyikan HUD/dialog agar bidikan bersih
-    st.textContent = '#hud, .attribution, [class*="toast"], [class*="minimap"] { display: none !important }';
+    st.textContent = 'body > *:not(#app):not(script):not(style) { display: none !important }';
     document.head.appendChild(st);
     return true;
   },
