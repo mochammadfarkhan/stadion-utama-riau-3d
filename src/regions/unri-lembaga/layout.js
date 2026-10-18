@@ -12,6 +12,7 @@ import {
   SEKRE_SIZE, SEKRE_FRAME, fromSekre, FOOTPRINTS, toRegion, regionToWorld,
 } from './placement.js';
 import { sekreRooms } from './sekre.data.js';
+import { evenSteps, fenceRuns, rowPoints } from './generators.js';
 
 /** Dimensi sekretariat (lokal-gedung, m). v = tinggi dari tanah pad. */
 export const SEKRE_DIM = Object.freeze({
@@ -141,30 +142,27 @@ export function sekreTerasLayout(rooms = sekreRooms(), { seed = 2026, dim = SEKR
   const fenceX = dim.hx + 4.6;
   const fenceZ = dim.hz + 2;
   const gate = 1.6;
-  const fenceSegments = [[-fenceZ, -gate], [gate, fenceZ]].map(([z0, z1]) => {
-    const a = fromSekre(fenceX, z0);
-    const b = fromSekre(fenceX, z1);
-    return Object.freeze({ a: [a.x, a.z], b: [b.x, b.z], r: 0.25 });
+  const fence = fenceRuns({ from: [fenceX, -fenceZ], to: [fenceX, fenceZ], gaps: [{ at: fenceZ, width: 2 * gate }], postSpacing: 2.4, r: 0.25 });
+  const fenceSegments = fence.segments.map(({ a, b, r }) => {
+    const pa = fromSekre(a[0], a[1]);
+    const pb = fromSekre(b[0], b[1]);
+    return Object.freeze({ a: [pa.x, pa.z], b: [pb.x, pb.z], r });
   });
-  const fencePosts = [];
-  for (const [z0, z1] of [[-fenceZ, -gate], [gate, fenceZ]]) {
-    const n = Math.ceil((z1 - z0) / 2.4);
-    for (let k = 0; k <= n; k += 1) fencePosts.push(placeSekre(fenceX, z0 + ((z1 - z0) * k) / n));
-  }
+  const fencePosts = fence.posts.map(([bx, bz]) => placeSekre(bx, bz));
   const motors = [];
   const pushMotor = (bx, bz, noseX, noseZ) => {
     if (!rnd.chance(SEKRE_MOTOR_FILL)) return;
     const kind = rnd.chance(0.55) ? 'matic' : 'bebek';
     motors.push(placeSekre(bx, bz, faceToward(noseX, noseZ) + rnd.range(-0.08, 0.08), { kind }));
   };
-  for (let bz = -dim.hz + 0.8; bz <= dim.hz - 0.8; bz += 0.85) {
+  for (const bz of evenSteps(-dim.hz + 0.8, dim.hz - 0.8, 0.85)) {
     if (Math.abs(bz) > 1.2) pushMotor(dim.hx + 1.45, bz, -1, 0);
   }
-  for (let bx = 2.6; bx <= 7.0 + 1e-9; bx += 0.88) {
+  for (const bx of evenSteps(2.6, 7.0, 0.88)) {
     pushMotor(-bx, -(dim.hz + 2.55), 0, 1);
     pushMotor(bx, dim.hz + 2.55, 0, -1);
   }
-  const lamps = [-1.5, -0.5, 0.5, 1.5].map((k) => Object.freeze({ bx: 0, bz: k * dim.roomLen, y: dim.plafonY }));
+  const lamps = rowPoints({ from: [0, -1.5 * dim.roomLen], dir: [0, 1], count: 4, step: dim.roomLen }).map(([bx, bz]) => Object.freeze({ bx, bz, y: dim.plafonY }));
   const mouthLamps = [-1, 1].map((s) => Object.freeze({ bx: 0, bz: s * (dim.hz + 0.1), y: 3.15 })); // lampu dinding di muka balok ambang mulut selasar
   return Object.freeze({
     racks, sandals, galons, motors, lamps, mouthLamps, fenceSegments, fencePosts,
@@ -200,13 +198,15 @@ export const LEMBAGA_LAYOUT = Object.freeze({
   rusun: Object.freeze({
     sign: atWorld(15.0, 812.5, faceToward(-1, 0)),
     guardPost: atWorld(14.0, 799.0, -Math.PI / 2),
-    jemuran: Object.freeze([40, 52, 64, 76].map((x) => atWorld(x, 846, 0))),
+    jemuran: Object.freeze(rowPoints({ from: [40, 846], dir: [1, 0], count: 4, step: 12 }).map(([x, z]) => atWorld(x, z, 0))),
     trashBins: Object.freeze([atWorld(24, 816, 0, { kind: 'hijau' }), atWorld(27, 816, 0, { kind: 'biru' })]),
   }),
   fh: Object.freeze({
+    // pagar seng halaman FH (dunia): sisi selatan x −106…−60 (celah pintu di −90…−84) dan sisi barat z 614…578 (celah 592…586)
     fences: Object.freeze([
-      [[-106, 616.5], [-90, 616.5]], [[-84, 616.5], [-60, 616.5]], [[-107, 614], [-107, 592]], [[-107, 586], [-107, 578]],
-    ].map(([a, b]) => Object.freeze({ a: toRegion(a[0], a[1]), b: toRegion(b[0], b[1]), r: 0.3 }))),
+      fenceRuns({ from: [-106, 616.5], to: [-60, 616.5], gaps: [{ at: 19, width: 6 }], r: 0.3 }),
+      fenceRuns({ from: [-107, 614], to: [-107, 578], gaps: [{ at: 25, width: 6 }], r: 0.3 }),
+    ].flatMap((f) => f.segments).map(({ a, b, r }) => Object.freeze({ a: toRegion(a[0], a[1]), b: toRegion(b[0], b[1]), r }))),
     plang: atWorld(-86.5, 619.5, faceToward(0, 1)),
     mounds: Object.freeze([atWorld(-70, 622, 0, { r: 1.6 }), atWorld(-63, 625, 0, { r: 1.2 }), atWorld(-27, 600, 0, { r: 2.0 })]),
   }),
