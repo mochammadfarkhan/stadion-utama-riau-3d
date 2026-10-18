@@ -49,7 +49,9 @@ import { createTerrainService } from './app/terrainService.js';
 import { mountDistrict } from './app/districtMount.js';
 import { unriDistrict } from './districts/unri/index.js';
 import { createLocalContext, pointToWorld } from './app/regionContext.js';
-import { withPlacement } from './regions/Region.js';
+import { withPlacement, regionContains } from './regions/Region.js';
+import { unriLembagaRegion } from './regions/unri-lembaga/index.js';
+import { LEMBAGA_LAYOUT } from './regions/unri-lembaga/layout.js';
 import { createCity } from './city/index.js';
 import { STREAM } from './city/ChunkStreamer.js';
 import { createAttribution } from './ui/Attribution.js';
@@ -57,6 +59,14 @@ import { travelDestinations, createFastTravel } from './app/fastTravel.js';
 import { FastTravelMenu, createTravelScreen } from './ui/FastTravelMenu.js';
 
 const MODELS_TIMEOUT_MS = 8000;
+
+/** Region hero di dalam distrik UNRI: distrik tidak menaruh vegetasi/props/rintangan di dalam mask-nya (M2 isReserved). M6 menambah region Rektorat. */
+const HERO_REGIONS = Object.freeze([unriLembagaRegion]);
+
+/** Tujuan perjalanan cepat sementara (DEV) ke depan mulut selasar barat Sekretariat Lembaga; M7 permanen. */
+const DEV_TRAVEL = import.meta.env.DEV
+  ? [{ id: 'unri-lembaga', label: 'Kampus UNRI — Sekretariat Lembaga (dev)', ...LEMBAGA_LAYOUT.spawnDev }]
+  : [];
 
 function showFatal(msg) {
   const panel = document.querySelector('#overlay .panel');
@@ -117,6 +127,8 @@ async function main() {
   const { regions, scheduler, terrain, colliders } = createRegionLayer({ app, store, time, weather, lifecycle });
   rig.setTerrain(terrain); // fokus/target/lantai kamera & pose POV relatif tanah (M1)
   const stadion = await regions.register(stadionDef); // persistent: dipasang sekarang (urutan muat seperti sebelum M0)
+  // M4: zona Lembaga (streaming: pasang ≤ 700 m, lepas > 900 m; proxy saat jauh)
+  regions.register(unriLembagaRegion).catch((err) => console.error('Region unri-lembaga gagal didaftarkan:', err));
   const frame = regions.frameOf(STADION_ID); // frame region stadion: entitas, cerita NPC, kamera, minimap
   const toLocalCtx = createLocalContext(frame);
   if (import.meta.env.DEV && parseFlagParam(window.location.search, 'dummyRegion')) {
@@ -189,6 +201,7 @@ async function main() {
   const unri = await mountDistrict(app, unriDistrict, {
     terrain, scheduler, collider: districtColliders, minimap, city, weather, time, baseUrl: import.meta.env.BASE_URL,
     toast: (t, ok) => hud.toast(t, ok),
+    isReserved: (x, z) => HERO_REGIONS.some((r) => regionContains(r, x, z)), // dunia → di dalam mask region hero?
   });
   if (unri) lifecycle.add(() => unri.dispose()); // LIFO: dilepas sebelum kota, time, weather
   const travel = setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, spawn: region.layout.spawn, touch });
@@ -306,7 +319,7 @@ function setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, sp
   const screen = createTravelScreen(document.body);
   lifecycle.add(() => screen.dispose());
   const travel = createFastTravel({
-    destinations: travelDestinations({ manifest: city?.manifest ?? null, frame, spawn }), bike: ents.bike, colliders, city, screen,
+    destinations: travelDestinations({ manifest: city?.manifest ?? null, frame, spawn, extra: DEV_TRAVEL }), bike: ents.bike, colliders, city, screen,
     isCameraClear: colliders.isCameraClear, rig, // POV ditutup dulu (menu & devtools); muncul dengan ruang kamera
   });
   const menu = new FastTravelMenu(document.body, {

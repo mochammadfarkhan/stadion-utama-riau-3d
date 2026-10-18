@@ -11,11 +11,13 @@ export const ANNUR_AREA_ID = 'pusat';
 
 /**
  * Tujuan perjalanan cepat (frame dunia). An-Nur hanya bila manifest memuat area "pusat".
+ * `extra`: tujuan tambahan (frame dunia), mis. tujuan dev Kampus UNRI (M4) — M7 menjadikannya permanen.
  * @param {{manifest?: {areas?: Array<{id:string, bounds:{minX:number,minZ:number,maxX:number,maxZ:number}}>}|null,
- *   frame: {toWorld(x:number,z:number):{x:number,z:number}, yawToWorld(y:number):number}, spawn: {x:number,z:number,yaw:number}}} opts
+ *   frame: {toWorld(x:number,z:number):{x:number,z:number}, yawToWorld(y:number):number}, spawn: {x:number,z:number,yaw:number},
+ *   extra?: Array<{id:string, label:string, x:number, z:number, yaw:number}>}} opts
  * @returns {Array<{id:string, label:string, x:number, z:number, yaw:number}>}
  */
-export function travelDestinations({ manifest = null, frame, spawn }) {
+export function travelDestinations({ manifest = null, frame, spawn, extra = [] }) {
   const s = frame.toWorld(spawn.x, spawn.z);
   const out = [{ id: 'stadion', label: 'Stadion Utama Riau', x: s.x, z: s.z, yaw: frame.yawToWorld(spawn.yaw) }];
   const area = manifest?.areas?.find((a) => a.id === ANNUR_AREA_ID);
@@ -23,7 +25,7 @@ export function travelDestinations({ manifest = null, frame, spawn }) {
     const b = area.bounds;
     out.push({ id: 'annur', label: 'Masjid Raya An-Nur', x: (b.minX + b.maxX) / 2, z: (b.minZ + b.maxZ) / 2, yaw: 0 });
   }
-  return out;
+  return [...out, ...extra.map((d) => ({ id: d.id, label: d.label, x: d.x, z: d.z, yaw: d.yaw }))];
 }
 
 /** Kandidat titik di sekitar (x, z): pusat dulu, lalu cincin `directions` arah berjarak `step` m sampai `maxRadius`. */
