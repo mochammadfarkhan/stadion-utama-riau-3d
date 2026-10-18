@@ -147,6 +147,12 @@ function spanduk(f) {
 /** HERO_BUILDERS['hero:gerbang-sm-amin'] — PartList dunia (spec §4.6). */
 export function buildGerbangSmAmin(plan, _mats, ctx = {}) {
   const f = createHeroFrame({ ...GERBANG_SITE, y: heroBaseY(plan, ctx, GERBANG_SITE) - PLINTH, origin: ctx?.origin ?? null });
+  if (ctx?.lod === 1) { // jauh (250–900 m): hanya dua pilar + balok (2 material)
+    const { x, w, d, h } = GERBANG.pilar;
+    for (const sx of [-1, 1]) f.box(M.pilar(), [sx * x - w / 2, sx * x + w / 2], [0, h], [-d / 2, d / 2], { castShadow: false });
+    f.box(M.balok(), [-GERBANG.balok.span / 2, GERBANG.balok.span / 2], [GERBANG.balok.y0, GERBANG.balok.y1], [-GERBANG.balok.d / 2, GERBANG.balok.d / 2], { castShadow: false });
+    return f.parts;
+  }
   pilar(f);
   temboks(f);
   balok(f);

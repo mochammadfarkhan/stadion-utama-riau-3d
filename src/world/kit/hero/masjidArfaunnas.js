@@ -90,12 +90,22 @@ function mosaicTexture() {
 }
 
 const W = MASJID.warna;
+/** Emisif hangat yang mati siang (off 0) dan menyala `on` saat lampu malam. */
+function glow(mat, on) {
+  mat.emissive = new THREE.Color(0xffd9a0);
+  mat.emissiveIntensity = 0;
+  mat.userData.nightEmissive = { on, off: 0 };
+  return mat;
+}
+
 const M = {
-  krem: () => heroMaterial('masjid:krem', () => named(new THREE.MeshLambertMaterial({ color: W.krem }), 'masjid:krem')),
+  /** Dinding & tangga disinari lampu sorot samar saat malam (emisif rendah). */
+  krem: () => heroMaterial('masjid:krem', () => glow(named(new THREE.MeshLambertMaterial({ color: W.krem }), 'masjid:krem'), 0.3)),
   oker: () => heroMaterial('masjid:oker', () => named(new THREE.MeshStandardMaterial({ color: W.oker, roughness: 0.5, metalness: 0.25 }), 'masjid:oker')),
-  keramik: () => heroMaterial('masjid:keramik', () => named(new THREE.MeshStandardMaterial({ color: W.keramik, roughness: 0.22, metalness: 0.02 }), 'masjid:keramik')),
-  gelap: () => heroMaterial('masjid:gelap', () => named(new THREE.MeshLambertMaterial({ color: W.gelap }), 'masjid:gelap')),
-  dalam: () => heroMaterial('masjid:dalam', () => named(new THREE.MeshLambertMaterial({ color: W.dalam, side: THREE.BackSide }), 'masjid:dalam')),
+  keramik: () => heroMaterial('masjid:keramik', () => glow(named(new THREE.MeshStandardMaterial({ color: W.keramik, roughness: 0.22, metalness: 0.02 }), 'masjid:keramik'), 0.3)),
+  /** Bukaan/pintu gelap: siang hitam, malam menyala hangat dari dalam (registry TimeOfDay: nightEmissive). */
+  gelap: () => heroMaterial('masjid:gelap', () => glow(named(new THREE.MeshStandardMaterial({ color: W.gelap, roughness: 0.8 }), 'masjid:gelap'), 1.0)),
+  dalam: () => heroMaterial('masjid:dalam', () => glow(named(new THREE.MeshStandardMaterial({ color: W.dalam, roughness: 0.9, side: THREE.BackSide }), 'masjid:dalam'), 0.8)),
   aspal: () => heroMaterial('masjid:aspal', () => named(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, ...surfaceMaps('asphalt') }), 'masjid:aspal')),
   marka: () => heroMaterial('masjid:marka', () => named(new THREE.MeshLambertMaterial({ color: W.marka }), 'masjid:marka')),
   toa: () => heroMaterial('masjid:toa', () => named(new THREE.MeshLambertMaterial({ color: W.toa, side: THREE.DoubleSide }), 'masjid:toa')),
@@ -332,7 +342,7 @@ function toa(f) {
 
 /** Huruf timbul oker di parapet utara (muka tangga). */
 function huruf(f) {
-  const parts = reliefTextParts({ key: 'masjid:huruf', text: MASJID.huruf, width: 26, height: 0.72, color: '#c8962e', shade: '#6a4e16' });
+  const parts = reliefTextParts({ key: 'masjid:huruf', text: MASJID.huruf, width: 26, height: 0.72, color: '#c8962e', shade: '#6a4e16', nightGlow: 0.9 });
   const z = -(HD + 0.2) - 0.07;
   for (const p of parts) f.add(p.geometry, p.material, local(0, YT + MASJID.parapet / 2, z).multiply(p.matrix), { castShadow: false });
 }
@@ -365,18 +375,26 @@ export function masjidMotorBays() {
   return Object.freeze(out);
 }
 
-/** HERO_BUILDERS['hero:masjid-arfaunnas'] — PartList dunia (spec §4.6). */
+/**
+ * HERO_BUILDERS['hero:masjid-arfaunnas'] — PartList dunia (spec §4.6). LOD 1 (250–900 m): massa, arkade, tangga,
+ * kubah & mahkota saja (krem, oker, keramik, kubah, mahkota); tanpa isi, huruf, toa, dan pelataran.
+ */
 export function buildMasjidArfaunnas(plan, _mats, ctx = {}) {
   const groundY = typeof ctx?.groundY === 'function' ? ctx.groundY : null;
   const f = createHeroFrame({ ...MASJID_SITE, y: heroBaseY(plan, ctx, MASJID_SITE) - PLINTH, origin: ctx?.origin ?? null });
+  const far = ctx?.lod === 1;
   slabs(f);
   arcades(f);
-  lowerCore(f);
-  upperCore(f);
+  if (!far) {
+    lowerCore(f);
+    upperCore(f);
+  }
   tangga(f);
   kubah(f);
-  toa(f);
-  huruf(f);
-  pelataran(f, groundY);
+  if (!far) {
+    toa(f);
+    huruf(f);
+    pelataran(f, groundY);
+  }
   return f.parts;
 }

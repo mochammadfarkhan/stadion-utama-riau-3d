@@ -9,7 +9,7 @@ import { currentScope } from '../../../engine/ResourceScope.js';
 import { mergeAll } from '../../siteutil/rounded.js';
 
 export const AKASIA = Object.freeze({
-  trunkH: 9.5, trunkR: 0.22, crownY: 12.0, crownR: 1.9, crownH: 7.5,
+  trunkH: 10.5, trunkR: 0.22, crownY: 13.0, crownR: 1.5, crownH: 8.6,
   colors: Object.freeze({ batang: 0x8a7f70, tajuk: 0x4d6a33 }),
 });
 

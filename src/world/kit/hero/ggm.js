@@ -121,8 +121,8 @@ const M = {
     const map = sengTexture(314450943);
     return named(new THREE.MeshStandardMaterial({ color: map ? 0xffffff : WR.seng, map, roughness: 0.62, metalness: 0.4, side: THREE.DoubleSide }), 'ggm:seng');
   }),
-  tanah: () => heroMaterial('ggm:tanah', () => named(new THREE.MeshLambertMaterial({ color: WR.tanah }), 'ggm:tanah-merah')),
-  kerikil: () => heroMaterial('ggm:kerikil', () => named(new THREE.MeshLambertMaterial({ color: WR.kerikil }), 'ggm:jalan-batu')),
+  tanah: () => heroMaterial('ggm:tanah', () => named(new THREE.MeshStandardMaterial({ color: WR.tanah, roughness: 0.97, ...surfaceMaps('concrete', 5) }), 'ggm:tanah-merah')),
+  kerikil: () => heroMaterial('ggm:kerikil', () => named(new THREE.MeshStandardMaterial({ color: 0xb09c78, roughness: 0.98, ...surfaceMaps('concrete', 1.4) }), 'ggm:jalan-batu')),
   karat: () => heroMaterial('ggm:karat', () => named(new THREE.MeshLambertMaterial({ color: WR.karat }), 'ggm:besi-karat')),
   ilalang: () => heroMaterial('ggm:ilalang', () => named(new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }), 'ggm:ilalang')),
   grafiti: () => heroMaterial('ggm:grafiti', () => {
@@ -161,15 +161,15 @@ function kolom(f) {
 }
 
 /** Tribun undakan 300° (celah 60° ke selatan untuk panggung/akses), tutup ujung, panggung, coretan. */
-function tribun(f) {
+function tribun(f, detail = true) {
   const { celah, rIn } = GGM.tribun;
   const prof = tribunProfile().map(([r, y]) => new THREE.Vector2(r, y));
   f.add(heroGeometry('ggm:tribun', () => new THREE.LatheGeometry(prof, 50, celah / 2, Math.PI * 2 - celah)), M.semen());
   const cap = heroGeometry('ggm:tutupTribun', () => new THREE.ShapeGeometry(new THREE.Shape(prof)));
   for (const phi of [celah / 2, Math.PI * 2 - celah / 2]) f.add(cap, M.semen(), local(0, 0, 0, { ry: phi - Math.PI / 2 }));
   f.add(heroGeometry('ggm:panggung', () => new THREE.CylinderGeometry(rIn, rIn, 0.3, 48).translate(0, 0.15, 0)), M.semen());
-  const graf = M.grafiti();
-  if (graf.map) {
+  const graf = detail ? M.grafiti() : null;
+  if (graf?.map) {
     const strip = heroGeometry('ggm:grafitiPita', () => new THREE.CylinderGeometry(33.3, 33.3, 2.3, 50, 1, true, celah / 2, Math.PI * 2 - celah).translate(0, 1.45, 0));
     f.add(strip, graf, null, { castShadow: false });
   }
@@ -248,15 +248,21 @@ function tanah(f, groundY) {
   f.add(groundGrid('ggm:jalanBatu', f, { ...GGM.jalan, step: 2, lift: 0.07, groundY }), M.kerikil(), null, { castShadow: false, name: 'jalanBatu' });
 }
 
-/** HERO_BUILDERS['hero:ggm'] — PartList dunia (spec §4.6). */
+/**
+ * HERO_BUILDERS['hero:ggm'] — PartList dunia (spec §4.6). LOD 1 (250–900 m, tanpa bayangan): hanya siluet —
+ * atap seng, kolom & undakan semen (2 material) agar draw call klaster jauh tetap kecil.
+ */
 export function buildGgm(plan, _mats, ctx = {}) {
   const groundY = typeof ctx?.groundY === 'function' ? ctx.groundY : null;
   const f = createHeroFrame({ ...GGM_SITE, y: heroBaseY(plan, ctx, GGM_SITE) - PLINTH, origin: ctx?.origin ?? null });
-  tanah(f, groundY);
-  tribun(f);
+  const far = ctx?.lod === 1;
+  if (!far) tanah(f, groundY);
+  tribun(f, !far);
   kolom(f);
   atap(f);
-  puing(f);
-  ilalang(f, groundY);
+  if (!far) {
+    puing(f);
+    ilalang(f, groundY);
+  }
   return f.parts;
 }
