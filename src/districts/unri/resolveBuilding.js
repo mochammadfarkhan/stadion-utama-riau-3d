@@ -5,6 +5,7 @@
  * per id. Murni (tanpa three); `logger` dapat disuntik untuk tes.
  */
 import { polygonArea } from '../../geo/polygon.js';
+import { SYNTHETIC_BUILDINGS } from './buildings.data.js';
 import {
   ARCHETYPE_IDS, CONFIDENCE, CORRIDOR_SIDES, HERO_IDS, PALETTES, ROOF_TYPES, VARIANTS, geometryArchetype, hashId,
 } from '../../world/kit/archetypes.js';
@@ -12,7 +13,7 @@ import {
 export const OVERRIDE_KEYS = Object.freeze([
   'archetype', 'levels', 'palette', 'roof', 'corridorSide', 'sign', 'variant', 'sumber', 'keyakinan',
 ]);
-const ID_RE = /^[wr]\d+$/;
+const ID_RE = /^([wr]\d+|s-[a-z0-9-]+)$/;
 const MAX_SIGN = 48;
 const UNNAMED_SMALL = 150; // m²: gedung tanpa nama lebih kecil → K11 (D1)
 const TINY = 60;           // m²: spec §4.7 → K11
@@ -46,7 +47,7 @@ export function parseLevelsTag(raw) {
 export function overrideErrors(id, ov) {
   const errs = [];
   const at = (msg) => errs.push(`${id}: ${msg}`);
-  if (!ID_RE.test(id)) at('id harus "w<angka>" atau "r<angka>"');
+  if (!ID_RE.test(id)) at('id harus "w<angka>", "r<angka>", atau "s-<nama>" (sintetis)');
   if (!ov || typeof ov !== 'object' || Array.isArray(ov)) return [...errs, `${id}: entri harus objek`];
   for (const k of Object.keys(ov)) if (!OVERRIDE_KEYS.includes(k)) at(`kunci tak dikenal "${k}"`);
   if (ov.archetype !== undefined && !ARCHETYPE_IDS.includes(ov.archetype) && !HERO_IDS.includes(ov.archetype)) at(`archetype "${ov.archetype}" tidak dikenal`);
@@ -68,7 +69,11 @@ export function overrideErrors(id, ov) {
 /** Validasi seluruh tabel override; [] = valid (spec §4.7). */
 export function validateOverrides(table) {
   if (!table || typeof table !== 'object') return ['tabel override harus objek'];
-  return Object.entries(table).flatMap(([id, ov]) => overrideErrors(id, ov));
+  const errs = Object.entries(table).flatMap(([id, ov]) => overrideErrors(id, ov));
+  for (const key of Object.keys(table)) {
+    if (key.startsWith('s-') && !SYNTHETIC_BUILDINGS.some((b) => b.id === key)) errs.push(`${key}: bangunan sintetis tidak terdaftar di SYNTHETIC_BUILDINGS`);
+  }
+  return errs;
 }
 
 const warned = new Set();

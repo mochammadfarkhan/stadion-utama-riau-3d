@@ -244,11 +244,17 @@ function lerpAt(a, b, axis, value) {
  */
 export function createKitSink({ capacity = {} } = {}) {
   const builders = Object.fromEntries(SINK_KEYS.map((k) => [k, createMeshBuilder(capacity[k] ?? START_VERTS)]));
+  /** Part hero bermaterial sendiri (M6; matriks dunia) — apa adanya, bukan geometri kit. */
+  const extra = [];
   return {
     ...builders,
+    extra,
     get triangles() { return SINK_KEYS.reduce((s, k) => s + builders[k].triangles, 0); },
-    mark() { return SINK_KEYS.map((k) => builders[k].mark()); },
-    rewind(m) { SINK_KEYS.forEach((k, i) => builders[k].rewind(m[i])); },
+    mark() { return [...SINK_KEYS.map((k) => builders[k].mark()), extra.length]; },
+    rewind(m) {
+      SINK_KEYS.forEach((k, i) => builders[k].rewind(m[i]));
+      extra.length = Math.min(extra.length, m[SINK_KEYS.length] ?? 0);
+    },
     /** @param {{opak:object, potong:object, papan?:object|null}} materials */
     toParts(materials, name = 'gedung', geometryOpts = {}) {
       const parts = [];

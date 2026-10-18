@@ -11,6 +11,7 @@ import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { cleanRing, orientRing, pointInPolygon, polygonArea, polygonCentroid } from '../../src/geo/polygon.js';
 import { BUILDINGS_FORMAT, clusterKey, validateBuildingsData } from '../../src/districts/unri/buildingsFormat.js';
+import { SYNTHETIC_BUILDINGS } from '../../src/districts/unri/buildings.data.js';
 import { parseGroundChunk } from '../../src/districts/unri/groundData.js';
 
 const TAG_KEEP = Object.freeze(['name', 'building', 'amenity', 'building:levels', 'building:roof', 'building:walls', 'office']);
@@ -164,11 +165,11 @@ export function dropDuplicates(list) {
 }
 
 /**
- * @param {{elements: object[], project: (lat:number, lon:number) => {x:number,z:number},
+ * @param {{synthetic?: object[], elements: object[], project: (lat:number, lon:number) => {x:number,z:number},
  *   boundary: Array<[number,number]>, roads: Array<{pts: Array<[number,number]>}>}} input
  * @returns {{v:1, buildings: object[]}}
  */
-export function bakeBuildingsData({ elements, project, boundary, roads }) {
+export function bakeBuildingsData({ elements, project, boundary, roads, synthetic = [] }) {
   const inside = (b) => {
     const c = polygonCentroid(b.ring);
     return pointInPolygon(c.x, c.z, boundary);
@@ -176,18 +177,22 @@ export function bakeBuildingsData({ elements, project, boundary, roads }) {
   const explicit = dropDuplicates(extractCandidates(elements, project).filter(inside)).list;
   const implied = extractImplied(elements, project, explicit).filter(inside);
   const seen = new Set();
-  const buildings = [...explicit, ...implied]
+  const toEntry = (b, levels) => {
+    const c = polygonCentroid(b.ring);
+    const entry = {
+      id: b.id, ring: b.ring, levels, tags: keepTags(b.tags),
+      cluster: clusterKey(c.x, c.z), area: Number(polygonArea(b.ring).toFixed(1)), front: nearestRoadFront(c.x, c.z, roads),
+    };
+    if (b.holes?.length) entry.holes = b.holes;
+    return entry;
+  };
+  const fromOsm = [...explicit, ...implied]
     .filter((b) => (seen.has(b.id) ? false : seen.add(b.id)))
-    .map((b) => {
-      const c = polygonCentroid(b.ring);
-      const entry = {
-        id: b.id, ring: b.ring, levels: levelsOf(b.tags['building:levels']), tags: keepTags(b.tags),
-        cluster: clusterKey(c.x, c.z), area: Number(polygonArea(b.ring).toFixed(1)), front: nearestRoadFront(c.x, c.z, roads),
-      };
-      if (b.holes.length) entry.holes = b.holes;
-      return entry;
-    })
-    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    .map((b) => toEntry(b, levelsOf(b.tags['building:levels'])));
+  // Bangunan sintetis (M6: pos satpam Gerbang SM Amin) tidak ada di OSM → disisipkan tanpa saringan batas distrik.
+  const synthEntries = synthetic.filter((s) => !seen.has(s.id))
+    .map((s) => toEntry({ id: s.id, ring: orientRing(s.ring.map(([x, z]) => [q1(x), q1(z)]), true), holes: [], tags: { ...s.tags } }, s.levels));
+  const buildings = [...fromOsm, ...synthEntries].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   return { v: BUILDINGS_FORMAT.v, buildings };
 }
 
@@ -231,14 +236,14 @@ export async function loadOsmElements(root, files = BUILDINGS_PATHS.osm) {
  * Langkah CLI: baca cache OSM + ground, tulis buildings.json. Dipanggil tools/campusbake/index.js.
  * @param {{root: string, boundary: Array<[number,number]>, project: Function, log?: {info: Function, warn: Function}}} opts
  */
-export async function runBuildingsBake({ root, boundary, project, log = console }) {
+export async function runBuildingsBake({ root, boundary, project, synthetic = SYNTHETIC_BUILDINGS, log = console }) {
   const elements = await loadOsmElements(root);
   let roads = await roadsFromGround(join(root, BUILDINGS_PATHS.ground), log);
   if (!roads) {
     log.warn('ground/*.json belum ada (jalankan "npm run bake:campus -- ground"); front dari highway OSM.');
     roads = roadsFromOsm(elements, project);
   }
-  const data = bakeBuildingsData({ elements, project, boundary, roads });
+  const data = bakeBuildingsData({ elements, project, boundary, roads, synthetic });
   const errs = validateBuildingsData(data);
   if (errs.length) throw new Error(`buildings.json hasil bake tidak valid: ${errs.slice(0, 5).join('; ')}`);
   const out = join(root, BUILDINGS_PATHS.out);

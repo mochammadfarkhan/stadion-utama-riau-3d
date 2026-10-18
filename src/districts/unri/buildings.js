@@ -60,7 +60,7 @@ export async function mountBuildings(ctx) {
     buildings: data.buildings, overrides, materials, scheduler: ctx.scheduler,
     groundY: (x, z) => ctx.terrain.heightAt(x, z),
     terrainReady: makeTerrainReady(ctx.terrain, ctx.terrainChunks),
-    registries: ctx.registries ?? null, collider: ctx.collider ?? null, logger,
+    registries: ctx.registries ?? null, collider: ctx.collider ?? null, logger, scope: ctx.scope,
   });
   let suppressed = new Set();
   const system = {

@@ -1,5 +1,6 @@
 {"v":1,"buildings":[
 {"id":"r3747439","ring":[[-1471.1,111.6],[-1408.3,108.3],[-1405.4,163.3],[-1468.2,166.6]],"levels":1,"tags":{"name":"Laboratorium Teknik Elektro","building":"laboratorium","building:levels":"1"},"cluster":"-6_0","area":3463.6,"front":[-0.03,-1],"holes":[[[-1456.1,152.3],[-1420.3,150.7],[-1421.6,123],[-1457.3,124.6]]]},
+{"id":"s-gerbang-sm-amin","ring":[[383.6,679.4],[383.6,682.4],[380.6,682.5],[380.6,679.5]],"levels":1,"tags":{"name":"Gerbang SM Amin (pos satpam)","building":"guardhouse"},"cluster":"1_2","area":9,"front":null},
 {"id":"w1084544001","ring":[[-970.6,1167.5],[-970.4,1154.5],[-948.6,1154.7],[-948.8,1167.8]],"levels":null,"tags":{"building":"yes"},"cluster":"-4_4","area":284.5,"front":[-0.023,-1]},
 {"id":"w1084544002","ring":[[-749,1037.7],[-748.8,1027.7],[-736.8,1028],[-737.1,1038]],"levels":null,"tags":{"building":"yes"},"cluster":"-3_4","area":119.6,"front":[-0.997,-0.073]},
 {"id":"w1084544003","ring":[[-678.6,1022.2],[-664.2,1022.2],[-664.2,1027.5],[-678.6,1027.5]],"levels":null,"tags":{"building":"yes"},"cluster":"-3_4","area":76.3,"front":[-1,0.008]},

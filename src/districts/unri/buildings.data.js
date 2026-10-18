@@ -9,17 +9,22 @@ export const BUILDING_OVERRIDES = Object.freeze({
   // ── Hero (handmade M4/M6; M3 memasang placeholder berukuran footprint) ─────────────────────────
   w282225347: Object.freeze({
     archetype: 'hero:rektorat', levels: 5, palette: 'putih', roof: 'datar-parapet', sign: 'REKTORAT UNIVERSITAS RIAU',
-    sumber: 'foto drone 2016 Commons Taman_Unri.jpg (putih, ±5 lt, atap datar parapet gelap); OSM way/282225347 levels 4-7; teks papan [INF]',
+    sumber: 'foto drone 2016 Commons Taman_Unri.jpg (CC BY-SA 4.0; putih, ±5 lt, atap datar parapet gelap); OSM way/282225347 levels 4-7; dibangun region unri-rektorat (M6); teks papan [INF]',
     keyakinan: 'tinggi',
   }),
   w282230716: Object.freeze({
-    archetype: 'hero:masjid-arfaunnas', levels: 2, sign: "MASJID ARFA' UNNAS UNIVERSITAS RIAU",
-    sumber: 'foto 2023 Commons Masjid_Arfaunnas_unri.jpg (huruf timbul, 2 lt, krem); arfaunnas.unri.ac.id; OSM way/282230716',
+    archetype: 'hero:masjid-arfaunnas', levels: 2, roof: 'datar-parapet', sign: "MASJID ARFA' UNNAS UNIVERSITAS RIAU",
+    sumber: 'foto 2023 Commons Masjid_Arfaunnas_unri.jpg (CC BY-SA 4.0; huruf timbul, 2 lt, krem); arfaunnas.unri.ac.id (ruang salat 27 × 27 m); OSM way/282230716',
     keyakinan: 'tinggi',
   }),
   w314450943: Object.freeze({
     archetype: 'hero:ggm', levels: 4, sign: null,
-    sumber: 'OSM way/314450943 (lingkaran Ø±82 m, levels 4-7); lovinasoenmi 2013 & goriau (mangkrak); kondisi 2026 tidak diketahui',
+    sumber: 'lovinasoenmi 2013 (mangkrak), unri.ac.id wisuda 2015, mediacenter.riau.go.id; OSM way/314450943 (lingkaran Ø±82 m, levels 4-7); kondisi 2026 tidak diketahui',
+    keyakinan: 'sedang',
+  }),
+  's-gerbang-sm-amin': Object.freeze({
+    archetype: 'hero:gerbang-sm-amin', levels: 1, sign: 'UNIVERSITAS RIAU',
+    sumber: 'nama, status gerbang utama, jam s.d. 20.00: Bahana Mahasiswa & cakaplah 2022; posisi: OSM node swing_gate 3031660118 & 12234023398 di dua jalur Jl. Muchtar Lutfi (Overpass 2026-10-18); desain: INFERENSI',
     keyakinan: 'sedang',
   }),
   w327530276: Object.freeze({
@@ -66,8 +71,8 @@ export const BUILDING_OVERRIDES = Object.freeze({
     keyakinan: 'tinggi',
   }),
   w282225374: Object.freeze({
-    archetype: 'K01', levels: 2, sign: 'PERPUSTAKAAN UNIVERSITAS RIAU',
-    sumber: 'lib.unri.ac.id sejarah (ringkasan): empat gedung masing-masing dua lantai, pindah 1992; OSM way/282225374; papan [INF]',
+    archetype: 'hero:perpustakaan-lama', levels: 2, sign: 'PERPUSTAKAAN UNIVERSITAS RIAU',
+    sumber: 'lib.unri.ac.id sejarah (ringkasan): empat gedung masing-masing dua lantai, pindah 1992; OSM way/282225374; dibangun region unri-rektorat (M6); papan [INF]',
     keyakinan: 'sedang',
   }),
   // ── Aturan nama salah sasaran ──────────────────────────────────────────────────────────────────
@@ -97,3 +102,18 @@ export const BUILDING_OVERRIDES = Object.freeze({
     keyakinan: 'sedang',
   }),
 });
+
+/**
+ * Bangunan sintetis (tidak ada di OSM) yang tetap dirakit distrik lewat override hero. Ring = tapak yang
+ * menghalangi collider (hanya pos satpam; pilar gerbang tidak menghalangi agar jalan tetap terbuka) =
+ * GERBANG.pos di bingkai GERBANG_SITE (src/world/kit/hero/gerbangSmAmin.js). Disisipkan ke buildings.json
+ * oleh tools/campusbake/buildings.js.
+ */
+export const SYNTHETIC_BUILDINGS = Object.freeze([
+  Object.freeze({
+    id: 's-gerbang-sm-amin',
+    ring: Object.freeze([[383.57, 679.41], [383.6, 682.41], [380.61, 682.45], [380.57, 679.45]].map((p) => Object.freeze(p))),
+    levels: 1,
+    tags: Object.freeze({ name: 'Gerbang SM Amin (pos satpam)', building: 'guardhouse', barrier: 'gate' }),
+  }),
+]);

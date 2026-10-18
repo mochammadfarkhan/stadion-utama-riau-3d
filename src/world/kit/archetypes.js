@@ -12,13 +12,13 @@ const deepFreeze = (o) => {
 /** Id hero handmade (spec §7.1). Builder-nya di src/world/kit/hero/index.js. */
 export const HERO_IDS = Object.freeze([
   'hero:rektorat', 'hero:masjid-arfaunnas', 'hero:gerbang-sm-amin', 'hero:ggm',
-  'hero:sekretariat-lembaga', 'hero:student-center', 'hero:stadion-mini',
+  'hero:sekretariat-lembaga', 'hero:student-center', 'hero:stadion-mini', 'hero:perpustakaan-lama',
 ]);
 
 /** Arketipe pengganti geometri placeholder hero (M3) sampai M4/M6 mengganti builder-nya. */
 export const HERO_STANDIN = Object.freeze({
   'hero:rektorat': 'K12', 'hero:masjid-arfaunnas': 'K06', 'hero:gerbang-sm-amin': 'K11', 'hero:ggm': 'K12',
-  'hero:sekretariat-lembaga': 'K01', 'hero:student-center': 'K03', 'hero:stadion-mini': 'K07',
+  'hero:sekretariat-lembaga': 'K01', 'hero:student-center': 'K03', 'hero:stadion-mini': 'K07', 'hero:perpustakaan-lama': 'K01',
 });
 
 /** Jenis atap (spec §7.2 langkah 5) + dua bentuk khusus musala. */

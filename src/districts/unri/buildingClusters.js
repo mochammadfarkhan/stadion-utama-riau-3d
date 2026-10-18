@@ -8,6 +8,7 @@
  * Nama grup berawalan `unri:` agar terhitung skrip ukur M2. Bagian murni diekspor untuk tes.
  */
 import { Group, Mesh } from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { freezeStatic } from '../../engine/freezeStatic.js';
 import { createKitSink } from '../../world/kit/kitBuilder.js';
 import { appendPlanSteps, fallbackPlan } from '../../world/kit/buildBuilding.js';
@@ -76,6 +77,33 @@ export function planEntry(b, overrides, groundY, logger = console) {
   }
 }
 
+/**
+ * Part hero non-kit (M6) → satu mesh per material + tata atribut. Geometri diklon & ditransformasi ke dunia
+ * (milik klaster: dilepas `release` bersama mesh kit); geometri sumber milik cache scope hero tidak disentuh.
+ */
+export function extrasToMeshes(extra, name) {
+  const groups = new Map();
+  for (const p of extra) {
+    const g = p.geometry.clone();
+    if (p.matrix) g.applyMatrix4(p.matrix);
+    const key = [p.material.uuid, Object.keys(g.attributes).sort().join(','), g.index ? 'i' : 'n', p.castShadow === false ? 0 : 1].join('|');
+    if (!groups.has(key)) groups.set(key, { material: p.material, castShadow: p.castShadow !== false, geoms: [] });
+    groups.get(key).geoms.push(g);
+  }
+  const meshes = [];
+  for (const { material, castShadow, geoms } of groups.values()) {
+    const merged = geoms.length > 1 ? mergeGeometries(geoms, false) : geoms[0];
+    if (merged && geoms.length > 1) geoms.forEach((g) => g.dispose());
+    for (const geometry of merged ? [merged] : geoms) { // gagal gabung → mesh terpisah
+      const mesh = new Mesh(geometry, material);
+      mesh.name = `${name}:${material.name || 'hero'}`;
+      mesh.castShadow = castShadow;
+      meshes.push(mesh);
+    }
+  }
+  return meshes;
+}
+
 /** Perkiraan verteks per kunci material untuk kapasitas awal sink. */
 function estimateCapacity(plans, lod) {
   const bays = plans.reduce((s, p) => s + p.bays.length * p.floors, 0);
@@ -92,7 +120,7 @@ function estimateCapacity(plans, lod) {
  */
 export function createBuildingClusters({
   buildings, overrides = {}, materials, scheduler, groundY, terrainReady = () => true, registries = null, collider = null,
-  signAtlas = createSignAtlas, appendSteps = appendPlanSteps, logger = console, config = CLUSTER,
+  signAtlas = createSignAtlas, appendSteps = appendPlanSteps, logger = console, config = CLUSTER, scope = null,
 }) {
   const group = new Group();
   group.name = 'unri:gedung';
@@ -131,7 +159,7 @@ export function createBuildingClusters({
     for (const entry of ready) {
       const mark = sink.mark();
       try {
-        yield* appendSteps(sink, entry.plan, materials, { lod: j.lod });
+        yield* appendSteps(sink, entry.plan, materials, { lod: j.lod, ctx: { scope, groundY } });
       } catch (err) {
         sink.rewind(mark);
         logger.error(`gedung ${entry.plan.id}: perakitan gagal, jatuh ke K12:`, err);
@@ -163,12 +191,17 @@ export function createBuildingClusters({
       mesh.receiveShadow = true;
       root.add(mesh);
     }
+    for (const mesh of extrasToMeshes(sink.extra, `gedung:${c.key}:hero`)) { // hero bermaterial sendiri (M6)
+      mesh.castShadow = mesh.castShadow && j.lod === 0;
+      mesh.receiveShadow = true;
+      root.add(mesh);
+    }
     group.add(root);
     freezeStatic(root);
     const offEmissive = registries ? registries.registerEmissive(root) : null;
     release(c.shown, null);
     collider?.addBuildings(c.key, footprintsOf(list));
-    c.shown = { lod: j.lod, root, signs: atlas, offEmissive, triangles: sink.triangles, meshes: parts.length };
+    c.shown = { lod: j.lod, root, signs: atlas, offEmissive, triangles: sink.triangles, meshes: root.children.length };
     c.job = null;
   }
 

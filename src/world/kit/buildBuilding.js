@@ -4,6 +4,7 @@
  * memakai appendPlan langsung ke sink bersama (penggabungan per material tanpa clone). Gedung yang gagal
  * dirakit jatuh ke K12 (spec §10); bila K12 juga gagal → [] + console.error.
  */
+import { withScope } from '../../engine/ResourceScope.js';
 import { createKitSink } from './kitBuilder.js';
 import { appendBuilding, appendBuildingSteps } from './kitAssemble.js';
 import { HERO_BUILDERS } from './hero/index.js';
@@ -13,7 +14,10 @@ import { planBuilding } from './planBuilding.js';
 export function appendParts(sink, parts, materials) {
   for (const p of parts) {
     const key = p.material === materials.potong ? 'potong' : p.material === materials.opak ? 'opak' : null;
-    if (!key) continue;
+    if (!key) { // part hero bermaterial sendiri (M6): geometri milik cache scope hero, jangan di-dispose
+      sink.extra.push(p);
+      continue;
+    }
     const g = p.geometry;
     const pos = g.attributes.position.array;
     const uv = g.attributes.uv.array;
@@ -26,6 +30,11 @@ export function appendParts(sink, parts, materials) {
     }
     g.dispose();
   }
+}
+
+/** Panggil builder hero; bila ctx.scope ada, cache material/geometri hero hidup di scope itu (M6). */
+function runHero(hero, plan, materials, ctx) {
+  return ctx.scope ? withScope(ctx.scope, () => hero(plan, materials, ctx)) : hero(plan, materials, ctx);
 }
 
 /** Rencana cadangan K12 dari plan yang gagal dirakit. */
@@ -41,7 +50,7 @@ export function* appendPlanSteps(sink, plan, materials, { lod = 0, ctx = {} } = 
     return;
   }
   if (hero) {
-    appendParts(sink, hero(plan, materials, { ...ctx, lod }), materials);
+    appendParts(sink, runHero(hero, plan, materials, { ...ctx, lod }), materials);
     return;
   }
   yield* appendBuildingSteps(sink, plan, { lod });
@@ -55,7 +64,7 @@ export function appendPlan(sink, plan, materials, { lod = 0, ctx = {} } = {}) {
   const hero = HERO_BUILDERS[plan.archetype];
   if (!hero) return appendBuilding(sink, plan, { lod });
   const before = sink.triangles;
-  appendParts(sink, hero(plan, materials, { ...ctx, lod }), materials);
+  appendParts(sink, runHero(hero, plan, materials, { ...ctx, lod }), materials);
   return sink.triangles - before;
 }
 
@@ -81,5 +90,5 @@ export function buildBuilding(plan, kitMaterials, { lod = 0, input = null, logge
     }
     return fresh.toParts(kitMaterials, plan.id);
   }
-  return sink.toParts(kitMaterials, plan.id);
+  return [...sink.toParts(kitMaterials, plan.id), ...sink.extra]; // extra: part hero bermaterial sendiri (matriks dunia)
 }

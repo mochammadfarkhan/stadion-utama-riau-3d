@@ -5,7 +5,7 @@
  */
 export const BUILDINGS_FORMAT = Object.freeze({ v: 1, cluster: 250, quant: 0.1, frontMax: 80, maxBuildings: 2000 });
 
-const ID_RE = /^[wr]\d+$/;
+const ID_RE = /^([wr]\d+|s-[a-z0-9-]+)$/;
 const KEY_RE = /^-?\d+_-?\d+$/;
 
 /** Kunci klaster 250 m dari titik dunia, mis. "-5_4". */
@@ -20,7 +20,7 @@ export function buildingErrors(b, i) {
   const at = `buildings[${i}]${b?.id ? ` (${b.id})` : ''}`;
   if (!b || typeof b !== 'object') return [`${at}: bukan objek`];
   const errs = [];
-  if (!ID_RE.test(b.id ?? '')) errs.push(`${at}: id harus "w<angka>"/"r<angka>"`);
+  if (!ID_RE.test(b.id ?? '')) errs.push(`${at}: id harus "w<angka>"/"r<angka>"/"s-<nama>"`);
   if (!isRing(b.ring)) errs.push(`${at}: ring harus ≥ 3 titik [x,z] berhingga`);
   if (b.levels !== null && !(Number.isInteger(b.levels) && b.levels >= 1 && b.levels <= 60)) errs.push(`${at}: levels harus null atau 1–60`);
   if (!b.tags || typeof b.tags !== 'object') errs.push(`${at}: tags wajib objek`);

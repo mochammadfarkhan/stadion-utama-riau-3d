@@ -67,7 +67,7 @@ describe('campusbake buildings (fixture mini)', () => {
       await mkdir(join(root, 'public', 'districts', 'unri'), { recursive: true });
       await cp(join(FIX, 'ground'), join(root, 'public', 'districts', 'unri', 'ground'), { recursive: true });
       expect(await roadsFromGround(join(root, 'public', 'districts', 'unri', 'ground'), quiet)).toEqual([{ pts: [[-200, 30], [200, 30]] }]);
-      const res = await runBuildingsBake({ root, boundary: BOUNDARY, project, log: quiet });
+      const res = await runBuildingsBake({ root, boundary: BOUNDARY, project, synthetic: [], log: quiet });
       const text = await readFile(join(root, 'public', 'districts', 'unri', 'buildings.json'), 'utf8');
       expect(text).toBe(serializeBuildings(data));
       expect(res.bytes).toBe(text.length);
