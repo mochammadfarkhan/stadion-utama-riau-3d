@@ -7,6 +7,8 @@
  * Konvensi arah: yaw = rotation.y, maju = (sin yaw, 0, cos yaw) (model menghadap +Z).
  * steer > 0 = belok kiri (yaw bertambah). Sim memberi lean negatif saat belok kiri,
  * jadi lean dipakai langsung sebagai rotation.z rangka (condong ke dalam tikungan).
+ * Terrain (M1): y grup = heightAt(x, z); pitch grup = −atan(grade) dihaluskan (urutan Euler YXZ:
+ * yaw lalu pitch lokal); grade searah hadap masuk ke sim (stepBike opsi grade).
  */
 import * as THREE from 'three';
 import { BIKE } from '../config/constants.js';
@@ -20,6 +22,7 @@ const STEER_VISUAL_RAD = BIKE.steerMax ?? 0.6; // batas visual sudut setang (rad
 const RIDER_SEAT_LIFT = 0.03;    // pinggul sedikit di atas sadel
 const COLLISION_DAMPING = 0.5;   // laju dikurangi saat collider menggeser posisi
 const MAX_DT = 0.05;
+const PITCH_SMOOTHING = 8;       // 1/s, pitch rangka mengikuti lereng
 
 /** Baca keyboard menjadi perintah sim {pedal, steer, sprint}. */
 function readCommand(input) {
@@ -47,6 +50,9 @@ export class Bicycle {
   #collider = null;
   #cfg;
   #posVec = new THREE.Vector3();
+  #terrain = null;
+  #groundY = 0;
+  #pitch = 0;
 
   /**
    * @param {{x?:number, z?:number, yaw?:number, frameColor?:number, withBasket?:boolean,
@@ -59,6 +65,7 @@ export class Bicycle {
     const mesh = createBicycleMesh({ frameColor, withBasket });
     this.group = mesh.group;
     this.group.name = 'bicycle';
+    this.group.rotation.order = 'YXZ'; // yaw dulu, lalu pitch lereng di sumbu X lokal
     this.#parts = mesh.parts;
     this.#rider = this.#mountRider(rider);
     this.#riderGeo = {
@@ -86,6 +93,19 @@ export class Bicycle {
    */
   setCollider(fn) { this.#collider = typeof fn === 'function' ? fn : null; }
 
+  /**
+   * Pasang layanan terrain ({heightAt, gradeAlong}); null = datar. Tinggi tanah langsung diperbarui
+   * (teleport/perjalanan cepat tidak menunggu frame berikutnya).
+   */
+  setTerrain(terrain) {
+    this.#terrain = terrain && typeof terrain.heightAt === 'function' ? terrain : null;
+    this.#groundY = this.#terrain ? this.#terrain.heightAt(this.state.x, this.state.z) : 0;
+    this.#applyVisual();
+  }
+
+  /** Tinggi tanah di bawah sepeda (m). */
+  get groundY() { return this.#groundY; }
+
   /** Tampilkan/sembunyikan pengendara (disembunyikan di kamera orang pertama: kamera berada di kepalanya). */
   setRiderVisible(visible) { this.#rider.group.visible = Boolean(visible); }
 
@@ -98,7 +118,7 @@ export class Bicycle {
   /** Arahkan bel ke AudioBus bersama (kanal 'bell'); null = konteks sendiri. */
   setAudioBus(bus) { this.#bell.setAudioBus(bus); }
 
-  get position() { return this.#posVec.set(this.state.x, 0, this.state.z); }
+  get position() { return this.#posVec.set(this.state.x, this.#groundY, this.state.z); }
   get yaw() { return this.state.yaw; }
   get speedKmh() { return Math.abs(this.state.v) * 3.6; }
 
@@ -110,8 +130,11 @@ export class Bicycle {
     const step = clamp(dt, 0, MAX_DT);
     const cmd = readCommand(ctx.input);
     if (ctx.input?.consumePress?.('Space')) this.ring();
-    const next = stepBike(this.state, cmd, step, this.#cfg);
+    const t = this.#terrain;
+    const grade = t ? t.gradeAlong(this.state.x, this.state.z, this.state.yaw) : 0;
+    const next = stepBike(this.state, cmd, step, { grade, cfg: this.#cfg });
     this.state = isStateFinite(next) ? this.#resolveCollision(next) : this.state;
+    this.#updateGround(step);
     this.#applyVisual();
   }
 
@@ -124,12 +147,23 @@ export class Bicycle {
     return { ...s, x: c.x, z: c.z, v: s.v * COLLISION_DAMPING };
   }
 
+  /** Tinggi tanah & pitch rangka (−atan(grade), dihaluskan) dari terrain di posisi baru. */
+  #updateGround(dt) {
+    const t = this.#terrain;
+    if (!t) return;
+    const s = this.state;
+    this.#groundY = t.heightAt(s.x, s.z);
+    const target = -Math.atan(t.gradeAlong(s.x, s.z, s.yaw));
+    this.#pitch += (target - this.#pitch) * Math.min(1, PITCH_SMOOTHING * dt);
+  }
+
   /** Salin state ke transform mesh & pose pengendara. */
   #applyVisual() {
     const s = this.state;
     const p = this.#parts;
-    this.group.position.set(s.x, 0, s.z);
+    this.group.position.set(s.x, this.#groundY, s.z);
     this.group.rotation.y = s.yaw;
+    this.group.rotation.x = this.#pitch;
     p.frame.rotation.z = s.lean ?? 0;           // sim: lean negatif saat belok kiri (+X)
     p.steer.rotation.y = clamp(s.steer ?? 0, -STEER_VISUAL_RAD, STEER_VISUAL_RAD); // steer sudah radian
     p.wheelF.rotation.x = s.wheelSpin ?? 0;

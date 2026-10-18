@@ -243,9 +243,11 @@ function poseTopDown(out, bike) {
  * @param {number} subject indeks subjek (pelari/pedagang)
  * @param {number} time detik sejak mulai
  * @param {ReturnType<typeof createPose>} out
+ * @param {((x:number, z:number) => number)|null} [heightAt] tanah dunia (M1): posisi & titik pandang dinaikkan
+ *   setinggi tanah di titik pandang (dunia); null/tanpa = datar (perilaku lama)
  * @returns {boolean} false bila subjek tidak tersedia (pose tidak diubah)
  */
-export function povPose(def, src, subject, time, out) {
+export function povPose(def, src, subject, time, out, heightAt = null) {
   switch (def.id) {
     case 'udara': poseAerial(out); break;
     case 'tribun': poseTribune(out); break;
@@ -280,8 +282,17 @@ export function povPose(def, src, subject, time, out) {
     default: return false;
   }
   if (def.kind !== 'follow' && src.frame && !src.frame.identity) poseToWorld(out, src.frame); // pose tetap region-lokal
+  if (heightAt && def.kind !== 'region') liftPose(out, heightAt(out.tx, out.tz)); // POV region (M0): pose dunia sudah relatif tanah
   out.fov = def.fov;
   return true;
+}
+
+/** Naikkan pose (posisi & titik pandang) setinggi `ground` m; tak hingga/0 → tidak diubah. */
+export function liftPose(pose, ground) {
+  if (!Number.isFinite(ground) || ground === 0) return pose;
+  pose.py += ground;
+  pose.ty += ground;
+  return pose;
 }
 
 /**
