@@ -1,7 +1,8 @@
 /**
  * Lubang pada tanah dasar kota (y −0,05, menulis depth) di sel yang ditutup terrain distrik: tanpa
  * lubang, terrain di bawah y −0,05 (cekungan, danau) tertutup tanah dasar. Fragmen dibuang bila tekstur
- * R8 sel (NearestFilter, 1 = lubang) bernilai 1 di posisi dunia fragmen. Satu lubang aktif (distrik UNRI);
+ * R8 sel (NearestFilter, byte 1 = lubang → r = 1/255, jadi ambang 0,002; ambang 0,5 membuat lubang tak pernah aktif —
+ * diperbaiki di M2) bernilai 1 di posisi dunia fragmen. Satu lubang aktif (distrik UNRI);
  * tanpa lubang shader identik perilaku lama (uniform uHoleOn = 0).
  */
 import * as THREE from 'three';
@@ -11,7 +12,7 @@ const FRAGMENT_DECL = 'varying vec2 vHoleXZ;\nuniform sampler2D uHoleMap;\nunifo
 const FRAGMENT_TEST = [
   'if (uHoleOn > 0.5) {',
   '  vec2 holeUv = (vHoleXZ - uHoleRect.xy) / (uHoleRect.zw - uHoleRect.xy);',
-  '  if (all(greaterThanEqual(holeUv, vec2(0.0))) && all(lessThan(holeUv, vec2(1.0))) && texture2D(uHoleMap, holeUv).r > 0.5) discard;',
+  '  if (all(greaterThanEqual(holeUv, vec2(0.0))) && all(lessThan(holeUv, vec2(1.0))) && texture2D(uHoleMap, holeUv).r > 0.002) discard;',
   '}',
 ].join('\n');
 
