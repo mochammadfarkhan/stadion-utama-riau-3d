@@ -82,6 +82,48 @@ export function createDynamicCompositeCollider({ fallback = OPEN } = {}) {
   });
 }
 
+/**
+ * Collider distrik berantai (M1, spec §4.2 "regions → district → tile kota"): dipasang sebagai FALLBACK
+ * komposit dinamis M0 (`colliders.setFallback(createDistrictCollider({ fallback: tile }))`), sehingga region
+ * tetap didahulukan. Di dalam batas distrik hasilnya RANTAI: walkable/clear bila distrik DAN fallback
+ * setuju, penetration = maksimum keduanya — distrik menambah penghalang (air, lereng, gedung kit) tanpa
+ * menghapus penghalang tile kota yang masih ada. Di luar semua distrik = fallback apa adanya.
+ * @param {{fallback?: {isWalkable(x:number,z:number):boolean, isCameraClear(x:number,z:number):boolean,
+ *   penetration?(x:number,z:number):number}}} [opts]
+ * @returns {{isWalkable(x:number,z:number):boolean, isCameraClear(x:number,z:number):boolean, penetration(x:number,z:number):number,
+ *   addDistrict(d:{id:string, boundary:Array<[number,number]>, bounds:{minX:number,minZ:number,maxX:number,maxZ:number},
+ *     colliders:object}):() => void, setFallback(c:object):void}}
+ */
+export function createDistrictCollider({ fallback = OPEN } = {}) {
+  let base = fallback;
+  let districts = [];
+  const districtAt = (x, z) => districts.find((d) => x >= d.bounds.minX && x <= d.bounds.maxX && z >= d.bounds.minZ
+    && z <= d.bounds.maxZ && pointInPolygon(x, z, d.boundary)) ?? null;
+  const route = (x, z, query, combine, invalid) => {
+    if (!Number.isFinite(x) || !Number.isFinite(z)) return invalid;
+    const d = districtAt(x, z);
+    return d ? combine(() => query(d.colliders, x, z), () => query(base, x, z)) : query(base, x, z);
+  };
+  const both = (a, b) => a() && b();
+  const deepest = (a, b) => Math.max(a(), b());
+  return Object.freeze({
+    isWalkable: (x, z) => route(x, z, (c, px, pz) => c.isWalkable(px, pz), both, false),
+    isCameraClear: (x, z) => route(x, z, (c, px, pz) => c.isCameraClear(px, pz), both, false),
+    penetration: (x, z) => route(x, z, depthOf, deepest, Infinity),
+    /** Daftarkan collider distrik (dunia); mengembalikan pencabut (idempoten). Id sama menggantikan yang lama. */
+    addDistrict({ id, boundary, bounds, colliders }) {
+      if (typeof colliders?.isWalkable !== 'function' || typeof colliders?.isCameraClear !== 'function') {
+        throw new TypeError(`addDistrict "${id}": colliders tidak lengkap`);
+      }
+      const entry = Object.freeze({ id, boundary, bounds, colliders });
+      districts = [...districts.filter((d) => d.id !== id), entry];
+      return () => { districts = districts.filter((d) => d !== entry); };
+    },
+    /** Ganti collider tile kota (fallback). */
+    setFallback(c) { base = c ?? OPEN; },
+  });
+}
+
 const TRAPPED_EPS = 1e-6;
 
 /**
