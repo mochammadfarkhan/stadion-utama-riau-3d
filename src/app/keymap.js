@@ -10,8 +10,14 @@ import { handleShopKey } from './shop.js';
 const HOURS = 24;
 
 /** Hotkey lama menulis ke store (binding menerapkan ke scene). */
-export function handleKeys(input, { rig, hud, ents, shop, time, store, story, travelMenu = null }) {
+export function handleKeys(input, { rig, hud, ents, shop, time, store, story, travelMenu = null, portal = null }) {
   const toggle = (key) => store.set(key, !store.get(key));
+  if (portal?.busy) return; // fade masuk/keluar interior
+  if (portal?.inside) { // tombol interior: sistem interior.keys di portal; di sini hanya jam/cuaca/AO
+    handleTimeWeatherKeys(input, hud, time, store);
+    if (input.consumePress('KeyO')) toggle('graphics.ao');
+    return;
+  }
   handleCameraKeys(input, { rig, hud, store });
   if (input.consumePress('KeyM')) toggle('performance.minimap');
   if (input.consumePress('KeyO')) toggle('graphics.ao'); // matikan AO bila FPS rendah

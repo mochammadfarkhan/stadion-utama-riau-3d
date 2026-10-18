@@ -52,8 +52,7 @@ import { createLocalContext, pointToWorld } from './app/regionContext.js';
 import { withPlacement, regionContains } from './regions/Region.js';
 import { unriLembagaRegion } from './regions/unri-lembaga/index.js';
 import { LEMBAGA_LAYOUT } from './regions/unri-lembaga/layout.js';
-import { createInteriorPortal, createStubInterior, appStage } from './app/interiorPortal.js';
-import { appViewPort } from './app/appView.js';
+import { createInteriorPortal, createStubInterior } from './app/interiorPortal.js';
 import { createPortalTrigger } from './app/portalTrigger.js';
 import { createFadeOverlay } from './ui/FadeOverlay.js';
 import { sekreExitTo } from './regions/unri-lembaga/portalDoors.js';
@@ -96,9 +95,11 @@ async function main() {
   const rig = new CameraRig(app.camera, app.renderer.domElement);
   lifecycle.add(() => rig.dispose());
   // Kontrol sentuh + gamepad menulis ke Input yang sama dengan keyboard.
-  const touchUi = new TouchControls(document.body, { input, rig, surface: app.renderer.domElement });
+  // Router lihat: kamera sepeda di luar, kamera interior di dalam sekre (target diganti portal.onInsideChange).
+  const look = { target: rig, lookBy(dx, dy, scale) { look.target.lookBy(dx, dy, scale); } };
+  const touchUi = new TouchControls(document.body, { input, rig: look, surface: app.renderer.domElement });
   lifecycle.add(() => touchUi.dispose());
-  const gamepad = createGamepadPoller(input, { lookBy: (dx, dy) => rig.lookBy(dx, dy) });
+  const gamepad = createGamepadPoller(input, { lookBy: (dx, dy) => look.lookBy(dx, dy) });
   app.addSystem({ id: 'gamepad', phase: 'input', update: (dt) => gamepad.update(dt) });
   window.addEventListener('gamepadconnected', () => hud.toast('Gamepad terhubung', true), { signal: listeners.signal });
   const audioBus = createAudioBus();
@@ -211,8 +212,11 @@ async function main() {
   });
   if (unri) lifecycle.add(() => unri.dispose()); // LIFO: dilepas sebelum kota, time, weather
   const travel = setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, spawn: region.layout.spawn, touch });
-  const portalKit = setupPortal({ app, input, hud, rig, ents, regions, colliders, lifecycle }); // sebelum addFrameSystems: 'portal.trigger' lebih dulu dari 'keymap'
-  addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel });
+  const panelRef = { current: null }; // SettingsPanel (diisi saat panel selesai dipasang)
+  const portalKit = setupPortal({
+    app, input, hud, rig, ents, regions, colliders, time, weather, store, audioBus, travel, story, minimap, look, panelRef, lifecycle,
+  }); // sebelum addFrameSystems: 'portal.trigger' lebih dulu dari 'keymap'
+  addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel, portal: portalKit.portal });
   portalKit.trigger.installPrompt(); // sesudah sistem 'hud'
 
   // Binding store -> scene (satu sumber kebenaran). Dipasang setelah semua objek ada.
@@ -227,7 +231,7 @@ async function main() {
     // heightAt/terrain (M1): tanah dunia untuk entitas, lampu, cuaca (ctx region-lokal membungkus heightAt).
     return {
       dt, rawDt, time: t, bikePos, focus: rig.focus, heightAt: terrain.heightAt, terrain,
-      input: hud.shopOpen || rig.freezesBike || travel.blocksInput ? null : input,
+      input: hud.shopOpen || rig.freezesBike || travel.blocksInput || portalKit.portal.busy || portalKit.portal.inside ? null : input,
     };
   });
   // LIFO: loop berhenti lebih dulu, sebelum sistem kehilangan sumber dayanya (App.dispose mengulanginya, idempoten).
@@ -237,7 +241,10 @@ async function main() {
   const rotatePrompt = createRotatePrompt(document.body, { isTouch: touch });
   lifecycle.add(() => rotatePrompt.dispose());
   setupMenu({ app, rig, hud, store, touchUi, touch, menu, story })
-    .then((mounted) => lifecycle.add(() => mounted.dispose()))
+    .then((mounted) => {
+      panelRef.current = mounted.panel;
+      lifecycle.add(() => mounted.dispose());
+    })
     .catch((err) => console.error('Panel pengaturan gagal dipasang:', err));
   await loading.step(0.9, 'Memuat model 3D (tugu, bangku)…');
   // Model 3D opsional (ada cadangan prosedural): jangan tahan tombol Mulai bila unduhan macet.
@@ -281,11 +288,11 @@ function createRegionLayer({ app, store, time, weather, lifecycle }) {
  * (efeknya terlihat satu frame lebih awal; tidak ada perbedaan visual), cerita di sim, kamera di camera,
  * HUD dan input.endFrame di ui (endFrame terdaftar terakhir di antara konsumen tombol).
  */
-function addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel }) {
+function addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel, portal }) {
   app.addSystem({
     id: 'keymap',
     phase: 'input',
-    update: () => { if (session.started) handleKeys(input, { rig, hud, ents, shop, time, store, story, travelMenu: travel.menu }); }, // menu terbuka: tombol game diabaikan
+    update: () => { if (session.started) handleKeys(input, { rig, hud, ents, shop, time, store, story, travelMenu: travel.menu, portal }); }, // menu terbuka: tombol game diabaikan
   });
   app.addSystem({
     id: 'story',
@@ -349,38 +356,36 @@ function setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, sp
 }
 
 /**
- * Pintu-portal interior (M4 stub): pintu sekre pemain → interior kotak abu; keluar → sepeda di tempat semula
- * (dipindah ke depan pintu hanya bila > 3 m darinya). Interior sekre penuh di M5.
+ * Pintu-portal interior: pemicu pintu (portalTrigger M4) → interiorPortal M5 (gerbang sistem: jam/cuaca tetap jalan,
+ * jalan kaki, interaksi, mode foto). Keluar: sepeda tetap di tempat (dipindah ke exitTo hanya bila > 30 m, mis. masuk
+ * lewat dev/E2E). Router lihat, minimap, dan HUD mengikuti keadaan di dalam/luar.
  */
-function setupPortal({ app, input, hud, rig, ents, regions, colliders, lifecycle }) {
+function setupPortal({
+  app, input, hud, rig, ents, regions, colliders, time, weather, store, audioBus, travel, story, minimap, look, panelRef, lifecycle,
+}) {
   const fader = createFadeOverlay(document.body);
   lifecycle.add(() => fader.dispose());
   const ormawa = LEMBAGA_LAYOUT.rooms[PLAYER_ROOM_INDEX];
-  const placeBike = (exitTo) => {
-    const frame = regions.frameOf(exitTo.region);
-    const b = ents.bike.state;
-    if (!frame) {
-      ents.bike.state = { ...b, v: 0 };
-      return;
-    }
-    const w = frame.toWorld(exitTo.x, exitTo.z);
-    if (Math.hypot(b.x - w.x, b.z - w.z) <= 3) {
-      ents.bike.state = { ...b, v: 0 };
-      return;
-    }
-    ents.bike.state = { ...b, x: w.x, z: w.z, yaw: frame.yawToWorld(exitTo.yaw), v: 0 };
-    ents.bike.setCollider(createCollider({ x: w.x, z: w.z }, colliders.isWalkable, colliders.penetration));
+  const interiors = new Map([['sekre', createStubInterior({ id: 'sekre', label: `Sekretariat ${ormawa.nama}`, exitTo: sekreExitTo() })]]);
+  const teleport = (x, z, yaw) => {
+    ents.bike.state = { ...ents.bike.state, x, z, yaw, v: 0 };
+    ents.bike.setCollider(createCollider({ x, z }, colliders.isWalkable, colliders.penetration));
   };
   const portal = createInteriorPortal({
-    interiors: { sekre: createStubInterior({ id: 'sekre', label: `Sekretariat ${ormawa.nama}`, exitTo: sekreExitTo() }) },
-    view: appViewPort(app), stage: appStage(app), fader, input,
-    prompt: (text) => hud.setPrompt(text),
-    onToast: (text, ok) => hud.toast(text, ok),
-    onEntered: () => {
-      ents.bike.state = { ...ents.bike.state, v: 0 };
-      document.exitPointerLock?.();
+    app, input, hud, interiors, regionManager: regions, time, weather, store, audioBus, fader,
+    bike: { get state() { return ents.bike.state; }, teleport },
+    isUiBlocking: () => Boolean(hud.shopOpen || story.journal.open || travel.menu.open
+      || panelRef.current?.isOpen || panelRef.current?.isHelpOpen),
+    beforeEnter: () => {
+      rig.exitPov({ instant: true });
+      ents.bike.state = { ...ents.bike.state, v: 0 }; // sepeda diam di depan pintu
     },
-    onExited: placeBike,
+    onInsideChange: (inside) => {
+      look.target = inside ? portal : rig;
+      document.body.classList.toggle('is-interior', inside);
+      minimap.setVisible(!inside && app.minimapVisible);
+      if (!inside) rig.yawOffset = 0; // mouse selama di dalam ikut menggeser rig sepeda (listener-nya sendiri)
+    },
   });
   lifecycle.add(() => portal.dispose());
   const trigger = createPortalTrigger({

@@ -18,7 +18,9 @@ export function nearestPortal(active, x, z) {
     const l = toLocal(def.placement, x, z);
     for (const door of doors) {
       const d = Math.hypot(l.x - door.pos.lx, l.z - door.pos.lz);
-      if (d <= door.radius && (!best || d < best.distance)) best = { door, regionId: def.id, distance: d };
+      if (d <= door.radius && (!best || d < best.distance)) {
+        best = { door, regionId: def.id, distance: d, worldYaw: (def.placement?.yaw ?? 0) + door.yaw };
+      }
     }
   }
   return best;
@@ -39,7 +41,10 @@ export function createPortalTrigger({ app, portal, input, hud, getActive, getBik
       if (portal.state !== 'outside' || isBlocked()) return;
       const b = getBike();
       near = nearestPortal(getActive(), b.x, b.z);
-      if (near && input.consumePress('KeyE')) portal.enter(near.door.interiorId).catch((err) => logger.error('Portal gagal dibuka:', err));
+      if (near && input.consumePress('KeyE')) {
+        portal.enter(near.door.interiorId, { door: { ...near.door, worldYaw: near.worldYaw } })
+          .catch((err) => logger.error('Portal gagal dibuka:', err));
+      }
     },
   });
   return {
