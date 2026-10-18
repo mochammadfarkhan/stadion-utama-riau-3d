@@ -1,6 +1,6 @@
 /**
  * Distrik Kampus UNRI Bina Widya (spec §3, §4.2). M1: terrain saja (chunk heightfield + mesh LOD +
- * lubang tanah dasar kota); M2 menambah tanah & jalan, M3 gedung kit, M7 kehidupan. Koordinat dunia.
+ * lubang tanah dasar kota); M2 menambah tanah & jalan (groundLayer + collider), M3 gedung kit, M7 kehidupan. Koordinat dunia.
  */
 import * as THREE from 'three';
 import { defineDistrict } from '../District.js';
@@ -10,13 +10,12 @@ import { rasterizeRing } from '../../geo/terrain/cellMask.js';
 import { parseTileKey } from '../../geo/tiles.js';
 import { chunkCellGrid, createTerrainChunks } from '../terrainChunks.js';
 import { createTerrainMaterial } from '../../world/terrain/TerrainMesh.js';
+import { createUnriGroundLayer } from './groundLayer.js';
+import { createUnriCollider } from './collider.js';
 
 export const UNRI_DIR = 'districts/unri/';
 export const DISTRICT_FORMAT = 'unri-district';
 export const SETTLE = Object.freeze({ radius: 600, timeoutMs: 20000 });
-
-/** Distrik M1 belum punya penghalang: semua bebas (collider komposit tetap memeriksa tile kota sesudahnya). */
-const OPEN = Object.freeze({ isWalkable: () => true, isCameraClear: () => true, penetration: () => 0 });
 
 /**
  * Validasi manifest distrik; mengembalikan header terrain beku.
@@ -60,7 +59,7 @@ const disposeMaterial = (mat) => {
 
 /**
  * ctx (dari app/districtMount.js): { scope, terrain, scheduler, owner, baseUrl, fetchJson, fetchArrayBuffer,
- *   createStreamer, onTerrainFail, groundHoleChanged, logger, setTimer?, clearTimer? }
+ *   createStreamer, onTerrainFail, groundHoleChanged, logger, registries, isReserved, setTimer?, clearTimer? }
  */
 async function buildUnri(ctx) {
   const manifest = await ctx.fetchJson(`${ctx.baseUrl}${UNRI_DIR}manifest.json`); // mentah: M2 membaca manifest.ground
@@ -71,10 +70,24 @@ async function buildUnri(ctx) {
   const cellGrid = chunkCellGrid(header.chunks, header.step);
   const cellMask = rasterizeRing(UNRI_BOUNDARY, cellGrid);
   const hole = new Uint8Array(cellMask.length);
+  const collider = createUnriCollider({ terrain: ctx.terrain });
+  const ground = createUnriGroundLayer({
+    scope: ctx.scope,
+    scheduler: ctx.scheduler,
+    registries: ctx.registries,
+    collider,
+    groundKeys: new Set(manifest.ground?.chunks ?? []),
+    groundUrl: (key) => `${ctx.baseUrl}${UNRI_DIR}ground/${key}.json`,
+    fetchJson: ctx.fetchJson,
+    isReserved: ctx.isReserved,
+    logger: ctx.logger,
+  });
+  group.add(ground.group);
   const chunks = createTerrainChunks({
     header, baseUrl: `${ctx.baseUrl}${UNRI_DIR}`, field: ctx.terrain.field, parent: group, materials: { terrain: material },
     cellGrid, cellMask, hole, onHoleChange: ctx.groundHoleChanged, scheduler: ctx.scheduler, owner: ctx.owner,
     createStreamer: ctx.createStreamer, fetchArrayBuffer: ctx.fetchArrayBuffer, onFail: ctx.onTerrainFail, logger: ctx.logger,
+    onChunkMesh: ground.onChunkMesh, onChunkRelease: ground.onChunkRelease,
   });
   const setTimer = ctx.setTimer ?? ((fn, ms) => setTimeout(fn, ms));
   const clearTimer = ctx.clearTimer ?? ((h) => clearTimeout(h));
@@ -95,8 +108,8 @@ async function buildUnri(ctx) {
   };
   return {
     group,
-    systems: [system],
-    colliders: OPEN,
+    systems: [system, ground.system],
+    colliders: collider,
     minimapLayer: drawBoundary,
     excludeIds: new Set(),
     groundHole: { ...cellGrid, data: hole },
@@ -108,12 +121,13 @@ async function buildUnri(ctx) {
         const w = { x, z, resolve, timer: null };
         waiters.add(w);
         w.timer = setTimer(() => { if (waiters.delete(w)) resolve(false); }, timeoutMs);
-      });
+      }).then((ok) => (ok ? ground.whenIdle().then(() => true) : ok));
     },
     dispose() {
       if (disposed) return;
       disposed = true;
       for (const w of [...waiters]) settle(w, false);
+      ground.dispose(); // sebelum terrain: material terrain asli dipulihkan sebelum mesh dilepas
       chunks.dispose();
       group.removeFromParent();
     },

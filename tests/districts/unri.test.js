@@ -53,6 +53,7 @@ describe('unriDistrict.build', () => {
     schedule(task, { owner }) { const e = { task, owner, off: false }; queue.push(e); return { cancel() { e.off = true; } }; },
     cancelOwner(o) { for (const e of queue) if (e.owner === o) e.off = true; },
     pending(o) { return queue.filter((e) => !e.off && e.owner === o).length; },
+    whenIdle: async () => {},
     run() { while (queue.length) { const e = queue.shift(); if (!e.off) { const it = e.task(); for (let s = it.next(); !s.done; s = it.next()); } } },
   };
 
@@ -65,6 +66,8 @@ describe('unriDistrict.build', () => {
       fetchArrayBuffer: async (url) => { expect(url).toBe('/districts/unri/terrain/-1_2.bin'); return chunkBin(1.25); },
       createStreamer: (o) => createChunkStreamer(o), onTerrainFail: vi.fn(), groundHoleChanged: holeChanged, logger: { error() {} },
       setTimer: () => 0, clearTimer: () => {},
+      registries: { registerWet: () => () => true, registerEmissive: () => () => true, registerLamps: () => () => true },
+      isReserved: () => false,
     });
     validateDistrictBuild(result, 'unri');
     expect(result.group).toBeInstanceOf(THREE.Group);
@@ -77,7 +80,7 @@ describe('unriDistrict.build', () => {
     scheduler.run();
     result.systems[0].update(1 / 60, { focus: { x: -219, z: 1107 } });
     await expect(settled).resolves.toBe(true);
-    expect(result.group.children).toHaveLength(1);
+    expect(result.group.children).toHaveLength(2); // lapisan tanah M2 (kosong tanpa data ground) + mesh terrain chunk
     expect(holeChanged).toHaveBeenCalled();
     expect(result.groundHole.data.some((v) => v === 1)).toBe(true);
     expect(SETTLE.radius).toBe(600);
