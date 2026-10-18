@@ -8,7 +8,7 @@ import './ui/touch.css';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/jetbrains-mono';
 import { CameraRig } from './core/CameraRig.js';
-import { createCollider, createCompositeCollider, localized } from './core/Collider.js';
+import { createCollider, createDynamicCompositeCollider, localized } from './core/Collider.js';
 import { createPovSource } from './core/povSource.js';
 import { POVS } from './core/cameraPresets.js';
 import { createAudioBus } from './core/AudioBus.js';
@@ -21,6 +21,7 @@ import { MainMenu } from './ui/MainMenu.js';
 import { hasStoryProgress } from './ui/menuModel.js';
 import { createRotatePrompt } from './ui/orientation.js';
 import { STORY_NPCS } from './story/chapters.js';
+import { resolvePoint, localizePoint } from './story/points.js';
 import { updateWind } from './world/shaders/windState.js';
 import { buildEntities } from './entities/index.js';
 import { HUD } from './ui/HUD.js';
@@ -35,16 +36,18 @@ import { createStoryMarkers } from './world/StoryMarkers.js';
 import { StoryHUD } from './ui/StoryHUD.js';
 import { StoryJournal } from './ui/StoryJournal.js';
 import { disposeTree } from './engine/disposeTree.js';
-import { stadionRegion } from './regions/stadion/index.js';
+import { createScheduler } from './engine/scheduler.js';
+import { stadionRegion, STADION_ID } from './regions/stadion/index.js';
 import { session, setupMenu } from './app/session.js';
 import { handleKeys } from './app/keymap.js';
 import { setupShop, updatePrompt } from './app/shop.js';
-import { exposeDevTools, parsePlacementParam } from './app/devtools.js';
+import { exposeDevTools, parsePlacementParam, parseFlagParam } from './app/devtools.js';
 import { createDisposerStack } from './app/lifecycle.js';
-import { mountRegion, applyPlacement } from './app/mountRegion.js';
-import { createLocalContext, pointToLocal, pointToWorld } from './app/regionContext.js';
-import { createRegionFrame } from './geo/regionTransform.js';
-import { withPlacement, maskHalfExtent } from './regions/Region.js';
+import { applyPlacement } from './app/mountRegion.js';
+import { createRegionManager } from './app/regionManager.js';
+import { createTerrainService } from './app/terrainService.js';
+import { createLocalContext, pointToWorld } from './app/regionContext.js';
+import { withPlacement } from './regions/Region.js';
 import { createCity } from './city/index.js';
 import { STREAM } from './city/ChunkStreamer.js';
 import { createAttribution } from './ui/Attribution.js';
@@ -52,7 +55,6 @@ import { travelDestinations, createFastTravel } from './app/fastTravel.js';
 import { FastTravelMenu, createTravelScreen } from './ui/FastTravelMenu.js';
 
 const MODELS_TIMEOUT_MS = 8000;
-const MINIMAP_BAKE_MARGIN = 20; // m di luar mask pada peta dasar region
 
 function showFatal(msg) {
   const panel = document.querySelector('#overlay .panel');
@@ -99,27 +101,27 @@ async function main() {
   // Mode dev: ?placement=x,z,yaw memindahkan region (uji I1); produksi selalu memakai placement region.
   const devPlacement = import.meta.env.DEV ? parsePlacementParam(window.location.search) : null;
   const stadionDef = devPlacement ? withPlacement(stadionRegion, devPlacement) : stadionRegion;
-  const frame = createRegionFrame(stadionDef.placement);
-  const toLocalCtx = createLocalContext(frame);
   // Siklus waktu & cuaca dibuat sebelum region: region mendaftar ke registry emissive/basah/lampu saat dipasang.
   // Sistemnya tetap didaftarkan sesudah entitas (urutan fase world tidak berubah).
   const time = createTimeOfDay(lighting, app.scene, app.renderer, app);
   app.scene.add(time.group);
   lifecycle.add(() => time.dispose());
-  const weather = createWeather(app.scene, app, lighting, { audioBus, puddlePlacement: frame.placement });
+  const weather = createWeather(app.scene, app, lighting, { audioBus, puddlePlacement: stadionDef.placement });
   app.scene.add(weather.group);
   lifecycle.add(() => weather.dispose());
 
   await loading.step(0.2, 'Membangun stadion, tribun, dan lingkungan…');
   app.addSystem({ id: 'wind', phase: 'world', update: (dt) => updateWind(dt) }); // angin global tiap frame
-  let stadion = await mountRegion(app, stadionDef, { store, time, weather });
-  lifecycle.add(() => stadion.unmount()); // LIFO: dicabut sebelum time/weather di-dispose
-  /** Uji siklus hidup (dev/E2E): lepas lalu pasang ulang region; kembalikan Promise model siap. */
-  const remountRegion = async () => {
-    stadion.unmount();
-    stadion = await mountRegion(app, stadionDef, { store, time, weather });
-    return stadion.ready;
-  };
+  const { regions, scheduler, terrain, colliders } = createRegionLayer({ app, store, time, weather, lifecycle });
+  const stadion = await regions.register(stadionDef); // persistent: dipasang sekarang (urutan muat seperti sebelum M0)
+  const frame = regions.frameOf(STADION_ID); // frame region stadion: entitas, cerita NPC, kamera, minimap
+  const toLocalCtx = createLocalContext(frame);
+  if (import.meta.env.DEV && parseFlagParam(window.location.search, 'dummyRegion')) {
+    const { createDummyRegion } = await import('./app/dummyRegion.js');
+    regions.register(createDummyRegion()); // uji streaming M0: pusat (0, 1100), pasang < 700 m, lepas > 900 m
+  }
+  /** Uji siklus hidup (dev/E2E): lepas lalu pasang ulang region stadion; kembalikan Promise model siap. */
+  const remountRegion = () => regions.remount(STADION_ID);
   const region = stadion.region;
 
   await loading.step(0.4, 'Menyiapkan peta kota (OpenStreetMap)…');
@@ -130,12 +132,9 @@ async function main() {
     time.setFogLimit(STREAM.loadRadius); // batas muat tertutup kabut
     lifecycle.add(createAttribution(document.body).dispose);
   }
-  // Di dalam mask → collider region (lokal); di luar → TileCollider kota (tanpa kota: tanah region menutup dunia).
-  // Komposit meneruskan `penetration` dari collider terpilih: sepeda terjebak hanya boleh keluar, tidak menembus.
-  const colliders = createCompositeCollider({
-    regions: [{ region: stadionDef, colliders: region.colliders }],
-    fallback: city ? city.collider : localized(stadionDef, region.colliders),
-  });
+  // Di dalam mask region aktif → collider region (lokal); di luar → TileCollider kota (tanpa kota: tanah stadion
+  // menutup dunia). Komposit meneruskan `penetration`: sepeda terjebak hanya boleh keluar, tidak menembus.
+  colliders.setFallback(city ? city.collider : localized(stadionDef, region.colliders));
   rig.setObstacleTest(colliders.isCameraClear);
   const modelsReady = stadion.ready
     .then(({ failed, cancelled }) => { // region dibongkar sebelum selesai: tidak ada yang dilaporkan
@@ -160,7 +159,8 @@ async function main() {
     for (const g of [ents.group, ents.regionGroup]) { g.removeFromParent(); disposeTree(g); }
   });
   ents.bike.setCollider(createCollider(start, colliders.isWalkable, colliders.penetration));
-  rig.attachSource(createPovSource(ents, frame));
+  rig.attachSource(createPovSource(ents, frame, { regions }));
+  regions.on('unmount', () => { if (rig.povId === 'region') rig.exitPov(); }); // POV region yang dilepas tidak boleh membeku
   ents.bike.setAudioBus(audioBus);
   // Sepeda di frame dunia; entitas region menerima ctx region-lokal (bikePos/focus dikonversi sekali per frame).
   ents.updatables.forEach((e, i) => app.addSystem({
@@ -175,12 +175,12 @@ async function main() {
 
   hud.setWallet(wallet);
   hud.setCameraMode(rig.mode);
-  const story = setupStory({ app, ents, hud, rig, anchor, toLocalCtx });
+  const story = setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle });
   const shop = setupShop(hud, ents, story);
-  const minimap = setupMinimap(app, ents, story, frame);
+  const minimap = setupMinimap(app, ents, story, frame, regions);
   if (city) minimap.setTileLayer(city.minimap);
   const travel = setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, spawn: region.layout.spawn, touch });
-  addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, frame, travel });
+  addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel });
 
   // Binding store -> scene (satu sumber kebenaran). Dipasang setelah semua objek ada.
   lifecycle.add(bindAll(store, {
@@ -206,13 +206,9 @@ async function main() {
   // Model 3D opsional (ada cadangan prosedural): jangan tahan tombol Mulai bila unduhan macet.
   await Promise.race([modelsReady, new Promise((resolve) => setTimeout(resolve, MODELS_TIMEOUT_MS))]);
   await loading.step(0.97, 'Menggambar peta…');
-  try {
-    const bakeHalf = Math.ceil(maskHalfExtent(stadionDef.mask)) + MINIMAP_BAKE_MARGIN; // area tanah region saja
-    minimap.setBase(app.bakeMinimap(bakeHalf, frame.placement), bakeHalf, frame.placement);
-  } catch (err) {
-    // Minimap hanya pelengkap: GPU yang gagal mengalokasikan target/readPixels tidak boleh menggagalkan game.
-    console.error('Minimap dasar gagal dibuat, minimap memakai latar polos:', err);
-  }
+  // Base layer minimap per region aktif dibake sekarang (galat bake ditangani manager: latar polos);
+  // region yang dipasang kemudian dibake setelah siap.
+  regions.attachMinimap(minimap);
   await loading.step(1, 'Siap!');
   loading.done();
   // Latar menu: kamera orbit sinematik mengelilingi stadion (sepeda dibekukan, cerita dijeda) sampai pemain menekan Mulai.
@@ -220,9 +216,26 @@ async function main() {
   menu.ready({ hasProgress: hasStoryProgress(story.state), touch });
   if (import.meta.env.DEV) {
     exposeDevTools({
-      app, ents, rig, time, weather, store, audioBus, story, colliders, city, remountRegion, fastTravel: (id) => travel.go(id), teardown: () => lifecycle.disposeAll(),
+      app, ents, rig, time, weather, store, audioBus, story, colliders, city, remountRegion, regions, scheduler, terrain,
+      fastTravel: (id) => travel.go(id), teardown: () => lifecycle.disposeAll(),
     });
   }
+}
+
+/**
+ * Lapisan multi-region (M0): terrain (stub datar), scheduler time-sliced, collider komposit dinamis, dan
+ * region manager. Sistem `regions` (sim) memasang/melepas region streaming menurut fokus; `scheduler` (ui,
+ * akhir frame sebelum render) menjalankan pekerjaan berat region ≤ 4 ms/frame.
+ */
+function createRegionLayer({ app, store, time, weather, lifecycle }) {
+  const terrain = createTerrainService();
+  const scheduler = createScheduler();
+  const colliders = createDynamicCompositeCollider();
+  const regions = createRegionManager({ app, store, time, weather, terrain, collider: colliders, scheduler });
+  lifecycle.add(() => regions.dispose()); // LIFO: region dicabut sebelum time/weather di-dispose
+  app.addSystem({ id: 'regions', phase: 'sim', update: (dt, ctx) => regions.update(ctx.focus) });
+  app.addSystem({ id: 'scheduler', phase: 'ui', update: () => scheduler.update() });
+  return { regions, scheduler, terrain, colliders };
 }
 
 /**
@@ -230,17 +243,17 @@ async function main() {
  * (efeknya terlihat satu frame lebih awal; tidak ada perbedaan visual), cerita di sim, kamera di camera,
  * HUD dan input.endFrame di ui (endFrame terdaftar terakhir di antara konsumen tombol).
  */
-function addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, frame, travel }) {
+function addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel }) {
   app.addSystem({
     id: 'keymap',
     phase: 'input',
-    update: () => { if (session.started) handleKeys(input, { rig, hud, ents, shop, time, store, story, frame, travelMenu: travel.menu }); }, // menu terbuka: tombol game diabaikan
+    update: () => { if (session.started) handleKeys(input, { rig, hud, ents, shop, time, store, story, travelMenu: travel.menu }); }, // menu terbuka: tombol game diabaikan
   });
   app.addSystem({
     id: 'story',
     phase: 'sim',
     update: (dt, ctx) => story.update(dt, {
-      time: ctx.time, bikePos: pointToLocal(frame, ents.bike.state), hour: time.hour, // cerita region-lokal
+      time: ctx.time, bikePos: ents.bike.state, hour: time.hour, // cerita di koordinat dunia (titik ber-region di-resolve StoryDirector)
       raining: Boolean(store.get('weather.raining')), paused: hud.shopOpen || rig.freezesBike || travel.busy, // timer misi beku selama perjalanan
     }),
   });
@@ -263,7 +276,7 @@ function addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, stor
       hud.setTime(formatHour(time.hour), time.presetName, weather.weatherName);
       hud.setScore(ents.match.score);
       hud.tickFps(ctx.rawDt ?? dt); // FPS jujur: delta mentah, bukan yang di-clamp
-      updatePrompt(hud, ents, story, pointToLocal(frame, ents.bike.state));
+      updatePrompt(hud, ents, story, ents.bike.state); // prompt NPC cerita di koordinat dunia
     },
   });
   app.addSystem({ id: 'input.endFrame', phase: 'ui', update: () => input.endFrame() });
@@ -297,12 +310,17 @@ function setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, sp
   };
 }
 
-/** Cerita (region-lokal): NPC, penanda tujuan, HUD, jurnal; progres dimuat dari localStorage. */
-function setupStory({ app, ents, hud, rig, anchor, toLocalCtx }) {
+/**
+ * Cerita: NPC (region-lokal stadion, di bawah jangkar) dan penanda tujuan (DUNIA: tujuan bisa di region mana
+ * pun), HUD, jurnal; progres dimuat dari localStorage (save v3 menyimpan tempat pemain sebagai titik ber-region).
+ */
+function setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle }) {
   const root = document.getElementById('hud');
   const npcs = new StoryNpcs();
   const markers = createStoryMarkers();
-  anchor.add(npcs.group, markers.group);
+  anchor.add(npcs.group);
+  app.scene.add(markers.group); // goalPoint() StoryDirector kini titik dunia
+  lifecycle.add(() => markers.group.removeFromParent());
   ents.lod.addFrom(npcs.group);
   app.addSystem({
     id: 'storyNpcLabels',
@@ -312,6 +330,7 @@ function setupStory({ app, ents, hud, rig, anchor, toLocalCtx }) {
       npcs.refreshLabels(local.focus ?? local.bikePos, ents.vendors.labelsEnabled);
     },
   });
+  const frameOf = (id) => regions.frameOf(id);
   let story = null;
   const storyHud = new StoryHUD(root, { onAdvance: () => story.advanceDialog() });
   const journal = new StoryJournal(root, { onReset: () => story.reset(), onClose: () => story.toggleJournal() });
@@ -320,6 +339,11 @@ function setupStory({ app, ents, hud, rig, anchor, toLocalCtx }) {
     storage: safeLocalStorage(), vendors: ents.vendors, storyHud, journal, markers, pointerLock,
     onToast: (text, ok) => hud.toast(text, ok),
     onWalletChange: (wallet) => hud.setWallet(wallet),
+    frameOf,
+    placeOf: () => {
+      const b = ents.bike.state;
+      return localizePoint(b, regions.regionAt(b.x, b.z), frameOf);
+    },
   });
   ents.bike.onRing = () => story.onBell();
   story.start();
@@ -329,12 +353,16 @@ function setupStory({ app, ents, hud, rig, anchor, toLocalCtx }) {
 const PIN_VENDOR = '#ff9f1c';
 const PIN_NPC = '#4cc9f0';
 
-/** Minimap 2D (frame dunia): peta dasar di-bake sekali (lihat App.bakeMinimap); marker region diubah ke dunia. */
-function setupMinimap(app, ents, story, frame) {
+/** Minimap 2D (frame dunia): base layer per region dibake regionManager; marker region diubah ke dunia. */
+function setupMinimap(app, ents, story, frame, regions) {
   const minimap = new Minimap2D(document.body);
+  const frameOf = (id) => regions.frameOf(id);
   const pins = () => [
     ...ents.vendors.vendors.map((v) => pointToWorld(frame, { x: v.position.x, z: v.position.z, color: PIN_VENDOR })),
-    ...STORY_NPCS.map((n) => pointToWorld(frame, { x: n.x, z: n.z, color: PIN_NPC })),
+    ...STORY_NPCS.flatMap((n) => {
+      const w = resolvePoint(n, frameOf);
+      return w ? [{ x: w.x, z: w.z, color: PIN_NPC }] : [];
+    }),
   ];
   app.addSystem({
     id: 'minimap',
@@ -342,7 +370,7 @@ function setupMinimap(app, ents, story, frame) {
     update(dt, ctx) {
       minimap.setVisible(app.minimapVisible);
       const b = ents.bike.state;
-      minimap.update(ctx.time, { focus: b, yaw: b.yaw, goal: pointToWorld(frame, story.goalPoint()), getPins: pins });
+      minimap.update(ctx.time, { focus: b, yaw: b.yaw, goal: story.goalPoint(), getPins: pins });
     },
   });
   return minimap;

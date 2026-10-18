@@ -1,5 +1,5 @@
 /**
- * Alat debug mode dev: teleport, statistik renderer, store settings, pembongkaran aplikasi.
+ * Alat debug mode dev: teleport, statistik renderer, store settings, region manager, pembongkaran aplikasi.
  */
 import { createCollider } from '../core/Collider.js';
 
@@ -16,9 +16,20 @@ export function parsePlacementParam(search) {
   return { x, z, yaw };
 }
 
-export function exposeDevTools({ app, ents, rig, time, weather, store, audioBus, story, colliders, city = null, remountRegion = null, fastTravel = null, teardown }) {
+/** Bendera dev dari query string (`?nama`, `?nama=1`); false bila tidak ada atau bernilai "0"/"false". */
+export function parseFlagParam(search, name) {
+  const params = new URLSearchParams(search ?? '');
+  if (!params.has(name)) return false;
+  const v = params.get(name);
+  return v !== '0' && v !== 'false';
+}
+
+export function exposeDevTools({
+  app, ents, rig, time, weather, store, audioBus, story, colliders, city = null, remountRegion = null, fastTravel = null,
+  regions = null, scheduler = null, terrain = null, teardown,
+}) {
   window.__sim = {
-    app, ents, rig, time, weather, store, audioBus, story, city, remountRegion, fastTravel,
+    app, ents, rig, time, weather, store, audioBus, story, city, remountRegion, fastTravel, regions, scheduler, terrain,
     teleport(x, z, yaw = 0) {
       ents.bike.state = { ...ents.bike.state, x, z, yaw, v: 0 };
       ents.bike.setCollider(createCollider({ x, z }, colliders.isWalkable, colliders.penetration));
