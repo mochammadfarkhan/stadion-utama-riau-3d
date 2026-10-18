@@ -34,6 +34,15 @@ describe('parseHeight / parseLevels', () => {
     expect(parseLevels('2;4')).toBe(4);
     expect(parseLevels('x')).toBeNull();
   });
+
+  it('rentang "4-7" → nilai minimum (spec §4.7: Rektorat & GGM bertag 4-7)', () => {
+    expect(parseLevels('4-7')).toBe(4);
+    expect(parseLevels(' 2 - 3 ')).toBe(2);
+    expect(parseLevels('7-4')).toBe(4);
+    expect(parseLevels('0-3')).toBeNull();
+    expect(parseLevels('-1')).toBeNull();
+    expect(parseLevels('2;3')).toBe(3);
+  });
 });
 
 describe('estimateHeight — kontrak (WAJIB dipertahankan saat aturan diubah)', () => {
