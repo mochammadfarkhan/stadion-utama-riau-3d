@@ -21,7 +21,7 @@ export const WARNA = Object.freeze({
 });
 /** Lebar bay pita jendela (m) — juga satuan sel peta lampu malam (16 sel per tekstur). */
 export const BAY = 1.8;
-const OVERLAY = Object.freeze({ polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+const OVERLAY = Object.freeze({ polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8 }); // di atas lapisan ground distrik (paving −2, jalan setapak −3)
 
 const cached = (key, make) => currentScope().get(`unri-rektorat:${key}`, make, { dispose: disposeMaterialDeep });
 const named = (mat, name) => {
