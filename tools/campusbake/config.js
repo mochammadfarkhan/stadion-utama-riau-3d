@@ -4,6 +4,7 @@
  */
 import { WORLD_ORIGIN } from '../../src/config/constants.js';
 import { stadionMaskWorld } from '../../src/regions/stadion/mask.js';
+import { lembagaPadsWorld } from '../../src/regions/unri-lembaga/pads.js';
 import { ROAD_CLASSES } from '../citybake/config.js';
 
 export const ORIGIN = WORLD_ORIGIN;
@@ -76,11 +77,8 @@ export const TERRAIN = Object.freeze({
 /** Lebar total jalan per kelas OSM (m) — mengikuti citybake (spec §6). */
 export const ROAD_WIDTHS = Object.freeze(Object.fromEntries(Object.entries(ROAD_CLASSES).map(([k, v]) => [k, v.width])));
 
-/**
- * Pad region hero (dunia): `{ id, ring:[[x,z]...], y:'median'|number }`. Kosong di M1; M4/M6 menambah
- * pad region `unri-lembaga`/`unri-rektorat` (ring lokal region diubah ke dunia lewat placement region).
- */
-export const REGION_PADS = Object.freeze([]);
+/** Pad hero region (spec §3.2): ring DUNIA {id, ring, y:'median'|number}. M6 menambah pad unri-rektorat. */
+export const REGION_PADS = Object.freeze([...lembagaPadsWorld()]);
 
 /** Batas laporan (peringatan, tidak menggagalkan bake). Spec §9.1: data distrik ≤ 8 MB total. */
 export const BUDGET = Object.freeze({ terrainBytes: 3 * 1024 * 1024 });
