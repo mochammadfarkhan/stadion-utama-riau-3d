@@ -1,0 +1,114 @@
+{
+  "gpu": "d3d11",
+  "checks": {
+    "load": {
+      "settled": true,
+      "stats": {
+        "idle": 30,
+        "loading": 0,
+        "loaded": 22,
+        "failed": 0,
+        "inFlight": 0,
+        "tiles": 22,
+        "meshes": 97,
+        "triangles": 34612
+      }
+    },
+    "tileCalls": {
+      "calls": 86,
+      "total": 635,
+      "triangles": 34612
+    },
+    "parity": {
+      "callsMean": 533,
+      "callsMeanRegionOnly": 467,
+      "baselinePlanA": 502
+    },
+    "memory": {
+      "initial": {
+        "geometries": 461,
+        "textures": 70
+      },
+      "baseline": {
+        "geometries": 474,
+        "textures": 71
+      },
+      "cycles": [
+        {
+          "geometries": 474,
+          "textures": 71
+        },
+        {
+          "geometries": 474,
+          "textures": 71
+        },
+        {
+          "geometries": 474,
+          "textures": 71
+        }
+      ],
+      "after": {
+        "geometries": 474,
+        "textures": 71
+      }
+    },
+    "ride": {
+      "frames": 10761,
+      "hitchP95": 17,
+      "maxMs": 117,
+      "failedTiles": 0,
+      "perDir": [
+        {
+          "dir": [
+            0,
+            -1
+          ],
+          "frames": 3597,
+          "hitchP95": 17,
+          "maxMs": 117
+        },
+        {
+          "dir": [
+            1,
+            0
+          ],
+          "frames": 3600,
+          "hitchP95": 17,
+          "maxMs": 50
+        },
+        {
+          "dir": [
+            -0.71,
+            0.71
+          ],
+          "frames": 3564,
+          "hitchP95": 17,
+          "maxMs": 34
+        }
+      ]
+    },
+    "fastTravel": {
+      "ok": true,
+      "status": "ok",
+      "travelMs": 343,
+      "distance": 20,
+      "walkable": true,
+      "pusatTiles": 15,
+      "overlayHidden": true,
+      "vehiclesBefore": 4
+    },
+    "tileCallsAnNur": {
+      "calls": 55,
+      "total": 135,
+      "triangles": 92963
+    },
+    "fastTravelBack": {
+      "ok": true,
+      "status": "ok",
+      "travelMs": 581,
+      "vehicles": 4
+    }
+  },
+  "errors": [],
+  "fails": []
+}
