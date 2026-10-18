@@ -48,6 +48,7 @@ import { createRegionManager } from './app/regionManager.js';
 import { createTerrainService } from './app/terrainService.js';
 import { mountDistrict } from './app/districtMount.js';
 import { unriDistrict } from './districts/unri/index.js';
+import { createStudentKit } from './entities/Student.js';
 import { createLocalContext, pointToWorld } from './app/regionContext.js';
 import { withPlacement, regionContains } from './regions/Region.js';
 import { unriLembagaRegion } from './regions/unri-lembaga/index.js';
@@ -209,11 +210,21 @@ async function main() {
   const shop = setupShop(hud, ents, story);
   const minimap = setupMinimap(app, ents, story, frame, regions);
   if (city) minimap.setTileLayer(city.minimap);
-  // Distrik kampus UNRI (M1: terrain). Gagal → null + toast; permainan berlanjut tanpa distrik (spec §10).
+  // Region hero kampus punya isi sendiri (mis. motor rapat di teras sekre M4): distrik tidak menaruh instans di dalam
+  // mask-nya. regionIdAt juga dipakai devtools/E2E untuk mengetahui region yang menaungi sebuah titik dunia.
+  const regionIdAt = (x, z) => HERO_REGIONS.find((def) => regionContains(def, x, z))?.id ?? null;
+  const districtServices = Object.freeze({
+    npc: createStudentKit(),
+    camera: app.camera,
+    hour: () => time.hour,
+    excludeAt: (x, z) => regionIdAt(x, z) !== null,
+  });
+  // Distrik kampus UNRI (terrain, tanah, gedung, kehidupan). Gagal → null + toast; permainan berlanjut tanpa distrik (spec §10).
   const unri = await mountDistrict(app, unriDistrict, {
     terrain, scheduler, collider: districtColliders, minimap, city, weather, time, baseUrl: import.meta.env.BASE_URL,
     toast: (t, ok) => hud.toast(t, ok),
     isReserved: (x, z) => HERO_REGIONS.some((r) => regionContains(r, x, z)), // dunia → di dalam mask region hero?
+    services: districtServices,
   });
   if (unri) lifecycle.add(() => unri.dispose()); // LIFO: dilepas sebelum kota, time, weather
   // M6: ornamen GLB hero distrik (N04 kubah Masjid Arfa'unnas); gagal muat → placeholder prosedural tetap
@@ -271,8 +282,8 @@ async function main() {
     exposeDevTools({
       app, ents, rig, time, weather, store, audioBus, story, colliders, city, remountRegion, regions, scheduler, terrain, district: unri,
       fastTravel: (id) => travel.go(id), teardown: () => lifecycle.disposeAll(),
+      portal: portalKit.portal, regionIdAt,
     });
-    window.__sim.portal = portalKit.portal; // E2E: siklus masuk/keluar interior
   }
 }
 

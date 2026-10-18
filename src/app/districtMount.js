@@ -51,7 +51,9 @@ const defaultCanvas = (w, h) => {
  *   collider?:{addDistrict(d:object):() => void}|null, minimap?:{setBaseLayer(id:string, canvas:object, o:object):void,
  *   removeBaseLayer(id:string):void}|null, city?:{setGroundHole(h:object|null):void}|null,
  *   weather?:{registerWet(root:object):() => boolean}|null, time?:{registerEmissive, registerLamps}|null,
- *   isReserved?:(x:number, z:number) => boolean, createScope?:(name:string) => object, baseUrl?:string,
+ *   isReserved?:(x:number, z:number) => boolean,
+ *   services?:{npc?:object, camera?:object, hour?:() => number, excludeAt?:(x:number, z:number) => boolean}, // layanan composition root, diteruskan apa adanya ke ctx.services (districts/ tidak boleh mengimpor entities/regions)
+ *   createScope?:(name:string) => object, baseUrl?:string,
  *   toast?:(text:string, ok:boolean) => void, logger?:{error:(...a:unknown[]) => void},
  *   createStreamer?:(o:object) => object, fetchJson?:(url:string) => Promise<unknown>,
  *   fetchArrayBuffer?:(url:string) => Promise<ArrayBuffer>, createCanvas?:(w:number, h:number) => object|null}} opts
@@ -60,7 +62,7 @@ const defaultCanvas = (w, h) => {
  */
 export async function mountDistrict(app, def, {
   terrain, scheduler, collider = null, minimap = null, city = null, weather = null, time = null,
-  isReserved = () => false, createScope = createResourceScope,
+  isReserved = () => false, services = {}, createScope = createResourceScope,
   baseUrl = '/', toast = () => {}, logger = console, createStreamer = (o) => createChunkStreamer(o),
   fetchJson = defaultFetchJson, fetchArrayBuffer = defaultFetchArrayBuffer, createCanvas = defaultCanvas,
 } = {}) {
@@ -73,7 +75,7 @@ export async function mountDistrict(app, def, {
   try {
     district = validateDistrictBuild(await def.build({
       scene: app.scene, scope, terrain, scheduler, owner, baseUrl, fetchJson, fetchArrayBuffer, createStreamer, logger,
-      registries, isReserved, toast,
+      registries, isReserved, toast, services: Object.freeze({ ...services }),
       onTerrainFail: () => {
         if (warned) return;
         warned = true;
