@@ -69,6 +69,32 @@ export function randomCasualOutfit(rng) {
   };
 }
 
+/**
+ * Jas almamater UNRI "biru langit" (riset §6: almamater biru langit [T]; nilai hex = [INFERENSI] warna umum
+ * foto). Lencana kuning di dada mewakili lambang Lancang Kuning (bentuk disederhanakan).
+ */
+export const ALMAMATER_UNRI = 0x6fbfe8;
+export const ALMAMATER_BADGE = 0xf2c200;
+
+/** Mahasiswa berjas almamater (katalog C01): jas lengan panjang + lencana, tanpa topi, celana panjang/rok. */
+export function randomAlmamaterOutfit(rng) {
+  const base = randomCasualOutfit(rng);
+  const bottom = base.bottom === 'shorts' ? 'pants' : base.bottom;
+  const caping = base.hair === 'caping';
+  return {
+    ...base,
+    shirt: ALMAMATER_UNRI,
+    longSleeve: true,
+    badge: ALMAMATER_BADGE,
+    vest: null,
+    hat: null,
+    hair: caping ? pick(rng, HAIR_STYLES) : base.hair,
+    hairColor: caping ? pick(rng, HAIR_COLORS) : base.hairColor,
+    bottom,
+    pants: bottom === 'skirt' ? base.pants : pick(rng, PANTS_COLORS),
+  };
+}
+
 /** Penampilan pelari: kaos lari cerah, celana pendek, sebagian berhijab atau bertopi. */
 export function randomRunnerOutfit(rng, { forceHat = false, forceHijab = false } = {}) {
   const head = randomHead(rng, forceHijab ? 1 : 0.3);
