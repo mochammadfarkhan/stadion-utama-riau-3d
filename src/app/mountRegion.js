@@ -101,6 +101,7 @@ export async function mountRegion(app, def, {
   const ready = Promise.resolve(region.ready).then(async (result) => {
     await queue.idle();
     if (mounted && time && region.lateRoot) undo.push(time.registerEmissive(region.lateRoot));
+    if (mounted && weather && region.lateRoot && region.lateRootWet === true) undo.push(weather.registerWet(region.lateRoot));
     return result;
   });
   return {

@@ -51,6 +51,8 @@ import { unriDistrict } from './districts/unri/index.js';
 import { createLocalContext, pointToWorld } from './app/regionContext.js';
 import { withPlacement, regionContains } from './regions/Region.js';
 import { unriLembagaRegion } from './regions/unri-lembaga/index.js';
+import { unriRektoratRegion } from './regions/unri-rektorat/index.js';
+import { createHeroOrnamentLayer } from './app/heroOrnaments.js';
 import { LEMBAGA_LAYOUT } from './regions/unri-lembaga/layout.js';
 import { createInteriorPortal } from './app/interiorPortal.js';
 import { createSekreInterior, SEKRE_ID } from './interiors/sekre/index.js';
@@ -67,7 +69,7 @@ import { FastTravelMenu, createTravelScreen } from './ui/FastTravelMenu.js';
 const MODELS_TIMEOUT_MS = 8000;
 
 /** Region hero di dalam distrik UNRI: distrik tidak menaruh vegetasi/props/rintangan di dalam mask-nya (M2 isReserved). M6 menambah region Rektorat. */
-const HERO_REGIONS = Object.freeze([unriLembagaRegion]);
+const HERO_REGIONS = Object.freeze([unriLembagaRegion, unriRektoratRegion]);
 
 /** Tujuan perjalanan cepat sementara (DEV) ke depan mulut selasar barat Sekretariat Lembaga; M7 permanen. */
 const DEV_TRAVEL = import.meta.env.DEV
@@ -137,6 +139,8 @@ async function main() {
   const stadion = await regions.register(stadionDef); // persistent: dipasang sekarang (urutan muat seperti sebelum M0)
   // M4: zona Lembaga (streaming: pasang ≤ 700 m, lepas > 900 m; proxy saat jauh)
   regions.register(unriLembagaRegion).catch((err) => console.error('Region unri-lembaga gagal didaftarkan:', err));
+  // M6: zona Rektorat (Rektorat, danau, perpustakaan lama, poros taman; streaming seperti Lembaga)
+  regions.register(unriRektoratRegion).catch((err) => console.error('Region unri-rektorat gagal didaftarkan:', err));
   const frame = regions.frameOf(STADION_ID); // frame region stadion: entitas, cerita NPC, kamera, minimap
   const toLocalCtx = createLocalContext(frame);
   if (import.meta.env.DEV && parseFlagParam(window.location.search, 'dummyRegion')) {
@@ -212,6 +216,10 @@ async function main() {
     isReserved: (x, z) => HERO_REGIONS.some((r) => regionContains(r, x, z)), // dunia → di dalam mask region hero?
   });
   if (unri) lifecycle.add(() => unri.dispose()); // LIFO: dilepas sebelum kota, time, weather
+  // M6: ornamen GLB hero distrik (N04 kubah Masjid Arfa'unnas); gagal muat → placeholder prosedural tetap
+  const heroOrnaments = createHeroOrnamentLayer({ scene: app.scene, terrain });
+  lifecycle.add(() => heroOrnaments.dispose());
+  app.addSystem({ id: 'heroOrnaments', phase: 'world', update: (dt, ctx) => heroOrnaments.update(ctx.focus) });
   const travel = setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, spawn: region.layout.spawn, touch });
   const panelRef = { current: null }; // SettingsPanel (diisi saat panel selesai dipasang)
   const portalKit = setupPortal({
