@@ -24,9 +24,13 @@ const PUDDLE_SIZE = Object.freeze({ minX: 3, maxX: 7, minZ: 2, maxZ: 4.5 });
 
 const baseName = (name) => (name ?? '').split('+')[0];
 
-/** Entri registry: material unik dari mesh bernama permukaan basah; nilai asli disimpan. */
+/**
+ * Entri registry: material unik dari mesh bernama permukaan basah, ATAU mesh bertanda
+ * `userData.wetSurface === true` (terrain distrik yang diwarnai M2); nilai asli disimpan.
+ */
 function selectWet(mat, o) {
-  if (!o.isMesh || !WET_MESH_NAMES.has(baseName(o.name)) || !mat.color) return null;
+  if (!o.isMesh || !mat.color) return null;
+  if (!WET_MESH_NAMES.has(baseName(o.name)) && o.userData?.wetSurface !== true) return null;
   return {
     mat,
     color: mat.color.clone(),

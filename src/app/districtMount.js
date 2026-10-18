@@ -11,6 +11,7 @@ import { validateDistrictBuild } from '../districts/District.js';
 import { createChunkStreamer } from '../city/ChunkStreamer.js';
 import { fetchJson as defaultFetchJson } from '../city/TileLoader.js';
 import { fetchArrayBuffer as defaultFetchArrayBuffer } from '../districts/terrainChunks.js';
+import { createDistrictRegistries } from './districtRegistries.js';
 
 export const DISTRICT_MINIMAP_PX = 1024;
 const MINIMAP_MARGIN = 20; // m di luar bbox batas
@@ -49,7 +50,8 @@ const defaultCanvas = (w, h) => {
  * @param {{terrain:{field:object, heightAt:Function}, scheduler:{schedule:Function, cancelOwner(owner:string):void, pending(owner?:string):number},
  *   collider?:{addDistrict(d:object):() => void}|null, minimap?:{setBaseLayer(id:string, canvas:object, o:object):void,
  *   removeBaseLayer(id:string):void}|null, city?:{setGroundHole(h:object|null):void}|null,
- *   weather?:{registerWet(root:object):() => boolean}|null, createScope?:(name:string) => object, baseUrl?:string,
+ *   weather?:{registerWet(root:object):() => boolean}|null, time?:{registerEmissive, registerLamps}|null,
+ *   isReserved?:(x:number, z:number) => boolean, createScope?:(name:string) => object, baseUrl?:string,
  *   toast?:(text:string, ok:boolean) => void, logger?:{error:(...a:unknown[]) => void},
  *   createStreamer?:(o:object) => object, fetchJson?:(url:string) => Promise<unknown>,
  *   fetchArrayBuffer?:(url:string) => Promise<ArrayBuffer>, createCanvas?:(w:number, h:number) => object|null}} opts
@@ -57,7 +59,8 @@ const defaultCanvas = (w, h) => {
  *   dispose():void}|null>}
  */
 export async function mountDistrict(app, def, {
-  terrain, scheduler, collider = null, minimap = null, city = null, weather = null, createScope = createResourceScope,
+  terrain, scheduler, collider = null, minimap = null, city = null, weather = null, time = null,
+  isReserved = () => false, createScope = createResourceScope,
   baseUrl = '/', toast = () => {}, logger = console, createStreamer = (o) => createChunkStreamer(o),
   fetchJson = defaultFetchJson, fetchArrayBuffer = defaultFetchArrayBuffer, createCanvas = defaultCanvas,
 } = {}) {
@@ -66,9 +69,11 @@ export async function mountDistrict(app, def, {
   let holeTexture = null;
   let warned = false;
   let district;
+  const registries = createDistrictRegistries({ time, weather, logger });
   try {
     district = validateDistrictBuild(await def.build({
       scene: app.scene, scope, terrain, scheduler, owner, baseUrl, fetchJson, fetchArrayBuffer, createStreamer, logger,
+      registries, isReserved,
       onTerrainFail: () => {
         if (warned) return;
         warned = true;
@@ -78,6 +83,7 @@ export async function mountDistrict(app, def, {
     }), def.id);
   } catch (err) {
     scheduler.cancelOwner(owner);
+    registries.dispose();
     scope.dispose();
     logger.error(`Distrik "${def.id}" gagal dipasang; lanjut tanpa distrik:`, err);
     toast('Kawasan kampus gagal dimuat — peta kota tetap tersedia', false);
@@ -95,6 +101,7 @@ export async function mountDistrict(app, def, {
     }
   };
   try {
+    undo.push(() => registries.dispose()); // LIFO: dicabut sesudah district.dispose()
     undo.push(() => district.dispose());
     app.scene.add(district.group);
     undo.push(() => district.group.removeFromParent());

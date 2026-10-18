@@ -187,7 +187,7 @@ async function main() {
   if (city) minimap.setTileLayer(city.minimap);
   // Distrik kampus UNRI (M1: terrain). Gagal → null + toast; permainan berlanjut tanpa distrik (spec §10).
   const unri = await mountDistrict(app, unriDistrict, {
-    terrain, scheduler, collider: districtColliders, minimap, city, weather, baseUrl: import.meta.env.BASE_URL,
+    terrain, scheduler, collider: districtColliders, minimap, city, weather, time, baseUrl: import.meta.env.BASE_URL,
     toast: (t, ok) => hud.toast(t, ok),
   });
   if (unri) lifecycle.add(() => unri.dispose()); // LIFO: dilepas sebelum kota, time, weather
