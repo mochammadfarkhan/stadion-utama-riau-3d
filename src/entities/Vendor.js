@@ -26,6 +26,7 @@ const MAX_DT = 0.05;
 const DEFAULT_NAMES = Object.freeze({
   minuman: ['Es Teh Bang Udin', 'Es Jeruk Kak Ani', 'Air Mineral Pak Dedi', 'Kopi Keliling Bang Rudi'],
   buah: ['Buah Potong Kak Ros', 'Rujak Buah Mak Yati', 'Jeruk Segar Bang Jon'],
+  kantin: ['Kantin FKIP'],
 });
 
 /** Label CSS2D; hanya dibuat bila DOM tersedia (dryrun Node melewati). */
@@ -45,9 +46,9 @@ async function createLabel(text) {
  * Group yang diputar -90° agar arah dorong menjadi +Z (searah pedagang),
  * dan digeser agar ujung gagang berada di tangan pedagang.
  */
-async function loadCart(kind) {
+async function loadCart(kind, banner) {
   try {
-    const cart = createCart({ kind });
+    const cart = createCart({ kind, label: banner });
     if (cart?.isObject3D) {
       const wrap = new THREE.Group();
       wrap.rotation.y = -Math.PI / 2;
@@ -72,23 +73,23 @@ export class VendorGroup {
   #wallet;
 
   /**
-   * @param {{vendors:Array<{id:string, kind:'minuman'|'buah', waypoints:Array<{x:number,z:number}>,
-   *   name?:string, speed?:number}>, wallet?:object, seed?:number}} opts
+   * @param {{vendors:Array<{id:string, kind:'minuman'|'buah'|'kantin', waypoints:Array<{x:number,z:number}>,
+   *   name?:string, speed?:number, yaw?:number, banner?:string}>, wallet?:object, seed?:number}} opts
    */
   constructor(opts = {}) {
     const { vendors = [], wallet, seed = 31 } = opts;
     this.#wallet = wallet ?? createWallet();
     this.group.name = 'vendors';
     const rng = makeRng(seed);
-    const counters = { minuman: 0, buah: 0 };
+    const counters = { minuman: 0, buah: 0, kantin: 0 };
     vendors.forEach((v) => this.#spawn(v, rng, counters));
   }
 
   #spawn(spec, rng, counters) {
-    const kind = spec.kind === 'buah' ? 'buah' : 'minuman';
-    const names = DEFAULT_NAMES[kind];
+    const kind = VENDOR_CATALOG[spec.kind] ? spec.kind : 'minuman';
+    const names = DEFAULT_NAMES[kind] ?? DEFAULT_NAMES.minuman;
     const name = spec.name ?? names[counters[kind]++ % names.length];
-    const sim = createVendor({ id: spec.id, kind, waypoints: spec.waypoints, speed: spec.speed });
+    const sim = createVendor({ id: spec.id, kind, waypoints: spec.waypoints, speed: spec.speed, yaw: spec.yaw });
     const root = new THREE.Group();
     root.name = `vendor-${spec.id}`;
     const h = createHumanoid(randomVendorOutfit(rng, kind));
@@ -100,12 +101,12 @@ export class VendorGroup {
     const entry = { sim, h, root, cartSlot, name, kind, yaw: sim.yaw ?? 0 };
     this.#vendors.push(entry);
     this.#place(entry, 0, flatGround);
-    this.#attachAsync(entry, kind, name);
+    this.#attachAsync(entry, kind, name, spec.banner);
   }
 
   /** Tukar gerobak fallback dengan Cart.js & pasang label bila tersedia. */
-  #attachAsync(entry, kind, name) {
-    loadCart(kind).then((cart) => {
+  #attachAsync(entry, kind, name, banner) {
+    loadCart(kind, banner).then((cart) => {
       entry.cartSlot.clear();
       entry.cartSlot.add(cart);
     }).catch(() => {});
