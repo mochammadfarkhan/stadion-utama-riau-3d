@@ -27,7 +27,7 @@ export const GROUND_LAYER = Object.freeze({
   owner: 'unri:ground',
   terrainRenderOrder: -5,
   lod1Stride: 4,
-  detailRadius: 450,
+  detailRadius: 400, // M2: 450; M7 mitigasi §9.3 langkah 2 (vegetasi/props jarak jauh)
   visibilityInterval: 0.5,
   chunkSize: 500,
 });

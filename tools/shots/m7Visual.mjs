@@ -148,6 +148,7 @@ async function main() {
     await page.evaluate(PAGE.prep, { rain: opts.rain });
     for (const v of views) {
       const hour = Number(opts.hour ?? v.hour ?? 11);
+      await page.evaluate((r) => window.__sim.store.set('weather.raining', r), Boolean(v.rain ?? opts.rain));
       report.points[v.id] = await page.evaluate(PAGE.shot, { view: v, hour, waitMs: Number(opts.wait) });
       await page.screenshot({ path: join(OUT_DIR, `${opts.prefix}${v.id}${opts.tag}.jpg`), type: 'jpeg', quality: 85 });
     }

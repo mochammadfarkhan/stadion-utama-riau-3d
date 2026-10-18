@@ -1,5 +1,5 @@
 /**
- * Klaster gedung kampus (spec §7.4): sel 250 m; LOD0 ≤ 250 m (penuh), LOD1 ≤ 900 m (massa + atap + atlas),
+ * Klaster gedung kampus (spec §7.4): sel 250 m; LOD0 ≤ 150 m (penuh; spec 250 m, diturunkan M7 = mitigasi §9.3 langkah 1), LOD1 ≤ 900 m (massa + atap + atlas),
  * lebih jauh tidak dirender. Perakitan time-sliced lewat scheduler (M0): satu tugas generator per klaster,
  * `yield` per gedung & per sisi; geometri semua gedung klaster ditulis ke SATU sink (penggabungan per
  * material: opak + potong + papan = ≤ 3 mesh/klaster). Tukar LOD tanpa lubang (lama tampil sampai baru siap).
@@ -19,7 +19,7 @@ import { resolveBuilding } from './resolveBuilding.js';
 import { footprintsOf } from './buildingFootprints.js';
 
 export const CLUSTER = Object.freeze({
-  size: 250, lod0: 250, lod1: 900, hysteresis: 30, maxJobs: 1, maxHeight: 40, owner: 'unri:gedung',
+  size: 250, lod0: 150, lod1: 900, hysteresis: 30, maxJobs: 1, maxHeight: 40, owner: 'unri:gedung',
 });
 
 /** Kunci klaster "cx_cz" dari titik dunia. */

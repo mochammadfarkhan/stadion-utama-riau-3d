@@ -26,5 +26,12 @@ export const VIEWS = [
   { id: 'lambang-depan', area: 'props', eye: w(-1071, 1.7, 2092), look: w(-1071, 2.0, 2078), fov: 55 },
   { id: 'lambang-dekat', area: 'props', eye: w(-1070, 1.8, 2084), look: w(-1071, 2.0, 2078), fov: 50 },
   { id: 'lambang-atas', area: 'props', eye: w(-1060, 12, 2098), look: w(-1071, 1.5, 2078), fov: 55 },
+  { id: 'kantin-mata', area: 'kantin', eye: w(-790, 1.7, 1127), look: w(-790, 1.2, 1141), fov: 58 },
+  { id: 'kantin-dekat', area: 'kantin', eye: w(-787.5, 1.5, 1133.5), look: w(-790, 1.1, 1141), fov: 55 },
+  { id: 'kantin-atas', area: 'kantin', eye: w(-785, 12, 1124), look: w(-790, 0, 1142), fov: 55 },
+  { id: 'mhs-sore', area: 'waktu', hour: 17.5, auto: 'mahasiswa', near: [-206, 1118], dist: 9, dir: 0.6, eyeH: 1.8, fov: 60 },
+  { id: 'mhs-malam', area: 'waktu', hour: 22, auto: 'mahasiswa', near: [-206, 1118], dist: 9, dir: 0.6, eyeH: 1.8, fov: 60 },
+  { id: 'sekre-malam', area: 'waktu', hour: 20.5, eye: w(-196, 1.6, 1094), look: w(-213, 0.9, 1092), fov: 58 },
+  { id: 'sekre-hujan', area: 'waktu', hour: 15, rain: true, eye: w(-196, 1.6, 1094), look: w(-213, 0.9, 1092), fov: 58 },
   { id: 'sekre-teras-depan', area: 'sekre', eye: w(-206, 1.7, 1120), look: w(-219, 1.2, 1100), fov: 62 },
 ];

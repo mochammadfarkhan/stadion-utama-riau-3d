@@ -64,10 +64,10 @@ describe('fungsi murni klaster', () => {
 
   it('desiredLod dengan histeresis 30 m', () => {
     expect(desiredLod(0, null)).toBe(0);
-    expect(desiredLod(250, null)).toBe(0);
-    expect(desiredLod(260, null)).toBe(1);
-    expect(desiredLod(270, 0)).toBe(0); // masih dalam lod0 + h
-    expect(desiredLod(281, 0)).toBe(1);
+    expect(desiredLod(150, null)).toBe(0); // lod0 = 150 (mitigasi §9.3 langkah 1; spec 250)
+    expect(desiredLod(160, null)).toBe(1);
+    expect(desiredLod(170, 0)).toBe(0); // masih dalam lod0 + h
+    expect(desiredLod(181, 0)).toBe(1);
     expect(desiredLod(900, null)).toBe(1);
     expect(desiredLod(910, null)).toBeNull();
     expect(desiredLod(920, 1)).toBe(1); // ≤ lod1 + h
