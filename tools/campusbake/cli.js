@@ -2,7 +2,8 @@
  * CLI campusbake:
  *   npm run bake:campus -- boundary [--offline]          → tulis src/districts/unri/boundary.js
  *   npm run bake:campus -- terrain|all [--offline]        → public/districts/unri/{manifest.json, terrain/*.bin, ATTRIBUTION.txt}
- *   npm run bake:campus -- ground|buildings              → dibuat di M2/M3 (sekarang: galat jelas, exit 2)
+ *   npm run bake:campus -- ground                         → public/districts/unri/ground/*.json + manifest.ground (M2; butuh data-src/osm/unri.json)
+ *   npm run bake:campus -- buildings                      → dibuat di M3 (sekarang: galat jelas, exit 2)
  * Opsi: --out <dir> (default public/districts/unri), --cache <dir> (default data-src).
  */
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
@@ -20,6 +21,7 @@ import {
 import { boundaryModuleSource, computeBoundary } from './boundary.js';
 import { bakeTerrain } from './terrain/bakeTerrain.js';
 import { terrainReport } from './report.js';
+import { bakeGround } from './ground/index.js';
 import { ATTRIBUTION_FILE, MANIFEST_FILE, attributionText, withTerrain } from './manifest.js';
 
 export const COMMANDS = Object.freeze(['boundary', 'terrain', 'ground', 'buildings', 'all']);
@@ -118,8 +120,8 @@ export async function main(argv, log = console) {
     log.error(err.message);
     return 2;
   }
-  if (opts.command === 'ground' || opts.command === 'buildings') {
-    log.error(`perintah "${opts.command}" belum tersedia (dibuat di M2/M3). ${USAGE}`);
+  if (opts.command === 'buildings') {
+    log.error(`perintah "${opts.command}" belum tersedia (dibuat di M3). ${USAGE}`);
     return 2;
   }
   try {
@@ -131,10 +133,17 @@ export async function main(argv, log = console) {
         + `${result.pieces} potongan, dibuang ${Math.round(result.droppedArea)} m²) → ${PATHS.boundaryModule}`);
       return 0;
     }
+    if (opts.command === 'ground') {
+      await bakeGround({ log });
+      return 0;
+    }
     const { report } = await runTerrain({ ...opts, log });
     for (const line of report.lines) log.info(line);
     for (const w of report.warnings) log.warn(`PERINGATAN: ${w}`);
-    if (opts.command === 'all') log.info('Catatan: ground (M2) dan buildings (M3) belum tersedia; hanya terrain yang di-bake.');
+    if (opts.command === 'all') {
+      await bakeGround({ log });
+      log.info('Catatan: buildings (M3) belum tersedia; terrain dan ground yang di-bake.');
+    }
     return 0;
   } catch (err) {
     log.error(`[campusbake] gagal: ${err.message}`);
