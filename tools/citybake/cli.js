@@ -1,13 +1,13 @@
 /**
  * Argumen CLI citybake:
- *   node tools/citybake --area stadion|pusat|all [--offline] [--no-overture]
+ *   node tools/citybake --area stadion|pusat|unri|all [--offline] [--no-overture]
  *                       [--overture-release <id>] [--out <dir>] [--cache <dir>]
  */
 import { parseArgs } from 'node:util';
 import { AREAS, OVERTURE, PATHS } from './config.js';
 import { runBake } from './pipeline.js';
 
-export const USAGE = 'Pakai: node tools/citybake --area <stadion|pusat|all> [--offline] [--no-overture] '
+export const USAGE = 'Pakai: node tools/citybake --area <stadion|pusat|unri|all> [--offline] [--no-overture] '
   + '[--overture-release <id>] [--out <dir>] [--cache <dir>]';
 
 /** @returns {{areaIds: string[], offline: boolean, useOverture: boolean, release: string, outDir: string, cacheDir: string}} */
