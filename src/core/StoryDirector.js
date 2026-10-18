@@ -2,17 +2,23 @@
  * StoryDirector: menjembatani dunia 3D dan mesin cerita murni. Mengirim event
  * (posisi, pembelian, interaksi, putaran, easter egg), menerapkan efek (hadiah,
  * toast, barang diantar, simpan), dan menggambar HUD/jurnal/penanda.
+ * M0 multi-region: bekerja di koordinat DUNIA. Titik data cerita adalah titik ber-region
+ * (story/points.js; tanpa `region` = 'stadion') yang di-resolve sekali lewat `frameOf(regionId)`
+ * (story/storyWorld.js). Pedagang tetap entitas region stadion (koordinat lokal) dan dikonversi di batas.
  */
 import { CHAPTERS, STORY_NPCS } from '../story/chapters.js';
 import { EASTER_EGGS, EGG_IDS } from '../story/easterEggs.js';
-import { createEggState, stepEggs } from '../story/eggTriggers.js';
+import { createEggState, stepEggs, EGG_ANCHORS } from '../story/eggTriggers.js';
 import { loadStory, saveStory, SAVE_VERSION } from '../story/storage.js';
+import { resolvePoint } from '../story/points.js';
+import { resolveAnchors, resolveChapters, resolveEggs, resolveNpcs } from '../story/storyWorld.js';
 import { createStory } from '../sim/story/reducer.js';
 import { fundsShortfall } from '../story/funds.js';
 import { createLapTracker, stepLap } from '../sim/story/lapTracker.js';
 import { pointOnLane, laneLength } from '../sim/trackPath.js';
 import { VENDOR_CATALOG, createWallet } from '../sim/vendorSim.js';
 import { VENDOR } from '../config/constants.js';
+import { IDENTITY_FRAME } from '../geo/regionTransform.js';
 
 const NPC_RANGE = 4;
 const LAP_LANE = 4;          // lane tengah: radius cek menutup semua lane
@@ -21,17 +27,19 @@ const LAP_RADIUS = 9;
 const FUNDS_CHECK_SEC = 1;   // seberapa sering saldo dicek terhadap langkah beli/antar
 const PROGRESS_KEYS = ['chapter', 'step', 'badges', 'eggs', 'bestLap', 'rupiah', 'finished'];
 const ITEM_IDS = Object.values(VENDOR_CATALOG).flat().map((i) => i.id);
+const STADION_REGION = 'stadion'; // pemilik pedagang & lintasan atletik (entitas region-lokal)
 
 const LIMITS = Object.freeze({
   chapters: CHAPTERS.length, steps: CHAPTERS.map((c) => c.steps.length), eggIds: EGG_IDS,
   startBalance: VENDOR.startBalance, itemIds: ITEM_IDS,
 });
 
-function lapCheckpoints() {
+/** Checkpoint lintasan (lokal stadion) → dunia; cadangan = koordinat lokal bila stadion tak terdaftar. */
+function lapCheckpoints(frameOf) {
   const len = laneLength(LAP_LANE);
   return Array.from({ length: LAP_CHECKPOINTS }, (_, i) => {
     const p = pointOnLane(LAP_LANE, (i / LAP_CHECKPOINTS) * len);
-    return { x: p.x, z: p.z };
+    return resolvePoint({ region: STADION_REGION, x: p.x, z: p.z }, frameOf) ?? { x: p.x, z: p.z };
   });
 }
 
@@ -40,27 +48,39 @@ export class StoryDirector {
    * HUD tidak diimpor/dipegang langsung: efek toast & dompet dikirim lewat callback (core tidak bergantung ui).
    * @param {{storage:object, vendors:object, storyHud:object, journal:object, markers:object,
    *   onToast?:(text:string, ok:boolean)=>void, onWalletChange?:(wallet:object)=>void,
-   *   pointerLock?:{release:()=>void, request:()=>void}}} deps
+   *   pointerLock?:{release:()=>void, request:()=>void},
+   *   frameOf?:(regionId:string)=>object|null, placeOf?:()=>({region:string,x:number,z:number,yaw:number}|null)}} deps
+   *   frameOf: frame region (regionManager.frameOf); default identitas untuk semua region (tes/perilaku lama).
+   *   placeOf: tempat pemain sekarang sebagai titik ber-region; ikut disimpan di save v3.
    */
-  constructor({ storage, vendors, storyHud, journal, markers, onToast = () => {}, onWalletChange = () => {}, pointerLock = null }) {
-    this.story = createStory({ chapters: CHAPTERS, eggs: EASTER_EGGS });
-    Object.assign(this, { storage, vendors, storyHud, journal, markers, onToast, onWalletChange, pointerLock });
+  constructor({
+    storage, vendors, storyHud, journal, markers, onToast = () => {}, onWalletChange = () => {}, pointerLock = null,
+    frameOf = () => IDENTITY_FRAME, placeOf = () => null,
+  }) {
+    this.chapters = resolveChapters(CHAPTERS, frameOf);
+    this.npcs = resolveNpcs(STORY_NPCS, frameOf);
+    this.eggs = resolveEggs(EASTER_EGGS, frameOf);
+    this.anchors = resolveAnchors(EGG_ANCHORS, frameOf);
+    this.story = createStory({ chapters: this.chapters, eggs: this.eggs });
+    Object.assign(this, { storage, vendors, storyHud, journal, markers, onToast, onWalletChange, pointerLock, frameOf, placeOf });
     this.state = this.story.initial();
     this.eggState = createEggState();
-    this.checkpoints = lapCheckpoints();
+    this.checkpoints = lapCheckpoints(frameOf);
     this.lap = null;
     this.bell = false;
     this.bought = null;
     this.bikePos = { x: 0, z: 0 };
     this.fundsTimer = 0;
     this.fundedStep = null; // 'chapter:step' yang sudah diberi uang saku (sekali per langkah)
+    this.savedPlace = null; // tempat terakhir dari save v3 (M0: tidak dipakai untuk spawn, paritas stadion)
   }
 
-  /** Muat progres + dompet tersimpan (save v2; v1 dimigrasi sekali). Tidak ada credit-ulang hadiah. */
+  /** Muat progres + dompet + tempat tersimpan (save v3; v1/v2 dimigrasi). Tidak ada credit-ulang hadiah. */
   start() {
     const save = loadStory(this.storage, LIMITS);
     if (save) {
-      const { wallet, version: _version, ...progress } = save;
+      const { wallet, version: _version, place, ...progress } = save;
+      this.savedPlace = place;
       this.state = this.story.hydrate(progress);
       this.vendors.setWallet(wallet);
       this.onWalletChange(this.vendors.wallet);
@@ -76,12 +96,13 @@ export class StoryDirector {
     this.#persist(); // dompet berubah karena belanja: simpan agar reload tidak "mengembalikan" uang
   }
 
-  /** Simpan progres + dompet (save v2). */
+  /** Simpan progres + dompet + tempat (save v3). */
   #persist() {
     saveStory(this.storage, {
       version: SAVE_VERSION,
       ...Object.fromEntries(PROGRESS_KEYS.map((k) => [k, this.state[k]])),
       wallet: this.vendors.wallet,
+      place: this.placeOf() ?? null,
     });
   }
 
@@ -115,7 +136,7 @@ export class StoryDirector {
   /**
    * @param {number} dt
    * @param {{time:number, bikePos:{x:number,z:number}, hour:number, raining:boolean, paused?:boolean}} ctx
-   *   paused: toko/POV beku, jam misi tidak berjalan (jurnal terbuka juga menjeda)
+   *   bikePos: koordinat DUNIA (M0). paused: toko/POV beku, jam misi tidak berjalan (jurnal terbuka juga menjeda)
    */
   update(dt, ctx) {
     const pos = ctx.bikePos;
@@ -158,45 +179,55 @@ export class StoryDirector {
   #updateEggs(dt, ctx) {
     const r = stepEggs(this.eggState, {
       time: ctx.time, dt, pos: ctx.bikePos, hour: ctx.hour, raining: ctx.raining, bell: this.bell, bought: this.bought,
-    }, EASTER_EGGS, this.state.eggs);
+      anchors: this.anchors,
+    }, this.eggs, this.state.eggs);
     this.eggState = r.state;
     this.bell = false;
     this.bought = null;
     r.ids.forEach((id) => this.dispatch({ type: 'egg', id }));
   }
 
-  #step() { return CHAPTERS[this.state.chapter].steps[this.state.step]; }
+  #step() { return this.chapters[this.state.chapter].steps[this.state.step]; }
 
-  /** Titik dunia tujuan aktif untuk penanda (null bila tidak ada). */
+  /** Pedagang hidup di koordinat lokal region stadion: cari dari posisi lokal, kembalikan titik dunia. */
+  #nearestSelling(itemId) {
+    const frame = this.frameOf(STADION_REGION);
+    if (!frame || frame.identity) return this.vendors.nearestSelling(itemId, this.bikePos);
+    const local = frame.toLocal(this.bikePos.x, this.bikePos.z);
+    const best = this.vendors.nearestSelling(itemId, local);
+    return best ? frame.toWorld(best.x, best.z) : null;
+  }
+
+  /** Titik DUNIA tujuan aktif untuk penanda & minimap (null bila tidak ada). */
   goalPoint() {
     if (this.state.finished || this.state.dialog) return null;
     const o = this.#step().objective;
     if (o.type === 'goto') return o.target;
-    if (o.type === 'buy') return this.vendors.nearestSelling(o.itemId, this.bikePos);
+    if (o.type === 'buy') return this.#nearestSelling(o.itemId);
     if (o.type === 'deliver') {
       const carrying = this.vendors.wallet.items.some((i) => i.id === o.itemId);
-      return carrying ? STORY_NPCS.find((n) => n.id === o.npcId) ?? null : this.vendors.nearestSelling(o.itemId, this.bikePos);
+      return carrying ? this.npcs.find((n) => n.id === o.npcId) ?? null : this.#nearestSelling(o.itemId);
     }
     if (o.type === 'laps') return this.checkpoints[this.lap?.next ?? 0];
     if (o.type === 'find') {
       const id = o.ids.find((i) => !this.state.progress.found.includes(i));
-      return EASTER_EGGS.find((e) => e.id === id)?.at ?? null;
+      return this.eggs.find((e) => e.id === id)?.at ?? null;
     }
     return null;
   }
 
   #nearNpc(pos) {
-    return STORY_NPCS.find((n) => Math.hypot(n.x - pos.x, n.z - pos.z) <= NPC_RANGE) ?? null;
+    return this.npcs.find((n) => Math.hypot(n.x - pos.x, n.z - pos.z) <= NPC_RANGE) ?? null;
   }
 
-  /** Teks prompt E untuk NPC/dialog (null bila tidak ada). */
+  /** Teks prompt E untuk NPC/dialog (null bila tidak ada). `pos` dunia. */
   promptFor(pos) {
     if (this.state.dialog) return 'Tekan E — lanjut';
     const npc = this.#nearNpc(pos);
     return npc ? `Tekan E — bicara dengan ${npc.name}` : null;
   }
 
-  /** E ditekan: lanjutkan dialog atau bicara dengan NPC. @returns {boolean} true bila ditangani. */
+  /** E ditekan: lanjutkan dialog atau bicara dengan NPC (`pos` dunia). @returns {boolean} true bila ditangani. */
   tryInteract(pos) {
     if (this.state.dialog) { this.dispatch({ type: 'advance' }); return true; }
     const npc = this.#nearNpc(pos);
@@ -237,9 +268,9 @@ export class StoryDirector {
     const s = this.state;
     return {
       rank: this.story.rankOf(s), rupiah: s.rupiah, bestLap: s.bestLap,
-      chapters: CHAPTERS.map((c, i) => ({ title: c.title, done: s.finished || i < s.chapter, current: !s.finished && i === s.chapter })),
+      chapters: this.chapters.map((c, i) => ({ title: c.title, done: s.finished || i < s.chapter, current: !s.finished && i === s.chapter })),
       badges: s.badges,
-      eggs: EASTER_EGGS.map((e) => ({ title: e.title, text: e.text, hint: e.hint, found: s.eggs.includes(e.id) })),
+      eggs: this.eggs.map((e) => ({ title: e.title, text: e.text, hint: e.hint, found: s.eggs.includes(e.id) })),
     };
   }
 
@@ -255,7 +286,7 @@ export class StoryDirector {
   #render() {
     const s = this.state;
     this.storyHud.render({
-      chapterTitle: CHAPTERS[s.chapter].title,
+      chapterTitle: this.chapters[s.chapter].title,
       rank: this.story.rankOf(s),
       goal: s.finished ? '' : this.#goalText(),
       timeLeft: s.timeLeft,

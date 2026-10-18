@@ -9,8 +9,8 @@ const finish = (progress, effects = []) => ({ progress, done: true, effects });
 
 export function applyObjective(objective, progress, event) {
   switch (objective.type) {
-    case 'goto':
-      return event.type === 'position' && dist(event, objective.target) <= objective.radius
+    case 'goto': // target null = region tujuan tak dikenal (titik ber-region gagal di-resolve): tidak pernah selesai
+      return event.type === 'position' && objective.target != null && dist(event, objective.target) <= objective.radius
         ? finish(progress) : pass(progress);
     case 'buy':
       return event.type === 'bought' && (!objective.itemId || event.itemId === objective.itemId)
