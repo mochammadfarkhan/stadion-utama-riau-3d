@@ -18,6 +18,12 @@ export const MOTOR = Object.freeze({
 });
 export const MOTOR_COLORS = Object.freeze([0xc62828, 0x1565c0, 0x212121, 0xeeeeee, 0x6d6d6d, 0x2e7d32, 0xf9a825, 0x8e24aa, 0x37474f, 0xd84315]);
 
+/**
+ * true setelah Task 25 (Blender) mengekspor public/models/unri/a01-motor-bebek.glb & a02-motor-matic.glb. Selama false
+ * region tidak meminta GLB (hindari HTTP 404 di konsol/E2E); placeholder prosedural = versi final sementara.
+ */
+export const MOTOR_GLB_READY = false;
+
 const named = (mat, name) => {
   mat.name = name;
   return mat;
