@@ -8,7 +8,7 @@ import {
   createHumanoid, animateExercise, animateWalk, animateIdle, animateSkate, animateSwing,
 } from './Humanoid.js';
 import { randomCasualOutfit, randomRunnerOutfit } from './Humanoid.outfits.js';
-import { matFor, range, yawFromDir, lerpAngle, clamp } from './util.js';
+import { matFor, range, yawFromDir, lerpAngle, clamp, flatGround } from './util.js';
 
 const EXERCISE = { rows: 3, cols: 4, spacing: 1.6 };
 const BADMINTON = { gap: 6, flightTime: 1.1, peak: 2.6, swingTime: 0.45 };
@@ -36,7 +36,11 @@ function createExerciseGroup(spot, rng) {
   instructor.group.rotation.y = Math.PI; // menghadap barisan
   g.add(instructor.group);
   people.push({ h: instructor, offset: 0.3 });
-  return { group: g, update: (time) => people.forEach((p) => animateExercise(p.h, time, p.offset)) };
+  const update = (time, ground) => {
+    g.position.y = ground(spot.x, spot.z);
+    people.forEach((p) => animateExercise(p.h, time, p.offset));
+  };
+  return { group: g, update };
 }
 
 // ---------- Badminton ----------
@@ -67,7 +71,8 @@ function createBadminton(spot, rng) {
   const shuttle = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.08, 6), matFor(0xffffff));
   g.add(shuttle);
   const state = { t: 0, from: 0 };
-  const update = (dt, time) => {
+  const update = (dt, time, ground) => {
+    g.position.y = ground(spot.x, spot.z);
     state.t += dt;
     if (state.t >= BADMINTON.flightTime) { state.t -= BADMINTON.flightTime; state.from = 1 - state.from; players[state.from].swing = 0; }
     const u = state.t / BADMINTON.flightTime;
@@ -109,11 +114,13 @@ function createSkaters(spots, rng) {
     g.add(h.group);
     return { h, cx: spot.x, cz: spot.z, theta: rng() * Math.PI * 2, dir: i % 2 ? -1 : 1 };
   });
-  const update = (dt, time) => {
+  const update = (dt, time, ground) => {
     for (const s of skaters) {
       s.theta += (s.dir * SKATE.speed * dt) / SKATE.radius;
       const c = Math.cos(s.theta), sn = Math.sin(s.theta);
-      s.h.group.position.set(s.cx + SKATE.radius * c, 0.09, s.cz + SKATE.radius * sn);
+      const x = s.cx + SKATE.radius * c;
+      const z = s.cz + SKATE.radius * sn;
+      s.h.group.position.set(x, ground(x, z) + 0.09, z);
       s.h.group.rotation.y = yawFromDir(-sn * s.dir, c * s.dir);
       animateSkate(s.h, time + s.theta);
     }
@@ -138,14 +145,15 @@ function createWalkers(center, count, rng) {
     g.add(h.group);
     return { h, target: randomTarget(center, rng), speed: range(rng, WALK.speedMin, WALK.speedMax), pause: 0, yaw: 0, phase: rng() * 10 };
   });
-  const update = (dt, time) => {
-    for (const w of walkers) stepWalker(w, dt, time, center, rng);
+  const update = (dt, time, ground) => {
+    for (const w of walkers) stepWalker(w, dt, time, center, rng, ground);
   };
   return { group: g, update };
 }
 
-function stepWalker(w, dt, time, center, rng) {
+function stepWalker(w, dt, time, center, rng, ground) {
   const p = w.h.group.position;
+  p.y = ground(p.x, p.z);
   if (w.pause > 0) {
     w.pause -= dt;
     animateIdle(w.h, time + w.phase);
@@ -171,7 +179,7 @@ function stepWalker(w, dt, time, center, rng) {
 /**
  * @param {{center:{x:number,z:number}, spots?:{exercise?:object, badminton?:object,
  *   skaters?:object[]}, count?:number, rng:() => number}} opts
- * @returns {{group:THREE.Group, update:(dt:number, time:number) => void, humanoidCount:number}}
+ * @returns {{group:THREE.Group, update:(dt:number, time:number, ground?:(x:number, z:number) => number) => void, humanoidCount:number}}
  */
 export function createPlazaActivities({ center, spots = {}, count = 30, rng }) {
   const group = new THREE.Group();
@@ -186,11 +194,11 @@ export function createPlazaActivities({ center, spots = {}, count = 30, rng }) {
     createWalkers(center, walkerCount, rng),
   ];
   acts.forEach((a) => group.add(a.group));
-  const update = (dt, time) => {
-    acts[0].update(time);
-    acts[1].update(dt, time);
-    acts[2].update(dt, time);
-    acts[3].update(dt, time);
+  const update = (dt, time, ground = flatGround) => {
+    acts[0].update(time, ground);
+    acts[1].update(dt, time, ground);
+    acts[2].update(dt, time, ground);
+    acts[3].update(dt, time, ground);
   };
   return { group, update, humanoidCount: fixed + walkerCount };
 }

@@ -13,7 +13,7 @@ import { createFallbackCart } from './Vendor.cart.js';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { createCart } from '../world/props/Cart.js';
 import { mergeByMaterial } from '../world/util/merge.js';
-import { makeRng, isFiniteXZ, lerpAngle, clamp, HAS_DOM } from './util.js';
+import { makeRng, isFiniteXZ, lerpAngle, clamp, HAS_DOM, flatGround, groundOf } from './util.js';
 
 const LABEL_DISTANCE = 45;
 export const PROMPT_DISTANCE = 3.5;   // meter; jarak munculnya prompt beli
@@ -99,7 +99,7 @@ export class VendorGroup {
     this.group.add(root);
     const entry = { sim, h, root, cartSlot, name, kind, yaw: sim.yaw ?? 0 };
     this.#vendors.push(entry);
-    this.#place(entry, 0);
+    this.#place(entry, 0, flatGround);
     this.#attachAsync(entry, kind, name);
   }
 
@@ -128,10 +128,10 @@ export class VendorGroup {
     }
   }
 
-  #place(entry, time) {
+  #place(entry, time, ground) {
     const { sim, h, root } = entry;
     if (!isFiniteXZ(sim.pos)) return;
-    root.position.set(sim.pos.x, 0, sim.pos.z);
+    root.position.set(sim.pos.x, ground(sim.pos.x, sim.pos.z), sim.pos.z);
     root.rotation.y = entry.yaw;
     if (sim.state === 'WALK') animateWalk(h, time);
     else animateSellIdle(h, time + root.position.x);
@@ -147,7 +147,8 @@ export class VendorGroup {
       const yaw = Number.isFinite(sim.yaw) ? lerpAngle(e.yaw, sim.yaw, k) : e.yaw;
       return { ...e, sim, yaw };
     });
-    for (const e of this.#vendors) this.#place(e, time);
+    const ground = groundOf(ctx);
+    for (const e of this.#vendors) this.#place(e, time, ground);
     this.#updatePrompt(ctx.bikePos);
     this.#updateLabels(ctx.focus ?? ctx.bikePos); // label mengikuti fokus tampilan (POV)
   }

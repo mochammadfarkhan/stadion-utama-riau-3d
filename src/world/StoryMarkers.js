@@ -12,7 +12,8 @@ const RING_RADIUS = 3.2;
 const MINIMAP_RADIUS = 16;
 const PULSE_SPEED = 3;
 
-export function createStoryMarkers() {
+/** @param {{ground?: (x:number, z:number) => number}} [opts] tinggi tanah di koordinat induk penanda (M1) */
+export function createStoryMarkers({ ground = () => 0 } = {}) {
   const group = new THREE.Group();
   group.name = 'penandaMisi';
   group.visible = false;
@@ -27,16 +28,19 @@ export function createStoryMarkers() {
   disc.position.y = 3;
   disc.layers.set(RENDER_LAYERS.minimap);
   group.add(beam, ring, disc);
+  let target = null;
 
   return {
     group,
     /** Pindahkan ke titik {x,z} atau sembunyikan (null). */
     setTarget(point) {
       group.visible = Boolean(point);
-      if (point) group.position.set(point.x, 0, point.z);
+      target = point ? { x: point.x, z: point.z } : null;
+      if (point) group.position.set(point.x, ground(point.x, point.z), point.z);
     },
     update(time) {
       ring.scale.setScalar(1 + 0.15 * Math.sin(time * PULSE_SPEED));
+      if (target) group.position.y = ground(target.x, target.z); // chunk terrain bisa termuat belakangan
     },
   };
 }

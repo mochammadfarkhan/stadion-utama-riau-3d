@@ -31,6 +31,7 @@ function addLabel(group, name) {
 export class StoryNpcs {
   group = new THREE.Group();
   #labels = []; // { npc, label } (label dibuat sinkron di browser)
+  #bodies = []; // { npc, group }
 
   constructor() {
     this.group.name = 'storyNpcs';
@@ -40,6 +41,7 @@ export class StoryNpcs {
       h.group.position.set(npc.x, 0, npc.z);
       h.group.rotation.y = npc.yaw;
       this.group.add(h.group);
+      this.#bodies.push({ npc, group: h.group });
       const label = addLabel(h.group, npc.name);
       if (label) this.#labels.push({ npc, label });
     });
@@ -51,6 +53,12 @@ export class StoryNpcs {
       const d = focus ? Math.hypot(npc.x - focus.x, npc.z - focus.z) : Number.NaN;
       label.visible = npcLabelVisible(d, labelsEnabled);
     }
+  }
+
+  /** Berdiri di atas tanah: ground(lx, lz) region-lokal (ctx.heightAt); dipanggil tiap frame (2 NPC, murah). */
+  placeOnGround(ground) {
+    if (typeof ground !== 'function') return;
+    for (const { npc, group } of this.#bodies) group.position.y = ground(npc.x, npc.z);
   }
 
   update() {}
