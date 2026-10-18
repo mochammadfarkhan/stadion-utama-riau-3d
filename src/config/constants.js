@@ -104,6 +104,13 @@ export const BIKE = Object.freeze({
   reverseAccel: 1.5,   // akselerasi mundur (m/s²)
   pedalRatio: 0.45,    // putaran pedal relatif terhadap roda
   leanSmoothing: 8,    // smoothing lean (1/s)
+  // Tanjakan (M1, spec §5.4): a = −g·grade·kSlope; batas laju turun saat menanjak, luncuran saat menurun.
+  kSlope: 0.55,        // pengali gravitasi sepanjang lereng (dituning: 6% di laju jelajah berat tapi terdaki)
+  maxGrade: 0.3,       // grade masukan di-clamp ±30%
+  climbLoss: 3,        // laju puncak × (1 − grade·climbLoss) saat menanjak (6% → 82%)
+  glidePerGrade: 100,  // laju luncur (m/s) per satuan grade turunan tanpa kayuh (6% → 6 m/s)
+  holdGrade: 0.08,     // sepeda diam tanpa kayuh tidak menggelinding di lereng < 8%
+  overspeedDecel: 2.5, // m/s² perlambatan halus bila laju > batas (mis. masuk tanjakan)
 });
 
 // Simulasi sepak bola (sim/footballAI.js)

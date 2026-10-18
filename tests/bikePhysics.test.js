@@ -93,3 +93,54 @@ describe('stepBike', () => {
     expect(hasNaN(stepBike(s, { pedal: NaN, steer: undefined }, DT))).toBe(false);
   });
 });
+
+describe('stepBike dengan grade (tanjakan, M1)', () => {
+  const PEDAL = { pedal: 1, steer: 0, sprint: false };
+  const COAST = { pedal: 0, steer: 0, sprint: false };
+  const runG = (state, input, seconds, grade) => {
+    let s = state;
+    for (let i = 0; i < seconds * 60; i += 1) s = stepBike(s, input, DT, { grade });
+    return s;
+  };
+  const moving = (v) => ({ ...createBikeState(), v });
+
+  it('konstanta tanjakan: kSlope 0,55', () => {
+    expect(BIKE.kSlope).toBe(0.55);
+  });
+
+  it('paritas jalan datar: grade 0 = tanpa opsi; lepas sprint di datar tetap dipotong seketika ke maxSpeed', () => {
+    expect(runG(createBikeState(), PEDAL, 4, 0)).toEqual(run(createBikeState(), PEDAL, 4));
+    expect(stepBike(moving(13), PEDAL, DT).v).toBe(BIKE.maxSpeed);
+  });
+
+  it('tanjakan 6%: laju puncak 9 × (1 − 0,06 × 3) = 7,38 m/s, tercapai < 5 s tanpa sprint', () => {
+    expect(runG(createBikeState(), PEDAL, 30, 0.06).v).toBeCloseTo(7.38, 2);
+    expect(runG(createBikeState(), PEDAL, 5, 0.06).v).toBeGreaterThan(7);
+  });
+
+  it('masuk tanjakan pada 9 m/s: melambat halus 2,5 m/s² (bukan langsung dipotong)', () => {
+    expect(runG(moving(9), PEDAL, 0.1, 0.06).v).toBeCloseTo(8.75, 2);
+    expect(runG(moving(9), PEDAL, 3, 0.06).v).toBeCloseTo(7.38, 2);
+  });
+
+  it('turunan 6% tanpa kayuh: meluncur stabil ±6,54 m/s (datar: berhenti)', () => {
+    expect(runG(moving(9), COAST, 20, -0.06).v).toBeCloseTo(6.54, 1);
+    expect(runG(moving(9), COAST, 20, 0).v).toBeLessThan(0.01);
+  });
+
+  it('meluncur menanjak melambat lebih cepat daripada datar', () => {
+    expect(runG(moving(5), COAST, 2, 0.06).v).toBeLessThan(runG(moving(5), COAST, 2, 0).v);
+  });
+
+  it('diam tanpa kayuh: tertahan di 6% (< holdGrade 8%), menggelinding mundur di 12%', () => {
+    expect(runG(createBikeState(), COAST, 5, 0.06).v).toBe(0);
+    const rolled = runG(createBikeState(), COAST, 5, 0.12).v;
+    expect(rolled).toBeLessThan(-0.5);
+    expect(rolled).toBeGreaterThanOrEqual(-BIKE.reverseSpeed);
+  });
+
+  it('grade NaN = datar; grade di-clamp ±30%', () => {
+    expect(runG(createBikeState(), PEDAL, 1, Number.NaN)).toEqual(runG(createBikeState(), PEDAL, 1, 0));
+    expect(runG(createBikeState(), PEDAL, 1, 5)).toEqual(runG(createBikeState(), PEDAL, 1, 0.3));
+  });
+});
