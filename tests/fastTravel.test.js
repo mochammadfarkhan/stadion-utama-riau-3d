@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { travelDestinations, findWalkableNear, findSpawnNear, createFastTravel } from '../src/app/fastTravel.js';
+import { travelDestinations, findWalkableNear, findSpawnNear, createFastTravel, waitForRegion } from '../src/app/fastTravel.js';
 import { thirdPersonOffset } from '../src/core/cameraMath.js';
 import { createRegionFrame, IDENTITY_FRAME } from '../src/geo/regionTransform.js';
 import { LAYOUT } from '../src/regions/stadion/layout.js';
@@ -118,5 +118,41 @@ describe('findSpawnNear', () => {
     const p = findSpawnNear(0, 0, { isWalkable, isCameraClear: () => false, maxRadius: 20 });
     expect(Math.hypot(p.x, p.z)).toBeGreaterThan(10);
     expect(findSpawnNear(0, 0, { isWalkable: () => false, maxRadius: 8 })).toBeNull();
+  });
+});
+
+describe('tujuan kampus (M7)', () => {
+  it('campus:true menambah Sekretariat Lembaga & Rektorat (dunia, menghadap utara)', () => {
+    const d = travelDestinations({ manifest: null, frame: IDENTITY_FRAME, spawn: LAYOUT.spawn, campus: true });
+    expect(d.map((v) => v.id)).toEqual(['stadion', 'unri-sekre', 'unri-rektorat']);
+    expect(d[1]).toMatchObject({ label: 'Kampus UNRI — Sekretariat Lembaga', x: -219, z: 1130, yaw: Math.PI });
+    expect(d[2]).toMatchObject({ label: 'Kampus UNRI — Rektorat', x: -979, z: 860, yaw: Math.PI });
+    expect(travelDestinations({ manifest: null, frame: IDENTITY_FRAME, spawn: LAYOUT.spawn }).map((v) => v.id)).toEqual(['stadion']);
+  });
+  it('settle tambahan (distrik/region) ikut menentukan status', async () => {
+    const bike = { state: { x: 0, z: 0, yaw: 0, v: 0 }, setCollider: () => {} };
+    const screen = { show: () => {}, hide: () => {} };
+    const t = createFastTravel({
+      destinations: [{ id: 'a', label: 'A', x: 5, z: 5, yaw: 0 }], bike, colliders: { isWalkable: () => true }, screen, settle: async () => false,
+    });
+    expect(await t.go('a')).toBe('timeout');
+  });
+});
+
+describe('waitForRegion', () => {
+  const def = { id: 'r', placement: { x: 0, z: 0, yaw: 0 }, mask: [[-10, -10], [10, -10], [10, 10], [-10, 10]] };
+  it('titik di luar region hero: langsung true', async () => {
+    expect(await waitForRegion({ active: () => [] }, [def], 50, 50)).toBe(true);
+  });
+  it('menunggu region aktif lalu ready-nya', async () => {
+    let polls = 0;
+    const regions = { active: () => (polls++ >= 2 ? [{ def: { id: 'r' }, region: { ready: Promise.resolve() } }] : []) };
+    expect(await waitForRegion(regions, [def], 0, 0, { sleep: async () => {} })).toBe(true);
+    expect(polls).toBe(3);
+  });
+  it('habis waktu: false', async () => {
+    let t = 0;
+    const opts = { timeoutMs: 300, pollMs: 100, sleep: async (ms) => { t += ms; }, now: () => t };
+    expect(await waitForRegion({ active: () => [] }, [def], 0, 0, opts)).toBe(false);
   });
 });

@@ -67,18 +67,13 @@ import { PLAYER_ROOM_INDEX } from './regions/unri-lembaga/sekre.data.js';
 import { createCity } from './city/index.js';
 import { STREAM } from './city/ChunkStreamer.js';
 import { createAttribution } from './ui/Attribution.js';
-import { travelDestinations, createFastTravel } from './app/fastTravel.js';
+import { travelDestinations, createFastTravel, waitForRegion } from './app/fastTravel.js';
 import { FastTravelMenu, createTravelScreen } from './ui/FastTravelMenu.js';
 
 const MODELS_TIMEOUT_MS = 8000;
 
 /** Region hero di dalam distrik UNRI: distrik tidak menaruh vegetasi/props/rintangan di dalam mask-nya (M2 isReserved). M6 menambah region Rektorat. */
 const HERO_REGIONS = Object.freeze([unriLembagaRegion, unriRektoratRegion]);
-
-/** Tujuan perjalanan cepat sementara (DEV) ke depan mulut selasar barat Sekretariat Lembaga; M7 permanen. */
-const DEV_TRAVEL = import.meta.env.DEV
-  ? [{ id: 'unri-lembaga', label: 'Kampus UNRI — Sekretariat Lembaga (dev)', ...LEMBAGA_LAYOUT.spawnDev }]
-  : [];
 
 function showFatal(msg) {
   const panel = document.querySelector('#overlay .panel');
@@ -234,7 +229,7 @@ async function main() {
   const heroOrnaments = createHeroOrnamentLayer({ scene: app.scene, terrain });
   lifecycle.add(() => heroOrnaments.dispose());
   app.addSystem({ id: 'heroOrnaments', phase: 'world', update: (dt, ctx) => heroOrnaments.update(ctx.focus) });
-  const travel = setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, spawn: region.layout.spawn, touch });
+  const travel = setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, spawn: region.layout.spawn, touch, unri, regions });
   const panelRef = { current: null }; // SettingsPanel (diisi saat panel selesai dipasang)
   const portalKit = setupPortal({
     app, input, hud, rig, ents, regions, colliders, time, weather, store, audioBus, travel, story, minimap, look, panelRef, lifecycle,
@@ -352,14 +347,18 @@ function addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, stor
 }
 
 /**
- * Perjalanan cepat (G / tombol HUD): Stadion & Masjid Raya An-Nur; teleport menunggu tile tujuan
+ * Perjalanan cepat (G / tombol HUD): Stadion, Masjid Raya An-Nur, Kampus UNRI (Sekretariat Lembaga, Rektorat); teleport menunggu tile tujuan
  * dimuat streamer sebelum layar perjalanan ditutup. Tanpa kota: hanya Stadion.
  */
-function setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, spawn, touch }) {
+function setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, spawn, touch, unri, regions }) {
   const screen = createTravelScreen(document.body);
   lifecycle.add(() => screen.dispose());
   const travel = createFastTravel({
-    destinations: travelDestinations({ manifest: city?.manifest ?? null, frame, spawn, extra: DEV_TRAVEL }), bike: ents.bike, colliders, city, screen,
+    destinations: travelDestinations({ manifest: city?.manifest ?? null, frame, spawn, campus: Boolean(unri) }), bike: ents.bike, colliders, city, screen,
+    settle: async (x, z) => { // distrik (terrain/ground/gedung) + region hero yang menaungi tujuan harus siap
+      const [districtOk, regionOk] = await Promise.all([unri ? unri.whenSettled(x, z) : true, waitForRegion(regions, HERO_REGIONS, x, z)]);
+      return districtOk !== false && regionOk;
+    },
     isCameraClear: colliders.isCameraClear, rig, // POV ditutup dulu (menu & devtools); muncul dengan ruang kamera
   });
   const menu = new FastTravelMenu(document.body, {
