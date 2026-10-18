@@ -9,6 +9,7 @@ import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
 import { RENDER, RENDER_LAYERS } from '../config/constants.js';
 import { DepthRenderPass, OutlinePass } from './postprocessing/OutlinePass.js';
 import { createSystemRunner } from '../engine/SystemRunner.js';
+import { gateSystem } from '../engine/systemGate.js';
 
 const MAX_DT = 0.05;
 const MAX_PIXEL_RATIO = RENDER.pixelRatio;
@@ -37,6 +38,7 @@ export class App {
   #onResize = () => this.resize();
   #aoWanted = RENDER.ao;
   #aoLoading = false;
+  #gate = null; // (id) => boolean; null = semua sistem jalan (lihat setSystemGate)
 
   constructor(container) {
     this.container = container;
@@ -47,6 +49,8 @@ export class App {
     this.renderer = createRenderer();
     this.labelRenderer = createLabelRenderer();
     this.post = createComposer(this.renderer, this.scene, this.camera);
+    /** Scene & kamera yang sedang dirender (setView); default = scene/kamera utama (eksterior). */
+    this.view = { scene: this.scene, camera: this.camera, aoRadius: RENDER.aoRadius };
     this.timer = new THREE.Timer();
     this.systems = createSystemRunner();
     this.minimapVisible = true;
@@ -62,9 +66,10 @@ export class App {
     this.resize();
   }
 
-  /** Daftarkan sistem berfase (lihat engine/SystemRunner). */
+  /** Daftarkan sistem berfase (lihat engine/SystemRunner); dibungkus gerbang (setSystemGate). */
   addSystem(system) {
-    return this.systems.add(system);
+    this.systems.add(gateSystem(system, (id) => this.#gate === null || this.#gate(id)));
+    return system;
   }
 
   removeSystem(id) {
@@ -77,7 +82,7 @@ export class App {
     this.#legacySeq += 1;
     const id = `updatable-${this.#legacySeq}`;
     this.#legacy.set(obj, id);
-    this.systems.add({ id, phase, update: (dt, ctx) => obj.update(dt, ctx) });
+    this.addSystem({ id, phase, update: (dt, ctx) => obj.update(dt, ctx) });
     return obj;
   }
 
@@ -87,6 +92,46 @@ export class App {
     if (!id) return;
     this.systems.remove(id);
     this.#legacy.delete(obj);
+  }
+
+  /**
+   * Gerbang sistem: `fn(id)` → true = sistem jalan frame ini. null = semua jalan. Dipakai portal interior untuk
+   * menjeda sistem eksterior (tidak dilepas, urutan tetap).
+   * @param {((id:string) => boolean)|null} fn
+   */
+  setSystemGate(fn) {
+    this.#gate = typeof fn === 'function' ? fn : null;
+  }
+
+  /**
+   * Ganti scene & kamera yang dirender (loop, RenderPass, GTAO, outline, label CSS2D). null = kembali ke
+   * scene/kamera utama. `aoRadius` (m, opsional) dipakai GTAO selama view aktif. Kamera view ikut resize.
+   * @param {{scene: THREE.Scene, camera: THREE.Camera, aoRadius?: number}|null} view
+   */
+  setView(view = null) {
+    const next = view
+      ? { scene: view.scene, camera: view.camera, aoRadius: Number.isFinite(view.aoRadius) ? view.aoRadius : RENDER.aoRadius }
+      : { scene: this.scene, camera: this.camera, aoRadius: RENDER.aoRadius };
+    if (!next.scene?.isScene || !next.camera?.isCamera) throw new TypeError('App.setView: butuh {scene, camera}');
+    this.view = next;
+    this.#bindViewToPasses();
+    // Label CSS2D eksterior (pedagang, NPC cerita) tidak boleh tertinggal melayang di atas scene lain.
+    this.labelRenderer.domElement.style.display = next.scene === this.scene ? '' : 'none';
+    this.resize();
+    return next;
+  }
+
+  #bindViewToPasses() {
+    const { scene, camera, aoRadius } = this.view;
+    this.post.scenePass.scene = scene;
+    this.post.scenePass.camera = camera;
+    this.post.outlinePass.camera = camera;
+    const ao = this.post.gtaoPass;
+    if (ao) {
+      ao.scene = scene;
+      ao.camera = camera;
+      ao.updateGtaoMaterial({ radius: aoRadius });
+    }
   }
 
   /** Aktif/nonaktifkan ambient occlusion saat runtime (mis. bila FPS rendah). */
@@ -110,10 +155,11 @@ export class App {
     this.#aoLoading = true;
     try {
       const { GTAOPass } = await import('three/addons/postprocessing/GTAOPass.js');
-      const pass = createGtaoPass(GTAOPass, this.scene, this.camera);
+      const pass = createGtaoPass(GTAOPass, this.view.scene, this.view.camera);
       pass.enabled = this.#aoWanted;
       this.post.composer.insertPass(pass, 1); // tepat setelah render scene, sebelum outline
       this.post.gtaoPass = pass;
+      this.#bindViewToPasses();
       this.resize(); // ukuran AO (RENDER.aoScale)
     } catch (err) {
       console.error('Ambient occlusion gagal dimuat, dinonaktifkan:', err);
@@ -211,8 +257,10 @@ export class App {
     // min 1 px: jendela tersembunyi (0×0) tidak boleh membuat target/depthTexture berukuran nol
     const w = Math.max(1, window.innerWidth);
     const h = Math.max(1, window.innerHeight);
-    this.camera.aspect = w / h;
-    this.camera.updateProjectionMatrix();
+    for (const cam of new Set([this.camera, this.view.camera])) {
+      cam.aspect = w / h;
+      cam.updateProjectionMatrix();
+    }
     this.renderer.setSize(w, h);
     const pr = this.renderer.getPixelRatio();
     this.post.outlinePass.setPixelRatio(pr);
@@ -272,9 +320,10 @@ export class App {
     r.info.reset(); // info.render dihitung per frame (semua pass), bukan per pass
     r.shadowMap.needsUpdate = ctx?.shadowFrame !== false; // shadow pass tiap SHADOW_INTERVAL frame (hanya kamera utama)
     r.setViewport(0, 0, w, h);
-    this.scene.updateMatrixWorld();
+    const { scene, camera } = this.view;
+    scene.updateMatrixWorld();
     this.post.composer.render(); // pass pertama membersihkan buffer; OutputPass menulis ke layar
-    this.labelRenderer.render(this.scene, this.camera);
+    this.labelRenderer.render(scene, camera);
   }
 
   /**
@@ -350,7 +399,7 @@ function createRenderer() {
 /**
  * Rantai post-processing: RenderPass -> GTAOPass (AO halus) -> Outline -> Vignette -> OutputPass.
  * Target composer memakai DepthTexture agar OutlinePass dapat membaca kedalaman adegan.
- * @returns {{composer: EffectComposer, gtaoPass: object|null, outlinePass: OutlinePass, vignettePass: ShaderPass}}
+ * @returns {{composer: EffectComposer, gtaoPass: object|null, scenePass: DepthRenderPass, outlinePass: OutlinePass, vignettePass: ShaderPass}}
  */
 function createComposer(renderer, scene, camera) {
   const composer = new EffectComposer(renderer, createComposerTarget(renderer));
@@ -364,7 +413,7 @@ function createComposer(renderer, scene, camera) {
   vignettePass.enabled = RENDER.vignette;
   composer.addPass(vignettePass);
   composer.addPass(new OutputPass());
-  return { composer, gtaoPass: null, outlinePass, vignettePass }; // gtaoPass dibuat malas (App.setAO)
+  return { composer, gtaoPass: null, scenePass, outlinePass, vignettePass }; // gtaoPass dibuat malas (App.setAO)
 }
 
 /** Render target HDR composer + DepthTexture (ukuran fisik; diperbarui composer.setSize). */
