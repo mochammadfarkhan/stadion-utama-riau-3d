@@ -69,9 +69,58 @@ function grafitiTexture(seed) {
   return t;
 }
 
+/**
+ * Tekstur seng gelombang berkarat: pita vertikal terang-gelap (gelombang radial di lathe), noda karat & jejak air
+ * hujan cokelat, sambungan lembar tiap 1/4 tinggi. Dipetakan u = keliling (diulang 96×), v = profil. Node → null.
+ */
+function sengTexture(seed) {
+  if (!hasDocument()) return null;
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 256;
+  const g = c.getContext('2d');
+  if (!g) return null;
+  const rnd = createRng(seed);
+  for (let x = 0; x < 256; x += 1) {
+    const wave = 0.5 + 0.5 * Math.sin((x / 256) * Math.PI * 8);
+    const v = Math.round(118 + wave * 52);
+    g.fillStyle = `rgb(${v},${v + 5},${v + 9})`;
+    g.fillRect(x, 0, 1, 256);
+  }
+  for (let i = 0; i < 70; i += 1) {
+    const x = rnd() * 256;
+    const y = rnd() * 256;
+    const len = 20 + rnd() * 120;
+    const grad = g.createLinearGradient(x, y, x, y + len);
+    const a = 0.12 + rnd() * 0.25;
+    grad.addColorStop(0, `rgba(122,72,38,${a})`);
+    grad.addColorStop(1, 'rgba(122,72,38,0)');
+    g.fillStyle = grad;
+    g.fillRect(x, y, 3 + rnd() * 14, len);
+  }
+  g.strokeStyle = 'rgba(40,44,48,0.5)';
+  g.lineWidth = 2;
+  for (const y of [0, 64, 128, 192]) {
+    g.beginPath();
+    g.moveTo(0, y);
+    g.lineTo(256, y);
+    g.stroke();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = THREE.RepeatWrapping;
+  t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(12, 2);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+
 const M = {
   semen: () => heroMaterial('ggm:semen', () => named(new THREE.MeshStandardMaterial({ color: WR.semen, roughness: 0.97, side: THREE.DoubleSide, ...surfaceMaps('concrete', 3) }), 'ggm:semen-kasar')),
-  seng: () => heroMaterial('ggm:seng', () => named(new THREE.MeshStandardMaterial({ color: WR.seng, roughness: 0.6, metalness: 0.45, side: THREE.DoubleSide }), 'ggm:seng')),
+  seng: () => heroMaterial('ggm:seng', () => {
+    const map = sengTexture(314450943);
+    return named(new THREE.MeshStandardMaterial({ color: map ? 0xffffff : WR.seng, map, roughness: 0.62, metalness: 0.4, side: THREE.DoubleSide }), 'ggm:seng');
+  }),
   tanah: () => heroMaterial('ggm:tanah', () => named(new THREE.MeshLambertMaterial({ color: WR.tanah }), 'ggm:tanah-merah')),
   kerikil: () => heroMaterial('ggm:kerikil', () => named(new THREE.MeshLambertMaterial({ color: WR.kerikil }), 'ggm:jalan-batu')),
   karat: () => heroMaterial('ggm:karat', () => named(new THREE.MeshLambertMaterial({ color: WR.karat }), 'ggm:besi-karat')),

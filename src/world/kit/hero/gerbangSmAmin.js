@@ -57,6 +57,7 @@ const lambert = (key, color) => heroMaterial(`gerbang:${key}`, () => named(new T
 const M = {
   pilar: () => lambert('pilar', W.pilar),
   alas: () => lambert('alas', W.alas),
+  pita: () => lambert('pita', 0xb9b3a2),
   balok: () => lambert('balok', W.balok),
   besi: () => lambert('besi', W.besi),
   pos: () => lambert('pos', W.pos),
@@ -73,10 +74,32 @@ const M = {
 function pilar(f) {
   const { x, w, d, h, alas } = GERBANG.pilar;
   for (const sx of [-1, 1]) {
-    f.box(M.alas(), [sx * x - w / 2 - 0.15, sx * x + w / 2 + 0.15], [0, alas], [-d / 2 - 0.15, d / 2 + 0.15]);
-    f.box(M.pilar(), [sx * x - w / 2, sx * x + w / 2], [alas, h], [-d / 2, d / 2]);
-    f.box(M.lampu(), [sx * x - 0.25, sx * x + 0.25], [GERBANG.balok.y1, GERBANG.balok.y1 + 0.6], [-0.25, 0.25], { castShadow: false });
+    const cx = sx * x;
+    f.box(M.alas(), [cx - w / 2 - 0.15, cx + w / 2 + 0.15], [0, alas], [-d / 2 - 0.15, d / 2 + 0.15]);
+    f.box(M.pilar(), [cx - w / 2, cx + w / 2], [alas, h], [-d / 2, d / 2]);
+    // pita horizontal & panel cekung berbingkai (tiga pita, dua panel) memecah bidang polos pilar
+    for (const y of [alas + 0.3, 3.4, 5.6]) f.box(M.pita(), [cx - w / 2 - 0.08, cx + w / 2 + 0.08], [y, y + 0.14], [-d / 2 - 0.08, d / 2 + 0.08], { castShadow: false });
+    for (const [y0, y1] of [[alas + 0.7, 3.1], [3.8, 5.3]]) {
+      f.box(M.alas(), [cx - w / 2 + 0.28, cx + w / 2 - 0.28], [y0, y1], [-d / 2 - 0.03, -d / 2], { castShadow: false });
+      f.box(M.alas(), [cx - w / 2 + 0.28, cx + w / 2 - 0.28], [y0, y1], [d / 2, d / 2 + 0.03], { castShadow: false });
+    }
+    // kepala pilar: kornis menjorok + tutup piramida rendah + lampu bola menyala malam
+    f.box(M.pita(), [cx - w / 2 - 0.25, cx + w / 2 + 0.25], [h, h + 0.22], [-d / 2 - 0.25, d / 2 + 0.25]);
+    f.box(M.pilar(), [cx - w / 2 - 0.05, cx + w / 2 + 0.05], [h + 0.22, h + 0.55], [-d / 2 - 0.05, d / 2 + 0.05]);
+    f.box(M.lampu(), [cx - 0.3, cx + 0.3], [h + 0.55, h + 1.15], [-0.3, 0.3], { castShadow: false });
+    f.box(M.pita(), [cx - 0.36, cx + 0.36], [h + 1.15, h + 1.27], [-0.36, 0.36], { castShadow: false });
   }
+}
+
+/** Tembok rendah berpagar besi menyambung pilar ke sisi kampus (selatan) — pembatas pejalan kaki, bukan penghalang jalan. */
+function temboks(f) {
+  const { x, w, d } = GERBANG.pilar;
+  const x0 = x + w / 2 + 0.3;
+  const x1 = x0 + 9;
+  f.box(M.pilar(), [x0, x1], [0, 0.85], [-d / 2 + 0.2, d / 2 - 0.2]);
+  f.box(M.pita(), [x0, x1], [0.85, 0.97], [-d / 2 + 0.1, d / 2 - 0.1], { castShadow: false });
+  for (let xx = x0 + 0.3; xx <= x1; xx += 0.14 * 6) f.box(M.besi(), [xx - 0.02, xx + 0.02], [0.97, 2.1], [-0.02, 0.02], { castShadow: false });
+  f.box(M.besi(), [x0, x1], [2.05, 2.12], [-0.03, 0.03], { castShadow: false });
 }
 
 function balok(f) {
@@ -125,6 +148,7 @@ function spanduk(f) {
 export function buildGerbangSmAmin(plan, _mats, ctx = {}) {
   const f = createHeroFrame({ ...GERBANG_SITE, y: heroBaseY(plan, ctx, GERBANG_SITE) - PLINTH, origin: ctx?.origin ?? null });
   pilar(f);
+  temboks(f);
   balok(f);
   daunPagar(f);
   posSatpam(f);

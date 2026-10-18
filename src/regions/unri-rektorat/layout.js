@@ -33,16 +33,20 @@ export function steppingStones(ring, from, to, spacing = 1.1, minEdge = 0.6) {
   return freezeAll(out);
 }
 
-/** Satu baris pohon dengan sedikit jitter, rotasi, dan skala (deterministik dari rnd). */
+/**
+ * Satu baris pohon dengan jitter, rotasi, dan skala (deterministik dari rnd); ±7% pohon tidak ada (celah alami,
+ * rng tetap dimajukan agar deretan lain tidak bergeser) supaya barisan tidak seperti kebun bibit.
+ */
 function treeRow(rnd, x0, x1, step, z) {
   const out = [];
   for (let x = x0; x <= x1 + 1e-9; x += step) {
-    out.push({
-      x: r2(x + (rnd() - 0.5) * 0.6),
-      z: r2(z + (rnd() - 0.5) * 0.4),
+    const p = {
+      x: r2(x + (rnd() - 0.5) * 1.4),
+      z: r2(z + (rnd() - 0.5) * 0.6),
       rotY: r2(rnd() * Math.PI * 2),
-      scale: r2(0.88 + rnd() * 0.24),
-    });
+      scale: r2(0.78 + rnd() * 0.44),
+    };
+    if (rnd() >= 0.07) out.push(p);
   }
   return out;
 }

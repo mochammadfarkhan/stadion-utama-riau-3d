@@ -15,7 +15,7 @@ import { MATS } from './materials.js';
 import { REKTORAT_PLACEMENT as P } from './placement.js';
 import { addBox } from './rektorat.js';
 
-export const PERPUS = Object.freeze({ levels: 2, tinggi: 7.6, osmId: 282225374, teks: 'PERPUSTAKAAN UNIVERSITAS RIAU' });
+export const PERPUS = Object.freeze({ levels: 2, tinggi: 7.6, link: 5.4, osmId: 282225374, teks: 'PERPUSTAKAAN UNIVERSITAS RIAU' });
 /** Matriks dunia → lokal region (yaw 0). */
 const TO_LOCAL = new THREE.Matrix4().makeTranslation(-P.x, 0, -P.z);
 
@@ -73,15 +73,23 @@ export function buildPerpustakaan(env, scope, { logger = console } = {}) {
     }
   });
   for (const r of PERPUS_MASSA.penghubung) {
-    addBox(raw, MATS.perpusDinding(), [r.x0, r.x1], [y0, y0 + PERPUS.tinggi], [r.z0, r.z1], { name: 'perpusPenghubung' });
-    addBox(raw, MATS.parapet(), [r.x0, r.x1], [y0 + PERPUS.tinggi, y0 + PERPUS.tinggi + 0.5], [r.z0, r.z1], { name: 'perpusParapet' });
+    const h = PERPUS.link;
+    addBox(raw, MATS.perpusDinding(), [r.x0, r.x1], [y0, y0 + h], [r.z0, r.z1], { name: 'perpusPenghubung' });
+    addBox(raw, MATS.dinding(), [r.x0 - 0.15, r.x1 + 0.15], [y0 + h, y0 + h + 0.3], [r.z0 - 0.15, r.z1 + 0.15], { name: 'perpusAtapPenghubung' });
+    // tonjolan masuk barat/timur (sisi luar mengarah ±X): pita kaca gelap lobi + kanopi beton tipis
+    if (r.x0 < -130 || r.x1 > -90) {
+      const out = r.x1 > -90 ? [r.x1, r.x1 + 0.04] : [r.x0 - 0.04, r.x0];
+      addBox(raw, MATS.kacaPita(), out, [y0 + 0.4, y0 + 3.4], [r.z0 + 0.9, r.z1 - 0.9], { cast: false, name: 'perpusKacaLobi' });
+      const ext = r.x1 > -90 ? [r.x1, r.x1 + 1.6] : [r.x0 - 1.6, r.x0];
+      addBox(raw, MATS.dinding(), ext, [y0 + 3.6, y0 + 3.9], [r.z0 + 0.4, r.z1 - 0.4], { name: 'perpusKanopiLobi' });
+    }
   }
   const sign = new THREE.Mesh(
     new THREE.PlaneGeometry(6, 0.9),
     makeTextMaterial(PERPUS.teks, { bg: '#121417', fg: '#ffffff', width: 1536, height: 224, font: 'bold 120px sans-serif', padding: 36 }),
   );
   sign.rotation.y = Math.PI / 2;
-  sign.position.set(-84.5 + 0.03, y0 + 5.2, -61.45);
+  sign.position.set(-84.5 + 0.03, y0 + 4.65, -61.45);
   sign.name = 'perpusPapanNama';
   raw.add(sign);
   return raw;

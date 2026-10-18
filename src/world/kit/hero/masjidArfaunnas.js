@@ -28,7 +28,7 @@ export const MASJID = Object.freeze({
   pelataran: Object.freeze({ x0: -18, x1: 18, z0: -42, z1: -26.3 }),
   baris: Object.freeze([-30.5, -37.5]),
   huruf: "MASJID ARFA' UNNAS UNIVERSITAS RIAU",
-  warna: Object.freeze({ krem: 0xefe3c2, oker: 0xc8962e, keramik: 0xf4f2ee, gelap: 0x1d1f24, dalam: 0x141418, marka: 0xf2f2ee, toa: 0xc9ccd0, emas: 0xd4a73a, mozaik: 0x6f6aa8 }),
+  warna: Object.freeze({ krem: 0xf0d9a2, oker: 0xc48d22, keramik: 0xf4f2ee, gelap: 0x1d1f24, dalam: 0x141418, marka: 0xf2f2ee, toa: 0xc9ccd0, emas: 0xd4a73a, mozaik: 0x6f6aa8 }),
 });
 const HW = MASJID.w / 2;       // 18,8
 const HD = MASJID.d / 2;       // 15,25
