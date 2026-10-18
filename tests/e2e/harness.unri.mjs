@@ -29,7 +29,7 @@ function loadPlaywright() {
 }
 
 /** Vite (port) + Chromium headless; kembalikan { page, errors, close() }. */
-export async function openSim({ port = 5176, gpu = 'd3d11', width = 1600, height = 900 } = {}) {
+export async function openSim({ port = 5176, gpu = 'd3d11', width = 1600, height = 900, beforeGoto = null } = {}) {
   const vite = await import(pathToFileURL(join(ROOT, 'node_modules', 'vite', 'dist', 'node', 'index.js')).href);
   const server = await vite.createServer({
     root: ROOT, configFile: join(ROOT, 'vite.config.js'), server: { port, strictPort: true, fs: { strict: false } }, logLevel: 'error',
@@ -42,6 +42,7 @@ export async function openSim({ port = 5176, gpu = 'd3d11', width = 1600, height
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('response', (res) => { if (res.status() >= 400) errors.push(`HTTP ${res.status()} ${res.url()}`); });
+  if (beforeGoto) await beforeGoto(page); // mis. addInitScript untuk menyuntik localStorage
   await page.goto(`http://localhost:${port}/`, { waitUntil: 'load', timeout: 180000 });
   await page.waitForFunction(() => window.__sim?.app && window.__sim.district, null, { timeout: 240000 });
   await page.evaluate(() => {
