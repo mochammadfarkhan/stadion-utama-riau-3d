@@ -17,3 +17,5 @@
 }
 body.is-photo #info-card { display: none; }
 body.is-interior #hud-speed, body.is-interior #hud-score { display: none; }
+/* Cerita eksterior (kartu misi, dialog) tidak relevan di dalam sekre; tombol E di dalam dipakai interaksi barang. */
+body.is-interior #story-card, body.is-interior #story-dialog { display: none; }

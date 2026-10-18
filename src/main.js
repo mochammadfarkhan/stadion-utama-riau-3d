@@ -52,7 +52,8 @@ import { createLocalContext, pointToWorld } from './app/regionContext.js';
 import { withPlacement, regionContains } from './regions/Region.js';
 import { unriLembagaRegion } from './regions/unri-lembaga/index.js';
 import { LEMBAGA_LAYOUT } from './regions/unri-lembaga/layout.js';
-import { createInteriorPortal, createStubInterior } from './app/interiorPortal.js';
+import { createInteriorPortal } from './app/interiorPortal.js';
+import { createSekreInterior, SEKRE_ID } from './interiors/sekre/index.js';
 import { createPortalTrigger } from './app/portalTrigger.js';
 import { createFadeOverlay } from './ui/FadeOverlay.js';
 import { sekreExitTo } from './regions/unri-lembaga/portalDoors.js';
@@ -366,13 +367,14 @@ function setupPortal({
   const fader = createFadeOverlay(document.body);
   lifecycle.add(() => fader.dispose());
   const ormawa = LEMBAGA_LAYOUT.rooms[PLAYER_ROOM_INDEX];
-  const interiors = new Map([['sekre', createStubInterior({ id: 'sekre', label: `Sekretariat ${ormawa.nama}`, exitTo: sekreExitTo() })]]);
+  const interiors = new Map([[SEKRE_ID, createSekreInterior({ exitTo: sekreExitTo() })]]);
   const teleport = (x, z, yaw) => {
     ents.bike.state = { ...ents.bike.state, x, z, yaw, v: 0 };
     ents.bike.setCollider(createCollider({ x, z }, colliders.isWalkable, colliders.penetration));
   };
   const portal = createInteriorPortal({
     app, input, hud, interiors, regionManager: regions, time, weather, store, audioBus, fader,
+    ctx: { ormawa }, // interiors tidak boleh mengimpor regions: data ormawa pemain diteruskan lewat ctx build
     bike: { get state() { return ents.bike.state; }, teleport },
     isUiBlocking: () => Boolean(hud.shopOpen || story.journal.open || travel.menu.open
       || panelRef.current?.isOpen || panelRef.current?.isHelpOpen),

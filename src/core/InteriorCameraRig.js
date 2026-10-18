@@ -55,6 +55,7 @@ export class InteriorCameraRig {
     this.pitch = 0;
     this.photo = false;
     this.peekState = null;
+    this.walkerClose = false; // orang ketiga: kamera < 0,8 m dari pemain (portal menyembunyikan pemain)
     this._snap = true;
     this._target = new THREE.Vector3();
     this._desired = new THREE.Vector3();
@@ -183,6 +184,8 @@ export class InteriorCameraRig {
     // posisi hasil smoothing bisa menyilang sudut dinding/plafon: periksa ulang terhadap titik pandang
     const again = this.#safeOffset(target, { x: cam.x - target.x, y: cam.y - target.y, z: cam.z - target.z });
     cam.set(target.x + again.x, Math.max(INTERIOR_CAM.minHeight, target.y + again.y), target.z + again.z);
+    // Ruang sempit: kamera terdorong dinding sampai nyaris menempel pada pemain → pemain disembunyikan (kepala tidak menutupi layar).
+    this.walkerClose = Math.hypot(cam.x - target.x, cam.z - target.z) < 0.8;
     this.camera.lookAt(target);
   }
 

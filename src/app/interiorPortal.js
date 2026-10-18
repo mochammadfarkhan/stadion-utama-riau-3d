@@ -15,8 +15,6 @@
  * enter(interiorId, { door }). Fade memakai port `fader.fade(0|1)` (`src/ui/FadeOverlay.js`, M4).
  * Penanda kompatibilitas M4: PORTAL_STATES, LOCKED_TOAST; build(ctx) menerima `exit` (pintu interaktif).
  */
-import * as THREE from 'three';
-import { createTextTexture } from '../world/props/canvasText.js';
 import { createResourceScope, withScope } from '../engine/ResourceScope.js';
 import { disposeTree } from '../engine/disposeTree.js';
 import { validateInteriorBuild, nearestInteractable } from '../interiors/Interior.js';
@@ -325,7 +323,7 @@ export function createInteriorPortal({
         phase: 'camera',
         update: (dt) => {
           c.rig.update(c.walker.state, dt, c.rig.photo && !isUiBlocking() ? photoMove(input) : null);
-          c.walker.setVisible(!c.rig.firstPersonView);
+          c.walker.setVisible(!c.rig.firstPersonView && !(c.rig.mode === 'third' && c.rig.walkerClose));
         },
       },
       {
@@ -366,47 +364,4 @@ export function createInteriorPortal({
       state = 'outside';
     },
   };
-}
-
-/**
- * Interior STUB (M4): ruang 4,2 × 6 × 3,2 m abu-abu, pintu cokelat, papan teks "menyusul (M5)", lampu TL.
- * Bentuk = kontrak defineInterior spec §4.8 (id, label, size, spawn, exitTo, build → {scene, camera, colliders,
- * interactables, photoPresets, systems, dispose}).
- */
-export function createStubInterior({ id, label, exitTo, size = { w: 4.2, d: 6, h: 3.2 } }) {
-  return Object.freeze({
-    id, label, exitTo, size: Object.freeze({ ...size }),
-    spawn: Object.freeze({ x: 0, z: size.d / 2 - 0.8, yaw: Math.PI }),
-    build() {
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x202020);
-      const room = new THREE.Mesh(
-        new THREE.BoxGeometry(size.w, size.h, size.d).translate(0, size.h / 2, 0),
-        new THREE.MeshStandardMaterial({ color: 0x8a8a8a, roughness: 0.95, side: THREE.BackSide }),
-      );
-      const door = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 2.1).translate(-1.2, 1.05, -size.d / 2 + 0.01), new THREE.MeshStandardMaterial({ color: 0x6b4a2f }));
-      const tex = createTextTexture({ text: `${label}\nInterior menyusul (M5)\nTekan E untuk keluar`, width: 1024, height: 384, bg: 0xf1ede4, fg: 0x1b1b1b });
-      const board = new THREE.Mesh(
-        new THREE.PlaneGeometry(1.8, 0.68).translate(0.8, 1.6, -size.d / 2 + 0.02),
-        new THREE.MeshStandardMaterial(tex ? { map: tex } : { color: 0xf1ede4 }),
-      );
-      const tl = new THREE.PointLight(0xfff1dc, 30, 12, 2);
-      tl.position.set(0, size.h - 0.2, 0);
-      scene.add(room, door, board, tl, new THREE.AmbientLight(0xffffff, 0.6));
-      const camera = new THREE.PerspectiveCamera(70, 1, 0.05, 50);
-      camera.position.set(0, 1.55, size.d / 2 - 0.8);
-      camera.lookAt(0, 1.5, -size.d / 2);
-      return {
-        scene,
-        camera,
-        colliders: { isWalkable: (x, z) => Math.abs(x) < size.w / 2 - 0.3 && Math.abs(z) < size.d / 2 - 0.3 },
-        interactables: [{ id: 'pintu', label: 'Pintu', pos: { x: -1.2, y: 1.0, z: -size.d / 2 + 0.3 }, radius: 1.2, prompt: 'Keluar', onInteract: () => ({ text: 'Keluar' }) }],
-        photoPresets: [],
-        systems: [],
-        dispose() {
-          disposeTree(scene);
-        },
-      };
-    },
-  });
 }
