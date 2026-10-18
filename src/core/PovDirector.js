@@ -38,11 +38,17 @@ export class PovDirector {
     this._duration = 1.5;
     this._pending = false;
     this._hasSmooth = false;
+    this._src = null; // sumber POV terakhir (label subjek POV region)
   }
 
   get active() { return this.mode !== 'idle'; }
   get povId() { return this.mode === 'pov' ? this.def.id : null; }
-  get label() { return this.mode === 'pov' ? this.def.label : null; }
+  /** Label POV aktif; POV region memakai label POV region subjek (mis. "Teras sekre"). */
+  get label() {
+    if (this.mode !== 'pov') return null;
+    if (this.def.kind === 'region') return this._src?.regionPov?.(this.subject)?.label ?? this.def.label;
+    return this.def.label;
+  }
   /** Sepeda dibekukan hanya selama POV aktif yang tidak mengendalikan sepeda. */
   get freezesBike() { return this.mode === 'pov' && !this.def.controlsBike; }
 
@@ -51,6 +57,7 @@ export class PovDirector {
     if (!povPose(def, src, subject, 0, this._raw)) return false;
     this.#captureFrom();
     this.def = def;
+    this._src = src;
     this.subject = subject;
     this.mode = 'pov';
     this.yaw = 0;

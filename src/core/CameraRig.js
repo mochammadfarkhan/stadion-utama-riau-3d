@@ -143,15 +143,16 @@ export class CameraRig {
       if (!def.cycle) return this.exitPov() ? 'Kembali ke sepeda' : null;
       const count = this.#subjectCount(def.id);
       d.setSubject((d.subject + 1) % Math.max(1, count));
-      return `${def.label} ${(d.subject % Math.max(1, count)) + 1}/${count}`;
+      return `${d.label} ${(d.subject % Math.max(1, count)) + 1}/${count}`; // POV region: label POV subjek
     }
-    return d.enter(def, this._source, 0) ? def.label : null;
+    return d.enter(def, this._source, 0) ? d.label : null;
   }
 
   #subjectCount(id) {
     const s = this._source;
     if (id === 'pelari') return s.runnerCount?.() ?? 1;
     if (id === 'pedagang') return s.vendorCount?.() ?? 1;
+    if (id === 'region') return s.regionPovCount?.() ?? 1;
     return 1;
   }
 

@@ -21,6 +21,8 @@ export const POVS = Object.freeze([
   { id: 'pedagang', label: 'Pedagang', key: 'Digit5', kind: 'follow', fov: 62, controlsBike: false, follow: 5, cycle: true, minElev: -0.1, maxElev: 1.0, zoomMin: 0.5, zoomMax: 2.0 },
   { id: 'orbit', label: 'Orbit sinematik', key: 'Digit6', kind: 'orbit', fov: 50, controlsBike: false, minElev: 0.15, maxElev: 1.2, zoomMin: 0.6, zoomMax: 1.5 },
   { id: 'atas', label: 'Top-down', key: 'Digit7', kind: 'follow', fov: 45, controlsBike: true, follow: 8, minElev: 1.0, maxElev: 1.5, zoomMin: 0.4, zoomMax: 2.2 },
+  // M0 multi-region: POV milik region aktif (Region.povs, pose dunia); tekan lagi = POV region berikutnya.
+  { id: 'region', label: 'POV region', key: 'Digit8', kind: 'region', fov: 55, controlsBike: false, cycle: true, minElev: -0.2, maxElev: 1.4, zoomMin: 0.4, zoomMax: 2.0 },
 ].map(Object.freeze));
 
 export const POV_BY_ID = Object.freeze(Object.fromEntries(POVS.map((p) => [p.id, p])));
@@ -235,7 +237,8 @@ function poseTopDown(out, bike) {
  * @param {PovDef} def
  * @param {{bike:{x:number,z:number,yaw:number}, ball?:()=>{x:number,z:number},
  *   runner?:(i:number)=>({x:number,z:number,yaw:number}|null),
- *   vendor?:(i:number)=>({x:number,z:number,yaw:number}|null), frame?:object}} src
+ *   vendor?:(i:number)=>({x:number,z:number,yaw:number}|null), frame?:object,
+ *   regionPov?:(i:number)=>({id:string, label:string, pose(ctx:{time:number, bike:object}):object|null}|null)}} src
  *   frame: frame region stadion (createRegionFrame); POV tetap (udara/tribun/orbit) dihitung lokal lalu diubah ke dunia
  * @param {number} subject indeks subjek (pelari/pedagang)
  * @param {number} time detik sejak mulai
@@ -265,6 +268,14 @@ export function povPose(def, src, subject, time, out) {
       if (!v) return false;
       poseFront(out, v);
       break;
+    }
+    case 'region': { // pose region sudah di frame DUNIA: tanpa poseToWorld stadion
+      const p = src.regionPov?.(subject)?.pose({ time, bike: src.bike });
+      if (!p || ![p.px, p.py, p.pz, p.tx, p.ty, p.tz].every(Number.isFinite)) return false;
+      out.px = p.px; out.py = p.py; out.pz = p.pz;
+      out.tx = p.tx; out.ty = p.ty; out.tz = p.tz;
+      out.fov = Number.isFinite(p.fov) ? p.fov : def.fov;
+      return true;
     }
     default: return false;
   }
