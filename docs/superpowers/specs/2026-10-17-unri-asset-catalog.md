@@ -161,3 +161,20 @@ Arketipe adalah aset parametrik, bukan model tetap. Budget per gedung tipikal (L
 - GLB baru (B): A01–A04, P02, N01–N04, N10, S07, S13, S14, S15, S17, S19, S20 → target total ≤ 6 MB.
 - Prioritas 1 untuk M5 (interior siap tampil): S01–S03, S06, S07, S08, S09, S10, S13, S14, S16, S17, S19, S22,
   S24, S26, S27, S29, S30, C01, C03–C06, C08.
+
+Total GLB `public/models/unri` terukur E2E M7: 2.467.220 byte (batas 6 MB).
+
+## 9. Status aset M7 (diperbarui per tonggak)
+
+| ID | Status | Berkas final | Catatan |
+|---|---|---|---|
+| A01 | final (3 LOD) | `public/models/unri/a01-motor-bebek{,-lod,-far}.glb` | Blender headless `assets-src/blender/unri/m7_motor.py`: bodi dari loft superelips + subdivisi, ban berprofil, pelek bersuara, garpu/stang/knalpot/peredam kejut dari tabung. hi ±3,8k, lod ±1,0k, far ±110 segitiga. Warna bodi per instans [INFERENSI]; bentuk gaya, bukan merek |
+| A02 | final (3 LOD) | `public/models/unri/a02-motor-matic{,-lod,-far}.glb` | idem (hi ±3,5k) |
+| A03 | final (3 LOD) | `public/models/unri/a03-motor-sport{,-lod,-far}.glb` | idem (hi ±3,7k) |
+| A04 | final (3 LOD) | `public/models/unri/a04-motor-tua{,-lod,-far}.glb` | idem (hi ±3,5k) |
+| P02 | final (model), tidak terpasang | `public/models/unri/p02-halte-tmp.glb` | node OSM 4559431711 & 4559433677 di luar batas distrik (D6 plan M7); dibuat oleh `m7_props.py` |
+| P12 | final (reuse) | `src/entities/Vendor.js` + `src/world/props/Cart.js` | gerobak stadion sebagai etalase Kantin FKIP; PKL di kampus tetap GAP (tidak disajikan sebagai PKL) |
+| N10 | final | `public/models/unri/n10-lambang-unri.glb` | plang di jalur hijau Jl. Binawidya UNRI dekat Gerbang Soebrantas [INFERENSI penempatan]; isi lambang dari deskripsi resmi [T]; dibuat oleh `m7_props.py` |
+| C01 | final (P) | `src/entities/Humanoid.outfits.js` `randomStudentOutfit` | almamater biru langit ±30% + ransel |
+| C02 | final (P) | `randomStudentOutfit` (kasual) | celana panjang/rok [POLA UMUM] |
+| C10 | final (P) | `campusGuardOutfit` | seragam krem-coklat [INFERENSI Perpol 4/2020] |

@@ -80,7 +80,8 @@ describe('unriDistrict.build', () => {
     scheduler.run();
     result.systems[0].update(1 / 60, { focus: { x: -219, z: 1107 } });
     await expect(settled).resolves.toBe(true);
-    expect(result.group.children).toHaveLength(2); // lapisan tanah M2 (kosong tanpa data ground) + mesh terrain chunk
+    expect(result.group.children).toHaveLength(3); // lapisan tanah M2 (kosong tanpa data ground) + kehidupan kampus M7 + mesh terrain chunk
+    expect(result.life.group.name).toBe('kehidupanKampus');
     expect(holeChanged).toHaveBeenCalled();
     expect(result.groundHole.data.some((v) => v === 1)).toBe(true);
     expect(SETTLE.radius).toBe(600);

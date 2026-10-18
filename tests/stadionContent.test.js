@@ -18,6 +18,9 @@ const rectCorners = ({ x, z, w, d }) => {
   const hz = d / 2 - 0.5;
   return [{ x: x - hx, z: z - hz }, { x: x + hx, z: z - hz }, { x: x + hx, z: z + hz }, { x: x - hx, z: z + hz }];
 };
+/** NPC & telur kampus (M7) hidup di region/distrik lain: NPC ber-`zone`, telur ber-`at.region` (mis. 'world'). */
+const stadionNpcs = STORY_NPCS.filter((n) => !n.zone);
+const stadionEggs = EASTER_EGGS.filter((e) => e.at && !e.at.region);
 /** Telur yang sengaja di luar mask (di kota): id → alasan. */
 const CITY_EGGS = Object.freeze({ 'jejak-3': 'Venue Baseball OSM (way 535214902)' });
 
@@ -44,8 +47,8 @@ describe('konten region stadion di dalam mask', () => {
   });
 
   it('NPC cerita & telur jarak di dalam mask, kecuali yang sengaja di kota', () => {
-    expect(STORY_NPCS.filter((n) => !inside(n)).map((n) => n.id)).toEqual([]);
-    const out = EASTER_EGGS.filter((e) => e.at && !inside(e.at)).map((e) => e.id);
+    expect(stadionNpcs.filter((n) => !inside(n)).map((n) => n.id)).toEqual([]);
+    const out = stadionEggs.filter((e) => !inside(e.at)).map((e) => e.id);
     expect(out).toEqual(Object.keys(CITY_EGGS));
   });
 
@@ -67,8 +70,8 @@ describe('konten region stadion di dalam mask', () => {
   it('titik yang dilalui pemain walkable (collider region): spawn, waypoint pedagang, NPC, telur di mask', () => {
     const pts = [
       LAYOUT.spawn, ...LAYOUT.vendors.flatMap((v) => v.waypoints),
-      ...STORY_NPCS.map((n) => ({ x: n.x + 3, z: n.z })),
-      ...EASTER_EGGS.filter((e) => e.at && !CITY_EGGS[e.id]).map((e) => e.at),
+      ...stadionNpcs.map((n) => ({ x: n.x + 3, z: n.z })),
+      ...stadionEggs.filter((e) => !CITY_EGGS[e.id]).map((e) => e.at),
     ];
     expect(pts.filter((p) => !stadionColliders.isWalkable(p.x, p.z))).toEqual([]);
   });
