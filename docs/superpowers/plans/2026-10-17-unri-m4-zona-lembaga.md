@@ -63,10 +63,10 @@ Mask region (dunia, beku, CCW luas bertanda +192.178 m²): `[-415,690] [-112,690
 | # | Keputusan | Alasan |
 |---|---|---|
 | D1 | Placement region `{x:−219.47, z:1099.21, yaw:0}`; sub-frame per bangunan | lokal = dunia − origin (mudah dicek, cocok PartList kit yang berkoordinat dunia); sekretariat tetap lurus di sub-frame-nya |
-| D2 | H01/H02/H03 **dimiliki region**: `HERO_BUILDERS` untuk ketiganya mengembalikan `[]` (`regionOwnedHero`) dan override `w282225436` (tribun, levels=7) diarahkan ke `hero:stadion-mini` | tanpa ini distrik menggambar ulang gedung yang sama (z-fighting) dan tribun tampil sebagai balok 7 lantai. **Deviasi**: menyentuh `src/districts/unri/buildings.data.js` (tidak tercantum di "Ubah" M4) |
+| D2 | H01/H02/H03 **dimiliki region**: `HERO_BUILDERS` untuk ketiganya mengembalikan `[]` (`regionOwnedHero`) dan override `w282225436` (tribun, levels=7) diarahkan ke `hero:stadion-mini` | tanpa ini distrik menggambar ulang gedung yang sama (z-fighting) dan tribun tampil sebagai balok 7 lantai. Override H01–H03 + tribun → `hero:stadion-mini` SUDAH ada di tabel M3 (Serah terima M3): M4 hanya memverifikasi, tidak menyunting `buildings.data.js`; M4 menyesuaikan tes M3 `tests/kit/kitBuild.test.js` (hero milik region = `[]`) — rekonsiliasi 2026-10-18 |
 | D3 | Rusunawa & FH: cangkang tetap K09/K10 milik distrik; `rusun.js`/`fhMangkrak.js` hanya menambah detail (papan nama, pos satpam, jemuran halaman, pagar seng, plang, gundukan material, ilalang) | menghindari dua cangkang di footprint yang sama |
 | D4 | `App.js` TIDAK diubah di M4: port `appViewPort(app)` memakai `app.setView` bila ada (M5), bila belum menukar scene/kamera pass adegan composer & OutlinePass lewat `app.post` | stub wajib memenuhi "scene eksterior tidak dirender" (§4.8) tanpa merebut pekerjaan M5 (`App.setView` + `setSystemGate`) |
-| D5 | Model Blender A01/A02 dibuat di M4 (indeks: M7) | diminta brief M4; M7 tinggal A03/A04 |
+| D5 | Model Blender A01/A02 dibuat di M4 (indeks: M7) → `public/models/unri/a01-motor-bebek.glb`, `a02-motor-matic.glb` (konvensi nama `<id>-<nama>` seperti M5/M6/M7), material `unri:bodi`/`unri:hitam`/`unri:krom`/`unri:lampu` | diminta brief M4; M7 hanya menambah A03/A04 dengan nama material yang sama (rekonsiliasi 2026-10-18) |
 | D6 | Motor GLB di-*instance* (bukan clone per motor): mesh GLB → `InstancedMesh` per material | ±200 motor × clone = ratusan draw call |
 | D7 | Tidak menambah `PointLight` region; lampu selasar = material emisif + kolam cahaya aditif emisif; PJU (3 titik) lewat `nightLights` | PointLight baru memicu kompilasi ulang semua shader saat region dipasang |
 | D8 | Lintasan lari stadion mini 6 lajur tanah merah, tribun beton 16 undakan + atap seng di bagian VIP, **tanpa** lampu sorot | bentuk tapak oval 124 × 202 m menyiratkan lintasan; foto tidak ada → **[INFERENSI]**; lampu sorot tidak terkonfirmasi → tidak dipasang |
@@ -101,12 +101,12 @@ Buat:
 - `src/world/props/unri/{geom.js, atlas.js, papanNamaSekre.js, spanduk.js, papanPengumuman.js, rakSepatu.js, sandal.js, galon.js, jemuran.js, motor.js, ilalang.js}`.
 - `src/world/kit/hero/regionOwned.js`.
 - `src/ui/FadeOverlay.js`, `src/app/appView.js`, `src/app/interiorPortal.js` (stub), `src/app/portalTrigger.js`.
-- `assets-src/blender/unri/motor.py` (+ `motor.blend` hasil simpan), `public/models/unri/motor-bebek.glb`, `public/models/unri/motor-matic.glb`.
+- `assets-src/blender/unri/motor.py` (+ `motor.blend` hasil simpan), `public/models/unri/a01-motor-bebek.glb`, `public/models/unri/a02-motor-matic.glb`.
 - Tes: `tests/unri/lembagaGeometry.test.js`, `sekreData.test.js`, `lembagaLayout.test.js`, `lembagaCollider.test.js`, `atlasPack.test.js`, `propsCatalog.test.js`, `sekreWalls.test.js`, `sekretariatBudget.test.js`, `lembagaRegion.test.js`, `appView.test.js`, `interiorPortal.test.js`.
 - `tests/e2e/lembaga.e2e.mjs` — ukur draw call + screenshot.
 
 Ubah:
-- `src/world/kit/hero/index.js` (H01–H03 → milik region), `src/districts/unri/buildings.data.js` (D2), `src/main.js`, `src/app/fastTravel.js`, `tools/campusbake/config.js` (pad), `public/districts/unri/terrain/*.bin` (bake ulang), tes golden campusbake (hash baru), `tests/fastTravel.test.js`, `docs/superpowers/plans/2026-10-17-unri-00-index.md` (status M4).
+- `src/world/kit/hero/index.js` (H01–H03 → milik region), `tests/kit/kitBuild.test.js` (D2; `buildings.data.js` M3 hanya diverifikasi), `src/main.js`, `src/app/fastTravel.js`, `tools/campusbake/config.js` (pad), `public/districts/unri/terrain/*.bin` (bake ulang), tes golden campusbake (hash baru), `tests/fastTravel.test.js`, `docs/superpowers/plans/2026-10-17-unri-00-index.md` (status M4).
 
 ---
 
@@ -153,7 +153,7 @@ Isi tabel ini di "Catatan eksekusi" (akhir file plan) sebelum lanjut:
 | A7 `planBuilding(input)`, `buildBuilding(plan, mats)` → PartList `{geometry, material, matrix?, castShadow?, name?}`, `createKitMaterials(scope)`, `ARCHETYPES.K03` | ya | `kitAdapter.js` |
 | A8 klaster distrik memanggil `HERO_BUILDERS[archetype]` untuk LOD0 **dan** LOD1 | ya | Task 20 langkah 4 (pengecualian `isRegionOwned` di klaster) |
 | A9 `src/main.js` (M0): manager = `regions`, collider = `colliders`, fungsi `addFrameSystems`, `setupFastTravel`; pemanggilan `mountDistrict(` (M1) menerima objek opsi | ya | Task 21/24 |
-| A10 `mountDistrict(app, def, opts)` (M1) meneruskan `opts.isReserved` ke `ctx.isReserved` distrik (dipakai M2) | dicatat | Task 21 langkah 3b |
+| A10 `mountDistrict(app, def, opts)` meneruskan `opts.isReserved` ke `ctx.isReserved` distrik (disediakan M2 Task 20) | ya | bila tidak ada: M2 belum lengkap — lihat Task 21 langkah 3b (cabang cadangan) |
 
 - [ ] **Langkah 3: Commit catatan**
 
@@ -2217,8 +2217,8 @@ import { loadModel } from '../../assets/models.js';
 import { boxAt } from './geom.js';
 
 export const MOTOR = Object.freeze({
-  bebek: Object.freeze({ id: 'A01', nama: 'motor-bebek', w: 0.7, l: 1.9, h: 1.05, wheelR: 0.29, glb: 'models/unri/motor-bebek.glb' }),
-  matic: Object.freeze({ id: 'A02', nama: 'motor-matic', w: 0.7, l: 1.85, h: 1.1, wheelR: 0.25, glb: 'models/unri/motor-matic.glb' }),
+  bebek: Object.freeze({ id: 'A01', nama: 'motor-bebek', w: 0.7, l: 1.9, h: 1.05, wheelR: 0.29, glb: 'models/unri/a01-motor-bebek.glb' }),
+  matic: Object.freeze({ id: 'A02', nama: 'motor-matic', w: 0.7, l: 1.85, h: 1.1, wheelR: 0.25, glb: 'models/unri/a02-motor-matic.glb' }),
 });
 export const MOTOR_COLORS = Object.freeze([0xc62828, 0x1565c0, 0x212121, 0xeeeeee, 0x6d6d6d, 0x2e7d32, 0xf9a825, 0x8e24aa, 0x37474f, 0xd84315]);
 
@@ -4305,7 +4305,7 @@ git commit -m "feat(lembaga): proxy region 1 draw call + POV selasar/udara/tribu
 
 **Files:**
 - Create: `src/regions/unri-lembaga/index.js`, `src/world/kit/hero/regionOwned.js`
-- Modify: `src/world/kit/hero/index.js`, `src/districts/unri/buildings.data.js`
+- Modify: `src/world/kit/hero/index.js`, `tests/kit/kitBuild.test.js` (`src/districts/unri/buildings.data.js` M3 hanya diverifikasi)
 - Test: `tests/unri/lembagaRegion.test.js`
 
 - [ ] **Langkah 1: Tulis tes yang gagal**
@@ -4432,18 +4432,32 @@ import { isRegionOwned } from '../../world/kit/hero/regionOwned.js';
 if (isRegionOwned(HERO_BUILDERS[archetype])) continue; // dirender region (proxy saat jauh)
 ```
 
-- [ ] **Langkah 5: Override tribun & cek override hero di `src/districts/unri/buildings.data.js`**
+- [ ] **Langkah 5: Verifikasi override hero M3 (tanpa menyunting `buildings.data.js`) + sesuaikan tes kit M3**
 
-Pastikan tabel memuat ketiga entri berikut (tambah yang belum ada; jangan ubah entri lain):
-```js
-  w327530276: { archetype: 'hero:sekretariat-lembaga', levels: 1, sign: 'SEKRETARIAT LEMBAGA MAHASISWA', sumber: 'OSM way/327530276; denah [INFERENSI]', keyakinan: 'tinggi' },
-  w1480014538: { archetype: 'hero:student-center', levels: 3, sign: 'STUDENT CENTER', sumber: 'unri.ac.id (lokasi teks); way id [S]', keyakinan: 'sedang' },
-  w282225436: { archetype: 'hero:stadion-mini', levels: 2, sumber: 'OSM way/282225436 "tribun stadion" levels=7 (tribun, bukan 7 lantai); bentuk [INFERENSI]', keyakinan: 'rendah' },
+Rekonsiliasi 2026-10-18: tabel M3 (`BUILDING_OVERRIDES`, bentuk `wNNN: Object.freeze({ … })`) SUDAH memuat
+`w327530276` → `hero:sekretariat-lembaga`, `w1480014538` → `hero:student-center`, dan `w282225436` → `hero:stadion-mini`
+(levels 2, keyakinan rendah) — Serah terima M3. Verifikasi saja:
+```bash
+grep -n "w327530276\|w1480014538\|w282225436" src/districts/unri/buildings.data.js
 ```
-(Bentuk kunci mengikuti tabel M3 — bila M3 memakai kunci string `'w327530276'`, pakai bentuk itu.)
+Expected: tiga entri dengan archetype di atas. Bila ada yang hilang (M3 menyimpang), tambahkan dalam bentuk M3 dan catat.
 
-Run: `node node_modules/vitest/vitest.mjs run tests/districts` (atau berkas tes `validateOverrides` M3 sesuai catatan Task 0)
-Expected: PASS — `validateOverrides(tabel nyata)` tetap `[]`.
+Tes M3 `tests/kit/kitBuild.test.js` blok `'semua id hero punya builder dan menghasilkan geometri'` gagal setelah
+Langkah 4 (builder milik region → `[]`). Ganti blok itu menjadi:
+```js
+  it('semua id hero punya builder; hero distrik menghasilkan geometri, hero milik region kosong', () => {
+    for (const h of HERO_IDS) {
+      const parts = buildBuilding(plan([h, rect(40, 24), 2, {}]), mats);
+      if (isRegionOwned(HERO_BUILDERS[h])) expect(parts).toEqual([]);
+      else expect(parts.length).toBeGreaterThan(0);
+    }
+  });
+```
+dan tambahkan impor di kepala berkas: `import { HERO_BUILDERS } from '../../src/world/kit/hero/index.js';` (bila belum)
+dan `import { isRegionOwned } from '../../src/world/kit/hero/regionOwned.js';`.
+
+Run: `node node_modules/vitest/vitest.mjs run tests/districts tests/kit`
+Expected: PASS — `validateOverrides(tabel nyata)` tetap `[]`; tes kit hijau.
 
 - [ ] **Langkah 6: `src/regions/unri-lembaga/index.js`**
 
@@ -4604,7 +4618,7 @@ Expected: PASS semua (≥ 70 tes). Bila `placed` < 7, cetak `region.lateRoot.chi
 Run: `npm run lint`
 Expected: 0 galat.
 ```bash
-git add src/regions/unri-lembaga/index.js src/world/kit/hero/regionOwned.js src/world/kit/hero/index.js src/districts/unri/buildings.data.js tests/unri/lembagaRegion.test.js
+git add src/regions/unri-lembaga/index.js src/world/kit/hero/regionOwned.js src/world/kit/hero/index.js tests/kit/kitBuild.test.js tests/unri/lembagaRegion.test.js
 ```
 Bila langkah 4 menyentuh klaster, tambahkan juga `src/districts/unri/buildingClusters.js`.
 ```bash
@@ -4672,8 +4686,8 @@ Pada pemanggilan `mountDistrict(app, unriDistrict, { … })` (M1) di `src/main.j
 ```js
     isReserved: (x, z) => HERO_REGIONS.some((r) => regionContains(r, x, z)), // dunia → di dalam mask region hero?
 ```
-Bila catatan A10 menunjukkan `src/app/districtMount.js` belum meneruskannya, ubah tanda tangan menjadi `export async function mountDistrict(app, def, { terrain, collider, minimap, scheduler, createScope, isReserved = () => false } = {})` dan sertakan `isReserved` di objek ctx yang diteruskan ke `def.build(...)` (di samping `terrain`, `scope`, `scheduler`). Bake tidak perlu diulang (penyaringan di runtime). Cek dev server: tidak ada pohon/PJU distrik di plaza Student Center dan halaman sekretariat.
-Tambahkan konstanta modul (di bawah `MINIMAP_BAKE_MARGIN`):
+Opsi `isReserved` → `ctx.isReserved` SUDAH disediakan M2 Task 20 (rekonsiliasi 2026-10-18); M4 tidak menyentuh `src/app/districtMount.js`. Cabang cadangan (hanya bila A10 menunjukkan opsi itu tidak ada = M2 belum lengkap): tambahkan `isReserved = () => false` ke destrukturisasi opsi yang ADA (JANGAN mengganti tanda tangan — opsi M1/M2 lain wajib tetap) dan `isReserved` ke objek ctx `def.build(...)`, lalu catat. Bake tidak perlu diulang (penyaringan di runtime). Cek dev server: tidak ada pohon/PJU distrik di plaza Student Center dan halaman sekretariat.
+Tambahkan konstanta modul (di bawah `MODELS_TIMEOUT_MS`):
 ```js
 /** Tujuan perjalanan cepat sementara (DEV) ke depan mulut selasar barat Sekretariat Lembaga; M7 permanen. */
 const DEV_TRAVEL = import.meta.env.DEV
@@ -4696,7 +4710,7 @@ Expected: dalam ≤ 15 s bernilai `true`; konsol tanpa galat merah; sepeda muncu
 - [ ] **Langkah 5: Commit**
 
 ```bash
-git add src/app/fastTravel.js tests/fastTravel.test.js src/main.js src/app/districtMount.js
+git add src/app/fastTravel.js tests/fastTravel.test.js src/main.js
 ```
 ```bash
 git commit -m "feat(main): daftarkan region unri-lembaga, isReserved distrik, perjalanan cepat dev ke Sekretariat Lembaga"
@@ -5403,7 +5417,7 @@ git commit -m "feat(app): pemicu pintu-portal sekre pemain (E) + pemasangan port
 ## Task 25: Model Blender A01 motor bebek & A02 motor matic → GLB (opsional bila Blender tersedia)
 
 **Files:**
-- Create: `assets-src/blender/unri/motor.py`, `assets-src/blender/unri/motor.blend` (hasil simpan), `public/models/unri/motor-bebek.glb`, `public/models/unri/motor-matic.glb`
+- Create: `assets-src/blender/unri/motor.py`, `assets-src/blender/unri/motor.blend` (hasil simpan), `public/models/unri/a01-motor-bebek.glb`, `public/models/unri/a02-motor-matic.glb`
 - Modify: `src/world/props/unri/motor.js` (`MOTOR_GLB_READY = true`)
 
 - [ ] **Langkah 1: Cek Blender**
@@ -5584,8 +5598,8 @@ import runpy
 import bpy
 ROOT = r"C:\Users\mocha\Documents\stadion-utama-riau-3d"
 exporter = runpy.run_path(ROOT + r"\assets-src\blender\export_glb.py")
-print(exporter["export_collection"]("UNRI_A01_MotorBebek", ROOT + r"\public\models\unri\motor-bebek.glb"))
-print(exporter["export_collection"]("UNRI_A02_MotorMatic", ROOT + r"\public\models\unri\motor-matic.glb"))
+print(exporter["export_collection"]("UNRI_A01_MotorBebek", ROOT + r"\public\models\unri\a01-motor-bebek.glb"))
+print(exporter["export_collection"]("UNRI_A02_MotorMatic", ROOT + r"\public\models\unri\a02-motor-matic.glb"))
 bpy.ops.wm.save_as_mainfile(filepath=ROOT + r"\assets-src\blender\unri\motor.blend")
 ```
 Expected: dua tuple `(4, <segitiga ≤ 2000>, <KB ≤ 150>)` (4 mesh = 4 material). Bila segitiga > 2000: ulangi dengan argumen `ratios={"unri:hitam": 0.6}`.
@@ -5593,11 +5607,11 @@ Expected: dua tuple `(4, <segitiga ≤ 2000>, <KB ≤ 150>)` (4 mesh = 4 materia
 - [ ] **Langkah 5: Verifikasi GLB dari Node**
 
 ```bash
-node -e "import('@gltf-transform/core').then(async ({NodeIO,getBounds})=>{for (const f of ['motor-bebek','motor-matic']){const d=await new NodeIO().read('public/models/unri/'+f+'.glb');const b=getBounds(d.getRoot().listScenes()[0]);const s=b.max.map((v,i)=>+(v-b.min[i]).toFixed(3));const mats=d.getRoot().listMaterials().map(m=>m.getName());console.log(f,s,b.min[1].toFixed(3),mats.join(','));}})"
+node -e "import('@gltf-transform/core').then(async ({NodeIO,getBounds})=>{for (const f of ['a01-motor-bebek','a02-motor-matic']){const d=await new NodeIO().read('public/models/unri/'+f+'.glb');const b=getBounds(d.getRoot().listScenes()[0]);const s=b.max.map((v,i)=>+(v-b.min[i]).toFixed(3));const mats=d.getRoot().listMaterials().map(m=>m.getName());console.log(f,s,b.min[1].toFixed(3),mats.join(','));}})"
 ```
-Expected: `motor-bebek [0.7, 1.045, 1.9] 0.000 unri:bodi,unri:hitam,unri:krom,unri:lampu` dan `motor-matic [0.7, 1.1, 1.85] 0.000 …` (urutan [X, Y, Z]; Y = tinggi). Cek hidung di −Z:
+Expected: `a01-motor-bebek [0.7, 1.045, 1.9] 0.000 unri:bodi,unri:hitam,unri:krom,unri:lampu` dan `a02-motor-matic [0.7, 1.1, 1.85] 0.000 …` (urutan [X, Y, Z]; Y = tinggi). Cek hidung di −Z:
 ```bash
-node -e "import('@gltf-transform/core').then(async ({NodeIO})=>{const d=await new NodeIO().read('public/models/unri/motor-bebek.glb');const n=d.getRoot().listNodes().find(n=>n.getMesh()?.listPrimitives()[0].getMaterial()?.getName()==='unri:lampu');const p=n.getMesh().listPrimitives()[0].getAttribute('POSITION');let minZ=1e9;for(let i=0;i<p.getCount();i++)minZ=Math.min(minZ,p.getElement(i,[])[2]);console.log('lampu minZ',minZ.toFixed(3));})"
+node -e "import('@gltf-transform/core').then(async ({NodeIO})=>{const d=await new NodeIO().read('public/models/unri/a01-motor-bebek.glb');const n=d.getRoot().listNodes().find(n=>n.getMesh()?.listPrimitives()[0].getMaterial()?.getName()==='unri:lampu');const p=n.getMesh().listPrimitives()[0].getAttribute('POSITION');let minZ=1e9;for(let i=0;i<p.getCount();i++)minZ=Math.min(minZ,p.getElement(i,[])[2]);console.log('lampu minZ',minZ.toFixed(3));})"
 ```
 Expected: `lampu minZ` ≈ `-0.66` (negatif = depan di −Z).
 
@@ -5608,7 +5622,7 @@ Di `src/world/props/unri/motor.js` ubah `export const MOTOR_GLB_READY = false;` 
 - [ ] **Langkah 7: Commit**
 
 ```bash
-git add assets-src/blender/unri/motor.py assets-src/blender/unri/motor.blend public/models/unri/motor-bebek.glb public/models/unri/motor-matic.glb src/world/props/unri/motor.js
+git add assets-src/blender/unri/motor.py assets-src/blender/unri/motor.blend public/models/unri/a01-motor-bebek.glb public/models/unri/a02-motor-matic.glb src/world/props/unri/motor.js
 ```
 ```bash
 git commit -m "feat(aset): model Blender motor bebek A01 & matic A02 (GLB instanced, ≤2k segitiga)"
@@ -5911,7 +5925,7 @@ git commit -m "docs(unri): status M4 zona Lembaga selesai"
 - **exitTo**: `sekreExitTo()` = region-lokal `{region:'unri-lembaga', x:−2.7875, z:−1.8632, yaw:−0.33248}`; keluar → sepeda tetap di tempat bila ≤ 3 m dari pintu.
 - **Interior dari luar**: jendela nako selasar memperlihatkan latar `ruangGelap`; M5 boleh mengganti latar ruang pemain dengan tekstur tangkapan interior.
 - **Ukur**: `tests/e2e/lembaga.e2e.mjs` sudah memiliki siklus portal 3× + baseline memori; M5 menambah ukuran `interior-sekre` (≤ 150 draw call) ke skrip yang sama, M7 memindahkannya ke smoke E2E.
-- **GLB**: bila Task 25 dilewati, `MOTOR_GLB_READY` masih `false` — M7 (A03/A04) memakai pipeline Blender yang sama (`assets-src/blender/unri/motor.py`).
+- **GLB**: bila Task 25 dilewati, `MOTOR_GLB_READY` masih `false`. M7 membangun A03/A04 (`a03-motor-sport.glb`, `a04-motor-tua.glb`) dengan skrip `m7_motor.py` memakai nama material M4 (`unri:bodi`, `unri:hitam`, `unri:krom`, `unri:lampu`); bila A01/A02 M4 tidak ada, M7 membangunnya juga dengan nama berkas yang sama (rekonsiliasi 2026-10-18).
 
 ---
 

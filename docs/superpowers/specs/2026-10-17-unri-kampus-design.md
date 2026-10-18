@@ -322,7 +322,7 @@ Daftar lengkap di laporan kode §2. Prinsip: semua posisi y = `terrain.heightAt(
 
 Hero (handmade, satu kali pakai, dipasang via override `archetype:'hero:<id>'`):
 `hero:rektorat`, `hero:masjid-arfaunnas`, `hero:gerbang-sm-amin`, `hero:ggm`, `hero:sekretariat-lembaga`,
-`hero:student-center`, `hero:stadion-mini`.
+`hero:student-center`, `hero:stadion-mini`, `hero:perpustakaan-lama` (M6, katalog H08; milik region `unri-rektorat`).
 
 ### 7.2 Grammar fasad
 1. Footprint → OBB (PCA) → bila rasio luas footprint/OBB < 0,85 → dekomposisi persegi panjang (maks 4 massa)
@@ -442,7 +442,13 @@ stadion yang berakhir di z +322). Isi:
 
 ### 9.2 Titik ukur E2E
 `stadion-pusat`, `jalan-stadion-kampus` (z +500), `sekre-luar` (−219, 1.130), `interior-sekre`,
-`rektorat` (−979, 860), `masjid` (−1.009, 1.383).
+`rektorat` (−979, 860), `masjid` (−1.009, 1.405).
+
+Catatan (rekonsiliasi plan 2026-10-18): `sekre-luar` berada ±3 m di LUAR batas distrik (tepi selatan kampus melintas
+z ≈ 1.127 di x −219) → `heightAt` = 0 di titik itu; gedung sekre (z 1.089–1.109) di dalam distrik (temuan M1). Titik
+itu sengaja dipertahankan (juga tujuan perjalanan cepat M7) karena memandang sekre dari jalan di selatan kampus.
+`masjid` digeser dari (−1.009, 1.383) — yang berada di dalam footprint masjid `way/282230716` — ke (−1.009, 1.405)
+(plan M7 D11).
 
 ### 9.3 Mitigasi bila melebihi
 Urutan: kurangi LOD0 radius kit → kurangi kepadatan motor/vegetasi → tambah `setDetail('far')` untuk stadion
@@ -516,3 +522,43 @@ data belum); siang-malam khusus jadwal kuliah per fakultas; multiplayer.
 | Kit terlihat repetitif ("kaleng") | gagal tujuan | variasi seed, override per gedung dari foto, ornamen per arketipe, atlas detail, review visual per tonggak |
 | Data OSM/DEM berubah | bake beda | cache di `data-src/`, rilis dipin, golden test |
 | Budget draw call total | FPS | §9.3 mitigasi berurutan |
+
+## Perubahan setelah plan (rekonsiliasi lintas-plan 2026-10-18)
+
+Kontrak §4 tetap mengikat; daftar di bawah adalah perluasan/ketetapan yang disepakati saat merekonsiliasi plan M0–M7
+(rincian & signature lengkap: indeks `docs/superpowers/plans/2026-10-17-unri-00-index.md`, bagian "Rekonsiliasi
+lintas-plan" dan "Signature final kumulatif").
+
+1. **§4.1 / §5.4 fisika sepeda:** `stepBike(state, input, dt, { grade = 0, cfg = BIKE } = {})` — parameter ke-4 lama
+   `cfg` pindah ke objek opsi (M1; satu-satunya pemanggil `Bicycle.js`). Tidak ada plan lain yang memanggil `stepBike`
+   (jalan kaki M5 memakai `stepWalk`).
+2. **§4.2 distrik:** `mountDistrict(app, def, opts)` (`src/app/districtMount.js`, M1) dengan opsi kumulatif M1
+   (`terrain, scheduler, collider, minimap, city, weather, createScope, baseUrl, toast, logger, createStreamer,
+   fetchJson, fetchArrayBuffer, createCanvas`) + M2 (`time`, `isReserved`) + M7 (`services`); ctx build kumulatif +
+   `registries` (M2), `isReserved` (M2), `services` (M7). Setiap tonggak MENAMBAH opsi, tidak mengganti.
+   Collider berantai: komposit dinamis region (M0) → fallback `createDistrictCollider` (`src/core/Collider.js`, M1,
+   `addDistrict`) → tile kota; collider distrik UNRI = `createUnriCollider` (M2, `addChunk/removeChunk`) + M3
+   (`addBuildings/removeBuildings` per klaster). Klaster gedung memakai pemilih LOD sendiri (radius 250/900/930 m),
+   bukan `ChunkStreamer` (M3 D3); terrain & ground tetap lewat `ChunkStreamer` yang disuntik.
+3. **§4.3 region:** field konvensi tambahan `portals` (M4, dibaca portal interior), `nightLights`, `lateRoot`
+   (sudah ada), `lateRootWet` opsional (M6). POV region di tombol `Digit8` (M0); tombol 1–4 interior hanya di mode foto
+   (M5).
+4. **§4.5 save:** `SAVE_VERSION = 3` (M0) menambah field `place` (tempat terakhir ber-region, `savedPlace`). M7 tidak
+   menaikkan versi; `reopenForNewChapters(save, chapterCount)` membuka chapter 6 bagi save yang sudah tamat dan tetap
+   meneruskan `place`.
+5. **§4.6 kit:** `PartList` kit = geometri DUNIA dengan `matrix: null`; part hero bermaterial sendiri (M6) ber-`matrix`
+   disimpan di `sink.extra` dan dirender klaster sebagai mesh per material (rekonsiliasi; klaster ber-hero boleh > 3 mesh,
+   batas draw call distrik tetap). Id hero baru `hero:perpustakaan-lama`; id gedung sintetis `s-<nama>`
+   (`s-gerbang-sm-amin`, M6) diterima `validateOverrides` dan validator `buildings.json`.
+6. **§4.7:** aturan default "lainnya K12" diganti M3 D1 (dicatat M3 Task 1 di §4.7 saat eksekusi).
+7. **§4.8 interior:** `App.setView({ scene, camera, aoRadius? })` dan `App.setSystemGate(fn)` (M5) menggantikan port
+   sementara M4 (`appStage`, `src/app/appView.js` dihapus M5). Portal menerima opsi `onInteracted(interiorId, itemId)`
+   (M5) yang dipakai M7 untuk objective `interact` (`'<interior>:<id>'`).
+8. **§6 / format ground:** `ground/<key>.json` v1 = koordinat bulat 0,1 m relatif sudut barat-laut chunk + ekstensi
+   aditif `areas[].level`, `ditches`, `veg`, `props` (M2). Konsumen runtime (M3, M7) wajib mengurai lewat
+   `parseGroundChunk(json, key)` (`src/districts/unri/groundData.js`) → meter dunia.
+9. **§9.1 budget distrik:** M2 ≤ 110 draw call + M3 gedung ≤ 70 (termasuk hero distrik M6) = ≤ 180; kehidupan M7
+   (mahasiswa, motor, props) diukur terpisah dan masuk total ≤ 1.000.
+10. **§9.2:** lihat catatan di §9.2 (`sekre-luar` di luar batas distrik; `masjid` (−1.009, 1.405)).
+11. **Aset motor:** A01/A02 dibuat M4 (`a01-motor-bebek.glb`, `a02-motor-matic.glb`, material `unri:bodi|hitam|krom|lampu`);
+    M7 hanya menambah A03/A04 dengan nama material yang sama.

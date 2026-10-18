@@ -78,7 +78,7 @@ Tile kota yang beririsan distrik (perkiraan dengan poligon kampus − mask stadi
 
 1. **Format ground** diperluas aditif (`areas[].level`, `ditches`, `veg`, `props`) — vegetasi, PJU, dan muka air membutuhkan data hasil bake (poligon hutan/kebun, jarak terhadap jalan, tinggi tepi danau) yang tidak tersedia di runtime. Indeks diperbarui di Task 23.
 2. **File baru di luar daftar indeks** (boleh, dalam tonggak sendiri): `src/geo/lineClip.js`; `tools/campusbake/ground/{constants,sources,spatial,context,waterLevel,ditches,vegetation,props,index}.js`; `src/districts/unri/{groundData,surfaceTint,groundMaterials,streetProps,groundLayer}.js`; `src/world/props/unri/tongSampahKampus.js` (P05); `src/app/districtRegistries.js`; `tools/shots/unriM2.mjs`.
-3. **File M0/M1 yang diubah** (tidak tercantum di "Ubah" M2 indeks): `src/districts/terrainChunks.js` (hook `onChunkMesh`/`onChunkRelease`), `src/app/districtMount.js` (opsi `time`/`weather` → `ctx.registries`; `ctx.scheduler`), `src/districts/unri/index.js` (memang berkembang per tonggak), `src/main.js` (meneruskan `time`, `weather` ke `mountDistrict`), `tools/campusbake/index.js` (cabang CLI `ground`). Juga `src/world/Weather.wet.js` (bendera `userData.wetSurface`), `src/world/Landscape.trees.js` (ekspor `VEGETATION_CELL`), `tools/citybake/cli.js` (teks pemakaian), `tests/citybake/{golden,cli,config}.test.js`.
+3. **File M0/M1 yang diubah** (tidak tercantum di "Ubah" M2 indeks): `src/app/districtMount.js` (opsi `time` → `ctx.registries`, opsi `isReserved` → `ctx.isReserved`; `weather` & `ctx.scheduler` sudah ada sejak M1), `src/districts/unri/index.js` (memang berkembang per tonggak), `src/main.js` (meneruskan `time` ke `mountDistrict`; `weather` sudah diteruskan M1). Hook `onChunkMesh`/`onChunkRelease` di `src/districts/terrainChunks.js` SUDAH disediakan M1 (rekonsiliasi 2026-10-18: M2 tidak mengubah berkas itu), `tools/campusbake/index.js` (cabang CLI `ground`). Juga `src/world/Weather.wet.js` (bendera `userData.wetSurface`), `src/world/Landscape.trees.js` (ekspor `VEGETATION_CELL`), `tools/citybake/cli.js` (teks pemakaian), `tests/citybake/{golden,cli,config}.test.js`.
 4. `drapePolyline`/`drapePolygon` menerima opsi tambahan `clipRect` (opsional); tanda tangan indeks tetap. Parameter `field` boleh HeightField M1 **atau** permukaan "aman-mesh" `createChunkSurface(chunk, {stride})` (dibuat di `drape.js`).
 5. Area citybake **baru** `unri` (bukan memperluas `stadion`) dengan `skipAreas: ['stadion']` → satu tile = satu area di manifest; cache OSM `unri.json` meliputi seluruh poligon kampus.
 6. P03 `pju-kampus`: kepala lampu di 8,6 m (= `LAMP_POST.height − armDrop`, tinggi `LAMP_HEIGHT` TimeOfDay) alih-alih ±7 m katalog (berlabel INF) agar PointLight/halo malam tepat di kepala lampu.
@@ -121,7 +121,7 @@ Tile kota yang beririsan distrik (perkiraan dengan poligon kampus − mask stadi
 | `src/world/props/unri/pjuKampus.js` | P03 prosedural |
 | `src/world/props/unri/tongSampahKampus.js` | P05 prosedural |
 | `src/app/districtRegistries.js` | registry basah/malam untuk konten distrik yang datang belakangan |
-| `src/app/districtMount.js`, `src/districts/terrainChunks.js`, `src/districts/unri/index.js`, `src/main.js` | perkabelan (lihat deviasi 3) |
+| `src/app/districtMount.js`, `src/districts/unri/index.js`, `src/main.js` | perkabelan (lihat deviasi 3; hook `terrainChunks.js` dari M1) |
 | `src/world/Weather.wet.js`, `src/world/Landscape.trees.js` | bendera basah, ekspor `VEGETATION_CELL` |
 | `tools/shots/unriM2.mjs` | screenshot + ukur draw call/segitiga distrik (Playwright GPU) |
 | `public/tiles/**`, `public/districts/unri/{manifest.json,ground/*.json}` | hasil bake (di-commit) |
@@ -133,8 +133,7 @@ Tes hanya untuk logika murni/berisiko (spec §11): klip garis/poligon, citybake 
 
 ### Task 0: Verifikasi kontrak M0/M1 & dependensi
 
-**Files:**
-- Modify: `package.json`, `package-lock.json`
+**Files:** tidak ada (verifikasi; `package.json`/`package-lock.json` hanya bila M1 menyimpang — lihat Step 3).
 
 - [ ] **Step 1: Pastikan M0/M1 lengkap dan hijau**
 
@@ -167,30 +166,26 @@ Cocokkan dengan tabel berikut. Kolom kanan = tindakan bila berbeda (lakukan di t
 | `decodeChunk(arrayBuffer, header)`; header `{key, ix, iz, origin:{x,z}, size, step, n, unit, bias}`; berkas `.bin` = `Uint16` LE `n·n` tanpa header | spec §4.1 | ubah `chunkHeader()` (Task 7) |
 | `sampleChunk(chunk, x, z)` bilinear, tepat di simpul | spec §4.1 | — (wajib) |
 | Mesh LOD1 memakai simpul indeks `0, 4, 8, …, 124, 125` | grep TerrainMesh | ubah `nodeIndices()` (Task 14) agar sama persis |
-| `terrainChunks` punya satu tempat mesh chunk dipasang (load/swap) dan satu tempat mesh dilepas (unload) | grep | lokasi hook (Task 21) |
+| `createTerrainChunks` SUDAH menerima `onChunkMesh(key, {mesh, lod, chunk})` / `onChunkRelease(key)` (M1 deviasi 7, Serah terima M1) | `grep -n "onChunkMesh\|onChunkRelease" src/districts/terrainChunks.js` | bila tidak ada (M1 menyimpang): cabang cadangan Task 21 Step 1 |
 | `mountDistrict` meneruskan `ctx.scope` (ResourceScope distrik), `ctx.terrain`, dan scheduler | grep | tambah `scheduler` ke ctx (Task 20) |
 | `manifest.json` ditulis `JSON.stringify(m, null, 2) + '\n'` | grep | `writeGround` memakai format yang sama dengan M1 (Task 12) |
 | Konstanta parit M1 = lebar 1,0 m, garis tengah di `w/2 + 3,0` m dari sumbu jalan, kelas `tertiary(_link)` | grep `terrain/water.js` | samakan `DITCH` (Task 9) |
 | Mesh chunk dilepas M1 dengan `disposeTree` yang menghormati `scope.owns` (material bersama tidak di-dispose) | grep | `groundLayer` sudah memulihkan material asli sebelum lepas (Task 21) |
-| `tanahKota` (y −0,05) tidak menutupi lembah terrain (cek screenshot M1 di danau) | `docs/screenshots/unri/m1-*.jpg` | **berhenti**: kembalikan ke M1 (di luar lingkup M2) |
+| `tanahKota` (y −0,05) tidak menutupi lembah terrain — M1 Task 15 menyediakan `src/city/groundHole.js` + `city.setGroundHole` (dipasang `mountDistrict`); M2 tidak membuat apa pun untuk ini | `grep -n "setGroundHole" src/city/index.js src/app/districtMount.js` + `docs/screenshots/unri/m1-danau.jpg` | **berhenti**: kembalikan ke M1 (di luar lingkup M2) |
 
-- [ ] **Step 3: Pasang `polygon-clipping`**
+- [ ] **Step 3: Pastikan `polygon-clipping` (sudah dipasang M1 Task 1 — no-op)**
 
-Run:
+Rekonsiliasi 2026-10-18: M1 memasang `polygon-clipping@0.15.7` (devDependency) karena batas distrik M1 membutuhkannya
+(deviasi 2 plan M1). Jangan memasang ulang; cukup verifikasi:
 ```bash
-npm i -D polygon-clipping@0.15.7
 node -e "import('polygon-clipping').then((m) => console.log(typeof m.default.difference, typeof m.default.intersection))"
+grep -n "polygon-clipping" package.json
 ```
-Expected: `function function`.
+Expected: `function function` dan satu baris `polygon-clipping` di `devDependencies`. Hanya bila baris itu TIDAK ada
+(M1 dieksekusi menyimpang): `npm i -D polygon-clipping@0.15.7`, lalu `git add package.json package-lock.json` dan
+(perintah terpisah) commit `chore: dependensi polygon-clipping untuk klip distrik`; catat penyimpangan.
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add package.json package-lock.json
-```
-```bash
-git commit -m "chore: dependensi polygon-clipping untuk klip distrik (citybake & campusbake)"
-```
+- [ ] **Step 4: Tanpa commit** bila dependensi sudah ada (Task 0 hanya verifikasi).
 
 ---
 
@@ -5085,14 +5080,14 @@ function selectWet(mat, o) {
 
 Di `src/app/districtMount.js` (M1):
 1. Tambahkan impor: `import { createDistrictRegistries } from './districtRegistries.js';`
-2. Tambahkan opsi ke destrukturisasi parameter ketiga `mountDistrict`: `time = null, weather = null` (pertahankan opsi M1 yang ada; bila belum ada `logger`, tambahkan `logger = console`).
+2. Tambahkan opsi ke destrukturisasi parameter ketiga `mountDistrict`: `time = null, isReserved = () => false` (pertahankan SEMUA opsi M1 — `weather` dan `logger` sudah ada sejak M1, jangan dideklarasikan ulang: binding ganda = SyntaxError).
 3. Sebelum `def.build(...)`: `const registries = createDistrictRegistries({ time, weather, logger });`
-4. Pada objek ctx yang diteruskan ke `def.build`, tambahkan `registries` dan — bila M1 belum meneruskannya (lihat tabel Task 0) — `scheduler`.
+4. Pada objek ctx yang diteruskan ke `def.build`, tambahkan `registries` dan `isReserved` (predikat dunia `(x, z) => boolean`, dipakai `createUnriGroundLayer` Task 21; diisi M4/M6 dari `HERO_REGIONS` di `main.js`). `scheduler` sudah diteruskan M1.
 5. Bila `def.build` melempar: panggil `registries.dispose()` sebelum melepas scope (di blok catch yang sudah ada).
 6. Di fungsi `dispose` hasil `mountDistrict`: setelah `district.dispose()` panggil `registries.dispose()`.
-7. Perbarui JSDoc opsi: `time?: {registerEmissive, registerLamps}|null, weather?: {registerWet}|null`.
+7. Perbarui JSDoc opsi: `time?: {registerEmissive, registerLamps}|null, isReserved?: (x:number, z:number) => boolean`.
 
-Di `src/main.js`, pada pemanggilan `mountDistrict(app, unriDistrict, { … })` tambahkan `time, weather,` (variabel `time` dan `weather` yang sama dengan yang diteruskan ke `mountRegion`).
+Di `src/main.js`, pada pemanggilan `mountDistrict(app, unriDistrict, { … })` tambahkan `time,` (variabel `time` yang sama dengan yang diteruskan ke `createRegionLayer`; `weather` SUDAH diteruskan M1 — jangan digandakan, `no-dupe-keys`). `isReserved` belum diisi di M2 (default `() => false`); M4 menambahkannya.
 
 - [ ] **Step 6: Jalankan tes terkait**
 
@@ -5119,32 +5114,23 @@ git commit -m "feat(app): registry basah/malam distrik (ctx.registries) + bender
 
 **Files:**
 - Create: `src/districts/unri/groundLayer.js`
-- Modify: `src/districts/terrainChunks.js`, `src/districts/unri/index.js`
+- Modify: `src/districts/unri/index.js` (`src/districts/terrainChunks.js` hanya bila hook M1 tidak ada — Step 1)
 
-- [ ] **Step 1: Hook chunk di `terrainChunks.js` (M1)**
+- [ ] **Step 1: Hook chunk di `terrainChunks.js` — SUDAH disediakan M1 (verifikasi saja)**
 
-1. Tambahkan ke destrukturisasi opsi factory terrain chunks: `onChunkMesh = () => {}, onChunkRelease = () => {},` (pertahankan opsi M1; bila belum ada `logger`, tambahkan `logger = console`).
-2. Tepat **setelah** mesh chunk (LOD apa pun, termasuk hasil tukar LOD) selesai dibuat dan dipasang ke grup terrain, sisipkan:
-```js
-    try {
-      onChunkMesh(key, { mesh, lod, chunk });
-    } catch (err) {
-      logger.error(`Hook onChunkMesh chunk ${key} gagal (dilanjutkan):`, err);
-    }
+Rekonsiliasi 2026-10-18: M1 Task 12 sudah menambahkan opsi `onChunkMesh(key, { mesh, lod, chunk })` (setelah mesh
+NYATA dipasang, saat muat & tiap tukar LOD; `mesh` bisa `null` bila chunk tanpa sel di dalam batas; fallback datar
+tidak memanggil hook) dan `onChunkRelease(key)` (sebelum mesh dilepas karena `unload`) ke `createTerrainChunks`
+(Serah terima M1). Jangan membuat ulang. Verifikasi:
+```bash
+grep -n "onChunkMesh\|onChunkRelease" src/districts/terrainChunks.js
 ```
-   (`key`, `mesh`, `lod`, `chunk` = nama variabel M1 untuk kunci chunk, objek mesh/grup mesh chunk, LOD 0/1, dan Chunk hasil `decodeChunk`; ganti nama bila M1 berbeda.)
-3. Tepat **sebelum** mesh chunk dilepas karena aksi `unload` (bukan saat tukar LOD), sisipkan:
-```js
-    try {
-      onChunkRelease(key);
-    } catch (err) {
-      logger.error(`Hook onChunkRelease chunk ${key} gagal (dilanjutkan):`, err);
-    }
-```
-4. Perbarui JSDoc factory: `onChunkMesh?(key: string, info: {mesh: THREE.Object3D, lod: 0|1, chunk: object}): void`, `onChunkRelease?(key: string): void`.
+Expected: kedua nama ada di destrukturisasi opsi dan dipanggil. Hanya bila TIDAK ada (M1 menyimpang): tambahkan persis
+kontrak di atas (panggilan dibungkus `try/catch` + `logger.error`), sertakan `src/districts/terrainChunks.js` di commit
+Step 6, dan catat penyimpangan.
 
 Run: `node node_modules/vitest/vitest.mjs run tests/districts`
-Expected: tes M1 terrainChunks tetap PASS (hook default no-op).
+Expected: tes M1 terrainChunks PASS.
 
 - [ ] **Step 2: Implementasi `groundLayer.js`**
 
@@ -5332,7 +5318,7 @@ export function createUnriGroundLayer({
   }
 
   function onChunkMesh(key, { mesh, lod, chunk }) {
-    if (disposed || !groundKeys.has(key)) return;
+    if (disposed || !mesh || !groundKeys.has(key)) return; // M1: mesh null = chunk tanpa sel di dalam batas
     const rec = recOf(key);
     rec.token += 1;
     const token = rec.token;
@@ -5476,7 +5462,7 @@ Expected: `{chunks ≥ 4, surfaces ≥ 4, details ≥ 1, loading: 0, pending: 0}
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/districts/unri/groundLayer.js src/districts/terrainChunks.js src/districts/unri/index.js
+git add src/districts/unri/groundLayer.js src/districts/unri/index.js
 ```
 ```bash
 git commit -m "feat(districts): lapisan tanah UNRI di-stream mengikuti chunk terrain (scheduler, registry, collider)"
@@ -5776,17 +5762,9 @@ Expected: semua tes PASS; lint 0 galat; build sukses; hanya berkas indeks yang b
 - [ ] **Step 2: Perbarui indeks**
 
 Di `docs/superpowers/plans/2026-10-17-unri-00-index.md`:
-1. Di bagian `### M2: Tanah & jalan kampus`, tambahkan paragraf setelah daftar "Buat":
-```markdown
-Ekstensi M2 (aditif, `v` tetap 1): `ground/<key>.json` memakai koordinat bulat 0,1 m relatif sudut barat-laut chunk dan
-menambah `areas[].level` (air), `ditches`, `veg` (`mahoni|angsana|saga|sawit|semak`), `props` (`lamps`, `benches`, `bins`)
-— detail di plan M2 §"Format ground". File tambahan M2: `src/geo/lineClip.js`, `src/world/terrain/drape.js`
-(`createChunkSurface`, `nodeIndices`), `src/districts/unri/{groundData,surfaceTint,groundMaterials,streetProps,groundLayer}.js`,
-`src/world/props/unri/tongSampahKampus.js`, `src/app/districtRegistries.js` (`ctx.registries`), `tools/campusbake/ground/*`,
-`tools/shots/unriM2.mjs`. Hook M1 baru: `terrainChunks({ onChunkMesh(key, {mesh, lod, chunk}), onChunkRelease(key) })`;
-`mountDistrict(…, { time, weather })`. citybake: area `unri` (`skipAreas: ['stadion']`), `DISTRICTS` (excludeIds dari
-`public/districts/unri/buildings.json`, M3). Terrain chunk `renderOrder = −5` (aturan jahitan).
-```
+1. Peta file M2 di indeks SUDAH memuat ekstensi format ground, file tambahan, opsi `mountDistrict` (`time`,
+`isReserved`) dan hook M1 (rekonsiliasi 2026-10-18). Tambahkan hanya deviasi BARU yang muncul saat eksekusi (bila ada)
+sebagai baris `Deviasi eksekusi M2:` di bagian M2.
 2. Baris status M2 (ganti `<hash>` dengan keluaran `git log -1 --format=%h`):
 ```markdown
 | M2 | selesai | <hash> | tanah ter-drape, air, parit, vegetasi, PJU/bangku/tong; citybake klip distrik + area unri; jahitan diuji (districtSeam) |
@@ -5836,11 +5814,11 @@ git commit -m "docs: status M2 tanah & jalan kampus + ekstensi format ground di 
 ## Serah terima ke M3
 
 1. **excludeIds gedung kota:** setelah M3 menulis `public/districts/unri/buildings.json` (`{v:1, buildings:[{id:'w123',…}]}`), jalankan `npm run bake -- --area all --offline` — `resolveDistricts` otomatis membaca id itu sehingga gedung yang menyilang batas distrik ikut dibuang dari tile kota. Kembalikan `excludeIds` runtime `unriDistrict` = `new Set(buildings.map((b) => b.id))`.
-2. **Collider gedung:** tambahkan bentuk `kind:'building'` ke `createUnriCollider` (grid sel 25 m yang sama; aturan blok + jarak bebas seperti `TileCollider`), didaftarkan per klaster lewat API baru `addBuildings(clusterKey, rings)` / `removeBuildings(clusterKey)`; jangan mengubah `addChunk` (data ground).
+2. **Collider gedung:** tambahkan bentuk `kind:'building'` ke `createUnriCollider` (grid sel 25 m yang sama; aturan blok + jarak bebas seperti `TileCollider`), didaftarkan per klaster lewat API baru `addBuildings(clusterKey, footprints /* [{ring, holes}] */)` / `removeBuildings(clusterKey)`; jangan mengubah `addChunk` (data ground).
 3. **Sisi selasar (spec §7.2 butir 3):** baca jalan dari `parseGroundChunk(...).roads` (dunia, `w` m) untuk memilih sisi panjang yang menghadap jalan terdekat.
 4. **Budget:** M2 menargetkan ≤ 110 draw call & ≤ 350k segitiga distrik di titik ukur (lihat laporan `tools/shots/unriM2.mjs`); M3 mendapat sisa ≥ 70 draw call (klaster 10–14 × LOD0) agar total distrik ≤ 180. Jalankan ulang skrip itu setelah klaster gedung masuk (tambahkan berawalan `unri:` pada nama grup klaster agar terhitung).
 5. **Vegetasi vs gedung:** penempatan vegetasi/props sudah menjauhi footprint OSM (3 m / 1,5 m). Gedung kit yang lebih besar dari footprint (selasar, kanopi K02/K03) dapat menabrak pohon — M3 cukup menambah tolok ukur `VEG.clear.building` di `tools/campusbake/ground/constants.js` lalu bake ulang ground, tanpa mengubah format.
-6. **Region hero (M4/M6):** `createUnriGroundLayer({ isReserved })` (diteruskan dari `ctx.isReserved` distrik) menyaring vegetasi, PJU, bangku, tong, dan rintangan collider di dalam mask region; M4 menyediakan predikat itu lewat `mountDistrict` (komposisi app, karena distrik tidak boleh mengimpor regions). Titian Danau Buatan (`w783152923`, `bridge=yes`) sengaja tidak di-drape — dibuat region Rektorat (M6, P11).
+6. **Region hero (M4/M6):** `createUnriGroundLayer({ isReserved })` (diteruskan dari `ctx.isReserved` distrik) menyaring vegetasi, PJU, bangku, tong, dan rintangan collider di dalam mask region; M2 sudah meneruskan opsi `isReserved` `mountDistrict` → `ctx.isReserved` (Task 20); M4 cukup mengisinya di `main.js` dari konstanta `HERO_REGIONS` (komposisi app, karena distrik tidak boleh mengimpor regions), M6 menambah region ke daftar itu. Titian Danau Buatan (`w783152923`, `bridge=yes`) sengaja tidak di-drape — dibuat region Rektorat (M6, P11).
 7. **Minimap:** distrik belum menggambar jalan/air di minimap (`minimapLayer` M1 tidak diubah M2); data siap dari `parseGroundChunk` bila M3/M7 menambahkannya.
 8. **Aturan jahitan:** mesh apa pun yang ditambahkan ke tanah distrik harus tetap `renderOrder ≥ 0` dan, bila datar di permukaan, memakai lift ≥ 0,02 m + `polygonOffset` (lihat `DRAPE.lift`, `groundMaterials`); terrain tetap `renderOrder −5`.
 

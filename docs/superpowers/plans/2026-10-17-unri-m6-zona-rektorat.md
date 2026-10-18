@@ -12,7 +12,7 @@
 
 ## Prasyarat
 
-1. Tonggak M0–M5 berstatus **selesai** di `docs/superpowers/plans/2026-10-17-unri-00-index.md` (bagian "Status tonggak"). Plan ini memakai, **persis dengan nama indeks**: `defineRegion` (+`activation/proxy/povs/pads`), `regionManager.register`, `ctx.terrain` / `ctx.heightAtLocal` / `ctx.schedule`, `src/world/terrain/drape.js` (`drapePolyline`, `drapePolygon`), air distrik (`src/districts/unri/water.js`), kit (`planBuilding`, `buildBuilding`, `createKitMaterials`, `HERO_BUILDERS`), `buildings.data.js` (`resolveBuilding`, `validateOverrides`), `src/engine/scheduler.js`.
+1. Tonggak M0–M5 berstatus **selesai** di `docs/superpowers/plans/2026-10-17-unri-00-index.md` (bagian "Status tonggak"). Plan ini memakai, **persis dengan nama indeks**: `defineRegion` (+`activation/proxy/povs/pads`), `regions.register` (manager M0 di `main.js`), `ctx.terrain` / `ctx.heightAtLocal` / `ctx.schedule`, `src/world/terrain/drape.js` (`drapePolyline`, `drapePolygon`), air distrik (`src/districts/unri/water.js`), kit (`planBuilding`, `buildBuilding`, `createKitMaterials`, `HERO_BUILDERS`), `buildings.data.js` (`resolveBuilding`, `validateOverrides`), `src/engine/scheduler.js`.
 2. Branch `feat/unri-kampus`, working tree bersih (`git status --short` kosong kecuali berkas yang memang belum dikomit oleh user).
 3. Blender terbuka dengan add-on MCP aktif (cek `mcp__blender__get_addon_status`) — untuk Task 20. Bila Blender tidak tersedia, Task 20 dilewati: placeholder prosedural tetap tampil (spec §10), catat di status indeks.
 4. Playwright global (`npm i -g playwright` atau `PLAYWRIGHT_PATH`) seperti E2E yang ada — untuk Task 21.
@@ -75,7 +75,7 @@ Buat:
 | `tests/e2e/unri-m6.shots.mjs` | ukur draw call + screenshot |
 | `docs/screenshots/unri/m6-*.jpg` | screenshot titik ukur |
 
-Ubah: `src/world/kit/hero/index.js`, `src/districts/unri/buildings.data.js`, `src/main.js`, `tools/campusbake/config.js` (sesuai indeks) + **deviasi kecil**: `tools/campusbake/buildings.js` (menyisipkan bangunan sintetis gerbang; tanpa node/way gerbang di OSM tidak ada jalur lain), `src/app/mountRegion.js` (bila M0 belum mendaftarkan `lateRoot` ke registry basah — Task 15 Step 4, bersyarat), `src/app/districtMount.js` (bila belum meneruskan `isReserved` ke distrik — Task 15 Step 2, bersyarat), `docs/superpowers/plans/2026-10-17-unri-00-index.md` (status M6 + catat deviasi).
+Ubah: `src/world/kit/hero/index.js`, `src/districts/unri/buildings.data.js`, `src/main.js`, `tools/campusbake/config.js` (sesuai indeks) + **deviasi kecil**: `tools/campusbake/buildings.js` (menyisipkan bangunan sintetis gerbang; tanpa node/way gerbang di OSM tidak ada jalur lain), `src/app/mountRegion.js` (bila M0 belum mendaftarkan `lateRoot` ke registry basah — Task 15 Step 4, bersyarat), `src/world/kit/archetypes.js`, `src/districts/unri/resolveBuilding.js`, `src/districts/unri/buildingsFormat.js`, `src/world/kit/kitBuilder.js`, `src/world/kit/buildBuilding.js`, `src/districts/unri/buildingClusters.js`, `src/districts/unri/buildings.js` (berkas M3; Task 19 — id hero/sintetis & part hero bermaterial sendiri, rekonsiliasi 2026-10-18), `docs/superpowers/plans/2026-10-17-unri-00-index.md` (status M6 + catat deviasi).
 
 ---
 
@@ -2935,7 +2935,7 @@ git commit -m "feat(unri-rektorat): definisi region (aktivasi, pad, POV, proxy),
 **Files:**
 - Modify: `src/main.js`
 - Modify: `tools/campusbake/config.js`
-- Modify (bersyarat): `src/app/districtMount.js`, `src/app/mountRegion.js`
+- Modify (bersyarat): `src/app/mountRegion.js`
 - Regenerate: `public/districts/unri/terrain/*.bin`, `public/districts/unri/manifest.json`
 
 - [ ] **Step 1: Daftarkan region di `src/main.js`**
@@ -2944,27 +2944,29 @@ Tambahkan impor di blok impor region (dekat impor region `unri-lembaga` dari M4)
 ```js
 import { unriRektoratRegion } from './regions/unri-rektorat/index.js';
 ```
-Lalu tepat SETELAH baris `regionManager.register(<region unri-lembaga>);` (tambahan M4) tambahkan:
+Lalu di `main()` tepat SETELAH baris M4 `regions.register(unriLembagaRegion).catch(…);` (manager M0 bernama `regions`) tambahkan:
 ```js
-regionManager.register(unriRektoratRegion);
+  regions.register(unriRektoratRegion).catch((err) => console.error('Region unri-rektorat gagal didaftarkan:', err));
 ```
 Run: `grep -n "register(" src/main.js`
 Expected: tiga baris register (stadion, unri-lembaga, unri-rektorat), berurutan.
 
-- [ ] **Step 2: Distrik tidak menaruh vegetasi/PJU/bangku di dalam mask region hero (`isReserved`, Serah terima M2 butir 6)**
+- [ ] **Step 2: Tambahkan region Rektorat ke `HERO_REGIONS` (`isReserved`, Serah terima M2 butir 6)**
 
-Run: `grep -n "isReserved" src/main.js src/app/districtMount.js`
-- Bila `main.js` sudah meneruskan `isReserved` yang dibangun dari daftar region hero (mis. `heroRegions.some(...)`): pastikan `unriRektoratRegion` ada di daftar itu, lalu lanjut ke Step 3.
-- Bila belum ada sama sekali: di `src/main.js` tambahkan impor `import { regionContains } from './regions/Region.js';` (bila belum), lalu tepat sebelum pemanggilan `mountDistrict(app, unriDistrict, { … })` tambahkan (ganti `unriLembagaRegion` dengan nama ekspor definisi region M4 yang dicatat di Task 0):
+Rekonsiliasi 2026-10-18: M2 sudah meneruskan opsi `isReserved` `mountDistrict` → `ctx.isReserved`, dan M4 membuat
+konstanta modul `HERO_REGIONS` di `src/main.js` yang dipakai `isReserved: (x, z) => HERO_REGIONS.some((r) => regionContains(r, x, z))`
+pada pemanggilan `mountDistrict`. M6 HANYA menambah region ke daftar itu — jangan membuat `heroRegions`/`isReserved`
+baru, jangan mengimpor ulang `regionContains`, dan jangan menyentuh `src/app/districtMount.js`. Ganti:
 ```js
-  // Region hero kampus punya isi sendiri: distrik tidak menaruh vegetasi/PJU/bangku/rintangan di dalam mask-nya (M2).
-  const heroRegions = [unriLembagaRegion, unriRektoratRegion];
-  const isReserved = (x, z) => heroRegions.some((def) => regionContains(def, x, z));
+const HERO_REGIONS = Object.freeze([unriLembagaRegion]);
 ```
-  dan tambahkan `isReserved,` ke objek opsi `mountDistrict(app, unriDistrict, { … })`. Bila `src/app/districtMount.js` belum meneruskan opsi itu ke `def.build(ctx)`, tambahkan pada objek ctx build di sana: `isReserved: opts.isReserved ?? (() => false),` (nama variabel opsi mengikuti M1).
-
-Run: `grep -n "isReserved" src/main.js src/app/districtMount.js`
-Expected: definisi `heroRegions`/`isReserved` di main.js, opsi di pemanggilan `mountDistrict`, dan penerusan ke ctx di districtMount.js. (M7 memakai nama `heroRegions` yang sama — M7 cukup memakai ulang konstanta ini.)
+menjadi:
+```js
+const HERO_REGIONS = Object.freeze([unriLembagaRegion, unriRektoratRegion]);
+```
+Run: `grep -n "HERO_REGIONS\|isReserved" src/main.js`
+Expected: satu definisi `HERO_REGIONS` (dua region) dan satu opsi `isReserved` di pemanggilan `mountDistrict`. (M7 memakai
+ulang `HERO_REGIONS` untuk `regionIdAt`/`excludeAt` dan perjalanan cepat.)
 
 - [ ] **Step 3: Pad region di `tools/campusbake/config.js`**
 
@@ -3016,7 +3018,7 @@ Run: `npm test` lalu `npm run lint`
 Expected: PASS semua, 0 galat.
 
 ```bash
-git add src/main.js src/app/districtMount.js tools/campusbake/config.js src/app/mountRegion.js public/districts/unri
+git add src/main.js tools/campusbake/config.js src/app/mountRegion.js public/districts/unri
 ```
 ```bash
 git commit -m "feat(unri-rektorat): daftarkan region, reservasi mask region hero untuk distrik, pad terrain campusbake, registry basah konten bertahap; bake terrain"
@@ -3913,6 +3915,7 @@ git commit -m "feat(kit-hero): GGM mangkrak (atap gasing seng, kolom & undakan s
 - Modify: `src/world/kit/hero/index.js`
 - Modify: `src/districts/unri/buildings.data.js`
 - Modify: `tools/campusbake/buildings.js` (deviasi; lihat "Struktur file")
+- Modify (berkas M3, rekonsiliasi 2026-10-18): `src/world/kit/archetypes.js` (`HERO_IDS`/`HERO_STANDIN` + perpustakaan), `src/districts/unri/resolveBuilding.js` & `src/districts/unri/buildingsFormat.js` (`ID_RE` menerima `s-…`), `src/world/kit/kitBuilder.js`, `src/world/kit/buildBuilding.js`, `src/districts/unri/buildingClusters.js`, `src/districts/unri/buildings.js` (part hero bermaterial sendiri, Step 3b)
 - Test: `tests/unri/heroBuilders.test.js`
 - Regenerate: `public/districts/unri/buildings.json`
 
@@ -3929,6 +3932,7 @@ import { GERBANG_SITE, GERBANG } from '../../src/world/kit/hero/gerbangSmAmin.js
 import { GGM_SITE } from '../../src/world/kit/hero/ggm.js';
 import { resetOrnaments, placeholderCount } from '../../src/world/kit/hero/ornaments.js';
 import * as BUILDINGS from '../../src/districts/unri/buildings.data.js';
+import { validateOverrides } from '../../src/districts/unri/resolveBuilding.js'; // M3: validator ada di resolveBuilding.js
 
 const plan = (baseY) => ({ masses: [{ obb: { cx: 0, cz: 0, w: 10, d: 10, yaw: 0 }, floors: 1, floorH: 4, baseY }] });
 const tris = (g) => (g.index ? g.index.count : g.attributes.position.count) / 3;
@@ -3987,7 +3991,7 @@ describe('hero building distrik M6', () => {
 
   it('override M6 valid & bangunan sintetis gerbang konsisten dengan GERBANG_SITE', () => {
     expect(OVERRIDES).toBeTruthy();
-    expect(BUILDINGS.validateOverrides(OVERRIDES)).toEqual([]);
+    expect(validateOverrides(OVERRIDES)).toEqual([]);
     expect(OVERRIDES.w282225347.archetype).toBe('hero:rektorat');
     expect(OVERRIDES.w282225374.archetype).toBe('hero:perpustakaan-lama');
     expect(OVERRIDES.w282230716.archetype).toBe('hero:masjid-arfaunnas');
@@ -4034,13 +4038,94 @@ Tambahkan di akhir berkas:
 /** Ornamen GLB hero distrik (dimuat src/app/heroOrnaments.js; placeholder via ornaments.js). */
 export const HERO_ORNAMENTS = Object.freeze([...MASJID_ORNAMENTS]);
 ```
-Lalu cari daftar id hero lain yang harus memuat id baru:
-Run: `grep -rn "'hero:ggm'" src tools`
-Untuk SETIAP daftar/konstanta id hero yang ditemukan selain `HERO_BUILDERS` (mis. himpunan id yang diterima `validateOverrides`), tambahkan `'hero:perpustakaan-lama'` di sebelah `'hero:ggm'`.
+Lalu daftarkan id baru di katalog arketipe M3 (`src/world/kit/archetypes.js`): tambahkan `'hero:perpustakaan-lama'` ke `HERO_IDS` (sesudah `'hero:stadion-mini'`; dipakai `overrideErrors`/`validateOverrides` dan pemeriksaan kelengkapan `HERO_BUILDERS` di `hero/index.js`) dan `'hero:perpustakaan-lama': 'K01'` ke `HERO_STANDIN` (geometri pengganti `planBuilding`). Cek: `grep -rn "'hero:ggm'" src tools` — tidak boleh ada daftar id hero lain yang belum memuat id baru.
+
+- [ ] **Step 3b: Part hero bermaterial sendiri di sink/klaster kit M3 (rekonsiliasi 2026-10-18)**
+
+Builder hero M6 (`createHeroFrame`) mengembalikan part dengan material SENDIRI, geometri bersama dari cache scope
+(`heroGeometry`: kotak/silinder satuan) dan `matrix` dunia. `appendParts` M3 hanya menerima material kit
+(`opak`/`potong`), membuang sisanya, dan me-`dispose` geometri — tanpa langkah ini masjid/gerbang/GGM TIDAK tergambar
+di distrik dan cache geometri hero rusak. Ubah kode M3 seminimal ini:
+
+1. `src/world/kit/kitBuilder.js` → `createKitSink`: tambahkan properti `extra: []` (part non-kit apa adanya). Bila
+   `mark()` mengembalikan objek, tambahkan field `extra: <array>.length`; `rewind(m)` memotong `extra.length = m.extra`.
+2. `src/world/kit/buildBuilding.js`:
+   - `appendParts`: ganti `if (!key) continue;` menjadi
+     `if (!key) { sink.extra.push(p); continue; } // part hero bermaterial sendiri (M6): geometri milik cache scope, jangan di-dispose`
+   - `buildBuilding`: nilai kembali jalur normal `return sink.toParts(kitMaterials, plan.id);` menjadi
+     `return [...sink.toParts(kitMaterials, plan.id), ...sink.extra];` (part extra tetap ber-`matrix`; `groupFromParts` menerimanya).
+   - `appendPlanSteps` & `appendPlan`: panggilan hero tanpa `.steps` menjadi
+     `appendParts(sink, ctx.scope ? withScope(ctx.scope, () => hero(plan, materials, { ...ctx, lod })) : hero(plan, materials, { ...ctx, lod }), materials);`
+     (impor `withScope` dari `../../engine/ResourceScope.js`) agar cache geometri/material hero hidup di scope distrik.
+3. `src/districts/unri/buildingClusters.js`:
+   - opsi baru `scope = null` di `createBuildingClusters({ … })` (JSDoc ikut); di `job()` ganti
+     `yield* appendSteps(sink, entry.plan, materials, { lod: j.lod });` menjadi
+     `yield* appendSteps(sink, entry.plan, materials, { lod: j.lod, ctx: { scope } });`
+   - sesudah perulangan `for (const p of parts) { … root.add(mesh); }` tambahkan
+     ```js
+         for (const mesh of extrasToMeshes(sink.extra, `gedung:${c.key}:hero`)) {
+           mesh.castShadow = mesh.castShadow && j.lod === 0;
+           mesh.receiveShadow = true;
+           root.add(mesh);
+         }
+     ```
+     dan `meshes: parts.length` pada `c.shown` menjadi `meshes: root.children.length`.
+   - fungsi modul (impor `mergeGeometries` dari `three/addons/utils/BufferGeometryUtils.js`):
+     ```js
+     /**
+      * Part hero non-kit (M6) → satu mesh per material + tata atribut. Geometri diklon & ditransformasi ke dunia
+      * (milik klaster: dilepas `release` bersama mesh kit); geometri sumber milik cache scope hero tidak disentuh.
+      */
+     function extrasToMeshes(extra, name) {
+       const groups = new Map();
+       for (const p of extra) {
+         const g = p.geometry.clone();
+         if (p.matrix) g.applyMatrix4(p.matrix);
+         const key = [p.material.uuid, Object.keys(g.attributes).sort().join(','), g.index ? 'i' : 'n', p.castShadow === false ? 0 : 1].join('|');
+         if (!groups.has(key)) groups.set(key, { material: p.material, castShadow: p.castShadow !== false, geoms: [] });
+         groups.get(key).geoms.push(g);
+       }
+       const meshes = [];
+       for (const { material, castShadow, geoms } of groups.values()) {
+         const merged = geoms.length > 1 ? mergeGeometries(geoms, false) : geoms[0];
+         if (merged && geoms.length > 1) geoms.forEach((g) => g.dispose());
+         for (const geometry of merged ? [merged] : geoms) { // gagal gabung → mesh terpisah
+           const mesh = new Mesh(geometry, material);
+           mesh.name = `${name}:${material.name || 'hero'}`;
+           mesh.castShadow = castShadow;
+           meshes.push(mesh);
+         }
+       }
+       return meshes;
+     }
+     ```
+4. `src/districts/unri/buildings.js` (`mountBuildings`): teruskan `scope: ctx.scope` ke `createBuildingClusters({ … })`.
+5. Tes — tambahkan di akhir `tests/unri/heroBuilders.test.js` (impor `vi` dari `vitest`, `createKitSink` dari
+   `../../src/world/kit/kitBuilder.js`, `appendParts` & `buildBuilding` dari `../../src/world/kit/buildBuilding.js`):
+   ```js
+   describe('part hero non-kit di sink kit M3 (rekonsiliasi)', () => {
+     it('appendParts menyimpan part bermaterial sendiri di sink.extra tanpa dispose; buildBuilding mengembalikannya', () => {
+       const sink = createKitSink();
+       const geometry = new THREE.BoxGeometry(1, 1, 1);
+       const spy = vi.spyOn(geometry, 'dispose');
+       const part = { geometry, material: new THREE.MeshStandardMaterial(), matrix: new THREE.Matrix4(), castShadow: true, name: 'x' };
+       appendParts(sink, [part], { opak: {}, potong: {} });
+       expect(sink.extra).toEqual([part]);
+       expect(spy).not.toHaveBeenCalled();
+       const scope = createResourceScope('uji:extra');
+       const parts = withScope(scope, () => buildBuilding({ ...plan(3.15), id: 'w282230716', archetype: 'hero:masjid-arfaunnas' }, { opak: {}, potong: {} }));
+       expect(parts.filter((q) => q.matrix).length).toBeGreaterThan(10);
+       scope.dispose();
+     });
+   });
+   ```
+
+Catatan budget: klaster yang memuat hero non-kit boleh > 3 mesh (pengecualian D4 M3); yang mengikat tetap draw call
+gedung ≤ 70 dan distrik ≤ 180 di titik ukur `masjid` (−1009, 1405) — ukur ulang dengan `tools/shots/unriM2.mjs` di Task 21.
 
 - [ ] **Step 4: Ubah `src/districts/unri/buildings.data.js`**
 
-(a) Di tabel override (nama ekspor M3 dicatat di Task 0), GANTI-atau-TAMBAH lima entri ini persis:
+(a) Di tabel override (nama ekspor M3 dicatat di Task 0), GANTI-atau-TAMBAH lima entri ini persis (tulis dalam bentuk tabel M3: kunci tanpa kutip `w282225347: Object.freeze({ … })`, kunci sintetis berkutip `'s-gerbang-sm-amin': Object.freeze({ … })`; entri M3 `w282225347`, `w282230716`, `w314450943`, `w282225374` DIGANTI, bukan digandakan — kunci ganda = galat lint `no-dupe-keys`):
 ```js
   'w282225347': {
     archetype: 'hero:rektorat', levels: 5, palette: 'putih', roof: 'datar-parapet', sign: 'REKTORAT UNIVERSITAS RIAU',
@@ -4084,12 +4169,23 @@ export const SYNTHETIC_BUILDINGS = Object.freeze([
   }),
 ]);
 ```
-(c) Validasi kunci: baca `validateOverrides` (Run: `grep -n "validateOverrides" -A 30 src/districts/unri/buildings.data.js`). Bila fungsi menolak kunci yang tidak cocok `/^w\d+$/`, ganti pola itu menjadi `/^(w\d+|s-[a-z0-9-]+)$/`, lalu sisipkan sebelum `return` (pakai nama array galat milik fungsi M3; di sini `errors`):
+(c) Validasi kunci — `validateOverrides`/`overrideErrors` ada di `src/districts/unri/resolveBuilding.js` (M3), BUKAN di
+`buildings.data.js`. Di sana ganti `const ID_RE = /^[wr]\d+$/;` menjadi `const ID_RE = /^([wr]\d+|s-[a-z0-9-]+)$/;`
+(pesan galat: `id harus "w<angka>", "r<angka>", atau "s-<nama>" (sintetis)`), impor
+`import { SYNTHETIC_BUILDINGS } from './buildings.data.js';`, dan ubah `validateOverrides` menjadi:
 ```js
+export function validateOverrides(table) {
+  if (!table || typeof table !== 'object') return ['tabel override harus objek'];
+  const errs = Object.entries(table).flatMap(([id, ov]) => overrideErrors(id, ov));
   for (const key of Object.keys(table)) {
-    if (key.startsWith('s-') && !SYNTHETIC_BUILDINGS.some((b) => b.id === key)) errors.push(`${key}: bangunan sintetis tidak terdaftar di SYNTHETIC_BUILDINGS`);
+    if (key.startsWith('s-') && !SYNTHETIC_BUILDINGS.some((b) => b.id === key)) errs.push(`${key}: bangunan sintetis tidak terdaftar di SYNTHETIC_BUILDINGS`);
   }
+  return errs;
+}
 ```
+**Juga** `src/districts/unri/buildingsFormat.js` (M3) memvalidasi id gedung `buildings.json` dengan
+`const ID_RE = /^[wr]\d+$/;` — tanpa diganti, `s-gerbang-sm-amin` membuat SELURUH `buildings.json` ditolak (distrik tanpa
+gedung). Ganti menjadi `/^([wr]\d+|s-[a-z0-9-]+)$/` dan sesuaikan pesan galatnya.
 
 - [ ] **Step 5: Sisipkan bangunan sintetis di `tools/campusbake/buildings.js`**
 
@@ -4115,12 +4211,12 @@ Expected: keempatnya `true`.
 - [ ] **Step 7: Jalankan tes, pastikan lulus**
 
 Run: `node node_modules/vitest/vitest.mjs run tests/unri/heroBuilders.test.js`
-Expected: PASS (6 tes). Lalu `npm test` (termasuk tes M3 "tabel override nyata lulus validateOverrides" dan golden campusbake — perbarui golden bila gagal hanya karena entri sintetis, sesuai prosedur di kepala tesnya) → semua PASS; `npm run lint` → 0 galat.
+Expected: PASS (7 tes). Lalu `npm test` (termasuk tes M3 "tabel override nyata lulus validateOverrides", `tests/kit/kitBuild.test.js`, `tests/districts` dan golden campusbake — perbarui golden bila gagal hanya karena entri sintetis, sesuai prosedur di kepala tesnya) → semua PASS; `npm run lint` → 0 galat.
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add src/world/kit/hero/index.js src/districts/unri/buildings.data.js tools/campusbake/buildings.js tests/unri/heroBuilders.test.js public/districts/unri/buildings.json
+git add src/world/kit/hero/index.js src/world/kit/archetypes.js src/world/kit/kitBuilder.js src/world/kit/buildBuilding.js src/districts/unri/buildings.data.js src/districts/unri/resolveBuilding.js src/districts/unri/buildingsFormat.js src/districts/unri/buildingClusters.js src/districts/unri/buildings.js tools/campusbake/buildings.js tests/unri/heroBuilders.test.js public/districts/unri/buildings.json
 ```
 ```bash
 git commit -m "feat(unri): override hero Rektorat/Perpustakaan (milik region), Masjid Arfa'unnas, GGM, Gerbang SM Amin (bangunan sintetis); bake gedung"
@@ -4748,7 +4844,7 @@ Expected: semua tes lulus (jumlah = baseline Task 0 + tes M6), lint 0 galat, bui
 
 Di `docs/superpowers/plans/2026-10-17-unri-00-index.md`:
 1. Baris status M6: `| M6 | selesai | <hash commit Task 21> | region unri-rektorat (<calls> draw call, proxy 7), hero masjid/gerbang/GGM, N01–N04 <final|placeholder> |`.
-2. Di bagian peta file "M6", tambahkan baris **Deviasi**: `Ubah tambahan: tools/campusbake/buildings.js (bangunan sintetis gerbang), src/app/mountRegion.js (registry basah lateRoot bersyarat, bila belum ada). File baru tambahan: src/regions/unri-rektorat/{site.data.js, materials.js, env.js, staged.js}, src/world/kit/hero/{heroFrame.js, reliefText.js, ornaments.js}, src/world/props/unri/{akasiaRamping.js, palem.js}, src/app/heroOrnaments.js, tests/e2e/unri-m6.shots.mjs. Id hero baru 'hero:perpustakaan-lama' (katalog H08). Ekspor baru: HERO_ORNAMENTS (hero/index.js), SYNTHETIC_BUILDINGS (buildings.data.js).`
+2. Peta file M6 di indeks SUDAH memuat file tambahan & deviasi di atas (rekonsiliasi 2026-10-18). Tambahkan hanya deviasi BARU dari eksekusi sebagai baris `Deviasi eksekusi M6:`.
 
 - [ ] **Step 3: Commit**
 
@@ -4772,7 +4868,7 @@ git commit -m "docs(unri): status M6 selesai + catatan deviasi peta file"
 
 **Placeholder/ambiguitas:** tiga titik bergantung pada kode M3/M4 yang belum ada saat plan ditulis — nama ekspor tabel override (M3), bentuk entri pad di `tools/campusbake/config.js` (M4), dan tempat entri gedung dibentuk di `tools/campusbake/buildings.js` (M3). Masing-masing punya perintah `grep` persis, aturan adaptasi tunggal (pakai nama/bentuk M3/M4, isi tetap), dan tes yang menangkap kesalahan (`heroBuilders.test.js` menemukan tabel lewat kunci `w282225347`; `rektoratMask.test.js` menemukan region lembaga lewat `id`).
 
-**Konsistensi nama (diselaraskan dengan plan M0, M2, M4, M7 yang sudah ada):** kontrak M0 (`mountRegion` ctx `terrain/heightAtLocal/schedule`, `proxy({scope, placement, terrain})`, `pose(frame, {time, bike})`, pad `{ring, y}`), M2 (`drapePolyline(pts, width, field, {lift, segment})`, `drapePolygon(rings, field, {lift, maxEdge})`, `isReserved`, titian), M4 (`REGION_PADS` + `…PadsWorld()`, `heroRegions`), M7 (`defOf(module, 'unri-rektorat')`, grep `id: 'unri-rektorat'`). `unriRektoratRegion`, `REKTORAT_ID = 'unri-rektorat'`; kunci `HERO_BUILDERS` `hero:rektorat|hero:masjid-arfaunnas|hero:gerbang-sm-amin|hero:ggm` sesuai spec §7.1; `hero:perpustakaan-lama` = katalog H08. Grup placeholder `N01`/`N02`/`N03` = `replaces` di `rektoratModelItems`; `N04` = assetId registry + `HERO_ORNAMENTS`. Grup `region:unri-rektorat`, `proxy:unri-rektorat`, `ornamenHero` dipakai skrip E2E. `floorY/ROOF_Y/LEVEL/addBox` diekspor rektorat.js dan dipakai proxy.js, perpustakaan.js, index.js.
+**Konsistensi nama (diselaraskan dengan plan M0, M2, M4, M7 yang sudah ada):** kontrak M0 (`mountRegion` ctx `terrain/heightAtLocal/schedule`, `proxy({scope, placement, terrain})`, `pose(frame, {time, bike})`, pad `{ring, y}`), M2 (`drapePolyline(pts, width, field, {lift, segment})`, `drapePolygon(rings, field, {lift, maxEdge})`, `isReserved`, titian), M4 (`REGION_PADS` + `…PadsWorld()`, `HERO_REGIONS`), M7 (`defOf(module, 'unri-rektorat')`, grep `id: 'unri-rektorat'`). `unriRektoratRegion`, `REKTORAT_ID = 'unri-rektorat'`; kunci `HERO_BUILDERS` `hero:rektorat|hero:masjid-arfaunnas|hero:gerbang-sm-amin|hero:ggm` sesuai spec §7.1; `hero:perpustakaan-lama` = katalog H08. Grup placeholder `N01`/`N02`/`N03` = `replaces` di `rektoratModelItems`; `N04` = assetId registry + `HERO_ORNAMENTS`. Grup `region:unri-rektorat`, `proxy:unri-rektorat`, `ornamenHero` dipakai skrip E2E. `floorY/ROOF_Y/LEVEL/addBox` diekspor rektorat.js dan dipakai proxy.js, perpustakaan.js, index.js.
 
 **Fakta vs inferensi:** setiap modul membuka dengan komentar [T]/[S]/[INFERENSI]; override membawa `sumber` + `keyakinan` (gerbang `rendah`, GGM & perpustakaan `sedang`). Teks huruf puncak Rektorat ("UNIVERSITAS RIAU") & warnanya, isi coretan, desain gerbang, spesies akasia, lintasan batu pijakan ditandai inferensi.
 
@@ -4785,7 +4881,7 @@ git commit -m "docs(unri): status M6 selesai + catatan deviasi peta file"
 1. **Fast travel**: plan M7 memakai "Kampus UNRI — Rektorat" di dunia `(-979, 860)` yaw π — titik itu ±6 m di luar mask (selatan Rektorat), dapat dilalui collider distrik dan region terpasang di sana; cocok. Alternatif yang menghadap fasad depan: dunia `(-885.8, 804.2)` yaw `-Math.PI / 2` (jalan setapak poros).
 2. **Cerita chapter 6** (plan M7, titik `region:'world'`): penanda keliling danau M7 (−698,0; 806,0) (−758,6; 859,8) (−846,4; 894,3) (−785,4; 820,2) sudah dicek terhadap `rektoratColliders` (lokal (287,8; 6,0) (227,2; 59,8) (139,4; 94,3) (200,4; 20,2)): semuanya dapat dilalui, di luar air, tidak menabrak papan N01/tiang. Titik cadangan dunia: ujung poros (−780,8; 804,2), taman putaran (−696,8; 819,5), trotoar selatan (−760,8; 857,4). Papan batu N01 dunia (−700,3; 810,0), muka ke timur.
 3. **Motor parkir** (`src/districts/unri/motorParking.js`): pelataran Masjid Arfa'unnas — `masjidMotorBays()` (70 bay dunia + yaw) dari `src/world/kit/hero/masjidArfaunnas.js`. Pulau tengah parkir depan Rektorat (lokal x 43,3–62,2, z −15,4…19,5) adalah taman bertiang bendera — jangan diisi motor.
-4. **Vegetasi & reservasi mask**: akasia ramping & palem poros SUDAH di region (`LAYOUT.akasia/palem`); prop V04/V05 tersedia di `src/world/props/unri/{akasiaRamping,palem}.js` untuk distrik di luar mask. Task 15 Step 2 membuat `heroRegions` + `isReserved` di `main.js` (Serah terima M2 butir 6) — M7 memakai ulang `heroRegions` untuk `excludeAt` (jangan dideklarasikan ulang). Titian Danau Buatan (way 783152923, Serah terima M2 butir 6) dibangun di `danau.js`.
+4. **Vegetasi & reservasi mask**: akasia ramping & palem poros SUDAH di region (`LAYOUT.akasia/palem`); prop V04/V05 tersedia di `src/world/props/unri/{akasiaRamping,palem}.js` untuk distrik di luar mask. Task 15 Step 2 menambah `unriRektoratRegion` ke `HERO_REGIONS` M4 (dipakai `isReserved`, Serah terima M2 butir 6) — M7 memakai ulang `HERO_REGIONS` untuk `excludeAt` (jangan dideklarasikan ulang). Titian Danau Buatan (way 783152923, Serah terima M2 butir 6) dibangun di `danau.js`.
 5. **Easter egg GGM**: pusat panggung dunia `(133.13, 407.41)`, celah tribun menghadap selatan; coretan berisi kata netral.
 6. **Katalog aset**: N01–N04 berstatus `final` (atau `placeholder` bila Task 20 memakai cadangan); foto Commons (CC BY-SA 4.0) adalah rujukan, bukan aset — tidak perlu atribusi aset, cukup sumber di dokumen.
 7. **Titik ukur §9.2** `rektorat (−979, 860)` berada ±6 m di luar mask (selatan Rektorat, dekat Musholla) — tetap valid sebagai posisi kamera (region terpasang di sana); untuk draw call region pakai pose shot `m6-rektorat-siang` (−900, 803).

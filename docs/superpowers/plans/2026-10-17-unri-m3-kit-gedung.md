@@ -162,18 +162,12 @@ cadangan galat perakitan (§10). Field aditif: `variant` (lihat `VARIANTS` di `s
 
 Baris K12 kolom "Dipakai": `cadangan geometri (dekomposisi gagal, berlubang, lengkung) & cadangan galat`. Di §7.4 butir pertama tambahkan: `Penggabungan per material dilakukan inkremental ke satu sink per klaster (D4 plan M3): opak + potong + papan ≤ 3 mesh/klaster; radius klaster LOD0 250 m, LOD1 900 m, lepas 930 m (pemilih LOD sendiri, bukan ChunkStreamer).`
 
-- [ ] **Step 3: Indeks — daftar file M3**
+- [ ] **Step 3: Indeks — daftar file M3 (sudah direkonsiliasi 2026-10-18)**
 
-Di bagian `### M3: Kit gedung` tambahkan baris:
-
-```
-Tambahan (D6): `src/world/kit/{planGeom,planRules,kitBuilder,kitShapes,kitAssemble,ornaments,atlasPaint.surfaces,
-atlasPaint.openings,atlasPaint.misc}.js`, `src/districts/unri/{buildingsFormat,buildingFootprints,buildings}.js`,
-`src/dev/kitGallery.js`, `kit-gallery.html`, `tests/e2e/kitGallery.shot.mjs`, `tests/e2e/kitBudget.e2e.mjs`;
-ubah `tools/campusbake/index.js` (cabang `buildings`). buildings.json aditif: `area`, `front`, `holes?`.
-PartList = geometri dunia, `matrix: null`. Collider: `createUnriCollider` + `addBuildings(clusterKey, footprints)` /
-`removeBuildings(clusterKey)`. Nama grup klaster `unri:gedung:<cx_cz>:lod<n>`.
-```
+Bagian `### M3: Kit gedung` di indeks SUDAH memuat baris "Tambahan (D6)" (file tambahan, `buildings.json` aditif
+`area/front/holes?`, PartList dunia `matrix: null`, collider `addBuildings/removeBuildings`, nama grup klaster
+`unri:gedung:<cx_cz>:lod<n>`). Periksa saja (`grep -n "Tambahan (D6)" docs/superpowers/plans/2026-10-17-unri-00-index.md`);
+jangan menambah duplikat. Tambahkan hanya deviasi BARU yang muncul saat eksekusi.
 
 - [ ] **Step 4: Commit**
 

@@ -14,10 +14,11 @@ laporan budget §9.1), screenshot final, status katalog & indeks, lalu PR (denga
 250 m, langkah pejalan, slot parkir motor) dites Vitest. Distrik (`src/districts/unri/`) merakit
 `life.js` = mahasiswa + satpam + parkir motor + props kampus; humanoid dibuat lewat **kit entitas yang disuntik**
 (`ctx.services.npc` dari `src/entities/Student.js`) karena lapisan `districts` tidak boleh mengimpor `entities`
-(spec §3.1). Data jalur/parkir dibaca `groundFeed.js` dari `public/districts/unri/ground/<key>.json` (format M2).
+(spec §3.1). Data jalur/parkir dibaca `groundFeed.js` dari `public/districts/unri/ground/<key>.json` (format M2, diurai
+`parseGroundChunk` M2 → meter dunia).
 Cerita tetap data-driven: objective `interact` (`<region|interior>:<id>`) di `sim/story/objectives.js`, chapter 6
 di `src/story/chapters.unri.js` digabung ke `CHAPTERS`; event `interact` dikirim StoryDirector (NPC ber-`zone`) dan
-oleh hook interior (`src/app/interiorStoryHook.js`) yang membungkus `onInteract` interactable sekre M5.
+oleh opsi portal M5 `onInteracted(interiorId, itemId)` (rekonsiliasi 2026-10-18: tanpa berkas hook baru).
 
 **Tech Stack:** Three.js 0.186 (`BatchedMesh`, `InstancedMesh`, GLTFLoader), JavaScript ESM + JSDoc, Vite 8,
 Vitest 5, ESLint 10 flat config, Blender (MCP `execute_blender_code` + `assets-src/blender/export_glb.py`),
@@ -65,7 +66,7 @@ Playwright global (E2E GPU `--gpu d3d11`).
 |---|---|---|
 | D1 | `mountDistrict(app, def, opts)` mendapat opsi tambahan **`services`** yang diteruskan sebagai `ctx.services` ke `def.build`: `{ npc, camera, hour(), excludeAt(x,z) }`. Indeks diperbarui di Task 20. | `src/districts/` tidak boleh mengimpor `entities/` (spec §3.1), padahal mahasiswa/satpam = `Humanoid`. Kit humanoid dibuat app (`src/entities/Student.js`) lalu disuntik. Opsi baru bersifat opsional (tanpa `services` → distrik tanpa NPC). |
 | D2 | Titik cerita chapter 6 memakai `{ region:'world', x, z }` (koordinat dunia dari OSM, dihitung saat plan ditulis). Konsistensi terhadap data M4 (`PORTAL_DOORS`), M5 (id interactable), M6/M3 (`buildings.json`) dikunci `tests/storyUnri.test.js`. | Lapisan `story` tidak boleh mengimpor `regions` (ESLint), dan `frameOf` region yang belum terpasang bisa `null`; `'world'` selalu dapat di-resolve (spec §4.5 menyebut `'world'`). |
-| D3 | Data jalur & parkir dibaca `src/districts/unri/groundFeed.js` langsung dari `ground/<key>.json` (kunci dari `manifest.ground.chunks`), bukan dari internal `ground.js` M2. | Tidak bergantung pada API internal M2 yang tidak dikunci indeks; berkas yang sama sudah ada di cache HTTP browser. |
+| D3 | Data jalur & parkir dibaca `src/districts/unri/groundFeed.js` langsung dari `ground/<key>.json` (kunci dari `manifest.ground.chunks`) lalu diurai `parseGroundChunk(json, key)` M2 (`src/districts/unri/groundData.js`, dikunci indeks) → meter dunia `[x, z]`, `w` meter; bukan dari internal `ground.js` M2. | Berkas mentah M2 = bilangan bulat 0,1 m relatif sudut barat-laut chunk; parser M2 satu-satunya konversi resmi (rekonsiliasi 2026-10-18). Berkas yang sama sudah ada di cache HTTP browser. |
 | D4 | Misi `deliver` nasi kotak memakai pedagang baru jenis `kantin` (katalog `nasi-kotak`) yang mangkal di depan Kantin FKIP `way/282225371`; gerobak stadion dipakai ulang sebagai etalase (aset P12). | `deliver` (objective lama, tidak diubah) mensyaratkan item di dompet, dan item dompet hanya berasal dari pedagang. PKL di kampus = GAP riset → disajikan sebagai etalase kantin, bukan PKL. |
 | D5 | NPC cerita kampus punya field `zone` (`'unri-lembaga'`); bicara dengan NPC ber-`zone` juga mengirim event `{type:'interact', target:'<zone>:<id>'}`. Objective `interact` boleh membawa `at` (titik penanda, opsional). | Spec §8.4 format target `<region\|interior>:<id>`; penanda HUD butuh titik. |
 | D6 | Halte TMP (P02): kedua node OSM `4559431711`, `4559433677` (lat 0,4641/0,4644; lon 101,3730/101,3742 → dunia ≈ (−1840, 2156) dan (−1706, 2123)) berada **di luar** batas distrik (barat & selatan bbox poligon kampus). Model P02 tetap dibuat; penempatan memakai `halteSpotsInDistrict()` yang hasilnya `[]`; dicatat di ATTRIBUTION/katalog/README. | Instruksi: pasang bila di dalam jangkauan, selain itu catat di luar distrik. |
@@ -112,12 +113,11 @@ Playwright global (E2E GPU `--gpu d3d11`).
 | `src/world/props/unri/halteTmp.js` | 8 | Placeholder P02. |
 | `src/districts/unri/campusProps.js` | 8 | Plang lambang N10 (GLB/placeholder), `halteSpotsInDistrict`. |
 | `src/story/chapters.unri.js` | 11 | Chapter 6 "Kampus Biru Langit", `UNRI_STORY_NPCS`, `UNRI_VENDORS`, titik kampus. |
-| `src/app/interiorStoryHook.js` | 12 | `withInteractHook(def, onInteracted)` membungkus interactable interior. |
 | `src/app/stadionDetail.js` | 18 (kondisional) | Mitigasi §9.3 langkah 3: `setDetail('far')` stadion. |
 | `public/districts/unri/ATTRIBUTION.txt` | 16 | Atribusi OSM (ODbL) + SRTM (domain publik) + catatan halte. |
 | `tests/e2e/harness.unri.mjs` | 5 | Harness Playwright GPU: `openSim`, `settleAt`, skenario cek cepat per task. |
 | `tests/e2e/shots.unri.mjs` | 19 | Screenshot final M7 (Playwright GPU, memakai harness). |
-| `tests/campusLife.test.js`, `tests/parkingSlots.test.js`, `tests/groundFeed.test.js`, `tests/motorParking.test.js`, `tests/studentOutfit.test.js`, `tests/storyUnri.test.js`, `tests/storyReopen.test.js`, `tests/interiorStoryHook.test.js`, `tests/stadionDetail.test.js` (kondisional) | 1–18 | Tes logika murni/berisiko. |
+| `tests/campusLife.test.js`, `tests/parkingSlots.test.js`, `tests/groundFeed.test.js`, `tests/motorParking.test.js`, `tests/studentOutfit.test.js`, `tests/storyUnri.test.js`, `tests/storyReopen.test.js`, `tests/stadionDetail.test.js` (kondisional) | 1–18 | Tes logika murni/berisiko. |
 | `docs/screenshots/unri/m7-*.jpg` | 19 | Galeri final. |
 
 **Diubah**
@@ -135,6 +135,7 @@ Playwright global (E2E GPU `--gpu d3d11`).
 | `src/story/chapters.js` | 11 | `CHAPTERS` + chapter 6, `STORY_NPCS` + NPC kampus. |
 | `src/entities/StoryNpcs.js` | 11 | `look:'almamater'`. |
 | `src/core/StoryDirector.js` | 12, 13, 14 | `onInteract`, NPC ber-`zone`, penanda `interact`, `inCampus`, buka chapter baru. |
+| `src/story/storyWorld.js`, `tests/storyPoints.test.js` | 12 | `resolveObjective` juga me-resolve `at` objective `interact` (rekonsiliasi 2026-10-18). |
 | `src/story/storage.js` | 13 | `reopenForNewChapters`. |
 | `src/story/easterEggs.js`, `src/story/eggTriggers.js` | 14 | 3 easter egg kampus + pemicu `biru-langit`, `ggm-putar`. |
 | `src/app/fastTravel.js` | 15 | `CAMPUS_DESTINATIONS`, `travelDestinations({campus})`, `waitForRegion`, opsi `settle`. |
@@ -191,10 +192,11 @@ Run:
 ```bash
 node -e "const m=require('./public/districts/unri/manifest.json');const k=m.ground.chunks[0];const g=require('./public/districts/unri/ground/'+k+'.json');console.log(k,Object.keys(g));const w=(g.walks||[])[0];console.log('walk',JSON.stringify(w&&{w:w.w,pts:w.pts.slice(0,3)}));const r=(g.roads||[])[0];console.log('road',JSON.stringify(r&&{cls:r.cls,w:r.w,pts:r.pts.slice(0,3)}));const a=(g.areas||[]).find(a=>a.kind==='parking');console.log('parking',JSON.stringify(a&&{kind:a.kind,ring0:a.rings[0].slice(0,3)}))"
 ```
-Expected: kunci `v, key, roads, walks, areas, weights`; titik berupa pasangan `[x, z]` dalam **meter dunia**
-(nilai sekelas −1100…+600 dan +300…+2200, desimal ≤ 1 digit). Bila nilai 10× lebih besar (desimeter bulat), set
-`GROUND_SCALE = 0.1` di `src/districts/unri/life.js` (Task 5 Step 6); bila datar `[x0,z0,x1,z1,…]`,
-`toPoints` (Task 1) sudah menanganinya. Lebar jalan `w` dianggap meter.
+Expected (format M2 v1, rekonsiliasi 2026-10-18): kunci `v, key, roads, walks, areas, ditches, veg, props, weights`;
+titik MENTAH = array datar bilangan bulat satuan 0,1 m relatif sudut barat-laut chunk (`x_dunia = ix·500 + v·0,1`), `w`
+juga 0,1 m. `groundFeed` (Task 5) mengurai lewat `parseGroundChunk(json, key)` M2 sehingga semua modul M7 menerima
+meter dunia `[[x, z], …]` dan `w` meter; `GROUND_SCALE` tetap `1`. Verifikasi parser:
+`grep -n "export function parseGroundChunk" src/districts/unri/groundData.js`.
 
 - [ ] **Step 5: Verifikasi region, portal, interior, pose (M4–M6)**
 
@@ -1263,21 +1265,19 @@ export function exposeDevTools({
 
 - [ ] **Step 3: Komposisi di `src/main.js`**
 
-1. Impor:
+1. Impor (`regionContains` SUDAH diimpor M4 — jangan diimpor ulang):
 
 ```js
 import { createStudentKit } from './entities/Student.js';
-import { regionContains } from './regions/Region.js';
 ```
 
-2. Tepat sebelum pemanggilan `mountDistrict(app, unriDistrict, { … })` (catatan Task 0 Step 5), tambahkan (ganti
-   `unriLembagaRegion` / `unriRektoratRegion` dengan nama ekspor definisi region yang dicatat di Task 0):
+2. Tepat sebelum pemanggilan `mountDistrict(app, unriDistrict, { … })` (catatan Task 0 Step 5), tambahkan (pakai ulang
+   konstanta modul `HERO_REGIONS` M4/M6 — jangan membuat daftar region hero baru):
 
 ```js
   // Region hero kampus punya isi sendiri (mis. motor rapat di teras sekre M4): distrik tidak menaruh instans di dalam
   // mask-nya. regionIdAt juga dipakai devtools/E2E untuk mengetahui region yang menaungi sebuah titik dunia.
-  const heroRegions = [unriLembagaRegion, unriRektoratRegion];
-  const regionIdAt = (x, z) => heroRegions.find((def) => regionContains(def, x, z))?.id ?? null;
+  const regionIdAt = (x, z) => HERO_REGIONS.find((def) => regionContains(def, x, z))?.id ?? null;
   const districtServices = Object.freeze({
     npc: createStudentKit(),
     camera: app.camera,
@@ -1287,9 +1287,9 @@ import { regionContains } from './regions/Region.js';
 ```
 
 3. Tambahkan `services: districtServices` ke objek opsi `mountDistrict(app, unriDistrict, { … })`.
-4. Pada pemanggilan `exposeDevTools({ … })` tambahkan (nama variabel sesuai `main.js` hasil M0–M6):
-   `regions: <regionManager>, district: <hasil mountDistrict>.district, portal: <interiorPortal>,
-   terrain: <terrainService/heightfield>, scheduler: <scheduler>, regionIdAt`.
+4. Pada pemanggilan `exposeDevTools({ … })` tambahkan `portal: portalKit.portal, regionIdAt`. `regions`, `scheduler`,
+   `terrain` sudah diteruskan M0 dan `district: unri` (HANDLE `mountDistrict`) oleh M1 — jangan diubah: hasil build
+   distrik = `__sim.district.district` (mis. `__sim.district.district.life`), `__sim.district.whenSettled` dipakai smoke M1.
 
 - [ ] **Step 4: Verifikasi**
 
@@ -1334,6 +1334,7 @@ function setup({ fail = [] } = {}) {
       const key = url.match(/ground\/(.+)\.json$/)[1];
       return fail.includes(key) ? Promise.reject(new Error('HTTP 500')) : Promise.resolve({ key });
     },
+    parse: (d) => d, // data uji sudah terurai (produksi: parseGroundChunk M2)
     onAdd: (key, data) => log.added.push([key, data.key]),
     onRemove: (key) => log.removed.push(key),
     logger: { warn: () => { log.warns += 1; } },
@@ -1399,6 +1400,7 @@ Expected: FAIL (modul tidak ditemukan).
  * Fetch gagal: diperingatkan sekali per kunci dan tidak diulang (chunk dianggap kosong, spec §10).
  */
 import { tilesInRadius } from '../../geo/tiles.js';
+import { parseGroundChunk } from './groundData.js';
 
 export const FEED_LOAD_RADIUS = 650;
 export const FEED_DROP_RADIUS = 950;
@@ -1410,9 +1412,10 @@ export function defaultFetchJson(url) {
 
 /**
  * @param {{baseUrl:string, chunkKeys:string[], fetchJson?:(url:string)=>Promise<object>,
- *   onAdd:(key:string, data:object)=>void, onRemove:(key:string)=>void, logger?:{warn:Function}}} opts
+ *   parse?:(json:object, key:string)=>object, onAdd:(key:string, data:object)=>void, onRemove:(key:string)=>void,
+ *   logger?:{warn:Function}}} opts  `parse` default = parseGroundChunk M2 (meter dunia; galat parse = chunk dilewati)
  */
-export function createGroundFeed({ baseUrl, chunkKeys, fetchJson = defaultFetchJson, onAdd, onRemove, logger = console }) {
+export function createGroundFeed({ baseUrl, chunkKeys, fetchJson = defaultFetchJson, parse = parseGroundChunk, onAdd, onRemove, logger = console }) {
   const known = new Set(chunkKeys);
   const loaded = new Map();
   const pending = new Set();
@@ -1421,7 +1424,7 @@ export function createGroundFeed({ baseUrl, chunkKeys, fetchJson = defaultFetchJ
 
   const load = (key) => {
     pending.add(key);
-    fetchJson(`${baseUrl}ground/${key}.json`).then((data) => {
+    fetchJson(`${baseUrl}ground/${key}.json`).then((raw) => parse(raw, key)).then((data) => {
       pending.delete(key);
       if (disposed) return;
       loaded.set(key, data);
@@ -1834,8 +1837,8 @@ Di dalam `build(ctx)` distrik UNRI (M1–M3):
 
 3. Gabungkan `...life.systems` ke array `systems` yang dikembalikan, panggil `life.dispose()` di awal `dispose()`
    distrik (sebelum scope dilepas), dan tambahkan properti `life` pada objek hasil build (dipakai devtools/E2E sebagai
-   `window.__sim.district.life`).
-4. Bila Task 0 Step 4 menemukan titik ground berupa desimeter, ubah `GROUND_SCALE` di `life.js` menjadi `0.1`.
+   `window.__sim.district.district.life`).
+4. `GROUND_SCALE` tetap `1`: `groundFeed` sudah mengurai berkas lewat `parseGroundChunk` M2 (meter dunia).
 
 - [ ] **Step 7: Harness cek cepat `tests/e2e/harness.unri.mjs`**
 
@@ -1925,16 +1928,16 @@ export async function settleAt(page, { x, z, yaw = 0, hour = 12, waitMs = 2500 }
 
 /** Skenario cek cepat (posisi dunia; yaw konvensi maju = (sin, cos)). */
 export const SCENARIOS = Object.freeze({
-  mahasiswa: { x: -206, z: 1118, yaw: -2.52, hour: 10, read: () => window.__sim.district.life.students.stats },
-  'mahasiswa-malam': { x: -206, z: 1118, yaw: -2.52, hour: 23, read: () => window.__sim.district.life.students.stats },
-  satpam: { x: -1074.7, z: 1316, yaw: Math.PI, hour: 9, read: () => window.__sim.district.life.guards.stats },
-  motor: { x: -922, z: 992, yaw: -2.06, hour: 11, read: () => window.__sim.district.life.motors.stats },
-  'motor-malam': { x: -922, z: 992, yaw: -2.06, hour: 23, read: () => window.__sim.district.life.motors.stats },
+  mahasiswa: { x: -206, z: 1118, yaw: -2.52, hour: 10, read: () => window.__sim.district.district.life.students.stats },
+  'mahasiswa-malam': { x: -206, z: 1118, yaw: -2.52, hour: 23, read: () => window.__sim.district.district.life.students.stats },
+  satpam: { x: -1074.7, z: 1316, yaw: Math.PI, hour: 9, read: () => window.__sim.district.district.life.guards.stats },
+  motor: { x: -922, z: 992, yaw: -2.06, hour: 11, read: () => window.__sim.district.district.life.motors.stats },
+  'motor-malam': { x: -922, z: 992, yaw: -2.06, hour: 23, read: () => window.__sim.district.district.life.motors.stats },
   props: {
     x: -1074, z: 2088, yaw: Math.PI, hour: 9.5,
     read: () => ({
       plang: Boolean(window.__sim.app.scene.getObjectByName('plangLambangUnri')),
-      halte: window.__sim.district.life.props.halteCount,
+      halte: window.__sim.district.district.life.props.halteCount,
     }),
   },
 });
@@ -1984,7 +1987,7 @@ Expected: `data.active` ≤ 6 (malam sepi), `errors: []`.
 Run: `node tests/e2e/harness.unri.mjs satpam --shot %TEMP%\m7-satpam.jpg`
 Expected: `data.count` = 2; gambar: dua satpam berseragam krem-coklat di Pos Keamanan.
 
-Bila `active` = 0: cek `window.__sim.district.life.feed.keys` (chunk ground termuat?) dan `GROUND_SCALE`; bila
+Bila `active` = 0: cek `window.__sim.district.district.life.feed.keys` (chunk ground termuat?) dan `GROUND_SCALE`; bila
 mahasiswa melayang/tenggelam: cek `terrain.heightAt` di titik tersebut.
 
 - [ ] **Step 10: Commit**
@@ -2002,12 +2005,15 @@ git commit -m "feat(unri): mahasiswa NPC berjadwal di trotoar/selasar dan bangku
 
 **Files:**
 - Create: `assets-src/blender/unri/m7_common.py`, `assets-src/blender/unri/m7_motor.py`,
-  `assets-src/blender/unri/a01-motor-bebek.blend`, `a02-motor-matic.blend`, `a03-motor-sport.blend`,
-  `a04-motor-tua.blend`, `public/models/unri/a01-motor-bebek.glb`, `a02-motor-matic.glb`, `a03-motor-sport.glb`,
-  `a04-motor-tua.glb`, `src/world/props/unri/motorVariants.js`
+  `assets-src/blender/unri/a03-motor-sport.blend`, `a04-motor-tua.blend`, `public/models/unri/a03-motor-sport.glb`,
+  `a04-motor-tua.glb`, `src/world/props/unri/motorVariants.js` (A01/A02 = GLB M4 Task 25; dibuat di sini hanya bila M4
+  melewatinya)
 
-Catatan: M7 selalu membuat keempat GLB dengan skrip yang sama agar nama material seragam (syarat `BatchedMesh` per
-material). GLB motor M4 untuk teras sekre (bila ada, nama lain) tidak disentuh.
+Catatan (rekonsiliasi 2026-10-18): A01/A02 SUDAH dibuat M4 Task 25 (`public/models/unri/a01-motor-bebek.glb`,
+`a02-motor-matic.glb`, material `unri:bodi`, `unri:hitam`, `unri:krom`, `unri:lampu`). M7 hanya membangun **A03/A04**
+(`build_all_motors()` default `("A03", "A04")`) dengan nama material YANG SAMA (`ban`/`jok` memakai `unri:hitam`, lampu
+belakang `unri:kaca-merah` tambahan) sehingga `BatchedMesh` per material tetap ≤ 5 batch per area. Bila GLB A01/A02 M4
+tidak ada (Task 25 M4 dilewati), jalankan `build_all_motors(("A01", "A02", "A03", "A04"))` — nama berkas sama dengan M4.
 
 - [ ] **Step 1: `assets-src/blender/unri/m7_common.py`**
 
@@ -2170,7 +2176,7 @@ def finish(scene, prev, col_name, blend_name, glb_name, ratios=None):
 """Motor parkir kampus A01–A04 (katalog aset §4).
 
 Skala meter, Z ke atas; moncong motor ke +Y Blender (= −Z three.js setelah ekspor Y-up), origin di tengah alas.
-Material `unri:cat-bodi` PUTIH: warna per instans diberikan runtime (BatchedMesh.setColorAt). Motor dimiringkan
+Material `unri:bodi` PUTIH (nama material = konvensi M4 A01/A02): warna per instans diberikan runtime (BatchedMesh.setColorAt). Motor dimiringkan
 5° ke kiri (bertumpu standar samping). Bentuk gaya bebek/matic/sport/tua = [INFERENSI] (bukan merek tertentu).
 """
 import math
@@ -2191,13 +2197,15 @@ LEAN = math.radians(-5)
 
 
 def motor_materials():
+    # Nama material = konvensi M4 (motor.py A01/A02): satu set BatchedMesh per material untuk keempat varian.
+    hitam = material("unri:hitam", (0.03, 0.03, 0.03, 1.0), rough=0.8)
     return {
-        "bodi": material("unri:cat-bodi", (1.0, 1.0, 1.0, 1.0), rough=0.4),
-        "hitam": material("unri:plastik-hitam", (0.03, 0.03, 0.035, 1.0), rough=0.7),
-        "logam": material("unri:logam", (0.62, 0.63, 0.66, 1.0), rough=0.35, metal=0.8),
-        "ban": material("unri:ban", (0.02, 0.02, 0.02, 1.0), rough=0.9),
-        "jok": material("unri:jok", (0.05, 0.05, 0.06, 1.0), rough=0.8),
-        "lampu": material("unri:kaca-lampu", (0.95, 0.95, 0.85, 1.0), rough=0.1),
+        "bodi": material("unri:bodi", (0.9, 0.9, 0.9, 1.0), rough=0.45, metal=0.1),
+        "hitam": hitam,
+        "logam": material("unri:krom", (0.7, 0.72, 0.74, 1.0), rough=0.3, metal=0.8),
+        "ban": hitam,
+        "jok": hitam,
+        "lampu": material("unri:lampu", (0.95, 0.94, 0.9, 1.0), rough=0.2),
         "merah": material("unri:kaca-merah", (0.7, 0.05, 0.05, 1.0), rough=0.2),
     }
 
@@ -2274,7 +2282,7 @@ def build_motor(vid):
     return dict(id=vid, **finish(scene, prev, col.name, f"{slug}.blend", f"{slug}.glb"))
 
 
-def build_all_motors(ids=("A01", "A02", "A03", "A04")):
+def build_all_motors(ids=("A03", "A04")):  # A01/A02 dari M4 Task 25
     return [build_motor(v) for v in ids]
 ```
 
@@ -2285,7 +2293,7 @@ import runpy
 motor = runpy.run_path(r"C:\Users\mocha\Documents\stadion-utama-riau-3d\assets-src\blender\unri\m7_motor.py")
 print(motor["build_all_motors"]())
 ```
-Expected: daftar 4 entri `{'id': 'A0x', 'glb': 'a0x-….glb', 'meshes': 7, 'tris': ≤ 3500, 'kb': ≤ 150}`, tanpa galat
+Expected: daftar 2 entri (A03, A04) `{'id': 'A0x', 'glb': 'a0x-….glb', 'meshes': ≤ 5, 'tris': ≤ 3500, 'kb': ≤ 150}`, tanpa galat
 Python. Bila `tris` > 3500 untuk satu varian, ubah `verts=20` ban menjadi `16` lalu ulangi.
 
 - [ ] **Step 4: Tinjau visual (MCP)**
@@ -2309,16 +2317,16 @@ Run:
 ```bash
 node --input-type=module -e "import { NodeIO } from '@gltf-transform/core'; const io = new NodeIO(); for (const f of ['a01-motor-bebek','a02-motor-matic','a03-motor-sport','a04-motor-tua']) { const doc = await io.read('public/models/unri/' + f + '.glb'); let tris = 0; for (const mesh of doc.getRoot().listMeshes()) for (const p of mesh.listPrimitives()) tris += (p.getIndices()?.getCount() ?? p.getAttribute('POSITION').getCount()) / 3; console.log(f, Math.round(tris), doc.getRoot().listMaterials().map((m) => m.getName()).sort().join(',')); }"
 ```
-Expected: 4 baris, segitiga ≤ 3500, material
-`unri:ban,unri:cat-bodi,unri:jok,unri:kaca-lampu,unri:kaca-merah,unri:logam,unri:plastik-hitam`.
+Expected: 4 baris, segitiga ≤ 3500; material A01/A02 (M4) `unri:bodi,unri:hitam,unri:krom,unri:lampu`, A03/A04 subset
+dari `unri:bodi,unri:hitam,unri:kaca-merah,unri:krom,unri:lampu`.
 
 - [ ] **Step 6: `src/world/props/unri/motorVariants.js`**
 
 ```js
 /**
- * Varian motor parkir kampus (katalog A01–A04): dimensi (L × P × T, m), path GLB final (Blender, Task 6 M7) dan
+ * Varian motor parkir kampus (katalog A01–A04): dimensi (L × P × T, m), path GLB final (Blender: A01/A02 M4, A03/A04 M7) dan
  * placeholder prosedural berukuran sama. Model menghadap −Z lokal, origin di tengah alas (aturan katalog).
- * Material bodi bernama `unri:cat-bodi` berwarna putih: warna per instans dari MOTOR_BODY_COLORS.
+ * Material bodi bernama `unri:bodi` (konvensi M4) berwarna putih: warna per instans dari MOTOR_BODY_COLORS.
  * `path: null` = belum ada GLB (placeholder langsung, tanpa permintaan HTTP yang gagal).
  */
 import * as THREE from 'three';
@@ -2332,13 +2340,13 @@ export const MOTOR_VARIANTS = Object.freeze({
   A04: Object.freeze({ id: 'A04', name: 'motor-tua', path: 'models/unri/a04-motor-tua.glb', width: 0.7, length: 1.9, height: 1.0, wheelR: 0.29 }),
 });
 
-export const MOTOR_BODY_MATERIAL = 'unri:cat-bodi';
+export const MOTOR_BODY_MATERIAL = 'unri:bodi';
 /** Warna cat motor umum [INFERENSI]: merah, biru, hitam, putih, abu, oranye, ungu, hijau. */
 export const MOTOR_BODY_COLORS = Object.freeze([0xc62828, 0x1565c0, 0x212121, 0xeeeeee, 0x9e9e9e, 0xef6c00, 0x6a1b9a, 0x2e7d32]);
 
 const placeholderMaterials = () => currentScope().get('unri:motor:placeholderMats', () => ({
   [MOTOR_BODY_MATERIAL]: new THREE.MeshLambertMaterial({ color: 0xffffff }),
-  'unri:ban': new THREE.MeshLambertMaterial({ color: 0x1a1a1a }),
+  'unri:hitam': new THREE.MeshLambertMaterial({ color: 0x1a1a1a }),
 }));
 
 /**
@@ -2359,7 +2367,7 @@ export function motorPlaceholderSources(variant) {
   wheels.forEach((g) => g.dispose());
   return [
     { name: MOTOR_BODY_MATERIAL, geometry: body, material: mats[MOTOR_BODY_MATERIAL] },
-    { name: 'unri:ban', geometry: tyres, material: mats['unri:ban'] },
+    { name: 'unri:hitam', geometry: tyres, material: mats['unri:hitam'] },
   ];
 }
 ```
@@ -2371,7 +2379,7 @@ export function motorPlaceholderSources(variant) {
 
 Run: `npm run lint` → 0 galat.
 ```bash
-git add assets-src/blender/unri/m7_common.py assets-src/blender/unri/m7_motor.py assets-src/blender/unri/a01-motor-bebek.blend assets-src/blender/unri/a02-motor-matic.blend assets-src/blender/unri/a03-motor-sport.blend assets-src/blender/unri/a04-motor-tua.blend public/models/unri/a01-motor-bebek.glb public/models/unri/a02-motor-matic.glb public/models/unri/a03-motor-sport.glb public/models/unri/a04-motor-tua.glb src/world/props/unri/motorVariants.js
+git add assets-src/blender/unri/m7_common.py assets-src/blender/unri/m7_motor.py assets-src/blender/unri/a03-motor-sport.blend assets-src/blender/unri/a04-motor-tua.blend public/models/unri/a03-motor-sport.glb public/models/unri/a04-motor-tua.glb src/world/props/unri/motorVariants.js
 ```
 ```bash
 git commit -m "feat(aset): motor parkir kampus A01–A04 dari Blender (bebek, matic, sport, tua) + varian & placeholder"
@@ -3509,6 +3517,7 @@ import { UNRI_BOUNDARY } from '../src/districts/unri/boundary.js';
 import { GUARD_SPOTS } from '../src/districts/unri/guards.js';
 import { LAMBANG_SPOT, halteSpotsInDistrict } from '../src/districts/unri/campusProps.js';
 import { GROUND_SCALE } from '../src/districts/unri/life.js';
+import { parseGroundChunk } from '../src/districts/unri/groundData.js';
 import { toPoints } from '../src/sim/campusLife.js';
 import { PORTAL_DOORS } from '../src/regions/unri-lembaga/portalDoors.js';
 import * as lembagaModule from '../src/regions/unri-lembaga/index.js';
@@ -3585,8 +3594,9 @@ describe('chapter 6 & kehidupan kampus vs data M3–M6 (keputusan D2)', () => {
     expect(regionContains(LEMBAGA, x, z)).toBe(false);
     expect(regionContains(REKTORAT, x, z)).toBe(false);
     const t = tileOf(x, z);
-    const ground = JSON.parse(readFileSync(`public/districts/unri/ground/${t.ix}_${t.iz}.json`, 'utf8'));
-    for (const r of ground.roads ?? []) {
+    const key = `${t.ix}_${t.iz}`;
+    const ground = parseGroundChunk(JSON.parse(readFileSync(`public/districts/unri/ground/${key}.json`, 'utf8')), key);
+    for (const r of ground.roads) {
       expect(distanceToRing(x, z, toPoints(r.pts, GROUND_SCALE), false)).toBeGreaterThan(r.w / 2 + 0.5);
     }
   });
@@ -3628,81 +3638,12 @@ git commit -m "feat(story): chapter 6 Kampus Biru Langit (nasi kotak, tanda tang
 ## Task 12: StoryDirector `interact` + hook interaksi interior
 
 **Files:**
-- Create: `src/app/interiorStoryHook.js`, `tests/interiorStoryHook.test.js`
-- Modify: `src/core/StoryDirector.js`, `src/main.js`, `tests/storyDirector.test.js`
+- Modify: `src/core/StoryDirector.js`, `src/story/storyWorld.js`, `src/main.js`, `tests/storyDirector.test.js`, `tests/storyPoints.test.js`
+- (Rekonsiliasi 2026-10-18: TIDAK membuat `src/app/interiorStoryHook.js` — M5 sudah menyediakan opsi portal
+  `onInteracted(interiorId, itemId)`, Serah terima M5.)
 
-- [ ] **Step 1: Tes hook (gagal dulu)**
-
-Buat `tests/interiorStoryHook.test.js`:
-
-```js
-import { describe, it, expect } from 'vitest';
-import { withInteractHook } from '../src/app/interiorStoryHook.js';
-
-const makeDef = (async = false) => {
-  const built = { scene: {}, interactables: [{ id: 'kipas', label: 'Kipas', onInteract: () => ({ text: 'wuus' }) }], dispose() {} };
-  return Object.freeze({ id: 'sekre', label: 'Sekre', build: () => (async ? Promise.resolve(built) : built) });
-};
-
-describe('withInteractHook', () => {
-  it('melaporkan <interiorId>:<id> dan meneruskan hasil onInteract asli (build sinkron)', () => {
-    const seen = [];
-    const def = makeDef();
-    const wrapped = withInteractHook(def, (t) => seen.push(t));
-    const built = wrapped.build({});
-    expect(built.interactables[0].onInteract({})).toEqual({ text: 'wuus' });
-    expect(seen).toEqual(['sekre:kipas']);
-    expect(wrapped.id).toBe('sekre');
-    expect(def.build({}).interactables[0].onInteract({})).toEqual({ text: 'wuus' });
-    expect(seen).toEqual(['sekre:kipas']);
-  });
-  it('build berupa Promise juga dibungkus', async () => {
-    const seen = [];
-    const built = await withInteractHook(makeDef(true), (t) => seen.push(t)).build({});
-    built.interactables[0].onInteract({});
-    expect(seen).toEqual(['sekre:kipas']);
-  });
-});
-```
-
-Run: `node node_modules/vitest/vitest.mjs run tests/interiorStoryHook.test.js` → FAIL (modul tidak ada).
-
-- [ ] **Step 2: `src/app/interiorStoryHook.js`**
-
-```js
-/**
- * Hook cerita untuk interior (spec UNRI §8.4: objective `interact` pada barang interior): membungkus definisi interior
- * (kontrak §4.8, `build(ctx)` mengembalikan objek polos) sehingga setiap `onInteract` interactable juga melapor
- * `<interiorId>:<interactableId>` ke cerita. Definisi asli tidak diubah; build sinkron atau Promise didukung;
- * hasil `onInteract` asli (void | {text, title}) diteruskan apa adanya.
- * @param {{id:string, build(ctx:object): object|Promise<object>}} def
- * @param {(target:string) => void} onInteracted
- */
-export function withInteractHook(def, onInteracted) {
-  const wrap = (built) => ({
-    ...built,
-    interactables: (built.interactables ?? []).map((it) => Object.freeze({
-      ...it,
-      onInteract(ctx) {
-        const result = it.onInteract(ctx);
-        onInteracted(`${def.id}:${it.id}`);
-        return result;
-      },
-    })),
-  });
-  return Object.freeze({
-    ...def,
-    build(ctx) {
-      const built = def.build(ctx);
-      return built && typeof built.then === 'function' ? built.then(wrap) : wrap(built);
-    },
-  });
-}
-```
-
-Run: `node node_modules/vitest/vitest.mjs run tests/interiorStoryHook.test.js` → PASS.
-(Bila Task 0 mencatat `build` interior M5 mengembalikan instans kelas, bukan objek polos, ganti `...built` dengan
-`Object.assign(Object.create(Object.getPrototypeOf(built)), built, { interactables })` dan catat.)
+- [ ] **Step 1–2: (dihapus — rekonsiliasi 2026-10-18)** Hook interior memakai opsi `onInteracted` milik portal M5
+(Step 5); tidak ada berkas `interiorStoryHook.js` maupun tesnya.
 
 - [ ] **Step 3: Tes StoryDirector (gagal dulu)**
 
@@ -3777,16 +3718,27 @@ Run: `node node_modules/vitest/vitest.mjs run tests/storyDirector.test.js` → F
     if (o.type === 'interact') return o.at ?? null;
 ```
 
-(Bila M0 membungkus nilai kembalian `goalPoint` dengan resolver titik ber-region, letakkan baris ini di dalam
-pola yang sama sehingga `o.at` ikut di-resolve.)
+`o.at` harus sudah DUNIA: M0 me-resolve objective sekali di `src/story/storyWorld.js` (`resolveObjective`, semula hanya
+`goto`). Perluas fungsi itu menjadi:
+```js
+const resolveObjective = (o, frameOf) => {
+  if (o.type === 'goto') return { ...o, target: resolvePoint(o.target, frameOf) };
+  if (o.type === 'interact' && o.at) return { ...o, at: resolvePoint(o.at, frameOf) };
+  return o;
+};
+```
+dan tambahkan satu kasus ke `tests/storyPoints.test.js` (M0): `resolveChapters` dengan objective
+`{ type: 'interact', target: 'sekre:kipas', at: { region: 'world', x: 5, z: 6 } }` → `at` = `{ x: 5, z: 6 }`; tanpa `at`
+→ objective tidak berubah.
 
 - [ ] **Step 5: Hook interior di `src/main.js`**
 
-1. Impor: `import { withInteractHook } from './app/interiorStoryHook.js';`
-2. Di tempat definisi interior sekre M5 didaftarkan ke portal (catatan Task 0 Step 5; mis.
-   `createInteriorPortal({ …, interiors: { sekre: sekreInterior } })` atau `portal.register(sekreInterior)`), ganti
-   `sekreInterior` dengan `withInteractHook(sekreInterior, (target) => story.onInteract(target))`. Closure dibaca saat
-   pemain berinteraksi, jadi tetap benar walau `story` dibuat sesudah portal dalam fungsi yang sama.
+Di `setupPortal` (`src/main.js`, versi M5 — parameter `story` sudah ada), tambahkan ke opsi `createInteriorPortal({ … })`:
+```js
+    onInteracted: (interiorId, itemId) => story.onInteract(`${interiorId}:${itemId}`), // M5 → objective interact (M7)
+```
+Portal M5 memanggil `onInteracted` setiap interaksi berhasil (Serah terima M5); target `'sekre:kipas'` ⇔
+`onInteracted('sekre', 'kipas')`.
 
 - [ ] **Step 6: Tes, lint, build, cek manual**
 
@@ -3800,7 +3752,7 @@ aktif) dan tanpa galat.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/app/interiorStoryHook.js src/core/StoryDirector.js src/main.js tests/interiorStoryHook.test.js tests/storyDirector.test.js
+git add src/core/StoryDirector.js src/story/storyWorld.js src/main.js tests/storyPoints.test.js tests/storyDirector.test.js
 ```
 ```bash
 git commit -m "feat(story): event interact dari NPC ber-zone dan barang interior sekre, penanda objective interact"
@@ -3895,7 +3847,8 @@ export function reopenForNewChapters(save, chapterCount) {
     const loaded = loadStory(this.storage, LIMITS);
     if (loaded) {
       const { save, reopened } = reopenForNewChapters(loaded, CHAPTERS.length);
-      const { wallet, version: _version, ...progress } = save;
+      const { wallet, version: _version, place, ...progress } = save; // place: save v3 M0
+      this.savedPlace = place;
       this.state = this.story.hydrate(progress);
       this.vendors.setWallet(wallet);
       this.onWalletChange(this.vendors.wallet);
@@ -3908,8 +3861,8 @@ export function reopenForNewChapters(save, chapterCount) {
   }
 ```
 
-(Bila M0 menambah langkah lain di `start()`, pertahankan; yang ditambahkan M7 hanya `reopenForNewChapters` + blok
-`if (reopened)`.)
+(M0 menambah `place` → `savedPlace`; sudah dipertahankan di atas. Yang ditambahkan M7 hanya `reopenForNewChapters` +
+blok `if (reopened)`.)
 
 - [ ] **Step 4: Tes lulus, lint, commit**
 
@@ -4125,7 +4078,8 @@ Run: `node node_modules/vitest/vitest.mjs run tests/fastTravel.test.js` → FAIL
 
 1. Impor: `import { regionContains } from '../regions/Region.js';`
 2. Komentar berkas: "(Fase 3 + M7): Stadion, Masjid Raya An-Nur, Kampus UNRI (Sekretariat Lembaga, Rektorat) …".
-3. Hapus tujuan sementara dev M4 (Task 0 Step 5) bila ada.
+3. Tujuan dev M4: hapus konstanta `DEV_TRAVEL` dan argumen `extra: DEV_TRAVEL` di `src/main.js` (Step 3); parameter
+   `extra` di `travelDestinations` + tesnya (M4) DIPERTAHANKAN.
 4. Tambahkan sesudah `ANNUR_AREA_ID`:
 
 ```js
@@ -4136,8 +4090,8 @@ export const CAMPUS_DESTINATIONS = Object.freeze([
 ]);
 ```
 
-5. `travelDestinations`: tanda tangan `({ manifest = null, frame, spawn, campus = false })`, JSDoc
-   `campus: distrik UNRI terpasang`, dan sebelum `return out;` tambahkan
+5. `travelDestinations`: tanda tangan `({ manifest = null, frame, spawn, extra = [], campus = false })` (`extra` dari M4
+   tetap), JSDoc `campus: distrik UNRI terpasang`, dan sebelum baris `return [...out, ...extra.map(…)];` (M4) tambahkan
    `if (campus) out.push(...CAMPUS_DESTINATIONS.map((d) => ({ ...d })));`
 6. Tambahkan:
 
@@ -4179,20 +4133,21 @@ export async function waitForRegion(regions, defs, x, z, {
 - [ ] **Step 3: Komposisi (`src/main.js`)**
 
 1. Impor `waitForRegion` dari `./app/fastTravel.js`.
-2. Pada `travelDestinations({ … })` tambahkan `campus: Boolean(<hasil mountDistrict UNRI>)`.
+2. Pada `travelDestinations({ … })` tambahkan `campus: Boolean(unri)` (`unri` = handle `mountDistrict` M1) dan hapus
+   `extra: DEV_TRAVEL` beserta konstanta `DEV_TRAVEL` (M4).
 3. Pada `createFastTravel({ … })` tambahkan:
 
 ```js
     settle: async (x, z) => {
       const [districtOk, regionOk] = await Promise.all([
-        <hasil mountDistrict UNRI>?.district.whenSettled?.(x, z) ?? true,
-        waitForRegion(regionManager, heroRegions, x, z),
+        unri ? unri.whenSettled(x, z) : true,
+        waitForRegion(regions, HERO_REGIONS, x, z),
       ]);
       return districtOk !== false && regionOk;
     },
 ```
 
-   (`heroRegions` dari Task 4; nama variabel distrik/regionManager sesuai `main.js`.) Bila `setupFastTravel` adalah
+   (`unri` = handle `mountDistrict` M1, `regions` = manager M0, `HERO_REGIONS` = konstanta modul M4/M6.) Bila `setupFastTravel` adalah
    fungsi terpisah, teruskan `settle` dan `campus` sebagai argumennya.
 
 - [ ] **Step 4: Tes, lint, build, cek**
@@ -4947,13 +4902,13 @@ export function createStadionDetail({ crowd = null, regionGroup }) {
 }
 ```
 
-Di `src/main.js`: impor `createStadionDetail` dan, sesudah entitas dibuat, tambahkan (nama `regionManager` sesuai
-main.js; pusat stadion = origin dunia):
+Di `src/main.js`: impor `createStadionDetail` dan, sesudah entitas dibuat, tambahkan (manager M0 = `regions`;
+pusat stadion = origin dunia):
 
 ```js
   const stadionDetail = createStadionDetail({
     crowd: ents.crowd,
-    regionGroup: () => regionManager.active().find((a) => a.def.id === 'stadion')?.region.group ?? null,
+    regionGroup: () => regions.active().find((a) => a.def.id === 'stadion')?.region.group ?? null,
   });
   app.addSystem({ id: 'stadionDetail', phase: 'world', update: (dt, ctx) => stadionDetail.update(ctx.focus ?? ctx.bikePos) });
 ```
@@ -5154,9 +5109,8 @@ E2E M7: <nilai `campusData.glbBytes` dari Task 18 Step 1> byte (batas 6 MB)."
 - [ ] **Step 2: Status & catatan kontrak di indeks**
 
 Di `docs/superpowers/plans/2026-10-17-unri-00-index.md`:
-1. Di bagian `### M7`, tambahkan baris: "Kontrak tambahan (D1 plan M7): `mountDistrict(app, def, { …, services })`
-   meneruskan `ctx.services = { npc, camera, hour(), excludeAt(x,z) }` ke `def.build` (opsional; tanpa services distrik
-   berjalan tanpa NPC)."
+1. Kontrak D1 (`services` → `ctx.services`) SUDAH tercatat di indeks bagian "Signature final kumulatif" (rekonsiliasi
+   2026-10-18); tambahkan hanya deviasi BARU dari eksekusi sebagai baris `Deviasi eksekusi M7:` di bagian M7.
 2. Isi baris tabel status `| M7 | selesai | <hash commit terakhir M7> | E2E d3d11 lulus; budget §9.1: distrik <n>/180,
    total <n>/1000, interior <n>/150, hitch p95 <n> ms; mitigasi §9.3: <langkah yang dipakai atau "tidak perlu"> |`
    dengan angka nyata dari Task 18.
@@ -5249,7 +5203,7 @@ Expected: URL PR. Laporkan URL ke user.
 (11), `easterEggs.js` (14), `fastTravel.js` (15), `Attribution.js` (16), `README.md` (16, 19), `smoke.e2e.mjs` (17),
 katalog (20). Berkas tambahan di dalam tonggak (diizinkan indeks): `campusLife.js`, `parkingSlots.js`, `Student.js`,
 `groundFeed.js`, `guards.js`, `life.js`, `campusProps.js`, `motorVariants.js`, `lambangUnri.js`, `halteTmp.js`,
-`interiorStoryHook.js`, `stadionDetail.js` (kondisional), `harness.unri.mjs`, `shots.unri.mjs`.
+`stadionDetail.js` (kondisional), `harness.unri.mjs`, `shots.unri.mjs`.
 
 ### Spec §11 (pengujian) → task
 Unit logika murni/berisiko M7: `campusLife` (1), `parkingSlots` (2), outfit/LOD (3), `groundFeed` (5),

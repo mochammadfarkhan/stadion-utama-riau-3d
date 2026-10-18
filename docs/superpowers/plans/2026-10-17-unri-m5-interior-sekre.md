@@ -68,7 +68,7 @@ Perintah dasar (Windows, dari root repo `C:\Users\mocha\Documents\stadion-utama-
 2. **File lama yang diubah di luar daftar indeks M5:** `src/entities/Humanoid.outfits.js` (outfit almamater C01,
    katalog: "outfit baru di Humanoid"), `src/ui/mountSettingsPanel.js` (bantuan F1), `src/app/portalTrigger.js` (M4:
    meneruskan pintu + `worldYaw` ke `enter`), `tests/unri/interiorPortal.test.js` (tes stub M4 diganti tes portal
-   penuh; blok `nearestPortal` dipertahankan). `src/app/appView.js` M4 dibiarkan (tidak dipakai lagi).
+   penuh; blok `nearestPortal` dipertahankan). `src/app/appView.js` + `tests/unri/appView.test.js` M4 DIHAPUS di Task 10 Step 7 (`git rm`; digantikan `App.setView`, rekonsiliasi 2026-10-18).
 3. **`App.setView({ scene, camera, aoRadius? })`**: field `aoRadius` opsional (tambahan, kontrak tetap kompatibel).
    **`App.setSystemGate(fn)`** baru: menjeda sistem tanpa mencabut/mengubah urutan (SystemRunner tidak diubah).
    Menggantikan `appStage` M4 (tukar runner) sesuai serah terima M4.
@@ -126,6 +126,7 @@ src/entities/Walker.js                 BARU  pemain jalan kaki (Humanoid skinned
 src/ui/InfoCard.js, src/ui/infoCard.css BARU kartu info (DOM createElement + textContent)
 src/app/interiorPortal.js              UBAH  stub M4 → penuh (gerbang sistem, Walker, kamera, interaksi)
 src/app/portalTrigger.js               UBAH  (M4) teruskan pintu + worldYaw ke portal.enter
+src/app/appView.js (+ tes)             HAPUS (M4) digantikan App.setView (Task 10)
 src/core/App.js                        UBAH  setView, setSystemGate, view aktif di render/resize/GTAO/label
 src/core/AudioBus.js                   UBAH  pluck, startFanHum, startRainOnTin, startMurmur, play/loop
 src/entities/Humanoid.outfits.js       UBAH  ALMAMATER_UNRI, randomAlmamaterOutfit
@@ -501,7 +502,7 @@ export function createRoomCollider({
 
 - [ ] **Step 5: Blok ESLint `src/interiors/**`**
 
-Di `eslint.config.js`, tambahkan baris berikut **sebelum** baris `{ files: ['src/app/**/*.js'], rules: restrict(MAIN) },`:
+Di `eslint.config.js` (versi M1), tambahkan `'interiors'` ke array `ALL` (sesudah `'districts'`) agar config/geo/shared/story/sim/engine juga dilarang mengimpornya, lalu tambahkan baris berikut **sebelum** baris `{ files: ['src/app/**/*.js'], rules: restrict(MAIN) },`:
 ```js
   // Interior (spec §3.1): boleh engine/geo/shared/config/world/sim/entities; tidak ui/core/app/city/regions/districts.
   { files: ['src/interiors/**/*.js'], rules: restrict(layers(['ui', 'core', 'app', 'city', 'regions', 'districts']), MAIN) },
@@ -2663,6 +2664,7 @@ git commit -m "feat(ui): InfoCard kartu info interior (createElement + textConte
   blok `nearestPortal` dipertahankan)
 - Modify: `src/app/portalTrigger.js` (M4: teruskan pintu), `src/app/keymap.js`, `src/main.js` (fungsi `setupPortal`)
 - Create: `tests/keymapPortal.test.js`
+- Delete: `src/app/appView.js`, `tests/unri/appView.test.js` (M4; digantikan `App.setView`)
 
 Portal M4 menukar runner `app.systems` (`appStage`) sehingga jam & cuaca ikut berhenti; serah terima M4 meminta M5
 menggantinya dengan gerbang sistem. API baru memakai App langsung (`setView`, `setSystemGate`, `addSystem`), fade
@@ -3481,7 +3483,7 @@ Nama variabel mengikuti main.js M0/M4: manager region = `regions` (dari `createR
 ```js
 import { createInteriorPortal, createStubInterior } from './app/interiorPortal.js';
 ```
-dan hapus impor `appViewPort` (`./app/appView.js`; berkas M4 itu dibiarkan, tidak dipakai lagi). Router lihat —
+dan hapus impor `appViewPort` (`./app/appView.js`), lalu hapus berkas M4 itu beserta tesnya: `git rm src/app/appView.js tests/unri/appView.test.js` (App.setView M5 menggantikannya; penghapusan ikut ter-stage untuk commit Step 9). Router lihat —
 ganti pembuatan `TouchControls` dan `createGamepadPoller`:
 ```js
   // Router lihat: kamera sepeda di luar, kamera interior di dalam sekre (target diganti portal.onInsideChange).

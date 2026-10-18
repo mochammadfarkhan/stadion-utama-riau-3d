@@ -55,7 +55,7 @@ Arketipe adalah aset parametrik, bukan model tetap. Budget per gedung tipikal (L
 | H05 | hero:masjid-arfaunnas | 40 × 42 × 22 | 40k | kotak 2 lt + kubah | P + B (kubah mozaik, mahkota) | 1 (M6) | T foto Commons Masjid_Arfaunnas_unri.jpg |
 | H06 | hero:gerbang-sm-amin | ±20 × 4 × 8 | 10k | gapura kotak | P/B | 1 (M6) | S (posisi dari OSM di M6) |
 | H07 | hero:ggm | Ø 82 × 25 | 35k | silinder + atap kerucut | P | 2 (M6) | T bentuk/sejarah; R kondisi 2026 |
-| H08 | perpustakaan-lama | 4 massa 2 lt | 20k | 4 × K01 | P | 2 (M6) | S |
+| H08 | hero:perpustakaan-lama | 4 massa 2 lt | 20k | 4 × K01 | P | 2 (M6) | S |
 
 ## 3. Ornamen & penanda hero (`B`)
 
@@ -76,8 +76,8 @@ Arketipe adalah aset parametrik, bukan model tetap. Budget per gedung tipikal (L
 
 | ID | Nama | Dimensi | Segitiga | Placeholder | Final | Prio | Tonggak | Keyakinan |
 |---|---|---|---|---|---|---|---|---|
-| A01 | motor-bebek | 0,7 × 1,9 × 1,05 | 3k | kotak bodi + 2 silinder roda | B | 1 | M4 | T (parkir padat) |
-| A02 | motor-matic | 0,7 × 1,85 × 1,1 | 3k | sda | B | 1 | M4 | T |
+| A01 | motor-bebek | 0,7 × 1,9 × 1,05 | 3k | kotak bodi + 2 silinder roda | B (`a01-motor-bebek.glb`) | 1 | M4 | T (parkir padat) |
+| A02 | motor-matic | 0,7 × 1,85 × 1,1 | 3k | sda | B (`a02-motor-matic.glb`) | 1 | M4 | T |
 | A03 | motor-sport | 0,75 × 2,0 × 1,1 | 3,5k | sda | B | 2 | M7 | INF |
 | A04 | motor-tua | 0,7 × 1,9 × 1,0 | 3k | sda | B | 3 | M7 | INF |
 | P01 | pos-satpam-kampus | 2,5 × 2,5 × 3 | 2k | K11 | P | 1 | M4 | T (ada satpam) |
