@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { sourceRect, projectToView, clampToEdge, flipRowsInPlace, snapRect } from '../src/shared/minimapMath.js';
+import {
+  sourceRect, projectToView, clampToEdge, flipRowsInPlace, snapRect, layerInView, layerTransform,
+} from '../src/shared/minimapMath.js';
+import { toWorld } from '../src/geo/regionTransform.js';
 
 const WORLD_HALF = 700;
 const BASE_PX = 1400; // 1 px = 1 m agar angkanya mudah dicek
@@ -68,5 +71,36 @@ describe('snapRect (drawImage tile tanpa garis sambungan)', () => {
     expect(a).toEqual({ x: 10, y: 21, w: 100, h: 99 });
     expect(b.x).toBe(a.x + a.w);
     for (const v of [...Object.values(a), ...Object.values(b)]) expect(Number.isInteger(v)).toBe(true);
+  });
+});
+
+describe('base layer region (M0)', () => {
+  /** Terapkan matriks kanvas [a,b,c,d,e,f] ke titik (u, v). */
+  const apply = (m, u, v) => ({ x: m[0] * u + m[2] * v + m[4], y: m[1] * u + m[3] * v + m[5] });
+
+  it('layerTransform yaw 0: titik lokal jatuh di proyeksi titik dunia yang sama', () => {
+    const layer = { center: { x: 100, z: -50 }, half: 300, yaw: 0 };
+    const focus = { x: 120, z: -40 };
+    const p = apply(layerTransform(layer, focus, 160, 400), 10, 20);
+    const v = projectToView({ x: 110, z: -30 }, focus, 160, 400);
+    expect(p.x).toBeCloseTo(v.x, 9);
+    expect(p.y).toBeCloseTo(v.y, 9);
+  });
+
+  it('layerTransform yaw ≠ 0: mengikuti regionTransform.toWorld', () => {
+    const layer = { center: { x: 100, z: -50 }, half: 300, yaw: 0.7 };
+    const focus = { x: 0, z: 0 };
+    const p = apply(layerTransform(layer, focus, 160, 400), 10, 20);
+    const v = projectToView(toWorld({ x: 100, z: -50, yaw: 0.7 }, 10, 20), focus, 160, 400);
+    expect(p.x).toBeCloseTo(v.x, 9);
+    expect(p.y).toBeCloseTo(v.y, 9);
+  });
+
+  it('layerInView: hanya layer yang beririsan jendela; layer diputar memakai jangkauan diagonal', () => {
+    const layer = { center: { x: 0, z: 0 }, half: 100, yaw: 0 };
+    expect(layerInView(layer, { x: 250, z: 0 }, 160)).toBe(true);
+    expect(layerInView(layer, { x: 260, z: 0 }, 160)).toBe(false);
+    expect(layerInView(layer, { x: 0, z: -261 }, 160)).toBe(false);
+    expect(layerInView({ ...layer, yaw: 0.5 }, { x: 260, z: 0 }, 160)).toBe(true);
   });
 });

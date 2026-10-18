@@ -74,3 +74,31 @@ export function snapRect(r) {
   const y = Math.round(r.y);
   return { x, y, w: Math.round(r.x + r.w) - x, h: Math.round(r.y + r.h) - y };
 }
+
+/**
+ * Base layer region beririsan dengan jendela ±halfExtent di sekitar fokus? Layer berpusat `center`
+ * (dunia) bersisi 2×half; layer diputar (yaw ≠ 0) memakai jangkauan diagonal (konservatif).
+ * @param {{center:{x:number,z:number}, half:number, yaw:number}} layer
+ */
+export function layerInView(layer, focus, halfExtent) {
+  const reach = (layer.yaw ? layer.half * Math.SQRT2 : layer.half) + halfExtent;
+  return Math.abs(fin(focus?.x) - layer.center.x) < reach && Math.abs(fin(focus?.z) - layer.center.z) < reach;
+}
+
+/**
+ * Matriks kanvas [a, b, c, d, e, f] (CanvasRenderingContext2D.setTransform) yang memetakan koordinat
+ * lokal layer (lx, lz) — kanvas layer digambar di (−half, −half, 2·half, 2·half) — ke piksel tampilan
+ * dengan fokus di tengah. Rotasi mengikuti regionTransform.toWorld (yaw sumbu +Y, utara = −z di atas).
+ * @param {{center:{x:number,z:number}, half:number, yaw:number}} layer
+ * @returns {[number, number, number, number, number, number]}
+ */
+export function layerTransform(layer, focus, halfExtent, viewPx) {
+  const k = viewPx / (2 * halfExtent);
+  const c = Math.cos(layer.yaw);
+  const s = Math.sin(layer.yaw);
+  return [
+    k * c, -k * s, k * s, k * c,
+    viewPx / 2 + (layer.center.x - fin(focus?.x)) * k,
+    viewPx / 2 + (layer.center.z - fin(focus?.z)) * k,
+  ];
+}
