@@ -98,7 +98,8 @@ function createPuddles(normalMap) {
   });
   mat.name = 'genangan';
   const geo = new THREE.CircleGeometry(1, 28).rotateX(-Math.PI / 2);
-  for (const s of puddleSpots(WEATHER.puddleCount)) {
+  const spots = puddleSpots(WEATHER.puddleCount);
+  for (const s of spots) {
     const mesh = new THREE.Mesh(geo, mat);
     const fx = 0.5 + 0.5 * Math.sin(s.i * 12.9898);
     const fz = 0.5 + 0.5 * Math.sin(s.i * 78.233);
@@ -109,13 +110,29 @@ function createPuddles(normalMap) {
     group.add(mesh);
   }
   group.visible = false;
-  return { group, mat };
+  return { group, mat, spots };
+}
+
+/**
+ * Letakkan genangan di atas tanah (M1): y mesh = PUDDLE_Y + heightAt(titik dunia genangan).
+ * @param {{x:number, z:number, yaw:number}|null} placement
+ */
+function placePuddles(puddles, placement, heightAt) {
+  const c = placement ? Math.cos(placement.yaw) : 1;
+  const s = placement ? Math.sin(placement.yaw) : 0;
+  puddles.group.children.forEach((mesh, i) => {
+    const p = puddles.spots[i];
+    const wx = placement ? placement.x + c * p.x + s * p.z : p.x; // = regionTransform.toWorld
+    const wz = placement ? placement.z - s * p.x + c * p.z : p.z;
+    mesh.position.y = PUDDLE_Y + heightAt(wx, wz);
+  });
 }
 
 /**
  * @param {THREE.Object3D} parent grup pemilik (Weather.group)
  * @param {{placement?: {x:number, z:number, yaw:number}|null}} [opts] placement region pemilik titik genangan
- * @returns {{ update(dt, intensity): void, register(root): () => boolean, unregister(root): boolean,
+ * @returns {{ update(dt, intensity, ground?: {heightAt(x:number,z:number):number, version:number}|null): void,
+ *   register(root): () => boolean, unregister(root): boolean,
  *   dispose(): void, group: THREE.Group, count: number }}
  */
 export function createWetSurfaces(parent, { placement = null } = {}) {
@@ -128,6 +145,7 @@ export function createWetSurfaces(parent, { placement = null } = {}) {
   }
   parent.add(puddles.group);
   let last = -1;
+  let groundVersion = -1;
 
   return {
     group: puddles.group,
@@ -139,7 +157,11 @@ export function createWetSurfaces(parent, { placement = null } = {}) {
       return off;
     },
     unregister: (root) => registry.unregister(root),
-    update(dt, intensity) {
+    update(dt, intensity, ground = null) {
+      if (ground && ground.version !== groundVersion) { // chunk terrain berubah: genangan ikut tanah
+        groundVersion = ground.version;
+        placePuddles(puddles, placement, ground.heightAt);
+      }
       const on = intensity > 0.001;
       puddles.group.visible = on;
       if (on) normalMap.offset.x = (normalMap.offset.x + dt * RIPPLE_SPEED) % 1;

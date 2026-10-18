@@ -85,7 +85,7 @@ function createLightPools(parent, lamps) {
   const geo = new THREE.PlaneGeometry(POOL_RADIUS * 2, POOL_RADIUS * 2).rotateX(-Math.PI / 2);
   const mesh = new THREE.InstancedMesh(geo, mat, lamps.length);
   const m = new THREE.Matrix4();
-  lamps.forEach((l, i) => mesh.setMatrixAt(i, m.makeTranslation(l.x, POOL_Y, l.z)));
+  lamps.forEach((l, i) => mesh.setMatrixAt(i, m.makeTranslation(l.x, (l.y ?? 0) + POOL_Y, l.z)));
   mesh.name = 'kolamCahayaPJU';
   mesh.frustumCulled = false;
   mesh.visible = false;
@@ -123,10 +123,10 @@ function releaseObject(obj) {
 
 /** Satu set lampu milik satu pendaftar (region): kolam cahaya, halo, sorot floodlight. */
 function createLampSet(parent, { lamps = [], lensRoot = null, floods = [] }) {
-  const list = lamps.map((l) => ({ x: l.x, z: l.z }));
+  const list = lamps.map((l) => ({ x: l.x, z: l.z, y: Number.isFinite(l.y) ? l.y : 0 })); // y = tanah di kaki tiang (M1)
   const spots = createFloodSpots(parent, floods);
   const pools = list.length ? createLightPools(parent, list) : null;
-  const halos = createNightHalos(parent, list.map((l) => ({ x: l.x, y: LAMP_HEIGHT, z: l.z })), lensRoot ?? parent);
+  const halos = createNightHalos(parent, list.map((l) => ({ x: l.x, y: l.y + LAMP_HEIGHT, z: l.z })), lensRoot ?? parent);
   return {
     lamps: list,
     spots,
@@ -147,7 +147,7 @@ function createLampSet(parent, { lamps = [], lensRoot = null, floods = [] }) {
 /**
  * @param {THREE.Object3D} parent grup pemilik (TimeOfDay.group), bukan scene
  * @returns {{ update(dt, bikePos, bikeYaw?, focus?): void, setLampsOn(on: boolean): void, lampsOn: boolean,
- *   registerLamps(opts?: {lamps?: {x:number,z:number}[], lensRoot?: THREE.Object3D|null,
+ *   registerLamps(opts?: {lamps?: {x:number,z:number,y?:number}[], lensRoot?: THREE.Object3D|null,
  *     floods?: Array<{x:number,y:number,z:number,tx:number,ty:number,tz:number}>}): () => boolean,
  *   lampCount: number, registerEmissive(root): () => boolean, unregisterEmissive(root): boolean,
  *   emissiveCount: number, dispose(): void }}
@@ -184,14 +184,15 @@ export function createNightLights(parent) {
       const idx = order[k];
       const hit = idx !== undefined && dist2[idx] <= maxD2;
       light.userData.active = hit;
-      if (hit) light.position.set(lamps[idx].x, LAMP_HEIGHT, lamps[idx].z);
+      if (hit) light.position.set(lamps[idx].x, lamps[idx].y + LAMP_HEIGHT, lamps[idx].z);
     });
   };
 
   const updateHeadlight = (pos, yaw) => {
     _fwd.set(Math.sin(yaw), 0, Math.cos(yaw));
-    headlight.position.set(pos.x + _fwd.x * 0.6, HEADLIGHT_HEIGHT, pos.z + _fwd.z * 0.6);
-    headlight.target.position.set(pos.x + _fwd.x * HEADLIGHT_REACH, 0, pos.z + _fwd.z * HEADLIGHT_REACH);
+    const ground = Number.isFinite(pos.y) ? pos.y : 0; // bikePos.y = tanah di bawah sepeda (M1)
+    headlight.position.set(pos.x + _fwd.x * 0.6, ground + HEADLIGHT_HEIGHT, pos.z + _fwd.z * 0.6);
+    headlight.target.position.set(pos.x + _fwd.x * HEADLIGHT_REACH, ground, pos.z + _fwd.z * HEADLIGHT_REACH);
     headlight.intensity = HEADLIGHT_POWER * level;
   };
 
