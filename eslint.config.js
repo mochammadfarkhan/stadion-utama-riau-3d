@@ -14,7 +14,7 @@ const MAIN = { regex: '(^|/)main\\.js$', message: 'main.js adalah composition ro
 const THREE_PKG = { regex: '^three($|/)', message: 'Modul murni tidak boleh bergantung pada three.' };
 const STADIUM_GEOMETRY = { regex: '(^|/)world/stadium/', message: 'core tidak boleh mengimpor geometri stadion (lewat region).' };
 const restrict = (...patterns) => ({ 'no-restricted-imports': ['error', { patterns }] });
-const ALL = ['world', 'ui', 'regions', 'districts', 'city', 'core', 'entities', 'story', 'sim', 'engine', 'app'];
+const ALL = ['world', 'ui', 'regions', 'districts', 'interiors', 'city', 'core', 'entities', 'story', 'sim', 'engine', 'app'];
 const except = (...keep) => ALL.filter((d) => !keep.includes(d));
 
 export default [
@@ -41,5 +41,7 @@ export default [
   { files: ['src/districts/**/*.js'], rules: restrict(layers(['ui', 'core', 'app', 'entities', 'city', 'regions', 'story']), MAIN) },
   { files: ['src/core/**/*.js'], rules: restrict(layers(['ui', 'app', 'districts']), STADIUM_GEOMETRY, MAIN) },
   { files: ['src/ui/**/*.js'], rules: restrict(layers(['app']), MAIN) },
+  // Interior (spec §3.1): boleh engine/geo/shared/config/world/sim/entities; tidak ui/core/app/city/regions/districts.
+  { files: ['src/interiors/**/*.js'], rules: restrict(layers(['ui', 'core', 'app', 'city', 'regions', 'districts']), MAIN) },
   { files: ['src/app/**/*.js'], rules: restrict(MAIN) },
 ];
