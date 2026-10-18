@@ -23,5 +23,8 @@ export const VIEWS = [
   { id: 'lot-mini-mata', area: 'lot', eye: w(-328, 1.7, 1010), look: w(-350, 0.7, 985), fov: 60 },
   { id: 'lot-mini-atas', area: 'lot', eye: w(-338, 34, 1022), look: w(-340, 0, 985), fov: 55 },
   { id: 'lot-mini-jauh', area: 'lot', eye: w(-250, 2.5, 1040), look: w(-345, 0.7, 985), fov: 55 },
+  { id: 'lambang-depan', area: 'props', eye: w(-1071, 1.7, 2092), look: w(-1071, 2.0, 2078), fov: 55 },
+  { id: 'lambang-dekat', area: 'props', eye: w(-1070, 1.8, 2084), look: w(-1071, 2.0, 2078), fov: 50 },
+  { id: 'lambang-atas', area: 'props', eye: w(-1060, 12, 2098), look: w(-1071, 1.5, 2078), fov: 55 },
   { id: 'sekre-teras-depan', area: 'sekre', eye: w(-206, 1.7, 1120), look: w(-219, 1.2, 1100), fov: 62 },
 ];

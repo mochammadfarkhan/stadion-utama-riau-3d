@@ -1,5 +1,5 @@
 /**
- * Kehidupan kampus (spec UNRI §8.4): komposisi mahasiswa, satpam, dan parkir motor di atas umpan data ground (groundFeed),
+ * Kehidupan kampus (spec UNRI §8.4): komposisi mahasiswa, satpam, parkir motor, dan props kampus (lambang, halte) di atas umpan data ground (groundFeed),
  * satu sistem fase `sim`. Humanoid lewat `services.npc` (D1); tanpa services distrik tetap jalan tanpa NPC.
  * Data ground diteruskan setelah chunk terrain-nya ada (`terrain.has`) agar tinggi bangku/kursi benar; batas
  * tunggu TERRAIN_WAIT_MS (chunk terrain gagal = datar, spec §10).
@@ -10,6 +10,7 @@ import { createGroundFeed, defaultFetchJson } from './groundFeed.js';
 import { createStudents } from './students.js';
 import { createGuards } from './guards.js';
 import { createMotorParking } from './motorParking.js';
+import { createCampusProps } from './campusProps.js';
 
 /** Satuan titik ground (Task 0 Step 4): 1 = meter dunia, 0.1 = desimeter. */
 export const GROUND_SCALE = 1;
@@ -33,7 +34,8 @@ export function createCampusLife({
   const guards = withNpc ? createGuards({ npc, terrain, scheduler, scope, camera }) : null;
   const excludeAt = typeof services.excludeAt === 'function' ? services.excludeAt : () => false;
   const motors = createMotorParking({ scope, terrain, scheduler, hour, camera, excludeAt, groundScale: GROUND_SCALE, logger });
-  const parts = [students, guards, motors].filter(Boolean);
+  const props = createCampusProps({ scope, terrain, logger });
+  const parts = [students, guards, motors, props].filter(Boolean);
   parts.forEach((p) => group.add(p.group));
   const consumers = [students, motors].filter(Boolean);
 
@@ -69,6 +71,7 @@ export function createCampusLife({
       students?.update(dt, focus);
       guards?.update(dt);
       motors.update(dt);
+      props.update(dt);
     },
   };
 
@@ -78,6 +81,7 @@ export function createCampusLife({
     students,
     guards,
     motors,
+    props,
     feed,
     dispose() {
       disposed = true;

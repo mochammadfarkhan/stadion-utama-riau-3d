@@ -24,7 +24,7 @@ const { values: opts } = parseArgs({
   options: {
     gpu: { type: 'string', default: 'd3d11' }, only: { type: 'string' }, area: { type: 'string' }, hour: { type: 'string' },
     rain: { type: 'boolean', default: false }, tag: { type: 'string', default: '' }, prefix: { type: 'string', default: 'm7-' },
-    wait: { type: 'string', default: '3000' }, list: { type: 'boolean', default: false },
+    wait: { type: 'string', default: '6000' }, list: { type: 'boolean', default: false },
     out: { type: 'string', default: join('docs', 'screenshots', 'unri') },
   },
 });
