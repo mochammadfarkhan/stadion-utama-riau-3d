@@ -184,7 +184,15 @@ export const EKSTRA = freeze({
 });
 
 /** Model GLB final per ID aset (path relatif public/). Diisi di Task 22 setelah ekspor Blender berhasil. */
-export const GLB_ASET = freeze({});
+export const GLB_ASET = freeze({
+  S07: 'models/unri/s07-piala.glb',
+  S13: 'models/unri/s13-dispenser-galon.glb',
+  S14: 'models/unri/s14-kipas-berdiri.glb',
+  S15: 'models/unri/s15-printer-tua.glb',
+  S17: 'models/unri/s17-laptop.glb',
+  S19: 'models/unri/s19-gitar-akustik.glb',
+  S20: 'models/unri/s20-tas-ransel.glb',
+});
 
 /** Gitar dipegang NPC: transform relatif pivot spine (lihat Humanoid.poses guitarStrum). */
 export const GUITAR_HOLD = freeze({ pos: freeze([-0.23, 0.08, 0.2]), rot: freeze([0, PI, 1.22]) });
