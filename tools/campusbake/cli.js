@@ -3,10 +3,11 @@
  *   npm run bake:campus -- boundary [--offline]          → tulis src/districts/unri/boundary.js
  *   npm run bake:campus -- terrain|all [--offline]        → public/districts/unri/{manifest.json, terrain/*.bin, ATTRIBUTION.txt}
  *   npm run bake:campus -- ground                         → public/districts/unri/ground/*.json + manifest.ground (M2; butuh data-src/osm/unri.json)
- *   npm run bake:campus -- buildings                      → dibuat di M3 (sekarang: galat jelas, exit 2)
+ *   npm run bake:campus -- buildings                      → public/districts/unri/buildings.json (M3; baca cache OSM + ground/*.json)
  * Opsi: --out <dir> (default public/districts/unri), --cache <dir> (default data-src).
  */
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import process from 'node:process';
 import { dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
@@ -22,6 +23,8 @@ import { boundaryModuleSource, computeBoundary } from './boundary.js';
 import { bakeTerrain } from './terrain/bakeTerrain.js';
 import { terrainReport } from './report.js';
 import { bakeGround } from './ground/index.js';
+import { runBuildingsBake } from './buildings.js';
+import { createProjection } from '../../src/geo/projection.js';
 import { ATTRIBUTION_FILE, MANIFEST_FILE, attributionText, withTerrain } from './manifest.js';
 
 export const COMMANDS = Object.freeze(['boundary', 'terrain', 'ground', 'buildings', 'all']);
@@ -111,6 +114,14 @@ export async function runTerrain({
   return { manifest, report };
 }
 
+/** Langkah buildings (M3): cache OSM + ground → buildings.json. Root = cwd (jalur relatif repo). */
+async function stepBuildings({ log }) {
+  const proj = createProjection({ lat0: ORIGIN.lat, lon0: ORIGIN.lon });
+  return runBuildingsBake({
+    root: process.cwd(), boundary: await defaultBoundary(), project: (lat, lon) => proj.toWorld(lat, lon), log,
+  });
+}
+
 /** Titik masuk CLI; mengembalikan exit code. */
 export async function main(argv, log = console) {
   let opts;
@@ -118,10 +129,6 @@ export async function main(argv, log = console) {
     opts = parseCli(argv);
   } catch (err) {
     log.error(err.message);
-    return 2;
-  }
-  if (opts.command === 'buildings') {
-    log.error(`perintah "${opts.command}" belum tersedia (dibuat di M3). ${USAGE}`);
     return 2;
   }
   try {
@@ -133,6 +140,10 @@ export async function main(argv, log = console) {
         + `${result.pieces} potongan, dibuang ${Math.round(result.droppedArea)} m²) → ${PATHS.boundaryModule}`);
       return 0;
     }
+    if (opts.command === 'buildings') {
+      await stepBuildings({ log });
+      return 0;
+    }
     if (opts.command === 'ground') {
       await bakeGround({ log });
       return 0;
@@ -142,7 +153,7 @@ export async function main(argv, log = console) {
     for (const w of report.warnings) log.warn(`PERINGATAN: ${w}`);
     if (opts.command === 'all') {
       await bakeGround({ log });
-      log.info('Catatan: buildings (M3) belum tersedia; terrain dan ground yang di-bake.');
+      await stepBuildings({ log });
     }
     return 0;
   } catch (err) {

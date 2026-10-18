@@ -121,11 +121,11 @@ describe('CLI campusbake', () => {
     expect(() => parseCli([])).toThrow(/perintah tidak dikenal/);
     expect(() => parseCli(['peta'])).toThrow(/perintah tidak dikenal/);
   });
-  it('buildings belum tersedia → exit 2; argumen salah → exit 2', async () => {
+  it('argumen salah → exit 2 (perintah buildings kini tersedia di M3)', async () => {
     const errors = [];
     const log = { info() {}, warn() {}, error: (m) => errors.push(m) };
-    expect(await main(['buildings'], log)).toBe(2);
     expect(await main(['--offline'], log)).toBe(2);
-    expect(errors[0]).toMatch(/M3/);
+    expect(await main(['peta'], log)).toBe(2);
+    expect(errors[0]).toMatch(/perintah tidak dikenal/);
   });
 });
