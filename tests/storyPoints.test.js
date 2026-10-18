@@ -77,6 +77,14 @@ describe('storyWorld', () => {
     expect(chapters[0].steps[0].objective.target).toEqual({ region: 'lembaga', x: 10, z: 0 }); // input tidak diubah
   });
 
+  it('resolveChapters: objective interact meresolve `at` ke dunia; tanpa `at` tidak berubah (M7)', () => {
+    const withAt = { type: 'interact', target: 'sekre:kipas', at: { region: 'world', x: 5, z: 6 } };
+    const noAt = { type: 'interact', target: 'sekre:kipas' };
+    const r = resolveChapters([{ id: 'c', steps: [{ id: 'a', objective: withAt }, { id: 'b', objective: noAt }] }], frameOf);
+    expect(r[0].steps[0].objective).toEqual({ type: 'interact', target: 'sekre:kipas', at: { x: 5, z: 6 } });
+    expect(r[0].steps[1].objective).toBe(noAt);
+  });
+
   it('resolveNpcs membuang NPC di region tak dikenal; field lain dipertahankan', () => {
     const r = resolveNpcs([{ id: 'a', name: 'A', x: 1, z: 2, yaw: 0.5 }, { id: 'b', name: 'B', region: 'hilang', x: 0, z: 0 }], frameOf);
     expect(r).toEqual([{ id: 'a', name: 'A', x: 1, z: 2, yaw: 0.5 }]);

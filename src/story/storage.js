@@ -98,6 +98,21 @@ function backup(storage, text) {
   }
 }
 
+
+/**
+ * Chapter baru ditambahkan setelah pemain tamat (M7: chapter 6 "Kampus Biru Langit", keputusan D9): save yang
+ * `finished` di bawah chapter terakhir dibuka di chapter berikutnya, langkah 0. Murni; save lain dikembalikan apa adanya.
+ * @param {object|null} save save tersanitasi
+ * @param {number} chapterCount jumlah chapter saat ini
+ * @returns {{save: object|null, reopened: boolean}}
+ */
+export function reopenForNewChapters(save, chapterCount) {
+  if (!save || save.finished !== true || !Number.isInteger(save.chapter) || save.chapter >= chapterCount - 1) {
+    return { save, reopened: false };
+  }
+  return { save: { ...save, chapter: save.chapter + 1, step: 0, finished: false }, reopened: true };
+}
+
 export function loadStory(storage, limits) {
   let text;
   try {

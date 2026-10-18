@@ -9,7 +9,7 @@
 import { CHAPTERS, STORY_NPCS } from '../story/chapters.js';
 import { EASTER_EGGS, EGG_IDS } from '../story/easterEggs.js';
 import { createEggState, stepEggs, EGG_ANCHORS } from '../story/eggTriggers.js';
-import { loadStory, saveStory, SAVE_VERSION } from '../story/storage.js';
+import { loadStory, saveStory, reopenForNewChapters, SAVE_VERSION } from '../story/storage.js';
 import { resolvePoint } from '../story/points.js';
 import { resolveAnchors, resolveChapters, resolveEggs, resolveNpcs } from '../story/storyWorld.js';
 import { createStory } from '../sim/story/reducer.js';
@@ -77,13 +77,18 @@ export class StoryDirector {
 
   /** Muat progres + dompet + tempat tersimpan (save v3; v1/v2 dimigrasi). Tidak ada credit-ulang hadiah. */
   start() {
-    const save = loadStory(this.storage, LIMITS);
-    if (save) {
+    const loaded = loadStory(this.storage, LIMITS);
+    if (loaded) {
+      const { save, reopened } = reopenForNewChapters(loaded, CHAPTERS.length); // M7: chapter baru untuk pemain yang sudah tamat
       const { wallet, version: _version, place, ...progress } = save;
       this.savedPlace = place;
       this.state = this.story.hydrate(progress);
       this.vendors.setWallet(wallet);
       this.onWalletChange(this.vendors.wallet);
+      if (reopened) {
+        this.#persist();
+        this.onToast(`Chapter baru terbuka: ${CHAPTERS[this.state.chapter].title}. Buka jurnal (J) untuk misinya.`, true);
+      }
     }
     this.#render();
   }
@@ -94,6 +99,12 @@ export class StoryDirector {
     this.bought = itemId;
     this.dispatch({ type: 'bought', itemId });
     this.#persist(); // dompet berubah karena belanja: simpan agar reload tidak "mengembalikan" uang
+  }
+
+  /** Barang interior/objek dunia dipakai (hook interior M7): event `interact` '<region|interior>:<id>'. */
+  onInteract(target) {
+    if (typeof target !== 'string' || !target.includes(':')) return;
+    this.dispatch({ type: 'interact', target });
   }
 
   /** Simpan progres + dompet + tempat (save v3). */
@@ -179,7 +190,7 @@ export class StoryDirector {
   #updateEggs(dt, ctx) {
     const r = stepEggs(this.eggState, {
       time: ctx.time, dt, pos: ctx.bikePos, hour: ctx.hour, raining: ctx.raining, bell: this.bell, bought: this.bought,
-      anchors: this.anchors,
+      anchors: this.anchors, inCampus: Boolean(ctx.inCampus),
     }, this.eggs, this.state.eggs);
     this.eggState = r.state;
     this.bell = false;
@@ -213,6 +224,7 @@ export class StoryDirector {
       const id = o.ids.find((i) => !this.state.progress.found.includes(i));
       return this.eggs.find((e) => e.id === id)?.at ?? null;
     }
+    if (o.type === 'interact') return o.at ?? null; // titik penanda opsional (M7)
     return null;
   }
 
@@ -235,6 +247,8 @@ export class StoryDirector {
     const carrying = this.vendors.wallet.items.map((i) => i.id);
     const before = this.state;
     this.dispatch({ type: 'interacted', id: npc.id, carrying });
+    // NPC ber-zone (M7, keputusan D5) juga menjadi target objective `interact` '<zone>:<id>'.
+    if (npc.zone && this.state === before) this.dispatch({ type: 'interact', target: `${npc.zone}:${npc.id}` });
     if (this.state === before) this.onToast(`${npc.name}: Halo, semangat ya!`, true);
     return true;
   }

@@ -14,6 +14,9 @@ import { toPoints } from '../src/sim/campusLife.js';
 import { PORTAL_DOORS } from '../src/regions/unri-lembaga/portalDoors.js';
 import * as lembagaModule from '../src/regions/unri-lembaga/index.js';
 import * as rektoratModule from '../src/regions/unri-rektorat/index.js';
+import { EASTER_EGGS } from '../src/story/easterEggs.js';
+import { GGM_RING } from '../src/story/eggTriggers.js';
+import { polygonCentroid } from '../src/geo/polygon.js';
 import { UNRI_POINTS, UNRI_STORY_NPCS, UNRI_VENDORS, SEKRE_KIPAS_ID } from '../src/story/chapters.unri.js';
 
 const buildings = JSON.parse(readFileSync('public/districts/unri/buildings.json', 'utf8')).buildings;
@@ -92,5 +95,17 @@ describe('chapter 6 & kehidupan kampus vs data M3–M6 (keputusan D2)', () => {
   });
   it('halte TMP OSM berada di luar distrik (keputusan D6)', () => {
     expect(halteSpotsInDistrict()).toEqual([]);
+  });
+});
+
+describe('easter egg kampus vs data distrik', () => {
+  it('pemicu lambang ≤ 8 m dari plang N10', () => {
+    const egg = EASTER_EGGS.find((e) => e.id === 'lambang-1-10-62');
+    expect(Math.hypot(egg.at.x - LAMBANG_SPOT.x, egg.at.z - LAMBANG_SPOT.z)).toBeLessThanOrEqual(8);
+  });
+  it('pusat cincin GGM = centroid footprint GGM way/314450943 (±3 m), cincin di luar dinding', () => {
+    const c = polygonCentroid(ringOf('w314450943'));
+    expect(Math.hypot(c.x - GGM_RING.x, c.z - GGM_RING.z)).toBeLessThanOrEqual(3);
+    expect(GGM_RING.inner).toBeGreaterThan(41);
   });
 });

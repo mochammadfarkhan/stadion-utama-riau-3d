@@ -49,6 +49,8 @@ import { createTerrainService } from './app/terrainService.js';
 import { mountDistrict } from './app/districtMount.js';
 import { unriDistrict } from './districts/unri/index.js';
 import { createStudentKit } from './entities/Student.js';
+import { pointInPolygon } from './geo/polygon.js';
+import { UNRI_BOUNDARY } from './districts/unri/boundary.js';
 import { UNRI_VENDORS } from './story/chapters.unri.js';
 import { createLocalContext, pointToWorld } from './app/regionContext.js';
 import { withPlacement, regionContains } from './regions/Region.js';
@@ -320,6 +322,7 @@ function addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, stor
     phase: 'sim',
     update: (dt, ctx) => story.update(dt, {
       time: ctx.time, bikePos: ents.bike.state, hour: time.hour, // cerita di koordinat dunia (titik ber-region di-resolve StoryDirector)
+      inCampus: pointInPolygon(ents.bike.state.x, ents.bike.state.z, UNRI_BOUNDARY), // easter egg Kampus Biru Langit (M7)
       raining: Boolean(store.get('weather.raining')), paused: hud.shopOpen || rig.freezesBike || travel.busy, // timer misi beku selama perjalanan
     }),
   });
@@ -396,6 +399,7 @@ function setupPortal({
     app, input, hud, interiors, regionManager: regions, time, weather, store, audioBus, fader,
     ctx: { ormawa }, // interiors tidak boleh mengimpor regions: data ormawa pemain diteruskan lewat ctx build
     bike: { get state() { return ents.bike.state; }, teleport },
+    onInteracted: (interiorId, itemId) => story.onInteract(`${interiorId}:${itemId}`), // M5 → objective interact (M7)
     isUiBlocking: () => Boolean(hud.shopOpen || story.journal.open || travel.menu.open
       || panelRef.current?.isOpen || panelRef.current?.isHelpOpen),
     beforeEnter: () => {

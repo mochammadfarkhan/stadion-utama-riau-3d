@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { StoryDirector } from '../src/core/StoryDirector.js';
 import { TUGU, CHAPTERS, STORY_NPCS } from '../src/story/chapters.js';
 import { createRegionFrame } from '../src/geo/regionTransform.js';
-import { STORY_KEY, STORY_BACKUP_KEY } from '../src/story/storage.js';
+import { STORY_KEY, STORY_BACKUP_KEY, SAVE_VERSION } from '../src/story/storage.js';
 
 function makeDeps({ balance = 50000, items = [], save = null, store = null } = {}) {
   const map = store ?? new Map(save ? [[STORY_KEY, JSON.stringify(save)]] : []);
@@ -279,5 +279,53 @@ describe('StoryDirector: koordinat dunia multi-region (M0)', () => {
     const d2 = new StoryDirector({ ...reload.deps, frameOf });
     d2.start();
     expect(d2.savedPlace).toEqual(place);
+  });
+});
+
+describe('StoryDirector: interact (M7)', () => {
+  const spyOn = (d) => {
+    const seen = [];
+    const orig = d.dispatch.bind(d);
+    d.dispatch = (e) => { seen.push(e); orig(e); };
+    return seen;
+  };
+  it('onInteract mengirim event interact; target tanpa ":" diabaikan', () => {
+    const { d } = started();
+    const seen = spyOn(d);
+    d.onInteract('sekre:kipas');
+    d.onInteract('kipas');
+    d.onInteract(null);
+    expect(seen).toEqual([{ type: 'interact', target: 'sekre:kipas' }]);
+  });
+  it('bicara dengan NPC ber-zone juga mengirim interact <zone>:<id>', () => {
+    const { d } = started();
+    d.advanceDialog();
+    d.advanceDialog();
+    const npc = STORY_NPCS.find((n) => n.id === 'ketua-bem');
+    const seen = spyOn(d);
+    expect(d.tryInteract({ x: npc.x + 1, z: npc.z })).toBe(true);
+    expect(seen.map((e) => e.type)).toEqual(['interacted', 'interact']);
+    expect(seen[1].target).toBe('unri-lembaga:ketua-bem');
+  });
+  it('penanda objective interact = titik `at`; langkah ttd selesai saat bicara dengan Ketua BEM', () => {
+    const npc = STORY_NPCS.find((n) => n.id === 'ketua-bem');
+    const step = CHAPTERS[5].steps.findIndex((s) => s.id === 'ttd-ketua-bem');
+    const { d } = started({ save: { version: SAVE_VERSION, chapter: 5, step, badges: [], eggs: [], bestLap: null, rupiah: 0, finished: false, wallet: { balance: 50000, items: [] }, place: null } });
+    d.advanceDialog();
+    d.advanceDialog();
+    expect(d.goalPoint()).toMatchObject({ x: npc.x, z: npc.z });
+    d.tryInteract({ x: npc.x, z: npc.z + 1 });
+    expect(d.state.step).toBe(step + 1);
+  });
+});
+
+describe('StoryDirector: chapter baru untuk save tamat (M7)', () => {
+  it('save tamat di chapter 5 lama dibuka di chapter 6, diberi toast, dan disimpan ulang', () => {
+    const save = { version: SAVE_VERSION, chapter: 4, step: 0, badges: ['Anak Bertuah'], eggs: [], bestLap: null, rupiah: 0, finished: true, wallet: { balance: 1000, items: [] }, place: null };
+    const { d, log, store } = started({ save });
+    expect(d.state.chapter).toBe(5);
+    expect(d.state.finished).toBe(false);
+    expect(log.toasts.some(([t]) => t.includes('Kampus Biru Langit'))).toBe(true);
+    expect(JSON.parse(store.get(STORY_KEY)).chapter).toBe(5);
   });
 });

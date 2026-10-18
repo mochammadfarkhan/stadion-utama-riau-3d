@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createEggState, stepEggs } from '../src/story/eggTriggers.js';
+import { createEggState, stepEggs, GGM_RING } from '../src/story/eggTriggers.js';
 import { EASTER_EGGS } from '../src/story/easterEggs.js';
 import { STORY_NPCS, TUGU } from '../src/story/chapters.js';
 
@@ -51,5 +51,35 @@ describe('eggTriggers', () => {
     expect(ids).toContain('layar-hujan');
     const reset = step(s, { pos: { x: TUGU.x, z: TUGU.z + 10 }, raining: false });
     expect(reset.state.rainTime).toBe(0);
+  });
+  it('lambang 1-10-62: berbasis jarak di plang dekat Gerbang Soebrantas', () => {
+    const egg = EASTER_EGGS.find((e) => e.id === 'lambang-1-10-62');
+    expect(step(createEggState(), { pos: { x: egg.at.x, z: egg.at.z } }).ids).toContain('lambang-1-10-62');
+  });
+  it('Kampus Biru Langit: 90 detik di kampus saat siang cerah; hujan/keluar kampus mengulang', () => {
+    let s = createEggState();
+    let ids = [];
+    for (let i = 0; i < 8; i += 1) ({ state: s, ids } = step(s, { dt: 10, inCampus: true, hour: 11 }));
+    expect(ids).not.toContain('kampus-biru-langit');
+    ({ state: s, ids } = step(s, { dt: 10, inCampus: true, hour: 11 }));
+    expect(ids).toContain('kampus-biru-langit');
+    expect(step(s, { dt: 10, inCampus: true, hour: 11, raining: true }).state.campusTime).toBe(0);
+    expect(step(createEggState(), { dt: 100, inCampus: false, hour: 11 }).ids).not.toContain('kampus-biru-langit');
+    expect(step(createEggState(), { dt: 100, inCampus: true, hour: 16 }).ids).not.toContain('kampus-biru-langit');
+  });
+  it('Gasing berputar: satu putaran penuh mengitari GGM di dalam cincin', () => {
+    const around = (k, r = 70) => {
+      const a = (k / 36) * Math.PI * 2;
+      return { pos: { x: GGM_RING.x + Math.cos(a) * r, z: GGM_RING.z + Math.sin(a) * r } };
+    };
+    let s = createEggState();
+    let ids = [];
+    for (let k = 0; k <= 37 && !ids.includes('gasing-berputar'); k += 1) ({ state: s, ids } = step(s, around(k)));
+    expect(ids).toContain('gasing-berputar');
+    let t = createEggState();
+    let half = [];
+    for (let k = 0; k <= 18; k += 1) ({ state: t, ids: half } = step(t, around(k)));
+    expect(half).not.toContain('gasing-berputar');
+    expect(step(createEggState(), around(0, 10)).state.ggmLast).toBeNull();
   });
 });

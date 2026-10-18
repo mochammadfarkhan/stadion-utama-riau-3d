@@ -6,7 +6,11 @@
  */
 import { resolvePoint } from './points.js';
 
-const resolveObjective = (o, frameOf) => (o.type === 'goto' ? { ...o, target: resolvePoint(o.target, frameOf) } : o);
+const resolveObjective = (o, frameOf) => {
+  if (o.type === 'goto') return { ...o, target: resolvePoint(o.target, frameOf) };
+  if (o.type === 'interact' && o.at) return { ...o, at: resolvePoint(o.at, frameOf) }; // M7: titik penanda opsional
+  return o;
+};
 
 /** Chapter dengan target `goto` di koordinat dunia. */
 export function resolveChapters(chapters, frameOf) {
