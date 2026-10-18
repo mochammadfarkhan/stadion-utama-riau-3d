@@ -9,6 +9,9 @@ import { placementFromFootprint } from '../../geo/placement.js';
 import { toLocal, toWorld } from '../../geo/regionTransform.js';
 import { OSM_LATLON } from './footprints.js';
 
+/** Id region (satu sumber; index.js, portalDoors.js, cerita). */
+export const UNRI_LEMBAGA_ID = 'unri-lembaga';
+
 const projection = createProjection({ lat0: WORLD_ORIGIN.lat, lon0: WORLD_ORIGIN.lon });
 const project = (ring) => Object.freeze(ring.map(([lat, lon]) => {
   const w = projection.toWorld(lat, lon);
