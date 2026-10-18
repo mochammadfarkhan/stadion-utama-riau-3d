@@ -59,5 +59,6 @@ export const stadionRegion = defineRegion({
   id: STADION_ID,
   placement: STADION_PLACEMENT,
   mask: STADION_MASK,
+  activation: { persistent: true }, // selalu terpasang (spec UNRI §4.3); isi region tidak berubah di M0
   build: async (ctx) => buildStadion(ctx ?? {}),
 });
