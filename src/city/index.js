@@ -12,6 +12,7 @@ import { createCityMaterials, CITY_LAYERS } from './cityMaterials.js';
 import { createTileMinimapCache } from './tileMinimap.js';
 import { validateManifest } from './tileData.js';
 import { mountParkedVehicles } from './parkedVehicles.js';
+import { applyGroundHole } from './groundHole.js';
 
 /** Tanah dasar kota: persegi besar di bawah landuse (y −0,05), dipindah per 50 m mengikuti fokus. */
 export const CITY_GROUND = Object.freeze({ size: 2 * STREAM.unloadRadius + 400, y: -0.05, snap: 50 });
@@ -58,6 +59,7 @@ export async function createCity({
   group.name = 'kota';
   app.scene.add(group);
   const materials = createCityMaterials();
+  const groundHole = applyGroundHole(materials.ground); // lubang untuk terrain distrik (M1)
   const ground = createCityGround(materials.ground);
   group.add(ground);
   const collider = createTileCollider();
@@ -117,6 +119,11 @@ export async function createCity({
       });
     },
     stats: () => ({ ...streamer.stats(), ...loader.stats() }),
+    /**
+     * Lubang tanah dasar kota di sel yang ditutup terrain distrik (null = tanpa lubang).
+     * @param {{texture: THREE.Texture, rect: {minX:number, minZ:number, maxX:number, maxZ:number}}|null} hole
+     */
+    setGroundHole: (hole) => groundHole.set(hole),
     dispose() {
       if (disposed) return;
       disposed = true;

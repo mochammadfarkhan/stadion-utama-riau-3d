@@ -33,6 +33,14 @@ const SIM_HELP_ITEMS = Object.freeze([
   { keys: ['[', ']'], text: 'Mundur / maju 1 jam' },
   { keys: ['R'], text: 'Hujan / cerah' },
   { keys: ['O'], text: 'Ambient occlusion' },
+  { group: 'Sekre (interior)' },
+  { keys: ['E'], text: 'Di depan pintu sekre: masuk · di dalam: pakai barang yang dilihat' },
+  { keys: ['W', 'A', 'S', 'D'], text: 'Jalan kaki (A/D geser)' },
+  { keys: ['Shift'], text: 'Lari' },
+  { keys: ['Mouse'], text: 'Melihat sekeliling' },
+  { keys: ['V'], text: 'Orang pertama / orang ketiga' },
+  { keys: ['P'], text: 'Mode foto: 1–4 preset (lesehan, pintu, pojok, atas), W/A/S/D + Q/E kamera bebas' },
+  { keys: ['Esc'], text: 'Keluar sekre (atau tutup kartu info)' },
 ]);
 
 /** Muat modul panel + css; null bila salah satu gagal. */

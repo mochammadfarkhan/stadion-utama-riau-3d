@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { PovDirector } from './PovDirector.js';
 import { EXIT_KEY, POV_BY_KEY } from './cameraPresets.js';
 import {
-  THIRD, decayLook, firstPersonDirection, pullInOffset, shouldSnap, sweepOffset, thirdPersonOffset, wrapAngle,
+  THIRD, cameraFloor, decayLook, firstPersonDirection, pullInOffset, shouldSnap, sweepOffset, thirdPersonOffset, wrapAngle,
 } from './cameraMath.js';
 
 const FIRST_PERSON_EYE = new THREE.Vector3(0, 1.55, 0.15);
@@ -10,6 +10,7 @@ const FOLLOW_SMOOTHING = 6;        // default; dapat diubah lewat rig.followSmoo
 const MOUSE_SENSITIVITY = 0.0022;  // rad/piksel pada sensitivity = 1
 const CAMERA_MODES = Object.freeze(['third', 'first']);
 const PITCH_LIMIT = Math.PI / 2.4;
+const FLAT = () => 0;
 
 /**
  * CameraRig: kamera pemain third-person (default) atau first-person, ditambah sudut
@@ -31,6 +32,7 @@ export class CameraRig {
     this.sensitivity = 1;                    // pengali MOUSE_SENSITIVITY (settings camera.sensitivity)
     this.followSmoothing = FOLLOW_SMOOTHING; // 1/s (settings camera.followSmoothing)
     this.director = new PovDirector(camera);
+    this._heightAt = FLAT;                   // tanah (M1): fokus/target/lantai kamera relatif heightAt
     /** Titik fokus tampilan: posisi sepeda (mode pemain) atau titik pandang (POV). */
     this.focus = new THREE.Vector3();
     this._source = null;
@@ -71,6 +73,12 @@ export class CameraRig {
     this._idle = 0;
     this.yawOffset = wrapAngle(this.yawOffset - dx * k);
     this.pitch = THREE.MathUtils.clamp(this.pitch + dy * k, -PITCH_LIMIT, PITCH_LIMIT);
+  }
+
+  /** Pasang layanan terrain ({heightAt}); null = datar. Diteruskan ke PovDirector (pose POV relatif tanah). */
+  setTerrain(terrain) {
+    this._heightAt = typeof terrain?.heightAt === 'function' ? terrain.heightAt : FLAT;
+    this.director.setHeightAt(this._heightAt === FLAT ? null : this._heightAt);
   }
 
   /** Pasang uji ruang bebas kamera `(x, z) => boolean` (lihat Collider.isCameraClear); null = tanpa tabrakan. */
@@ -143,15 +151,16 @@ export class CameraRig {
       if (!def.cycle) return this.exitPov() ? 'Kembali ke sepeda' : null;
       const count = this.#subjectCount(def.id);
       d.setSubject((d.subject + 1) % Math.max(1, count));
-      return `${def.label} ${(d.subject % Math.max(1, count)) + 1}/${count}`;
+      return `${d.label} ${(d.subject % Math.max(1, count)) + 1}/${count}`; // POV region: label POV subjek
     }
-    return d.enter(def, this._source, 0) ? def.label : null;
+    return d.enter(def, this._source, 0) ? d.label : null;
   }
 
   #subjectCount(id) {
     const s = this._source;
     if (id === 'pelari') return s.runnerCount?.() ?? 1;
     if (id === 'pedagang') return s.vendorCount?.() ?? 1;
+    if (id === 'region') return s.regionPovCount?.() ?? 1;
     return 1;
   }
 
@@ -171,10 +180,11 @@ export class CameraRig {
   update(bike, dt, time = 0) {
     if (!bike || !Number.isFinite(bike.x) || !Number.isFinite(bike.z) || !Number.isFinite(bike.yaw)) return; // state rusak: pertahankan kamera
     this._bike = bike;
-    this.focus.set(bike.x, 0, bike.z);
+    this.focus.set(bike.x, this._heightAt(bike.x, bike.z), bike.z);
     if (this.director.active && this._source) {
       const handled = this.director.update(dt, time, this._source, this._playerPose);
-      if (this.director.active) this.focus.set(this.director.focus.x, 0, this.director.focus.z);
+      const f = this.director.focus;
+      if (this.director.active) this.focus.set(f.x, this._heightAt(f.x, f.z), f.z);
       if (handled) return;
     }
     if (this.mode === 'first') this.#updateFirst(bike);
@@ -192,14 +202,14 @@ export class CameraRig {
 
   #poseFirst(bike, outPos, outTarget) {
     const eye = this._eye.copy(FIRST_PERSON_EYE).applyAxisAngle(THREE.Object3D.DEFAULT_UP, bike.yaw);
-    outPos.set(bike.x + eye.x, eye.y, bike.z + eye.z);
+    outPos.set(bike.x + eye.x, this._heightAt(bike.x, bike.z) + eye.y, bike.z + eye.z);
     const d = firstPersonDirection(bike.yaw + this.yawOffset, this.pitch);
     outTarget.set(outPos.x + d.x, outPos.y + d.y, outPos.z + d.z);
   }
 
   /** Pose orang ketiga ideal: orbit konstan di sekitar titik pandang, sudah ditarik dari dinding. */
   #poseThird(bike, outPos, outTarget) {
-    outTarget.set(bike.x, THIRD.lookHeight, bike.z);
+    outTarget.set(bike.x, this._heightAt(bike.x, bike.z) + THIRD.lookHeight, bike.z);
     const yaw = bike.yaw + this.yawOffset;
     // Terhalang dinding: geser sudut orbit ke posisi bebas terdekat; bila semua terhalang, tarik mendekat.
     const safe = (this.obstacleTest && sweepOffset(outTarget, yaw, this.pitch, this.obstacleTest))
@@ -232,7 +242,9 @@ export class CameraRig {
     // Posisi hasil smoothing bisa menyilang sudut dinding: periksa ulang terhadap titik pandang.
     const offset = this._offset.set(cam.x - this._target.x, cam.y - this._target.y, cam.z - this._target.z);
     const safe = this.#pullIn(this._target, offset);
-    cam.set(this._target.x + safe.x, Math.max(THIRD.minHeight, this._target.y + safe.y), this._target.z + safe.z);
+    const cx = this._target.x + safe.x;
+    const cz = this._target.z + safe.z;
+    cam.set(cx, Math.max(cameraFloor(this._heightAt(cx, cz)), this._target.y + safe.y), cz); // lantai = tanah di bawah kamera
     this.camera.lookAt(this._target);
   }
 }

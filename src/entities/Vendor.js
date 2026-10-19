@@ -13,9 +13,10 @@ import { createFallbackCart } from './Vendor.cart.js';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { createCart } from '../world/props/Cart.js';
 import { mergeByMaterial } from '../world/util/merge.js';
-import { makeRng, isFiniteXZ, lerpAngle, clamp, HAS_DOM } from './util.js';
+import { makeRng, isFiniteXZ, lerpAngle, clamp, HAS_DOM, flatGround, groundOf } from './util.js';
 
 const LABEL_DISTANCE = 45;
+export const VENDOR_CULL_DISTANCE = 600; // m: di luar jarak ini pedagang + gerobak disembunyikan (hemat draw call)
 export const PROMPT_DISTANCE = 3.5;   // meter; jarak munculnya prompt beli
 const CART_OFFSET_Z = 1.35;           // gerobak fallback di depan pedagang
 const REAL_CART_EXTRA_Z = 0.55;       // Cart.js lebih panjang (gagang 1 m): geser lagi ke depan
@@ -26,6 +27,7 @@ const MAX_DT = 0.05;
 const DEFAULT_NAMES = Object.freeze({
   minuman: ['Es Teh Bang Udin', 'Es Jeruk Kak Ani', 'Air Mineral Pak Dedi', 'Kopi Keliling Bang Rudi'],
   buah: ['Buah Potong Kak Ros', 'Rujak Buah Mak Yati', 'Jeruk Segar Bang Jon'],
+  kantin: ['Kantin FKIP'],
 });
 
 /** Label CSS2D; hanya dibuat bila DOM tersedia (dryrun Node melewati). */
@@ -45,9 +47,9 @@ async function createLabel(text) {
  * Group yang diputar -90° agar arah dorong menjadi +Z (searah pedagang),
  * dan digeser agar ujung gagang berada di tangan pedagang.
  */
-async function loadCart(kind) {
+async function loadCart(kind, banner) {
   try {
-    const cart = createCart({ kind });
+    const cart = createCart({ kind, label: banner });
     if (cart?.isObject3D) {
       const wrap = new THREE.Group();
       wrap.rotation.y = -Math.PI / 2;
@@ -72,23 +74,23 @@ export class VendorGroup {
   #wallet;
 
   /**
-   * @param {{vendors:Array<{id:string, kind:'minuman'|'buah', waypoints:Array<{x:number,z:number}>,
-   *   name?:string, speed?:number}>, wallet?:object, seed?:number}} opts
+   * @param {{vendors:Array<{id:string, kind:'minuman'|'buah'|'kantin', waypoints:Array<{x:number,z:number}>,
+   *   name?:string, speed?:number, yaw?:number, banner?:string}>, wallet?:object, seed?:number}} opts
    */
   constructor(opts = {}) {
     const { vendors = [], wallet, seed = 31 } = opts;
     this.#wallet = wallet ?? createWallet();
     this.group.name = 'vendors';
     const rng = makeRng(seed);
-    const counters = { minuman: 0, buah: 0 };
+    const counters = { minuman: 0, buah: 0, kantin: 0 };
     vendors.forEach((v) => this.#spawn(v, rng, counters));
   }
 
   #spawn(spec, rng, counters) {
-    const kind = spec.kind === 'buah' ? 'buah' : 'minuman';
-    const names = DEFAULT_NAMES[kind];
+    const kind = VENDOR_CATALOG[spec.kind] ? spec.kind : 'minuman';
+    const names = DEFAULT_NAMES[kind] ?? DEFAULT_NAMES.minuman;
     const name = spec.name ?? names[counters[kind]++ % names.length];
-    const sim = createVendor({ id: spec.id, kind, waypoints: spec.waypoints, speed: spec.speed });
+    const sim = createVendor({ id: spec.id, kind, waypoints: spec.waypoints, speed: spec.speed, yaw: spec.yaw });
     const root = new THREE.Group();
     root.name = `vendor-${spec.id}`;
     const h = createHumanoid(randomVendorOutfit(rng, kind));
@@ -99,13 +101,13 @@ export class VendorGroup {
     this.group.add(root);
     const entry = { sim, h, root, cartSlot, name, kind, yaw: sim.yaw ?? 0 };
     this.#vendors.push(entry);
-    this.#place(entry, 0);
-    this.#attachAsync(entry, kind, name);
+    this.#place(entry, 0, flatGround);
+    this.#attachAsync(entry, kind, name, spec.banner);
   }
 
   /** Tukar gerobak fallback dengan Cart.js & pasang label bila tersedia. */
-  #attachAsync(entry, kind, name) {
-    loadCart(kind).then((cart) => {
+  #attachAsync(entry, kind, name, banner) {
+    loadCart(kind, banner).then((cart) => {
       entry.cartSlot.clear();
       entry.cartSlot.add(cart);
     }).catch(() => {});
@@ -128,10 +130,10 @@ export class VendorGroup {
     }
   }
 
-  #place(entry, time) {
+  #place(entry, time, ground) {
     const { sim, h, root } = entry;
     if (!isFiniteXZ(sim.pos)) return;
-    root.position.set(sim.pos.x, 0, sim.pos.z);
+    root.position.set(sim.pos.x, ground(sim.pos.x, sim.pos.z), sim.pos.z);
     root.rotation.y = entry.yaw;
     if (sim.state === 'WALK') animateWalk(h, time);
     else animateSellIdle(h, time + root.position.x);
@@ -147,7 +149,11 @@ export class VendorGroup {
       const yaw = Number.isFinite(sim.yaw) ? lerpAngle(e.yaw, sim.yaw, k) : e.yaw;
       return { ...e, sim, yaw };
     });
-    for (const e of this.#vendors) this.#place(e, time);
+    const ground = groundOf(ctx);
+    for (const e of this.#vendors) this.#place(e, time, ground);
+    const view = ctx.focus ?? ctx.bikePos;
+    // Pedagang jauh (mis. Kantin FKIP kampus ±1,5 km dari stadion) tidak digambar: gerobaknya bukan bagian LOD humanoid.
+    if (view) for (const e of this.#vendors) e.root.visible = Math.hypot(e.sim.pos.x - view.x, e.sim.pos.z - view.z) <= VENDOR_CULL_DISTANCE;
     this.#updatePrompt(ctx.bikePos);
     this.#updateLabels(ctx.focus ?? ctx.bikePos); // label mengikuti fokus tampilan (POV)
   }

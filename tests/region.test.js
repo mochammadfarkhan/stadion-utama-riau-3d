@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { defineRegion, validateBuild, regionContains } from '../src/regions/Region.js';
+import {
+  defineRegion, validateBuild, regionContains, withPlacement, DEFAULT_MOUNT_RADIUS, DEFAULT_UNMOUNT_RADIUS,
+} from '../src/regions/Region.js';
 import { stadionRegion } from '../src/regions/stadion/index.js';
 import { STADION_MASK, createStadionMask } from '../src/regions/stadion/mask.js';
 import { litLampPositions, stadionNightLights } from '../src/regions/stadion/lamps.js';
@@ -78,5 +80,61 @@ describe('region stadion: build & dispose', () => {
   }, 30000);
   it('build tanpa ctx.scope ditolak', async () => {
     await expect(stadionRegion.build({})).rejects.toThrow(/ctx.scope/);
+  });
+});
+
+describe('kontrak Region: field opsional M0 (spec UNRI §4.3)', () => {
+  it('tanpa activation → persistent; persistent:true dinormalisasi dan beku', () => {
+    expect(defineRegion(spec()).activation).toEqual({ persistent: true });
+    const r = defineRegion(spec({ activation: { persistent: true, center: { x: 1, z: 1 } } }));
+    expect(r.activation).toEqual({ persistent: true });
+    expect(Object.isFrozen(r.activation)).toBe(true);
+  });
+
+  it('activation streaming: center wajib, radius default 700/900, unmount > mount', () => {
+    expect([DEFAULT_MOUNT_RADIUS, DEFAULT_UNMOUNT_RADIUS]).toEqual([700, 900]);
+    const r = defineRegion(spec({ activation: { center: { x: 5, z: 6 } } }));
+    expect(r.activation).toEqual({ persistent: false, center: { x: 5, z: 6 }, mountRadius: 700, unmountRadius: 900 });
+    expect(Object.isFrozen(r.activation.center)).toBe(true);
+    expect(defineRegion(spec({ activation: { center: { x: 0, z: 0 }, mountRadius: 100, unmountRadius: 150 } })).activation.unmountRadius).toBe(150);
+    expect(() => defineRegion(spec({ activation: 'ya' }))).toThrow(/activation harus objek/);
+    expect(() => defineRegion(spec({ activation: { center: { x: 0 } } }))).toThrow(/activation\.center/);
+    expect(() => defineRegion(spec({ activation: { center: { x: 0, z: 0 }, mountRadius: -1 } }))).toThrow(/mountRadius harus > 0/);
+    expect(() => defineRegion(spec({ activation: { center: { x: 0, z: 0 }, mountRadius: 900, unmountRadius: 900 } }))).toThrow(/histeresis/);
+  });
+
+  it('proxy harus fungsi bila ada', () => {
+    expect(defineRegion(spec({ proxy: () => ({}) })).proxy).toBeTypeOf('function');
+    expect(defineRegion(spec()).proxy).toBeUndefined();
+    expect(() => defineRegion(spec({ proxy: {} }))).toThrow(/proxy/);
+  });
+
+  it('povs: default [], id unik, label, pose fungsi', () => {
+    expect(defineRegion(spec()).povs).toEqual([]);
+    const pov = { id: 'a', label: 'A', pose: () => null };
+    expect(defineRegion(spec({ povs: [pov] })).povs[0]).toMatchObject({ id: 'a', label: 'A' });
+    expect(() => defineRegion(spec({ povs: {} }))).toThrow(/povs harus array/);
+    expect(() => defineRegion(spec({ povs: [{ ...pov, id: '' }] }))).toThrow(/povs\[0\]\.id/);
+    expect(() => defineRegion(spec({ povs: [pov, pov] }))).toThrow(/ganda/);
+    expect(() => defineRegion(spec({ povs: [{ ...pov, label: 3 }] }))).toThrow(/povs\[0\]\.label/);
+    expect(() => defineRegion(spec({ povs: [{ ...pov, pose: null }] }))).toThrow(/povs\[0\]\.pose/);
+  });
+
+  it('pads: default [], ring ≥ 3 titik, y median|angka (default median)', () => {
+    expect(defineRegion(spec()).pads).toEqual([]);
+    const ring = [[0, 0], [4, 0], [4, 4]];
+    expect(defineRegion(spec({ pads: [{ ring }] })).pads).toEqual([{ ring, y: 'median' }]);
+    expect(defineRegion(spec({ pads: [{ ring, y: 1.5 }] })).pads[0].y).toBe(1.5);
+    expect(() => defineRegion(spec({ pads: 'x' }))).toThrow(/pads harus array/);
+    expect(() => defineRegion(spec({ pads: [{ ring: [[0, 0], [1, 1]] }] }))).toThrow(/pads\[0\]\.ring/);
+    expect(() => defineRegion(spec({ pads: [{ ring, y: 'tinggi' }] }))).toThrow(/pads\[0\]\.y/);
+  });
+
+  it('region stadion persistent; withPlacement mempertahankan field M0', () => {
+    expect(stadionRegion.activation).toEqual({ persistent: true });
+    const moved = withPlacement(stadionRegion, { x: 1, z: 2, yaw: 0 });
+    expect(moved.activation).toEqual({ persistent: true });
+    expect(moved.povs).toEqual([]);
+    expect(moved.pads).toEqual([]);
   });
 });

@@ -45,6 +45,12 @@ export function range(rng, min, max) {
   return min + (max - min) * rng();
 }
 
+/** Tanah datar (default sebelum/ tanpa terrain). */
+export const flatGround = () => 0;
+
+/** Fungsi tinggi tanah dari ctx frame (region-lokal untuk entitas region, lihat app/regionContext.js). */
+export const groundOf = (ctx) => (typeof ctx?.heightAt === 'function' ? ctx.heightAt : flatGround);
+
 export function clamp(v, lo, hi) {
   return v < lo ? lo : v > hi ? hi : v;
 }

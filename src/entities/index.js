@@ -11,12 +11,13 @@ import { createHumanoidLod } from './Humanoid.lod.js';
  * (pelari, pemain bola, pedagang, penonton) di koordinat region-lokal (`regionGroup`, dipasang di
  * bawah grup ber-placement oleh composition root).
  * @param {{start:{x:number,z:number,yaw:number}, world:{seatSamples:object[], layout:object}, wallet:object,
- *   camera?:import('three').Camera}} opts  start: posisi DUNIA sepeda; camera: dipakai LOD humanoid
+ *   camera?:import('three').Camera, extraVendors?:object[]}} opts  start: posisi DUNIA sepeda; camera: dipakai LOD humanoid;
+ *   extraVendors: pedagang tambahan di luar layout region (M7: Kantin FKIP)
  * @returns {{group: THREE.Group, regionGroup: THREE.Group, bike: Bicycle, runners: RunnerGroup,
  *   walkers: LoopWalkers[], match: FootballMatch, vendors: VendorGroup, crowd: Crowd,
  *   updatables: Array<{update(dt:number, ctx:object):void}>, lod: object}}
  */
-export function buildEntities({ start, world, wallet, camera }) {
+export function buildEntities({ start, world, wallet, camera, extraVendors = [] }) {
   const group = new THREE.Group();
   group.name = 'entities';
   const regionGroup = new THREE.Group();
@@ -27,7 +28,7 @@ export function buildEntities({ start, world, wallet, camera }) {
   const runners = new RunnerGroup({ count: 8 });
   const walkers = layout.loopWalkers.map((cfg, i) => new LoopWalkers({ ...cfg, seed: 23 + i }));
   const match = new FootballMatch({ teamSize: 5 });
-  const vendors = new VendorGroup({ vendors: layout.vendors, wallet });
+  const vendors = new VendorGroup({ vendors: [...layout.vendors, ...extraVendors], wallet });
   const crowd = new Crowd({
     seatSamples: world.seatSamples,
     plazaCenter: layout.plazaCenter,

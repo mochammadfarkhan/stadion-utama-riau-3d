@@ -4,13 +4,15 @@ import { IDENTITY_FRAME } from '../geo/regionTransform.js';
 /**
  * Adapter entitas → sumber posisi untuk POV (lihat cameraPresets.povPose).
  * Entitas region (bola, pelari, pedagang) hidup di koordinat region-lokal; adapter mengubahnya ke
- * frame dunia lewat `frame` (createRegionFrame). Sepeda sudah di koordinat dunia.
+ * frame dunia lewat `frame` (createRegionFrame region stadion). Sepeda sudah di koordinat dunia.
+ * M0: `regions` (regionManager) memberi POV milik region aktif (`def.povs`, pose dunia) untuk POV 'region'.
  * Mengembalikan objek yang dipakai ulang (tanpa alokasi per panggilan selain hasil sim).
  * @param {{bike:{state:object}, match?:{ball?:{pos:{x:number,z:number}}},
  *   runners?:{runners:object[]}, vendors?:{vendors:object[]}}} ents
  * @param {{identity:boolean, toWorld(x:number,z:number):{x:number,z:number}, yawToWorld(y:number):number}} [frame]
+ * @param {{regions?: {active(): ReadonlyArray<{def:{id:string, povs?:ReadonlyArray<object>}, frame:object}>}|null}} [opts]
  */
-export function createPovSource(ents, frame = IDENTITY_FRAME) {
+export function createPovSource(ents, frame = IDENTITY_FRAME, { regions = null } = {}) {
   const ballOut = { x: 0, z: 0 };
   const runnerOut = { x: 0, z: 0, yaw: 0 };
   const vendorOut = { x: 0, z: 0, yaw: 0 };
@@ -26,6 +28,14 @@ export function createPovSource(ents, frame = IDENTITY_FRAME) {
     out.x = w.x;
     out.z = w.z;
     if (yaw !== undefined) out.yaw = frame.yawToWorld(yaw);
+    return out;
+  };
+  /** POV region aktif, urut pemasangan region lalu urutan `povs`. */
+  const regionPovs = () => {
+    const out = [];
+    for (const a of regions?.active() ?? []) {
+      for (const pov of a.def.povs ?? []) out.push({ regionId: a.def.id, frame: a.frame, pov });
+    }
     return out;
   };
 
@@ -56,6 +66,15 @@ export function createPovSource(ents, frame = IDENTITY_FRAME) {
       const v = list[wrap(i, list.length)];
       if (!Number.isFinite(v?.position?.x) || !Number.isFinite(v?.position?.z)) return null;
       return place(vendorOut, v.position.x, v.position.z, v.yaw ?? 0);
+    },
+
+    regionPovCount() { return regionPovs().length; },
+    /** POV region ke-i (melingkar); `pose(ctx)` = pov.pose(frame region, ctx). null bila tidak ada. */
+    regionPov(i) {
+      const list = regionPovs();
+      if (list.length === 0) return null;
+      const r = list[wrap(i, list.length)];
+      return { id: `${r.regionId}:${r.pov.id}`, label: r.pov.label, pose: (ctx) => r.pov.pose(r.frame, ctx) };
     },
   };
 }

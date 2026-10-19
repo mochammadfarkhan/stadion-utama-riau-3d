@@ -1,0 +1,147 @@
+{
+  "gpu": "d3d11",
+  "limits": {
+    "calls": 110,
+    "triangles": 350000
+  },
+  "points": {
+    "batas-sm-amin": {
+      "note": "batas timur: Jl. Muchtar Lutfi → Gerbang SM Amin (kota)",
+      "ok": true,
+      "stats": {
+        "chunks": 10,
+        "surfaces": 10,
+        "details": 7,
+        "loading": 0,
+        "pending": 0
+      },
+      "calls": 10,
+      "triangles": 41937,
+      "totalCalls": 156,
+      "callsNoShadow": 1,
+      "trianglesNoShadow": 10036
+    },
+    "batas-soebrantas": {
+      "note": "batas selatan: Jl. Binawidya → Gerbang Soebrantas (kota)",
+      "ok": true,
+      "stats": {
+        "chunks": 10,
+        "surfaces": 10,
+        "details": 8,
+        "loading": 0,
+        "pending": 0
+      },
+      "calls": 32,
+      "triangles": 137574,
+      "totalCalls": 143,
+      "callsNoShadow": 10,
+      "trianglesNoShadow": 47506
+    },
+    "batas-stadion": {
+      "note": "batas utara: jalan kampus → kawasan stadion",
+      "ok": true,
+      "stats": {
+        "chunks": 13,
+        "surfaces": 13,
+        "details": 11,
+        "loading": 0,
+        "pending": 0
+      },
+      "calls": 54,
+      "triangles": 339251,
+      "totalCalls": 566,
+      "callsNoShadow": 14,
+      "trianglesNoShadow": 68430
+    },
+    "jalan-stadion-kampus": {
+      "note": "titik ukur spec §9.2",
+      "ok": true,
+      "stats": {
+        "chunks": 14,
+        "surfaces": 14,
+        "details": 11,
+        "loading": 0,
+        "pending": 0
+      },
+      "calls": 99,
+      "triangles": 633579,
+      "totalCalls": 269,
+      "callsNoShadow": 56,
+      "trianglesNoShadow": 362250
+    },
+    "danau": {
+      "note": "Danau Buatan: air, tanggul, parit",
+      "ok": true,
+      "stats": {
+        "chunks": 19,
+        "surfaces": 19,
+        "details": 13,
+        "loading": 0,
+        "pending": 0
+      },
+      "calls": 132,
+      "triangles": 938389,
+      "totalCalls": 241,
+      "callsNoShadow": 66,
+      "trianglesNoShadow": 399070
+    },
+    "sekre-luar": {
+      "note": "titik ukur spec §9.2",
+      "ok": true,
+      "stats": {
+        "chunks": 18,
+        "surfaces": 18,
+        "details": 13,
+        "loading": 0,
+        "pending": 0
+      },
+      "calls": 96,
+      "triangles": 647580,
+      "totalCalls": 563,
+      "callsNoShadow": 68,
+      "trianglesNoShadow": 424084
+    },
+    "rektorat": {
+      "note": "titik ukur spec §9.2",
+      "ok": true,
+      "stats": {
+        "chunks": 20,
+        "surfaces": 20,
+        "details": 15,
+        "loading": 0,
+        "pending": 0
+      },
+      "calls": 124,
+      "triangles": 907066,
+      "totalCalls": 434,
+      "callsNoShadow": 66,
+      "trianglesNoShadow": 468057
+    },
+    "masjid": {
+      "note": "titik ukur spec §9.2",
+      "ok": true,
+      "stats": {
+        "chunks": 17,
+        "surfaces": 17,
+        "details": 14,
+        "loading": 0,
+        "pending": 0
+      },
+      "calls": 82,
+      "triangles": 405786,
+      "totalCalls": 217,
+      "callsNoShadow": 41,
+      "trianglesNoShadow": 196878
+    }
+  },
+  "errors": [],
+  "fails": [],
+  "warnings": [
+    "jalan-stadion-kampus: segitiga distrik 362250 > 350000",
+    "danau: segitiga distrik 399070 > 350000",
+    "danau: draw call frame berbayangan 132 > 110",
+    "sekre-luar: segitiga distrik 424084 > 350000",
+    "rektorat: segitiga distrik 468057 > 350000",
+    "rektorat: draw call frame berbayangan 124 > 110"
+  ]
+}

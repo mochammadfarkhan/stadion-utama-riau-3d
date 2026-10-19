@@ -9,7 +9,7 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const BASE_HORIZONTAL = 6.5;   // jarak mendatar di belakang sepeda (sama dengan desain awal)
 const BASE_RISE = 1.1;         // tinggi kamera di atas titik pandang (2,4 m − 1,3 m)
 const LOOK_HEIGHT = 1.3;
-const MIN_HEIGHT = 0.45;       // kamera tidak boleh lebih rendah dari ini (tanah = 0)
+const MIN_HEIGHT = 0.45;       // kamera tidak boleh lebih rendah dari ini di atas tanah (lihat cameraFloor)
 const RADIUS = Math.hypot(BASE_HORIZONTAL, BASE_RISE);
 
 export const THIRD = Object.freeze({
@@ -94,6 +94,14 @@ export function decayLook(value, dt, idleSec, { delay = THIRD.lookIdleDelay, rat
 export function shouldSnap(dx, dy, dz, limit = THIRD.snapDistance) {
   const d = Math.hypot(dx, dy, dz);
   return !Number.isFinite(d) || d > limit;
+}
+
+/**
+ * Lantai kamera (M1): tinggi minimum kamera = tanah di bawah KAMERA + minHeight. groundY tak hingga → 0
+ * (perilaku lama tanah datar).
+ */
+export function cameraFloor(groundY, cfg = THIRD) {
+  return fin(groundY) + cfg.minHeight;
 }
 
 /** Vektor arah pandang orang pertama (satuan). pitch positif = melihat ke bawah. */

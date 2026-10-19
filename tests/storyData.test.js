@@ -25,6 +25,30 @@ describe('data cerita', () => {
       if (o.type === 'deliver') expect(npcIds).toContain(o.npcId);
     });
   });
+  it('interact: target <region|interior>:<id> dan titik penanda valid bila ada', () => {
+    steps.filter((s) => s.objective.type === 'interact').forEach((s) => {
+      expect(s.objective.target).toMatch(/^[a-z0-9-]+:[a-z0-9-]+$/);
+      if (s.objective.at) expect([s.objective.at.x, s.objective.at.z].every(Number.isFinite)).toBe(true);
+    });
+  });
+  it('chapter 6 Kampus Biru Langit: 4 misi (deliver, interact NPC, goto berantai, interact interior)', () => {
+    const ch = CHAPTERS.find((c) => c.id === 'kampus-biru-langit');
+    expect(CHAPTERS.indexOf(ch)).toBe(5);
+    expect(new Set(ch.steps.map((s) => s.mission))).toEqual(new Set([1, 2, 3, 4]));
+    expect(ch.steps.filter((s) => s.mission === 1).map((s) => s.objective.type)).toEqual(['buy', 'deliver']);
+    expect(ch.steps.find((s) => s.mission === 2).objective).toMatchObject({ type: 'interact', target: 'unri-lembaga:ketua-bem' });
+    const danau = ch.steps.filter((s) => s.mission === 3);
+    expect(danau.length).toBe(5);
+    expect(danau.every((s) => s.objective.type === 'goto')).toBe(true);
+    expect(danau[4].objective.target).toEqual(danau[0].objective.target);
+    expect(ch.steps.find((s) => s.mission === 4).objective.target.startsWith('sekre:')).toBe(true);
+  });
+  it('NPC target interact ada di STORY_NPCS dengan zone yang sama', () => {
+    steps.filter((s) => s.objective.type === 'interact' && !s.objective.target.startsWith('sekre:')).forEach((s) => {
+      const [zone, id] = s.objective.target.split(':');
+      expect(STORY_NPCS.find((n) => n.id === id)?.zone).toBe(zone);
+    });
+  });
   it('dialog singkat: maks 160 karakter per baris', () => {
     const lines = [...steps.flatMap((s) => s.say ?? []), ...CHAPTERS.flatMap((c) => c.outro), ...EASTER_EGGS.map((e) => e.text)];
     lines.forEach((l) => expect(l.length).toBeLessThanOrEqual(160));

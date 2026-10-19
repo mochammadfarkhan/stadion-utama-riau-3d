@@ -38,19 +38,30 @@ export class PovDirector {
     this._duration = 1.5;
     this._pending = false;
     this._hasSmooth = false;
+    this._src = null; // sumber POV terakhir (label subjek POV region)
+    this._heightAt = null;  // (x, z) → tinggi tanah dunia; null = datar
   }
+
+  /** Pose POV relatif tanah di titik pandang (M1); null = datar (perilaku lama). */
+  setHeightAt(fn) { this._heightAt = typeof fn === 'function' ? fn : null; }
 
   get active() { return this.mode !== 'idle'; }
   get povId() { return this.mode === 'pov' ? this.def.id : null; }
-  get label() { return this.mode === 'pov' ? this.def.label : null; }
+  /** Label POV aktif; POV region memakai label POV region subjek (mis. "Teras sekre"). */
+  get label() {
+    if (this.mode !== 'pov') return null;
+    if (this.def.kind === 'region') return this._src?.regionPov?.(this.subject)?.label ?? this.def.label;
+    return this.def.label;
+  }
   /** Sepeda dibekukan hanya selama POV aktif yang tidak mengendalikan sepeda. */
   get freezesBike() { return this.mode === 'pov' && !this.def.controlsBike; }
 
   /** Masuk ke POV; false bila subjek (pelari/pedagang/bola) belum tersedia. */
   enter(def, src, subject = 0) {
-    if (!povPose(def, src, subject, 0, this._raw)) return false;
+    if (!povPose(def, src, subject, 0, this._raw, this._heightAt)) return false;
     this.#captureFrom();
     this.def = def;
+    this._src = src;
     this.subject = subject;
     this.mode = 'pov';
     this.yaw = 0;
@@ -130,7 +141,7 @@ export class PovDirector {
       return;
     }
     const def = this.def;
-    if (povPose(def, src, this.subject, time, this._raw)) {
+    if (povPose(def, src, this.subject, time, this._raw, this._heightAt)) {
       if (def.kind === 'follow' && this._hasSmooth) smoothPose(this._smooth, this._raw, def.follow, dt);
       else copyPose(this._smooth, this._raw);
       this._hasSmooth = true;

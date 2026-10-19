@@ -5,6 +5,7 @@
 import { tileBounds, tilesInRect, TILE_SIZE } from '../../src/geo/tiles.js';
 import { WORLD_ORIGIN } from '../../src/config/constants.js';
 import { stadionMaskWorld } from '../../src/regions/stadion/mask.js';
+import { UNRI_BOUNDARY } from '../../src/districts/unri/boundary.js';
 
 export { TILE_SIZE };
 
@@ -19,7 +20,8 @@ export const ORIGIN = WORLD_ORIGIN;
 
 /**
  * Kawasan bake. center = lat/lon; halfSize = setengah sisi persegi (m) di frame dunia.
- * Tile yang di-bake = semua tile yang beririsan persegi itu (dibulatkan keluar ke grid 500 m).
+ * Tile yang di-bake = semua tile yang beririsan persegi itu (dibulatkan keluar ke grid 500 m), dikurangi
+ * tile milik area di `skipAreas` (satu tile = satu area di manifest).
  */
 export const AREAS = Object.freeze({
   stadion: Object.freeze({
@@ -35,6 +37,16 @@ export const AREAS = Object.freeze({
     // way 1204061673 "Kompleks Masjid Raya An-Nur Provinsi Riau". ±8,3 km timur-laut stadion.
     center: Object.freeze({ lat: 0.5265934, lon: 101.4508552 }),
     halfSize: 750,
+  }),
+  unri: Object.freeze({
+    id: 'unri',
+    name: 'Kampus UNRI Bina Widya (tepi barat & selatan di luar area stadion)',
+    // Pusat bbox poligon kampus OSM way 938374562 (lat 0,46434–0,48775; lon 101,37495–101,39352) ≈ dunia
+    // (−589, 835). halfSize 1300 memuat seluruh poligon (x −1622…444, z −459…2129). Cache OSM area ini
+    // (data-src/osm/unri.json) juga sumber campusbake ground/buildings (spec §6 butir 5).
+    center: Object.freeze({ lat: 0.476045, lon: 101.384235 }),
+    halfSize: 1300,
+    skipAreas: Object.freeze(['stadion']),
   }),
 });
 
@@ -152,21 +164,36 @@ export const REGION_MASKS = Object.freeze([
   Object.freeze({ id: 'stadion', ring: stadionMaskWorld() }),
 ]);
 
+/**
+ * Distrik berelevasi (spec §6): fitur kota di dalam ring diklip/dibuang saat bake (mask.applyDistricts).
+ * excludeIds dibaca dari `buildingsFile` (keluaran M3) bila ada; tanpa berkas → hanya aturan centroid.
+ */
+export const DISTRICTS = Object.freeze([
+  Object.freeze({ id: 'unri', ring: UNRI_BOUNDARY, buildingsFile: 'public/districts/unri/buildings.json' }),
+]);
+
 /** Persegi dunia kawasan (sebelum dibulatkan ke grid). */
 export function areaRect(area, projection) {
   const c = projection.toWorld(area.center.lat, area.center.lon);
   return { minX: c.x - area.halfSize, minZ: c.z - area.halfSize, maxX: c.x + area.halfSize, maxZ: c.z + area.halfSize };
 }
 
-/** Tile yang di-bake untuk kawasan. */
-export const areaTiles = (area, projection, size = TILE_SIZE) => tilesInRect(areaRect(area, projection), size);
+/** Tile yang di-bake untuk kawasan (tile milik `skipAreas` dibuang). */
+export function areaTiles(area, projection, size = TILE_SIZE, areas = AREAS) {
+  const skip = new Set((area.skipAreas ?? []).flatMap((id) => {
+    const other = areas[id];
+    if (!other) throw new Error(`skipAreas area "${area.id}": area tidak dikenal "${id}"`);
+    return tilesInRect(areaRect(other, projection), size).map((t) => t.key);
+  }));
+  return tilesInRect(areaRect(area, projection), size).filter((t) => !skip.has(t.key));
+}
 
 /**
  * Bbox lat/lon untuk fetch: gabungan batas tile kawasan + margin (m) agar fitur yang melintas tepi
  * ikut terambil. @returns {{south: number, west: number, north: number, east: number}}
  */
-export function areaFetchBBox(area, projection, margin = 60, size = TILE_SIZE) {
-  const tiles = areaTiles(area, projection, size);
+export function areaFetchBBox(area, projection, margin = 60, size = TILE_SIZE, areas = AREAS) {
+  const tiles = areaTiles(area, projection, size, areas);
   const b = tiles.map((t) => tileBounds(t.ix, t.iz, size));
   const minX = Math.min(...b.map((v) => v.minX)) - margin;
   const maxX = Math.max(...b.map((v) => v.maxX)) + margin;

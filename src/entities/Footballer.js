@@ -9,7 +9,7 @@ import { createMatch, stepMatch } from '../sim/footballAI.js';
 import { createHumanoid, animateRun, animateIdle, animateKick } from './Humanoid.js';
 import { footballKit } from './Humanoid.outfits.js';
 import { createBallMesh, rollBall } from './Footballer.ball.js';
-import { makeRng, isFiniteXZ, clamp } from './util.js';
+import { makeRng, isFiniteXZ, clamp, flatGround, groundOf } from './util.js';
 
 const MOVE_EPS = 0.3;          // m/s; di bawah ini dianggap diam
 const MAX_DT = 0.05;
@@ -42,7 +42,7 @@ export class FootballMatch {
     }
     this.#ball = createBallMesh(this.#ballRadius);
     this.group.add(this.#ball);
-    this.#applyVisual(0, 0);
+    this.#applyVisual(0, 0, flatGround);
   }
 
   get score() { return this.match.score; }
@@ -53,23 +53,24 @@ export class FootballMatch {
     const step = clamp(dt, 0, MAX_DT);
     const next = stepMatch(this.match, step);
     if (isFiniteXZ(next.ball?.pos)) this.match = next;
-    this.#applyVisual(ctx.time ?? 0, step);
+    this.#applyVisual(ctx.time ?? 0, step, groundOf(ctx));
   }
 
-  #applyVisual(time, dt) {
-    for (const p of this.match.players) this.#applyPlayer(p, time);
+  #applyVisual(time, dt, ground) {
+    for (const p of this.match.players) this.#applyPlayer(p, time, ground);
     const b = this.match.ball;
-    // sim: pos.y = pusat bola (= radius saat di tanah)
-    this.#ball.position.set(b.pos.x, Number.isFinite(b.pos.y) ? b.pos.y : this.#ballRadius, b.pos.z);
+    // sim: pos.y = pusat bola di atas tanah (= radius saat di tanah)
+    const lift = ground(b.pos.x, b.pos.z);
+    this.#ball.position.set(b.pos.x, lift + (Number.isFinite(b.pos.y) ? b.pos.y : this.#ballRadius), b.pos.z);
     rollBall(this.#ball, b.vel, dt, this.#ballRadius);
   }
 
   /** Posisi, arah hadap, dan animasi satu pemain. */
-  #applyPlayer(p, time) {
+  #applyPlayer(p, time, ground) {
     const entry = this.#players.get(p.id);
     if (!entry || !isFiniteXZ(p.pos)) return;
     const { h, phase } = entry;
-    h.group.position.set(p.pos.x, 0, p.pos.z);
+    h.group.position.set(p.pos.x, ground(p.pos.x, p.pos.z), p.pos.z);
     h.group.rotation.y = Number.isFinite(p.facing) ? p.facing : 0;
     const speed = Math.hypot(p.vel.x, p.vel.z);
     if (p.kickTimer > 0) {

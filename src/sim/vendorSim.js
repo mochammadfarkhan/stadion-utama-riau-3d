@@ -16,13 +16,18 @@ export const VENDOR_CATALOG = Object.freeze({
     Object.freeze({ id: 'jeruk', name: 'Jeruk', price: 15000 }),
     Object.freeze({ id: 'rujak', name: 'Rujak', price: 12000 }),
   ]),
+  // Kantin kampus (M7, Kantin FKIP way/282225371): konsumsi rapat ormawa. Harga [INFERENSI].
+  kantin: Object.freeze([
+    Object.freeze({ id: 'nasi-kotak', name: 'Nasi Kotak (konsumsi rapat)', price: 15000 }),
+    Object.freeze({ id: 'gorengan', name: 'Gorengan (5 biji)', price: 5000 }),
+  ]),
 });
 
 const num = (v, fallback = 0) => (Number.isFinite(v) ? v : fallback);
 const copyPoint = (p) => ({ x: num(p && p.x), z: num(p && p.z) });
 
-/** Pedagang baru di waypoint pertama; target = waypoint berikutnya. */
-export function createVendor({ id, kind = 'minuman', waypoints = [], speed, dwell } = {}) {
+/** Pedagang baru di waypoint pertama; target = waypoint berikutnya. `yaw` awal opsional (pedagang mangkal). */
+export function createVendor({ id, kind = 'minuman', waypoints = [], speed, dwell, yaw } = {}) {
   const wps = Array.isArray(waypoints) ? waypoints.map(copyPoint) : [];
   const hasRoute = wps.length > 1;
   const pos = wps.length ? copyPoint(wps[0]) : { x: 0, z: 0 };
@@ -34,7 +39,7 @@ export function createVendor({ id, kind = 'minuman', waypoints = [], speed, dwel
     speed: num(speed, VENDOR.walkSpeed),
     dwell: num(dwell, VENDOR.dwellSeconds),
     pos,
-    yaw: 0,
+    yaw: num(yaw, 0),
     targetIndex,
     target: wps.length ? copyPoint(wps[targetIndex]) : { ...pos },
     state: hasRoute ? 'WALK' : 'DWELL',

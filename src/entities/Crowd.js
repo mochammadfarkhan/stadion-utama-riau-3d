@@ -7,7 +7,7 @@
 import * as THREE from 'three';
 import { createPlazaActivities } from './Crowd.plaza.js';
 import { SKIN_TONES, SHIRT_COLORS } from './Humanoid.outfits.js';
-import { makeRng, pick, clamp } from './util.js';
+import { makeRng, pick, clamp, groundOf } from './util.js';
 
 const SEATED = Object.freeze({
   torsoR: 0.17, torsoH: 0.3, torsoY: 0.42,   // pusat torso relatif permukaan kursi
@@ -127,7 +127,7 @@ export class Crowd {
     const step = clamp(dt, 0, MAX_DT);
     const time = ctx.time ?? 0;
     this.#spectators?.update(time);
-    this.#plaza?.update(step, time);
+    this.#plaza?.update(step, time, groundOf(ctx));
   }
 
   /** Kepadatan penonton tribun 0..1 (settings graphics.crowdDensity). */

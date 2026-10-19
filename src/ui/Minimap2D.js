@@ -1,16 +1,21 @@
 /**
- * Minimap 2D: dua layer — (1) tile kota (canvas per tile dari city/tileMinimap.js, di bawah) dan
- * (2) peta dasar region (tampak atas) yang di-bake SEKALI dari scene lewat kamera ortografis
- * (App.bakeMinimap). Per frame hanya `drawImage` jendela di sekitar pemain + marker pada canvas 2D
- * kecil. Tanpa render 3D tambahan, tidak terpengaruh siang/malam, dan murah. Utara = atas.
+ * Minimap 2D, lapisan dari bawah ke atas: (1) tile kota (canvas per tile dari city/tileMinimap.js) dan
+ * (2) base layer per region (M0 multi-region): peta dasar tampak atas yang di-bake SEKALI dari scene
+ * lewat kamera ortografis (App.bakeMinimap), digambar sesuai urutan pertama kali dipasang. Per frame hanya
+ * `drawImage` jendela di sekitar pemain + marker pada canvas 2D kecil. Tanpa render 3D tambahan, tidak
+ * terpengaruh siang/malam, dan murah. Utara = atas.
  */
-import { clampToEdge, projectToView, snapRect, sourceRect, worldRectToView } from '../shared/minimapMath.js';
+import {
+  clampToEdge, layerInView, layerTransform, projectToView, snapRect, sourceRect, worldRectToView,
+} from '../shared/minimapMath.js';
 
 const BG = '#2f5b32';
 const REDRAW_SEC = 1 / 15;     // 15 Hz cukup untuk peta
 const EDGE_MARGIN = 12;
 const GOAL_COLOR = '#f2b705';
 const BIKE_COLOR = '#e53935';
+/** Id base layer yang dipakai alias lama setBase() (peta dasar region stadion). */
+export const LEGACY_BASE_ID = 'stadion';
 
 export class Minimap2D {
   /**
@@ -20,9 +25,8 @@ export class Minimap2D {
   constructor(root, { size = 200, halfExtent = 160 } = {}) {
     this.size = size;
     this.halfExtent = halfExtent;
-    this.base = null;
-    this.worldHalf = 700;
-    this.baseCenter = { x: 0, z: 0 };
+    /** @type {Map<string, {canvas: CanvasImageSource & {width:number}, center:{x:number,z:number}, half:number, yaw:number}>} */
+    this.layers = new Map();
     this.tileLayer = null;
     this._last = -Infinity;
     this.canvas = document.createElement('canvas');
@@ -40,15 +44,41 @@ export class Minimap2D {
   }
 
   /**
+   * Pasang/ganti base layer region. Urutan gambar = urutan pertama kali id dipasang.
+   * @param {string} id id region
+   * @param {CanvasImageSource & {width:number}} canvas peta dasar (yaw 0: utara di atas)
+   * @param {{center?:{x:number,z:number}, half:number, yaw?:number}} opts center = pusat area bake (dunia),
+   *   half = setengah sisi area (m), yaw = rotasi layer (rad, konvensi placement; bake App selalu 0)
+   */
+  setBaseLayer(id, canvas, { center = { x: 0, z: 0 }, half, yaw = 0 } = {}) {
+    if (typeof id !== 'string' || id === '') throw new TypeError('Minimap2D.setBaseLayer: id wajib string');
+    if (!canvas || !(half > 0) || !Number.isFinite(center?.x) || !Number.isFinite(center?.z) || !Number.isFinite(yaw)) {
+      throw new TypeError(`Minimap2D.setBaseLayer("${id}"): canvas, half > 0, center {x,z}, dan yaw angka wajib`);
+    }
+    const next = new Map(this.layers);
+    next.set(id, Object.freeze({ canvas, center: Object.freeze({ x: center.x, z: center.z }), half, yaw }));
+    this.layers = next;
+    this._last = -Infinity;
+  }
+
+  /** @returns {boolean} true bila layer ada lalu dilepas */
+  removeBaseLayer(id) {
+    if (!this.layers.has(id)) return false;
+    const next = new Map(this.layers);
+    next.delete(id);
+    this.layers = next;
+    this._last = -Infinity;
+    return true;
+  }
+
+  /**
+   * Alias lama (sebelum M0): peta dasar region stadion.
    * @param {CanvasImageSource & {width:number}} baseCanvas peta dasar
    * @param {number} worldHalf setengah sisi area bake (m)
    * @param {{x:number, z:number}} [center] pusat area bake di frame dunia (placement region)
    */
   setBase(baseCanvas, worldHalf, center = { x: 0, z: 0 }) {
-    this.base = baseCanvas;
-    this.worldHalf = worldHalf;
-    this.baseCenter = { x: center.x, z: center.z };
-    this._last = -Infinity;
+    this.setBaseLayer(LEGACY_BASE_ID, baseCanvas, { center, half: worldHalf, yaw: 0 });
   }
 
   /** @param {{tilesInView(focus:{x:number,z:number}, halfExtent:number): Array<{canvas: CanvasImageSource, bounds: object}>}|null} layer */
@@ -79,15 +109,27 @@ export class Minimap2D {
       const r = snapRect(worldRectToView(t.bounds, focus, this.halfExtent, S));
       ctx.drawImage(t.canvas, r.x, r.y, r.w, r.h);
     }
-    if (this.base) {
-      const r = sourceRect(focus, this.halfExtent, this.worldHalf, this.base.width, this.baseCenter);
-      ctx.drawImage(this.base, r.sx, r.sy, r.sw, r.sh, 0, 0, S, S);
-    }
+    for (const layer of this.layers.values()) this.#layer(layer, focus, S);
     ctx.setTransform(k, 0, 0, k, 0, 0); // koordinat tampilan dalam px CSS
     for (const p of getPins?.() ?? []) this.#pin(p, focus);
     if (goal) this.#goal(goal, focus, time);
     this.#bike(yaw);
     this.#north();
+  }
+
+  /** Satu base layer: yaw 0 = jendela sumber (jalur lama, paritas); yaw ≠ 0 = gambar penuh bertransformasi. */
+  #layer(l, focus, S) {
+    if (!layerInView(l, focus, this.halfExtent)) return;
+    const ctx = this.ctx;
+    if (l.yaw === 0) {
+      const r = sourceRect(focus, this.halfExtent, l.half, l.canvas.width, l.center);
+      ctx.drawImage(l.canvas, r.sx, r.sy, r.sw, r.sh, 0, 0, S, S);
+      return;
+    }
+    const m = layerTransform(l, focus, this.halfExtent, S);
+    ctx.setTransform(m[0], m[1], m[2], m[3], m[4], m[5]);
+    ctx.drawImage(l.canvas, -l.half, -l.half, 2 * l.half, 2 * l.half);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
   #pin(p, focus) {

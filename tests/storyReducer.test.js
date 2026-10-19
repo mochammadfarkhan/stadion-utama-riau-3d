@@ -106,3 +106,25 @@ describe('langkah find dengan egg yang sudah ditemukan lebih dulu', () => {
     expect(state.finished).toBe(true);
   });
 });
+
+describe('createStory: objective interact', () => {
+  const ch = Object.freeze([{
+    id: 'k', title: 'Kampus', rank: 'Aktivis', outro: ['Selesai.'], reward: { rupiah: 100, badge: 'bk' },
+    steps: [
+      { id: 'ttd', text: 'Minta tanda tangan', objective: { type: 'interact', target: 'unri-lembaga:ketua-bem' }, reward: { rupiah: 10 } },
+      { id: 'kipas', text: 'Nyalakan kipas', objective: { type: 'interact', target: 'sekre:kipas' } },
+    ],
+  }]);
+  const st = createStory({ chapters: ch, eggs: [] });
+  it('target salah tidak memajukan; target benar memajukan, memberi hadiah, dan menyimpan', () => {
+    const s0 = st.initial();
+    expect(st.reduce(s0, { type: 'interact', target: 'sekre:kipas' }).state).toBe(s0);
+    const r1 = st.reduce(s0, { type: 'interact', target: 'unri-lembaga:ketua-bem' });
+    expect(r1.state.step).toBe(1);
+    expect(r1.state.rupiah).toBe(10);
+    expect(r1.effects.map((e) => e.type)).toEqual(['reward', 'save']);
+    const r2 = st.reduce(r1.state, { type: 'interact', target: 'sekre:kipas' });
+    expect(r2.state.finished).toBe(true);
+    expect(r2.state.badges).toEqual(['bk']);
+  });
+});

@@ -21,7 +21,7 @@ let result;
 beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), 'citybake-golden-'));
   result = await runBake({
-    areaIds: ['uji'], outDir: dir, cacheDir: join(dir, 'cache'), areas: AREAS, masks: MASKS, origin: ORIGIN,
+    areaIds: ['uji'], outDir: dir, cacheDir: join(dir, 'cache'), areas: AREAS, masks: MASKS, districts: [], origin: ORIGIN,
     release: '2026-09-23.1', log: quietLog,
     loaders: { osm: async () => OSM, overture: async () => OVERTURE },
   });
@@ -100,7 +100,7 @@ describe('golden citybake (fixture mini)', () => {
 
   it('bake ulang deterministik: manifest identik', async () => {
     const again = await runBake({
-      areaIds: ['uji'], outDir: dir, cacheDir: join(dir, 'cache'), areas: AREAS, masks: MASKS, origin: ORIGIN,
+      areaIds: ['uji'], outDir: dir, cacheDir: join(dir, 'cache'), areas: AREAS, masks: MASKS, districts: [], origin: ORIGIN,
       release: '2026-09-23.1', log: quietLog, loaders: { osm: async () => OSM, overture: async () => OVERTURE },
     });
     expect(again.manifest).toEqual(result.manifest);

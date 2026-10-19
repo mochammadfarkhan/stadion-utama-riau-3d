@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { StoryDirector } from '../src/core/StoryDirector.js';
-import { TUGU, CHAPTERS } from '../src/story/chapters.js';
-import { STORY_KEY, STORY_BACKUP_KEY } from '../src/story/storage.js';
+import { TUGU, CHAPTERS, STORY_NPCS } from '../src/story/chapters.js';
+import { createRegionFrame } from '../src/geo/regionTransform.js';
+import { STORY_KEY, STORY_BACKUP_KEY, SAVE_VERSION } from '../src/story/storage.js';
 
 function makeDeps({ balance = 50000, items = [], save = null, store = null } = {}) {
   const map = store ?? new Map(save ? [[STORY_KEY, JSON.stringify(save)]] : []);
@@ -167,7 +168,7 @@ describe('StoryDirector: dompet tersimpan (save v2)', () => {
     d.start();
     d.vendors.wallet = { balance: 45000, items: [TEH] }; // hasil tryBuy di VendorGroup
     d.onBought('es-teh');
-    expect(savedIn(m)).toMatchObject({ version: 2, wallet: { balance: 45000 } });
+    expect(savedIn(m)).toMatchObject({ version: 3, wallet: { balance: 45000 } });
     const reload = makeDeps({ store: m.store });
     const d2 = new StoryDirector(reload.deps);
     d2.start();
@@ -189,7 +190,7 @@ describe('StoryDirector: dompet tersimpan (save v2)', () => {
     d.start();
     d.reset();
     expect(d.vendors.wallet).toEqual({ balance: 50000, items: [] });
-    expect(savedIn(m)).toMatchObject({ version: 2, chapter: 0, wallet: { balance: 50000, items: [] } });
+    expect(savedIn(m)).toMatchObject({ version: 3, chapter: 0, wallet: { balance: 50000, items: [] } });
   });
 
   it('mulai dari awal: uang saku langkah yang sama bisa diberikan lagi', () => {
@@ -216,5 +217,115 @@ describe('StoryDirector: dompet tersimpan (save v2)', () => {
     d.start();
     expect(m.deps.storage.getItem(STORY_BACKUP_KEY)).toBe('{bukan json');
     expect(d.state.chapter).toBe(0);
+  });
+});
+
+describe('StoryDirector: koordinat dunia multi-region (M0)', () => {
+  const stadion = createRegionFrame({ x: 1000, z: -200, yaw: 0.5 });
+  const frameOf = (id) => (id === 'stadion' ? stadion : null);
+  const startedIn = (opts, extra = {}) => {
+    const m = makeDeps(opts);
+    const d = new StoryDirector({ ...m.deps, frameOf, ...extra });
+    d.start();
+    return { d, ...m };
+  };
+
+  it('tujuan goto di-resolve ke dunia: posisi dunia tugu menyelesaikan chapter 0, posisi lokal tidak', () => {
+    const { d } = startedIn();
+    d.advanceDialog();
+    d.advanceDialog();
+    const w = stadion.toWorld(TUGU.x, TUGU.z);
+    expect(d.goalPoint()).toEqual(w);
+    d.update(0.016, ctx(TUGU.x, TUGU.z));
+    expect(d.state.chapter).toBe(0);
+    d.update(0.016, ctx(w.x, w.z));
+    expect(d.state.chapter).toBe(1);
+  });
+
+  it('pedagang dicari dari posisi lokal stadion; penanda di titik dunia', () => {
+    const { d } = startedIn({ save: { version: 1, chapter: 1, step: 0, badges: [], eggs: [], bestLap: null, rupiah: 0, finished: false } });
+    const asked = [];
+    d.vendors.nearestSelling = (_itemId, from) => { asked.push({ ...from }); return { x: 5, z: 5 }; };
+    const at = stadion.toWorld(0, 10);
+    d.update(0.016, ctx(at.x, at.z));
+    const goal = d.goalPoint();
+    const want = stadion.toWorld(5, 5);
+    expect(goal.x).toBeCloseTo(want.x, 9);
+    expect(goal.z).toBeCloseTo(want.z, 9);
+    expect(asked.at(-1).x).toBeCloseTo(0, 9);
+    expect(asked.at(-1).z).toBeCloseTo(10, 9);
+  });
+
+  it('NPC cerita ditemukan di posisi dunianya', () => {
+    const { d } = startedIn();
+    d.advanceDialog();
+    d.advanceDialog();
+    const satpam = STORY_NPCS.find((n) => n.id === 'satpam');
+    const w = stadion.toWorld(satpam.x, satpam.z);
+    expect(d.promptFor({ x: satpam.x, z: satpam.z })).toBeNull();
+    expect(d.promptFor(w)).toMatch(/Pak Satpam/);
+  });
+
+  it('save v3 menyimpan tempat dari placeOf; tempat tersimpan dibaca sebagai savedPlace', () => {
+    const place = { region: 'stadion', x: 1, z: 2, yaw: 0.5 };
+    const m = makeDeps();
+    const d = new StoryDirector({ ...m.deps, frameOf, placeOf: () => place });
+    d.start();
+    expect(d.savedPlace).toBeNull();
+    d.vendors.wallet = { balance: 45000, items: [] };
+    d.onBought('es-teh');
+    expect(JSON.parse(m.store.get(STORY_KEY))).toMatchObject({ version: 3, place });
+    const reload = makeDeps({ store: m.store });
+    const d2 = new StoryDirector({ ...reload.deps, frameOf });
+    d2.start();
+    expect(d2.savedPlace).toEqual(place);
+  });
+});
+
+describe('StoryDirector: interact (M7)', () => {
+  const spyOn = (d) => {
+    const seen = [];
+    const orig = d.dispatch.bind(d);
+    d.dispatch = (e) => { seen.push(e); orig(e); };
+    return seen;
+  };
+  it('onInteract mengirim event interact; target tanpa ":" diabaikan', () => {
+    const { d } = started();
+    const seen = spyOn(d);
+    d.onInteract('sekre:kipas');
+    d.onInteract('kipas');
+    d.onInteract(null);
+    expect(seen).toEqual([{ type: 'interact', target: 'sekre:kipas' }]);
+  });
+  it('bicara dengan NPC ber-zone juga mengirim interact <zone>:<id>', () => {
+    const { d } = started();
+    d.advanceDialog();
+    d.advanceDialog();
+    const npc = STORY_NPCS.find((n) => n.id === 'ketua-bem');
+    const seen = spyOn(d);
+    expect(d.tryInteract({ x: npc.x + 1, z: npc.z })).toBe(true);
+    expect(seen.map((e) => e.type)).toEqual(['interacted', 'interact']);
+    expect(seen[1].target).toBe('unri-lembaga:ketua-bem');
+  });
+  it('penanda objective interact = titik `at`; langkah ttd selesai saat bicara dengan Ketua BEM', () => {
+    const npc = STORY_NPCS.find((n) => n.id === 'ketua-bem');
+    const step = CHAPTERS[5].steps.findIndex((s) => s.id === 'ttd-ketua-bem');
+    const { d } = started({ save: { version: SAVE_VERSION, chapter: 5, step, badges: [], eggs: [], bestLap: null, rupiah: 0, finished: false, wallet: { balance: 50000, items: [] }, place: null } });
+    d.advanceDialog();
+    d.advanceDialog();
+    expect(d.goalPoint()).toMatchObject({ x: npc.x, z: npc.z });
+    d.tryInteract({ x: npc.x, z: npc.z + 1 });
+    expect(d.state.step).toBe(step + 1);
+  });
+});
+
+describe('StoryDirector: chapter baru untuk save tamat (M7)', () => {
+  it('save tamat di chapter 5 lama dibuka di chapter 6, diberi toast, dan disimpan ulang', () => {
+    const save = { version: SAVE_VERSION, chapter: 4, step: 0, badges: ['Anak Bertuah'], eggs: [], bestLap: null, rupiah: 0, finished: true, wallet: { balance: 1000, items: [] }, place: null };
+    const { d, log, store } = started({ save });
+    expect(d.state.chapter).toBe(5);
+    expect(d.state.finished).toBe(false);
+    expect(log.toasts.some(([t]) => t.includes('Kampus Biru Langit'))).toBe(true);
+    expect(JSON.parse(store.get(STORY_KEY)).chapter).toBe(5);
   });
 });

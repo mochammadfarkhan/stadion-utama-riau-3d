@@ -123,15 +123,17 @@ function respawnSplash(sp, i, center) {
   sp.ages[i] = 0;
 }
 
+const FLAT = () => 0;
+
 /** Perbarui umur, skala (membesar), dan posisi cipratan; bagian di luar intensitas disembunyikan. */
-function updateSplashes(sp, dt, intensity, center, brightness = 1) {
+function updateSplashes(sp, dt, intensity, center, brightness = 1, heightAt = FLAT) {
   const active = Math.floor(WEATHER.splashCount * intensity);
   for (let i = 0; i < WEATHER.splashCount; i += 1) {
     sp.ages[i] += dt;
     if (sp.ages[i] >= WEATHER.splashLife) respawnSplash(sp, i, center);
     const t = sp.ages[i] / WEATHER.splashLife;
     const scale = i < active ? SPLASH_MAX_RADIUS * (0.2 + 0.8 * t) : 0;
-    _p.set(sp.xs[i], SPLASH_Y, sp.zs[i]);
+    _p.set(sp.xs[i], heightAt(sp.xs[i], sp.zs[i]) + SPLASH_Y, sp.zs[i]); // cipratan di atas tanah (M1)
     _s.set(scale, 1, scale);
     sp.mesh.setMatrixAt(i, _m.compose(_p, _q, _s));
   }
@@ -140,7 +142,7 @@ function updateSplashes(sp, dt, intensity, center, brightness = 1) {
 }
 
 /**
- * @returns {{ update(dt, intensity, camera, bikePos, brightness?): void, setWind(scale): void, group: THREE.Group }}
+ * @returns {{ update(dt, intensity, camera, bikePos, brightness?, heightAt?): void, setWind(scale): void, group: THREE.Group }}
  * brightness 0..1 = terang lingkungan (goresan aditif harus redup di malam hari)
  */
 export function createRain(parent) {
@@ -159,7 +161,7 @@ export function createRain(parent) {
       const k = Math.max(0, Number(scale) || 0);
       drops.material.uniforms.uWind.value.set(WEATHER.wind.x * k, WEATHER.wind.z * k);
     },
-    update(dt, intensity, camera, bikePos, brightness = 1) {
+    update(dt, intensity, camera, bikePos, brightness = 1, heightAt = FLAT) {
       const on = intensity > 0.001;
       drops.visible = on;
       splashes.mesh.visible = on;
@@ -170,7 +172,7 @@ export function createRain(parent) {
       u.uIntensity.value = intensity;
       u.uOpacity.value = DROP_OPACITY * brightness;
       u.uCenter.value.copy(camera.position);
-      updateSplashes(splashes, dt, intensity, bikePos, brightness);
+      updateSplashes(splashes, dt, intensity, bikePos, brightness, heightAt);
     },
   };
 }

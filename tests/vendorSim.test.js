@@ -124,3 +124,25 @@ describe('consumeItem & credit', () => {
     expect(credit(w, -5).balance).toBe(w.balance);
   });
 });
+
+describe('kantin kampus (M7, keputusan D4)', () => {
+  it('katalog kantin: nasi kotak & gorengan', () => {
+    const price = (id) => VENDOR_CATALOG.kantin.find((i) => i.id === id).price;
+    expect(price('nasi-kotak')).toBe(15000);
+    expect(price('gorengan')).toBe(5000);
+  });
+  it('pedagang satu waypoint diam (DWELL) dengan yaw awal yang diberikan', () => {
+    const v = createVendor({ id: 'k', kind: 'kantin', waypoints: [{ x: -790, z: 1140.8 }], yaw: Math.PI });
+    expect(v.state).toBe('DWELL');
+    expect(v.yaw).toBe(Math.PI);
+    const n = stepVendor(v, 10);
+    expect(n.pos).toEqual({ x: -790, z: 1140.8 });
+    expect(n.yaw).toBe(Math.PI);
+    expect(createVendor({ id: 'x', waypoints: [{ x: 0, z: 0 }] }).yaw).toBe(0);
+  });
+  it('beli nasi kotak dari pedagang kantin', () => {
+    const r = buy(createWallet(20000), 'kantin', 'nasi-kotak');
+    expect(r.ok).toBe(true);
+    expect(r.wallet.balance).toBe(5000);
+  });
+});

@@ -2,12 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { createProjection } from '../../src/geo/projection.js';
 import { pointInPolygon, signedArea } from '../../src/geo/polygon.js';
 import {
-  ORIGIN, AREAS, ROAD_CLASSES, LANDUSE_COLORS, LANDUSE_ORDER, LAYER_Y, REGION_MASKS, OVERTURE, OVERPASS_ENDPOINTS, USER_AGENT,
+  ORIGIN, AREAS, DISTRICTS, ROAD_CLASSES, LANDUSE_COLORS, LANDUSE_ORDER, LAYER_Y, REGION_MASKS, OVERTURE, OVERPASS_ENDPOINTS, USER_AGENT,
   areaRect, areaTiles, areaFetchBBox,
 } from '../../tools/citybake/config.js';
 import { stadionMaskWorld, STADION_MASK } from '../../src/regions/stadion/mask.js';
 import { stadionRegion } from '../../src/regions/stadion/index.js';
 import { regionContains } from '../../src/regions/Region.js';
+import { UNRI_BOUNDARY } from '../../src/districts/unri/boundary.js';
 
 const proj = createProjection({ lat0: ORIGIN.lat, lon0: ORIGIN.lon });
 
@@ -86,5 +87,36 @@ describe('citybake config', () => {
     expect(OVERTURE.release).toMatch(/^\d{4}-\d{2}-\d{2}\.\d+$/);
     expect(OVERPASS_ENDPOINTS.length).toBeGreaterThan(0);
     expect(USER_AGENT).toMatch(/citybake/);
+  });
+
+  it('area unri: 16 tile di luar area stadion, persegi memuat seluruh batas distrik', () => {
+    const tiles = areaTiles(AREAS.unri, proj);
+    expect(tiles).toHaveLength(16);
+    const stadionKeys = new Set(areaTiles(AREAS.stadion, proj).map((t) => t.key));
+    expect(tiles.some((t) => stadionKeys.has(t.key))).toBe(false);
+    expect(tiles.map((t) => t.key)).toEqual(expect.arrayContaining(['-4_-1', '-4_4', '-3_4', '1_3']));
+    const r = areaRect(AREAS.unri, proj);
+    for (const [x, z] of UNRI_BOUNDARY) {
+      expect(x).toBeGreaterThan(r.minX);
+      expect(x).toBeLessThan(r.maxX);
+      expect(z).toBeGreaterThan(r.minZ);
+      expect(z).toBeLessThan(r.maxZ);
+    }
+  });
+
+  it('bbox fetch unri memuat Gerbang Soebrantas (lat 0,46441) & tepi barat kampus (lon 101,37495)', () => {
+    const b = areaFetchBBox(AREAS.unri, proj);
+    expect(b.south).toBeLessThan(0.46434);
+    expect(b.west).toBeLessThan(101.37495);
+  });
+
+  it('skipAreas tak dikenal → galat jelas', () => {
+    expect(() => areaTiles({ ...AREAS.unri, skipAreas: ['bandara'] }, proj)).toThrow(/skipAreas/);
+  });
+
+  it('DISTRICTS: unri memakai UNRI_BOUNDARY + berkas buildings.json (M3)', () => {
+    expect(DISTRICTS.map((d) => d.id)).toEqual(['unri']);
+    expect(DISTRICTS[0].ring).toBe(UNRI_BOUNDARY);
+    expect(DISTRICTS[0].buildingsFile).toBe('public/districts/unri/buildings.json');
   });
 });

@@ -1,15 +1,21 @@
 /**
- * Fakta OSM yang mendasari keputusan konten region stadion (Plan C, I4), dibaca dari tile yang
- * di-commit (public/tiles, OSM 2026-10-16). Bila bake baru mengubah fakta ini, tes gagal dan
- * keputusan I4 harus ditinjau ulang (fakta mengalahkan gaya).
+ * Fakta OSM yang mendasari keputusan konten (dibaca dari tile yang di-commit, OSM 2026-10-16).
+ * Bila bake baru mengubah fakta ini, tes gagal dan keputusan terkait harus ditinjau ulang (fakta mengalahkan gaya).
+ * - Blok "kawasan stadion": dasar keputusan I4 (Plan C).
+ * - Blok "klip distrik UNRI": DIPERBARUI SENGAJA di M2 (2026-10-17) — citybake kini mengklip kota terhadap
+ *   UNRI_BOUNDARY (spec §6): gedung kampus, landuse/air, dan jalan di dalam distrik bukan lagi milik tile kota,
+ *   melainkan distrik (public/districts/unri). Area bake baru `unri` menambah tile tepi barat/selatan.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { pointInPolygon, polygonCentroid } from '../src/geo/polygon.js';
+import { distanceToRing, pointInPolygon, polygonCentroid } from '../src/geo/polygon.js';
+import { UNRI_BOUNDARY } from '../src/districts/unri/boundary.js';
 
 const manifest = JSON.parse(readFileSync('public/tiles/manifest.json', 'utf8'));
-const tiles = manifest.tiles.filter((t) => t.area === 'stadion')
+const load = (area) => manifest.tiles.filter((t) => t.area === area)
   .map((t) => JSON.parse(readFileSync(`public/tiles/${t.data.file}`, 'utf8')));
+const tiles = load('stadion');
+const kampusTiles = [...tiles, ...load('unri')];
 
 /** Array datar tile-lokal (0,1 m) → titik dunia. */
 const toPoints = (d, flat) => {
@@ -46,5 +52,33 @@ describe('fakta OSM kawasan stadion (dasar keputusan I4)', () => {
   it('tidak ada sungai/parit di jalur sungai handmade (x 300…360, z −300…300)', () => {
     const hit = waterways.flatMap((l) => l).some(([x, z]) => x > 300 && x < 360 && z > -300 && z < 300);
     expect(hit).toBe(false);
+  });
+});
+
+describe('fakta klip distrik UNRI (M2): kota tidak menimpa distrik', () => {
+  /** Di dalam distrik dan > 0,25 m dari tepi (toleransi kuantisasi 0,1 m tile). */
+  const strictlyInside = ([x, z]) => pointInPolygon(x, z, UNRI_BOUNDARY) && distanceToRing(x, z, UNRI_BOUNDARY) > 0.25;
+
+  it('manifest memuat area unri yang tilenya tidak beririsan dengan area stadion', () => {
+    const unri = manifest.areas.find((a) => a.id === 'unri');
+    expect(unri).toBeDefined();
+    const stadion = new Set(manifest.areas.find((a) => a.id === 'stadion').tiles);
+    expect(unri.tiles.length).toBeGreaterThan(0);
+    expect(unri.tiles.some((k) => stadion.has(k))).toBe(false);
+  });
+
+  it('tidak ada bangunan kota bercentroid di dalam distrik (Rektorat, Masjid Arfa\'unnas, GGM milik distrik)', () => {
+    const hits = kampusTiles.flatMap((d) => d.buildings.map((b) => polygonCentroid(toPoints(d, b.ring))))
+      .filter((c) => pointInPolygon(c.x, c.z, UNRI_BOUNDARY));
+    expect(hits).toEqual([]);
+  });
+
+  it('tidak ada titik jalan / air / sungai kota di dalam distrik', () => {
+    const pts = kampusTiles.flatMap((d) => [
+      ...d.roads.flatMap((r) => toPoints(d, r.pts)),
+      ...d.water.flatMap((w) => w.rings.flatMap((r) => toPoints(d, r))),
+      ...d.waterways.flatMap((w) => toPoints(d, w.pts)),
+    ]);
+    expect(pts.filter(strictlyInside)).toEqual([]);
   });
 });

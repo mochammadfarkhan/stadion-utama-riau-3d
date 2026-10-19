@@ -59,7 +59,7 @@ function resolveHair(o) {
  * Buat manusia chibi.
  * @param {{skin?:number, shirt?:number, pants?:number, hair?:string|number|null,
  *   hairColor?:number, height?:number, hat?:number|null, hijab?:number|null,
- *   apron?:number|null, vest?:number|null, badge?:number|null,
+ *   apron?:number|null, vest?:number|null, badge?:number|null, backpack?:number|null,
  *   bottom?:'shorts'|'pants'|'skirt', longSleeve?:boolean, shoes?:number,
  *   glasses?:boolean, mustache?:boolean, rng?:() => number}} opts
  * @returns {{group: THREE.Group, parts: Record<string, THREE.Object3D>, height: number}}
@@ -67,7 +67,7 @@ function resolveHair(o) {
 export function createHumanoid(opts = {}) {
   const o = {
     skin: 0xc68642, shirt: 0x3366cc, pants: 0x2b2b44, hair: undefined, hairColor: undefined,
-    height: BASE_HEIGHT, hat: null, hijab: null, apron: null, vest: null, badge: null,
+    height: BASE_HEIGHT, hat: null, hijab: null, apron: null, vest: null, badge: null, backpack: null,
     bottom: 'pants', longSleeve: false, shoes: SHOE_COLOR, glasses: false, mustache: false,
     ...opts,
   };
@@ -105,6 +105,7 @@ function buildSpine(body, parts, o) {
   if (o.vest != null) { parts.vest = mesh(GEO.vest, o.vest); spine.add(parts.vest); }
   if (o.apron != null) { parts.apron = mesh(GEO.apron, o.apron); spine.add(parts.apron); }
   if (o.badge != null) { parts.badge = mesh(GEO.badge, o.badge); spine.add(parts.badge); }
+  if (o.backpack != null) { parts.backpack = mesh(GEO.backpack, o.backpack); spine.add(parts.backpack); }
 }
 
 /** Kepala: bola kulit + wajah + rambut/penutup kepala + topi pet legacy. */

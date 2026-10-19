@@ -4,7 +4,7 @@ import { parseCli, main } from '../../tools/citybake/cli.js';
 describe('parseCli', () => {
   it('--area all → semua area; default opsi', () => {
     expect(parseCli(['--area', 'all'])).toEqual({
-      areaIds: ['stadion', 'pusat'], offline: false, useOverture: true, release: '2026-09-23.1',
+      areaIds: ['stadion', 'pusat', 'unri'], offline: false, useOverture: true, release: '2026-09-23.1',
       outDir: 'public/tiles', cacheDir: 'data-src',
     });
   });

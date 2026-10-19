@@ -146,7 +146,7 @@ function createShadowFollower(sun, initialDir) {
     sun.position.copy(dir).multiplyScalar(SUN_DISTANCE).add(sun.target.position);
   };
   const follow = (focus) => {
-    _lightSpace.set(focus.x, 0, focus.z).applyQuaternion(fromLight);
+    _lightSpace.set(focus.x, Number.isFinite(focus.y) ? focus.y : 0, focus.z).applyQuaternion(fromLight); // frustum ikut tanah
     _lightSpace.x = Math.round(_lightSpace.x / SHADOW_TEXEL) * SHADOW_TEXEL;
     _lightSpace.y = Math.round(_lightSpace.y / SHADOW_TEXEL) * SHADOW_TEXEL;
     _center.copy(_lightSpace).applyQuaternion(toLight);

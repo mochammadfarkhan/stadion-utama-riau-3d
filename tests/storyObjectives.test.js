@@ -14,6 +14,13 @@ describe('applyObjective', () => {
     expect(applyObjective(o, P0, { type: 'bought', itemId: 'kopi' }).done).toBe(false);
     expect(applyObjective(o, P0, { type: 'bought', itemId: 'es-teh' }).done).toBe(true);
   });
+  it('interact cocok target persis <region|interior>:<id> (spec §8.4)', () => {
+    const o = { type: 'interact', target: 'sekre:kipas', at: { region: 'world', x: 0, z: 0 } };
+    expect(applyObjective(o, P0, { type: 'interact', target: 'sekre:gitar' }).done).toBe(false);
+    expect(applyObjective(o, P0, { type: 'interacted', id: 'kipas', carrying: [] }).done).toBe(false);
+    expect(applyObjective(o, P0, { type: 'position', x: 0, z: 0 }).done).toBe(false);
+    expect(applyObjective(o, P0, { type: 'interact', target: 'sekre:kipas' })).toEqual({ progress: P0, done: true, effects: [] });
+  });
   it('deliver tanpa barang: toast gagal; dengan barang: selesai + consumeItem', () => {
     const o = { type: 'deliver', npcId: 'satpam', itemId: 'es-teh' };
     const no = applyObjective(o, P0, { type: 'interacted', id: 'satpam', carrying: [] });

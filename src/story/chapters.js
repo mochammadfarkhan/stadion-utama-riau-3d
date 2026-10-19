@@ -1,8 +1,9 @@
 /**
- * Cerita "Wisata Kuliner dan Budaya Riau": 5 chapter (data beku).
+ * Cerita "Wisata Kuliner dan Budaya Riau": 6 chapter (5 stadion + chapter 6 kampus dari chapters.unri.js; data beku).
  * Koordinat tujuan memakai posisi dunia yang sama dengan regions/stadion/layout.js (tugu dari SITE.tugu).
  */
 import { SITE } from '../config/constants.js';
+import { CHAPTER_KAMPUS, UNRI_STORY_NPCS } from './chapters.unri.js';
 
 const freezeDeep = (o) => {
   Object.values(o).forEach((v) => { if (v && typeof v === 'object') freezeDeep(v); });
@@ -10,14 +11,15 @@ const freezeDeep = (o) => {
 };
 
 /** NPC cerita: posisi dan nama (dipakai StoryNpcs + prompt E). */
-export const STORY_NPCS = freezeDeep([
+const BASE_NPCS = [
   { id: 'satpam', name: 'Pak Satpam', x: -16, z: SITE.gapuraZ + 8, yaw: Math.PI / 2 },
   { id: 'pelatih', name: 'Coach Dedi', x: 52, z: 12, yaw: -Math.PI / 2 },
-]);
+];
+export const STORY_NPCS = freezeDeep([...BASE_NPCS, ...UNRI_STORY_NPCS]);
 
 export const TUGU = freezeDeep({ x: SITE.tugu.x, z: SITE.tugu.z });
 
-export const CHAPTERS = freezeDeep([
+const BASE_CHAPTERS = [
   {
     id: 'selamat-datang', title: 'Selamat Datang di Pekanbaru', rank: 'Penjelajah',
     outro: ['Kamu sudah mengenal tugu Lancang Kuning, lambang semangat negeri Melayu.'],
@@ -88,4 +90,5 @@ export const CHAPTERS = freezeDeep([
       },
     ],
   },
-]);
+];
+export const CHAPTERS = freezeDeep([...BASE_CHAPTERS, CHAPTER_KAMPUS]);

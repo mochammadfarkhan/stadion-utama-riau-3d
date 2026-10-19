@@ -26,6 +26,7 @@ export default defineConfig({
         'src/sim/**', 'src/story/**', 'src/settings/**',
         'src/core/{adaptiveResolution,cameraMath,escapeRoute,gamepad,Input}.js', 'src/ui/{touchMath,toastQueue}.js',
         'src/engine/**', 'src/geo/**', 'src/shared/**', 'src/regions/Region.js', 'src/regions/stadion/mask.js',
+        'src/districts/District.js', 'src/districts/terrainChunks.js',
       ],
       reporter: ['text-summary', 'text'],
       thresholds: { lines: 90, statements: 90, functions: 90, branches: 85 },

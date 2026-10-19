@@ -65,6 +65,8 @@ export const GEO = Object.freeze({
   skirt: at(new THREE.CylinderGeometry(0.15, 0.27, 0.22, 12), 0, -0.04, 0),
   apron: at(new RoundedBoxGeometry(0.26, 0.32, 0.03, 2, 0.012), 0, 0.14, DIM.torsoD / 2 + 0.012),
   badge: at(new RoundedBoxGeometry(0.08, 0.08, 0.02, 2, 0.008), -0.08, DIM.torsoY + 0.04, DIM.torsoD / 2 + 0.01),
+  // Ransel di punggung (−Z lokal; model menghadap +Z), ikut skala body.
+  backpack: at(new RoundedBoxGeometry(0.28, 0.30, 0.13, 2, 0.05), 0, DIM.torsoY + 0.01, -(DIM.torsoD / 2 + 0.065)),
   upperArm: hanging(LIMB.upperArmR, DIM.upperArm),
   lowerArm: hanging(LIMB.lowerArmR, DIM.lowerArm + LIMB.lowerArmR),
   thigh: hanging(LIMB.thighR, DIM.thigh + LIMB.thighR * 0.5),

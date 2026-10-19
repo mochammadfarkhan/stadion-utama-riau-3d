@@ -17,6 +17,12 @@ export const EASTER_EGGS = Object.freeze([
   // jejak-2 di sumbu pedestrian antara dua danau OSM (way 419836906 & 327378220); jejak-3 di Venue Baseball OSM (way 535214902).
   egg({ id: 'jejak-2', title: 'Jejak Kedua', text: 'Jejak kedua: riak di antara dua danau utara menyebut nama "Air Molek".', hint: 'Di antara dua danau utara stadion.', at: { x: -5, z: -385, radius: 12 }, reward: { rupiah: 1000 } }),
   egg({ id: 'jejak-3', title: 'Jejak Ketiga', text: 'Jejak ketiga: anak-anak di Venue Baseball bercerita tentang kota Air Molek.', hint: 'Di Venue Baseball sisi barat daya.', at: { x: -235, z: 227, radius: 20 }, reward: { rupiah: 1000 } }),
+  // Kampus UNRI (M7). Lambang: deskripsi resmi unri.ac.id/lambang [T]; plang = [INFERENSI penempatan] (campusProps.js).
+  egg({ id: 'lambang-1-10-62', title: 'Tanggal Lahir di Lambang', text: 'Lambang UNRI: Lancang Kuning dalam segi lima. 1 daun kecil + 10 daun besar = 1 Oktober; teratai 6+2 daun = 62. UNRI lahir 1 Oktober 1962.', hint: 'Plang lambang dekat Gerbang Soebrantas menyimpan tanggal lahir kampus.', at: { region: 'world', x: -1071, z: 2080, radius: 7 }, reward: { rupiah: 3000 } }),
+  // Julukan "Kampus Biru Langit" dari warna almamater [T, riset §4/§6].
+  egg({ id: 'kampus-biru-langit', title: 'Kampus Biru Langit', text: 'Julukan "Kampus Biru Langit" datang dari warna jas almamater UNRI. Siang cerah begini, langit dan almamater sewarna!', hint: 'Bersepedalah cukup lama di dalam kampus UNRI saat siang cerah (10.00–14.00).', trigger: 'biru-langit', reward: { rupiah: 3000 } }),
+  // GGM: bentuk terinspirasi gasing, dibangun mulai 2008, lama terhenti [T, riset §2]; kondisi 2026 tidak disebut.
+  egg({ id: 'gasing-berputar', title: 'Gasing Berputar', text: 'Kamu mengitari Gedung Grand Gasing Millenium, yang bentuknya terinspirasi gasing Melayu. Pembangunannya dimulai 2008 dan lama tertunda.', hint: 'Gedung bundar dekat stadion ingin diputar seperti gasing.', trigger: 'ggm-putar', reward: { rupiah: 4000 } }),
 ]);
 
 export const EGG_IDS = Object.freeze(EASTER_EGGS.map((e) => e.id));

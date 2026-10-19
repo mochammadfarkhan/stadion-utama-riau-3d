@@ -5,6 +5,8 @@ import { defineRegion, validateBuild } from '../src/regions/Region.js';
 import { createSystemRunner } from '../src/engine/SystemRunner.js';
 import { createResourceScope } from '../src/engine/ResourceScope.js';
 import { stadionRegion } from '../src/regions/stadion/index.js';
+import { createScheduler } from '../src/engine/scheduler.js';
+import { FLAT_TERRAIN } from '../src/app/terrainService.js';
 
 const square = [[-10, -10], [10, -10], [10, 10], [-10, 10]];
 const quiet = { error() {} };
@@ -153,4 +155,89 @@ describe('mountRegion / unmount', () => {
       expect(scopes[0].size).toBe(0);
     }
   }, 60000);
+});
+
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
+/** Region minimal sah (tanpa sistem) yang memanggil `onBuild(ctx)` saat build. */
+function ctxRegion(id, onBuild = () => {}) {
+  return defineRegion({
+    id,
+    placement: { x: 100, z: -50, yaw: 0.3 },
+    mask: square,
+    build: async (ctx) => {
+      onBuild(ctx);
+      const group = new THREE.Group();
+      return validateBuild({
+        group,
+        colliders: { isWalkable: () => true, isCameraClear: () => true },
+        minimapLayer: () => {},
+        systems: [],
+        dispose: () => { group.removeFromParent(); ctx.scope.dispose(); },
+      }, id);
+    },
+  });
+}
+
+describe('mountRegion: ctx M0 (terrain, heightAtLocal, schedule)', () => {
+  it('ctx.terrain default datar; heightAtLocal mengubah titik lokal ke dunia lewat placement', async () => {
+    let seen = null;
+    await mountRegion(fakeApp(), ctxRegion('datar', (ctx) => { seen = ctx; }), { logger: quiet });
+    expect(seen.terrain).toBe(FLAT_TERRAIN);
+    expect(seen.heightAtLocal(3, 4)).toBe(0);
+    const calls = [];
+    const terrain = { ...FLAT_TERRAIN, heightAt: (x, z) => { calls.push([x, z]); return 7; } };
+    await mountRegion(fakeApp(), ctxRegion('miring', (ctx) => { seen = ctx; }), { terrain, logger: quiet });
+    expect(seen.terrain).toBe(terrain);
+    expect(seen.heightAtLocal(10, 0)).toBe(7);
+    expect(calls[0][0]).toBeCloseTo(100 + Math.cos(0.3) * 10, 9);
+    expect(calls[0][1]).toBeCloseTo(-50 - Math.sin(0.3) * 10, 9);
+  });
+
+  it('tanpa scheduler: ctx.schedule menjalankan task langsung (generator sampai habis)', async () => {
+    const log = [];
+    await mountRegion(fakeApp(), ctxRegion('langsung', (ctx) => {
+      ctx.schedule(function* kerja() { log.push(1); yield; log.push(2); });
+      log.push('build');
+    }), { logger: quiet });
+    expect(log).toEqual([1, 2, 'build']);
+  });
+
+  it('dengan scheduler: task milik "region:<id>", ready menunggu antrean habis', async () => {
+    const scheduler = createScheduler({ now: () => 0 });
+    const log = [];
+    const m = await mountRegion(fakeApp(), ctxRegion('antre', (ctx) => {
+      ctx.schedule(function* kerja() { log.push(1); yield; log.push(2); });
+    }), { scheduler, logger: quiet });
+    let ready = false;
+    m.ready.then(() => { ready = true; });
+    await tick();
+    expect(scheduler.pending('region:antre')).toBe(1);
+    expect(ready).toBe(false);
+    scheduler.update();
+    await tick();
+    expect(log).toEqual([1, 2]);
+    expect(ready).toBe(true);
+  });
+
+  it('unmount membatalkan antrean region; ready tetap selesai', async () => {
+    const scheduler = createScheduler({ now: () => 0 });
+    const log = [];
+    const m = await mountRegion(fakeApp(), ctxRegion('batal', (ctx) => { ctx.schedule(() => log.push('jalan')); }), { scheduler, logger: quiet });
+    m.unmount();
+    expect(scheduler.pending()).toBe(0);
+    scheduler.update();
+    await m.ready;
+    expect(log).toEqual([]);
+  });
+
+  it('build yang melempar membatalkan task yang sudah dijadwalkannya', async () => {
+    const scheduler = createScheduler({ now: () => 0 });
+    const def = defineRegion({
+      id: 'rusak', placement: { x: 0, z: 0, yaw: 0 }, mask: square,
+      build: async (ctx) => { ctx.schedule(() => {}); throw new Error('build rusak'); },
+    });
+    await expect(mountRegion(fakeApp(), def, { scheduler, logger: quiet })).rejects.toThrow(/build rusak/);
+    expect(scheduler.pending()).toBe(0);
+  });
 });

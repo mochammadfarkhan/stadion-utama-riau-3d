@@ -159,8 +159,8 @@ export function createWeather(scene, app, lighting, { audioBus = null, eventTarg
       const brightness = THREE.MathUtils.clamp(L.hemi.intensity / DAY_HEMI_INTENSITY, MIN_RAIN_BRIGHTNESS, 1);
       L.rainIntensity = intensity; // dibaca TimeOfDay frame berikutnya (matahari/bulan/bintang tertutup awan badai)
       applyAtmosphere(intensity);
-      rain.update(dt, intensity, app.camera, ctx.focus ?? ctx.bikePos, brightness);
-      wet.update(dt, intensity * params.wetness);
+      rain.update(dt, intensity, app.camera, ctx.focus ?? ctx.bikePos, brightness, ctx.heightAt);
+      wet.update(dt, intensity * params.wetness, ctx.terrain ?? null);
       audio.setLevel(params.soundEnabled ? intensity : 0);
     },
     /** Bongkar: listener gesture, audio (konteks milik sendiri ditutup), registry basah, grup cuaca. */

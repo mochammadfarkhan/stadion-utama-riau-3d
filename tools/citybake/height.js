@@ -31,9 +31,19 @@ export function parseHeight(value) {
   return Number.isFinite(v) && v > 0 ? v : null;
 }
 
-/** "3", "2.5", "2;3" (ambil maks) → jumlah lantai; null bila tidak valid. */
+const LEVEL_RANGE = /^\s*(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*$/;
+
+/**
+ * "3", "2.5", "2;3" (ambil maks), rentang "4-7" (ambil MINIMUM, spec §4.7/§6) → jumlah lantai;
+ * null bila tidak valid.
+ */
 export function parseLevels(value) {
   if (value === undefined || value === null) return null;
+  const range = String(value).match(LEVEL_RANGE);
+  if (range) {
+    const lo = Math.min(Number(range[1]), Number(range[2]));
+    return lo > 0 ? lo : null;
+  }
   const nums = String(value).split(/[;,]/).map((s) => Number(s.trim())).filter((v) => Number.isFinite(v) && v > 0);
   return nums.length ? Math.max(...nums) : null;
 }
