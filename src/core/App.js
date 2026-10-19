@@ -11,6 +11,8 @@ import { DepthRenderPass, OutlinePass } from './postprocessing/OutlinePass.js';
 import { createSystemRunner } from '../engine/SystemRunner.js';
 import { gateSystem } from '../engine/systemGate.js';
 import { GradingShader, tintVector } from './postprocessing/gradingShader.js';
+import { BloomLitePass, TiltShiftPass } from './postprocessing/efekLayar.js';
+import { BLOOM, TILT_SHIFT } from '../config/lowpoly.js';
 
 const MAX_DT = 0.05;
 const MAX_PIXEL_RATIO = RENDER.pixelRatio;
@@ -182,7 +184,8 @@ export class App {
 
   /**
    * Color grading gaya kartun/facet; null = mati (pass dilewati, biaya nol).
-   * @param {{saturation:number, contrast:number, strength:number, highlight:number, shadow:number}|null} g
+   * @param {{saturation:number, contrast:number, strength:number, highlight:number, shadow:number,
+   *   satKnee?:number, satCeil?:number, vignette?:number}|null} g
    */
   setGrading(g) {
     const pass = this.post.gradingPass;
@@ -192,8 +195,25 @@ export class App {
     u.saturation.value = g.saturation;
     u.contrast.value = g.contrast;
     u.strength.value = g.strength;
+    u.satKnee.value = g.satKnee ?? 1;
+    u.satCeil.value = g.satCeil ?? 1;
+    u.vignette.value = g.vignette ?? 0;
     tintVector(g.highlight, u.highlight.value);
     tintVector(g.shadow, u.shadow.value);
+  }
+
+  /** Bloom halus (hanya efektif bila grading aktif: komposit ada di pass grading). */
+  setBloom(enabled) {
+    const on = Boolean(enabled);
+    this.post.bloomPass.enabled = on;
+    this.post.gradingPass.uniforms.bloomIntensity.value = on ? BLOOM.intensity : 0;
+    return on;
+  }
+
+  /** Efek maket (tilt-shift). */
+  setTiltShift(enabled) {
+    this.post.tiltPass.enabled = Boolean(enabled);
+    return this.post.tiltPass.enabled;
   }
 
   /** Batas atas pixel ratio dari gaya grafis (Infinity = tanpa batas); pengaturan resolusi tetap dihormati di bawah batas ini. */
@@ -437,11 +457,18 @@ function createComposer(renderer, scene, camera) {
   vignettePass.uniforms.darkness.value = RENDER.vignetteDarkness;
   vignettePass.enabled = RENDER.vignette;
   composer.addPass(vignettePass);
+  const tiltPass = new TiltShiftPass(TILT_SHIFT);
+  tiltPass.enabled = false; // opsional (Efek maket)
+  composer.addPass(tiltPass);
+  const bloomPass = new BloomLitePass(BLOOM);
+  bloomPass.enabled = false; // aktif hanya pada gaya kartun/facet
+  composer.addPass(bloomPass);
   const gradingPass = new ShaderPass(GradingShader);
   gradingPass.enabled = false; // aktif hanya pada gaya kartun/facet
+  gradingPass.uniforms.tBloom.value = bloomPass.texture;
   composer.addPass(gradingPass);
   composer.addPass(new OutputPass());
-  return { composer, gtaoPass: null, scenePass, outlinePass, vignettePass, gradingPass }; // gtaoPass dibuat malas (App.setAO)
+  return { composer, gtaoPass: null, scenePass, outlinePass, vignettePass, tiltPass, bloomPass, gradingPass }; // gtaoPass dibuat malas (App.setAO)
 }
 
 /** Render target HDR composer + DepthTexture (ukuran fisik; diperbarui composer.setSize). */

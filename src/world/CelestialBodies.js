@@ -73,7 +73,7 @@ const _p = new THREE.Vector3();
 export function createCelestialBodies() {
   const group = new THREE.Group();
   group.name = 'bendaLangit';
-  if (typeof document === 'undefined') return { group, update() {} }; // Node/tes: tanpa kanvas
+  if (typeof document === 'undefined') return { group, update() {}, setAura() {} }; // Node/tes: tanpa kanvas
 
   const disc = radialTexture(0.55);
   const glow = radialTexture(0);
@@ -83,6 +83,8 @@ export function createCelestialBodies() {
   const moonDisc = makeSprite(disc, 0xeaf0ff, MOON_DISC);
   group.add(sunGlow, sunDisc, moonGlow, moonDisc);
 
+  let aura = 1; // pengali halo matahari (gaya kartun: aura keemasan lebih besar)
+
   const place = (sprites, camera, dir) => {
     _p.copy(camera.position).addScaledVector(dir, DISTANCE);
     for (const s of sprites) s.position.copy(_p);
@@ -90,13 +92,15 @@ export function createCelestialBodies() {
 
   return {
     group,
+    /** Pengali opasitas+ukuran halo matahari (1 = bawaan). */
+    setAura(k) { aura = Number.isFinite(k) && k > 0 ? k : 1; },
     update(camera, sunDir, moonDir, look, sunColor) {
       place([sunGlow, sunDisc], camera, sunDir);
       place([moonGlow, moonDisc], camera, moonDir);
       sunDisc.material.opacity = look.sunOpacity;
-      sunGlow.material.opacity = look.sunOpacity * 0.6;
+      sunGlow.material.opacity = Math.min(1, look.sunOpacity * 0.6 * aura);
       sunGlow.material.color.setHex(sunColor);
-      sunGlow.scale.setScalar(SUN_GLOW * look.glowScale);
+      sunGlow.scale.setScalar(SUN_GLOW * look.glowScale * (1 + (aura - 1) * 0.6));
       moonDisc.material.opacity = look.moonOpacity;
       moonGlow.material.opacity = look.moonOpacity * 0.45;
       const visibleSun = look.sunOpacity > 0.01;

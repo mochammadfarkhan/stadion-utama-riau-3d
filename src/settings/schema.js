@@ -67,6 +67,9 @@ export const SETTINGS_SCHEMA = Object.freeze({
           gayaGrafis: select('Gaya grafis', 'asli', ['asli', 'kartun', 'facet'], {
             labels: { asli: 'Asli', kartun: 'Kartun (halus, hemat) — L', facet: 'Facet (low-poly bersegi)' },
           }),
+          bloom: toggle('Bloom (kartun/facet)', true),
+          tiltShift: toggle('Efek maket (blur atas-bawah)', false),
+          gradingStrength: range('Kekuatan grading', 1, 0, 1, 0.05, { format: 'percent' }),
           crowdDensity: range('Kepadatan penonton', 1, 0, 1, 0.05, { format: 'percent' }),
         }),
       }),
