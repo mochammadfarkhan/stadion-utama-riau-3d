@@ -15,6 +15,9 @@ import { lambangPlangParts, LAMBANG_MODEL_PATH, LAMBANG_BOARD_Y } from '../../wo
 import { halteParts, HALTE_MODEL_PATH } from '../../world/props/unri/halteTmp.js';
 import { UNRI_BOUNDARY } from './boundary.js';
 
+/** Plang & halte hanya digambar dalam radius ini dari kamera (m); jauh dari itu terlalu kecil untuk berarti. */
+export const PROP_VISIBLE_RADIUS = 500;
+
 /** Plang lambang (dunia); muka emblem menghadap selatan (+Z) ke arah pengendara yang masuk dari gerbang. */
 export const LAMBANG_SPOT = Object.freeze({ x: -1071.0, z: 2078.0, rotY: Math.PI });
 
@@ -74,11 +77,13 @@ export function createCampusProps({ scope, terrain, logger = console }) {
   return {
     group,
     halteCount: halteSpots.length,
-    update(dt) {
+    /** @param {number} dt @param {{x:number, z:number}} [focus] titik dunia (kamera): plang jauh disembunyikan (hemat draw call) */
+    update(dt, focus = null) {
       reground -= dt;
       if (reground > 0) return;
       reground = 1;
       for (const it of items) {
+        if (focus) it.root.visible = Math.hypot(it.x - focus.x, it.z - focus.z) <= PROP_VISIBLE_RADIUS;
         it.root.position.y = terrain.heightAt(it.x, it.z);
         it.root.updateMatrix();
         it.root.updateMatrixWorld(true);

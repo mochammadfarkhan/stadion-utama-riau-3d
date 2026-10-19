@@ -96,7 +96,13 @@ async function main() {
     await step('muat halaman', () => page.goto(`http://localhost:${PORT}/`, { waitUntil: 'load', timeout: 180000 }));
     await step('tunggu __sim', () => page.waitForFunction(() => window.__sim?.app && window.__sim.city, null, { timeout: 240000 }));
     report.checks.load = await step('prepare', () => page.evaluate(PAGE.prepare));
+    // Kampus lebih dulu: siklus region kampus diukur pada keadaan permainan nyata. Uji kota di bawah memanggil
+    // `remountRegion()` (khusus dev) pada region stadion; sesudah itu hitungan tekstur renderer naik +1 per siklus region
+    // lain — kebocoran yang SUDAH ada di M6 (89a78d5, direproduksi di worktree terpisah) pada registri lampu/kolam cahaya
+    // M0–M4, bukan M7, dan tidak terjadi tanpa remount stadion (jalur pemain).
+    if (!opts['skip-campus']) await runCampus(page, step, report);
     if (!opts['only-campus']) {
+      if (!opts['skip-campus']) report.checks.reprepare = await step('prepare ulang (kembali ke titik ukur kota)', () => page.evaluate(PAGE.prepare));
       report.checks.tileCalls = await step('tileCalls', () => page.evaluate(PAGE.tileCalls));
       report.checks.parity = await step('parity', () => page.evaluate(PAGE.parity));
       report.checks.memory = await step('memoryCycle', () => page.evaluate(PAGE.memoryCycle));
@@ -105,7 +111,6 @@ async function main() {
       report.checks.tileCallsAnNur = await step('tileCallsAnNur', () => page.evaluate(PAGE.tileCalls));
       report.checks.fastTravelBack = await step('fastTravelBack', () => page.evaluate(PAGE.fastTravelBack));
     }
-    if (!opts['skip-campus']) await runCampus(page, step, report);
   } finally {
     await browser.close();
     await server.close();

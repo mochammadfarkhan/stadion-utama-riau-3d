@@ -214,17 +214,21 @@ export function createStudents({ npc, terrain, scheduler, scope, hour, camera, g
       const buckets = bucketPaths(pathsFromGround(data, { scale: groundScale }));
       const cells = new Map([...buckets].map(([cellKey, paths]) => [cellKey, { paths, spots: benchSpotsFromPaths(paths, { shoulderSpacing: SHOULDER_BENCH_SPACING }) }]));
       const spots = [...cells.values()].flatMap((c) => c.spots);
-      const benches = createDiscussionBenches(spots, terrain.heightAt);
-      benches.name = `bangkuDiskusi:${key}`;
-      group.add(benches);
+      const benches = spots.length ? createDiscussionBenches(spots, terrain.heightAt) : null; // tanpa bangku: tanpa mesh kosong
+      if (benches) {
+        benches.name = `bangkuDiskusi:${key}`;
+        group.add(benches);
+      }
       chunks.set(key, { cells, benches });
     },
     removeGroundChunk(key) {
       const c = chunks.get(key);
       if (!c) return;
       for (const cellKey of c.cells.keys()) release(cellKey);
-      c.benches.removeFromParent();
-      c.benches.dispose(); // geometri & bahan bersama milik scope distrik
+      if (c.benches) {
+        c.benches.removeFromParent();
+        c.benches.dispose(); // geometri & bahan bersama milik scope distrik
+      }
       chunks.delete(key);
     },
     /** @param {number} dt @param {{x:number, z:number}|null} focus titik dunia */

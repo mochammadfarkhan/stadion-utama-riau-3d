@@ -71,7 +71,7 @@ export function createCampusLife({
       students?.update(dt, focus);
       guards?.update(dt);
       motors.update(dt);
-      props.update(dt);
+      props.update(dt, camera?.position ?? focus);
     },
   };
 

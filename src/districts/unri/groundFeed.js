@@ -7,8 +7,8 @@
 import { tilesInRadius } from '../../geo/tiles.js';
 import { parseGroundChunk } from './groundData.js';
 
-export const FEED_LOAD_RADIUS = 650;
-export const FEED_DROP_RADIUS = 950;
+export const FEED_LOAD_RADIUS = 480;
+export const FEED_DROP_RADIUS = 650;
 
 /** fetch JSON dengan galat jelas untuk status HTTP ≥ 400. */
 export function defaultFetchJson(url) {
