@@ -1,5 +1,6 @@
 /**
  * Region hero "unri-lembaga" (spec §8.1, tonggak M4): Sekretariat Lembaga Mahasiswa (H01, handmade) + teras,
+ * gedung UKM blok biru (H09, GLB; sekre pemain ERC) + kompleks lapangan + gubuk panahan + vegetasi sekitar,
  * Stadion Mini UNRI (H02), Student Center (H03, K03 hero), detail Rusunawa & FH Panam, parkiran motor.
  * build() cepat: data murni + permukaan basah (sinkron, agar registerWet saat mount melihatnya); rakitan berat
  * lewat ctx.schedule (satu yield per langkah) ke `lateRoot`; `ready` resolve setelah antrean habis (atau
@@ -25,6 +26,10 @@ import { createStudentCenterBuilder } from './studentCenter.js';
 import { createRusunDetailBuilder } from './rusun.js';
 import { createFhDetailBuilder } from './fhMangkrak.js';
 import { createParkingBuilder, upgradeSekreMotors } from './parking.js';
+import { createUkmHeroBuilder, upgradeUkmAssets } from './sekretariatUkm.js';
+import { createKompleksBuilder } from './kompleks.js';
+import { createUkmVegetationBuilder } from './ukmVegetation.js';
+import { UKM_FRAME } from './sekreUkm.data.js';
 import { buildLembagaProxy } from './proxy.js';
 import { LEMBAGA_POVS } from './povs.js';
 
@@ -79,6 +84,7 @@ function buildLembaga(ctx) {
   const disposedSignal = new Promise((resolve) => { signalDisposed = resolve; });
   const isCancelled = () => disposed;
   const sekreY = h.local(SEKRE_FRAME.x, SEKRE_FRAME.z);
+  const ukmY = h.local(UKM_FRAME.x, UKM_FRAME.z);
   const { mats, atlas } = withScope(scope, () => lembagaMaterials());
   withScope(scope, () => group.add(createSekreSurfaces({ baseY: sekreY, mats }), createStadionMiniSurfaces({ heightAt: h.local })));
   group.add(content);
@@ -87,6 +93,9 @@ function buildLembaga(ctx) {
     () => createSekretariatBuilder({ baseY: sekreY, mats, atlas }),
     () => createTerraceBuilder({ heightAt: h.local, mats, atlas }),
     () => createParkingBuilder({ heightAt: h.local }),
+    () => createUkmHeroBuilder({ baseY: ukmY, mats }),
+    () => createKompleksBuilder({ heightAt: h.local }),
+    () => createUkmVegetationBuilder({ heightAt: h.local }),
     () => createStadionMiniBuilder({ heightAt: h.local, mats, atlas }),
     () => createStudentCenterBuilder({ heightAt: h.local, heightAtWorld: h.world, mats, atlas, scope }),
     () => createRusunDetailBuilder({ heightAt: h.local, mats, atlas }),
@@ -105,8 +114,11 @@ function buildLembaga(ctx) {
     work.then(async (placed) => {
       if (disposed) return { placed, failed: [], replaced: [], cancelled: true };
       group.userData.lembagaReady = true;
-      const glb = await upgradeSekreMotors({ root: content, scope, heightAt: h.local, isCancelled });
-      return { placed, failed: glb.failed, replaced: glb.replaced, cancelled: disposed };
+      const [glb, ukm] = await Promise.all([
+        upgradeSekreMotors({ root: content, scope, heightAt: h.local, isCancelled }),
+        upgradeUkmAssets({ root: content, scope, heightAt: h.local, isCancelled }),
+      ]);
+      return { placed, failed: [...glb.failed, ...ukm.failed], replaced: [...glb.replaced, ...ukm.replaced], cancelled: disposed };
     }),
     disposedSignal.then(() => ({ placed: 0, failed: [], replaced: [], cancelled: true })),
   ]);

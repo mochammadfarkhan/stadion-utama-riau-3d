@@ -10,10 +10,10 @@ import {
   MeshLambertMaterial, Quaternion, Vector3,
 } from 'three';
 import { currentScope } from '../../engine/ResourceScope.js';
-import { blobCluster } from '../../world/siteutil/rounded.js';
-import { createRandom } from '../../world/siteutil/rng.js';
-import { applyWind, createWindDepthMaterial } from '../../world/shaders/wind.js';
-import { VEGETATION_CELL } from '../../world/Landscape.trees.js';
+import { blobCluster } from '../siteutil/rounded.js';
+import { createRandom } from '../siteutil/rng.js';
+import { applyWind, createWindDepthMaterial } from '../shaders/wind.js';
+import { VEGETATION_CELL } from '../Landscape.trees.js';
 
 /**
  * Parameter spesies (m). Tinggi total ≈ (batang + 1,6 × tajuk.y) × skala; skala 0,85–1,3. Tinggi katalog:
@@ -24,6 +24,8 @@ export const VEG_SPECIES = Object.freeze({
   angsana: Object.freeze({ trunkH: [5.5, 7], trunkR: 0.3, crown: [5.6, 2.6, 5.6], palette: Object.freeze([0x6e9e3c, 0x79a845, 0x86b24f]) }),
   saga: Object.freeze({ trunkH: [4.25, 5], trunkR: 0.24, crown: [3.4, 2.9, 3.4], palette: Object.freeze([0x8cb85a, 0x98c266, 0x7fae4f]) }),
   sawit: Object.freeze({ trunkH: [4.5, 7], trunkR: 0.32, crownScale: 1.4, palette: Object.freeze([0x3f8f3a, 0x357f35, 0x4a9a3e]) }),
+  // Hutan kampus bergaya Street View (region UKM blok biru): batang ramping, tajuk lebar bertingkat, hijau tua.
+  hutan: Object.freeze({ trunkH: [6.5, 10], trunkR: 0.2, crown: [5.2, 4.2, 5.2], palette: Object.freeze([0x3f6b2c, 0x4a7a33, 0x38612a, 0x557f38]) }),
   semak: Object.freeze({ crown: [1.1, 0.75, 1.1], palette: Object.freeze([0x7cb342, 0x8bc34a, 0x689f38]) }),
 });
 

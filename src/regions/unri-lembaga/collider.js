@@ -2,15 +2,19 @@
  * Collider region "unri-lembaga" (region-lokal). Di dalam mask region collider komposit memakai collider
  * ini, bukan collider distrik, jadi SEMUA penghalang zona harus ada di sini: gedung (tribun, Student Center,
  * Rusunawa, FH — dua terakhir dirender distrik), blok ruang sekretariat (selasar bebas), baris motor parkir,
- * pagar, tiang PJU, pos satpam, jemuran, gundukan material. Kamera hanya terhalang gedung (benda rendah tidak).
+ * pagar, tiang PJU, pos satpam, jemuran, gundukan material, serta gedung UKM blok biru (dinding +0,15 m),
+ * tiang net/ring lapangan dan tiang gubuk panahan. Lapangan, halaman, dan jalan walkable.
+ * Kamera hanya terhalang gedung (benda rendah tidak).
  */
 import { pointInPolygon, distanceToRing, distanceToSegment } from '../../geo/polygon.js';
 import { FOOTPRINTS, toSekre } from './placement.js';
 import { SEKRE_DIM, LEMBAGA_LAYOUT } from './layout.js';
+import { UKM_LAYOUT } from './ukmLayout.js';
 
 const BIKE_PAD = 0.55;     // jarak bebas sepeda dari dinding (m)
 const CAMERA_PAD = 0.3;
 const SEGMENT_PAD = 0.3;
+const UKM_WALL_EXTRA = 0.15;  // dinding gedung UKM: footprint JSON + 0,15 m (kusen/tiang talang)
 const SOLID_BUILDINGS = Object.freeze(['tribun', 'studentCenter', 'rusunawa', 'fhPanam']);
 
 /** Kedalaman masuk ke ring + pad (0 = di luar zona terhalang). */
@@ -33,11 +37,12 @@ const segDepth = (x, z, s) => Math.max(0, s.r + SEGMENT_PAD - distanceToSegment(
 const circleDepth = (x, z, c) => Math.max(0, c.r - Math.hypot(x - c.x, z - c.z));
 
 /** Bentuk penghalang default dari footprint & layout zona. */
-export function defaultShapes(layout = LEMBAGA_LAYOUT) {
+export function defaultShapes(layout = LEMBAGA_LAYOUT, ukm = UKM_LAYOUT) {
   const rows = [...layout.lots.stadionMini.rows, ...layout.lots.rusunawa.rows];
   const sekreMotors = layout.teras.motors.map((m) => ({ x: m.x, z: m.z, r: 1.0 }));
   return {
     rings: SOLID_BUILDINGS.map((k) => FOOTPRINTS[k]),
+    walls: [{ ring: ukm.walls, extra: UKM_WALL_EXTRA }],
     segments: [...rows, ...layout.teras.fenceSegments, ...layout.fh.fences],
     circles: [
       ...sekreMotors,
@@ -47,6 +52,7 @@ export function defaultShapes(layout = LEMBAGA_LAYOUT) {
       { x: layout.rusun.guardPost.x, z: layout.rusun.guardPost.z, r: 1.7 },
       ...layout.rusun.jemuran.map((p) => ({ x: p.x, z: p.z, r: 1.1 })),
       ...layout.fh.mounds.map((m) => ({ x: m.x, z: m.z, r: m.r })),
+      ...ukm.obstacles, // tiang net, tiang ring, tiang gubuk panahan, tiang lampu & tong halaman UKM
     ],
   };
 }
@@ -56,10 +62,11 @@ export function defaultShapes(layout = LEMBAGA_LAYOUT) {
  *   circles: Array<{x:number, z:number, r:number}>}} [shapes]
  */
 export function createLembagaColliders(shapes = defaultShapes()) {
-  const { rings, segments, circles } = shapes;
+  const { rings, segments, circles, walls = [] } = shapes;
   const depthAt = (x, z) => {
     let best = sekreDepth(x, z, BIKE_PAD);
     for (const r of rings) best = Math.max(best, ringDepth(x, z, r, BIKE_PAD));
+    for (const w of walls) best = Math.max(best, ringDepth(x, z, w.ring, BIKE_PAD + w.extra));
     for (const s of segments) best = Math.max(best, segDepth(x, z, s));
     for (const c of circles) best = Math.max(best, circleDepth(x, z, c));
     return best;
@@ -68,7 +75,8 @@ export function createLembagaColliders(shapes = defaultShapes()) {
   return Object.freeze({
     isWalkable: (x, z) => finite(x, z) && depthAt(x, z) === 0,
     isCameraClear: (x, z) => finite(x, z) && sekreDepth(x, z, CAMERA_PAD) === 0
-      && rings.every((r) => ringDepth(x, z, r, CAMERA_PAD) === 0),
+      && rings.every((r) => ringDepth(x, z, r, CAMERA_PAD) === 0)
+      && walls.every((w) => ringDepth(x, z, w.ring, CAMERA_PAD + w.extra) === 0),
     penetration: (x, z) => (finite(x, z) ? depthAt(x, z) : Infinity),
   });
 }
