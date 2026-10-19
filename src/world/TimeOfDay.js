@@ -99,7 +99,7 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
   group.add(bodies.group);
   const night = createNightLights(group);
   // Override settings (lihat komentar modul); objek baru tiap perubahan (immutable).
-  let over = Object.freeze({ azimuthOffset: 0, cloudCover: L.defaults.cloudCoverage, haze: HAZE_DEFAULT, fogDistance: FOG_DEFAULT });
+  let over = Object.freeze({ elevScale: 1, azimuthOffset: 0, cloudCover: L.defaults.cloudCoverage, haze: HAZE_DEFAULT, fogDistance: FOG_DEFAULT });
   const setOverride = (patch) => {
     over = Object.freeze({ ...over, ...patch });
     lastDirHour = NaN; // paksa hitung ulang arah (azimut) pada frame berikutnya
@@ -109,7 +109,8 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
   const applyDirection = (sun) => {
     if (state.hour === lastDirHour) return;
     lastDirHour = state.hour;
-    directionFromAngles(sun.elevationDeg, sun.azimuthDeg + over.azimuthOffset, _sunDir);
+    const elev = sun.elevationDeg > 0 ? sun.elevationDeg * over.elevScale : sun.elevationDeg; // gaya kartun: matahari lebih rendah
+    directionFromAngles(elev, sun.azimuthDeg + over.azimuthOffset, _sunDir);
     // Cahaya arah beralih matahari → bulan bertahap di sekitar horizon (tanpa loncatan arah/bayangan).
     const w = sunMoonWeight(sun.elevationDeg);
     _lightDir.copy(_moonDir).lerp(_sunDir, w);
@@ -203,6 +204,10 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
     setFogLimit(m) { fogLimit = Number(m) > 0 ? Number(m) : Infinity; },
     get fogLimit() { return fogLimit; },
     get overrides() { return over; },
+    /** Pengali aura matahari (gaya kartun). */
+    setAura(k, color, strength) { bodies.setAura(k, color, strength); },
+    /** Pengali elevasi matahari siang (1 = asli); gaya kartun memakai < 1. */
+    setElevationScale(k) { setOverride({ elevScale: THREE.MathUtils.clamp(Number(k) || 1, 0.3, 1) }); },
     update(dt, ctx, bikeState) {
       state = stepDay(state, dt);
       preset = lightingPreset(state.hour);

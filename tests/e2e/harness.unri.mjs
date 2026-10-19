@@ -29,7 +29,7 @@ function loadPlaywright() {
 }
 
 /** Vite (port) + Chromium headless; kembalikan { page, errors, close() }. */
-export async function openSim({ port = 5176, gpu = 'd3d11', width = 1600, height = 900, beforeGoto = null } = {}) {
+export async function openSim({ port = Number(process.env.SIM_PORT) || 5176, gpu = 'd3d11', width = 1600, height = 900, beforeGoto = null } = {}) {
   const vite = await import(pathToFileURL(join(ROOT, 'node_modules', 'vite', 'dist', 'node', 'index.js')).href);
   const server = await vite.createServer({
     root: ROOT, configFile: join(ROOT, 'vite.config.js'), server: { port, strictPort: true, fs: { strict: false } }, logLevel: 'error',
