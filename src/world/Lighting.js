@@ -18,7 +18,6 @@ const SUN_DISTANCE = 600;
 const SHADOW_EXTENT = 200;          // setengah lebar frustum bayangan (m), mengikuti sepeda
 const SHADOW_MAP_SIZE = 2048;
 const SHADOW_DEPTH_PAD = 300;       // ±jarak sepanjang arah cahaya yang dicakup near/far
-const SHADOW_TEXEL = (SHADOW_EXTENT * 2) / SHADOW_MAP_SIZE;
 // VSM r186: radius >= 3 pada frustum +-200 m menghapus bayangan (kontras turun >50%); 1.5 = lembut tapi terbaca.
 const SHADOW_RADIUS = 1.5;
 const SHADOW_BLUR_SAMPLES = 8;
@@ -84,6 +83,15 @@ export function createLighting(scene, renderer) {
       clouds.userData.update(t, su.cloudCoverage ? su.cloudCoverage.value : CLOUD_COVERAGE, su.sunPosition.value);
       if (focus && shadowFrame) follower.follow(focus);
     },
+    /** Setengah lebar frustum bayangan (m): 200 default; mode kamera 3/4 memakai area kecil agar bayangan tajam & murah. */
+    setShadowExtent: (extent) => {
+      const c = sun.shadow.camera;
+      if (c.right === extent) return;
+      c.left = -extent; c.right = extent; c.top = extent; c.bottom = -extent;
+      c.updateProjectionMatrix();
+      sun.shadow.needsUpdate = true;
+    },
+    shadowExtentDefault: SHADOW_EXTENT,
     setSunDirection: (dir) => {
       follower.setDirection(dir);
       sky.material.uniforms.sunPosition.value.copy(dir);
@@ -146,9 +154,11 @@ function createShadowFollower(sun, initialDir) {
     sun.position.copy(dir).multiplyScalar(SUN_DISTANCE).add(sun.target.position);
   };
   const follow = (focus) => {
+    const sc = sun.shadow.camera;
+    const texel = (sc.right - sc.left) / Math.max(1, sun.shadow.mapSize.x); // ukuran texel mengikuti frustum & peta saat ini
     _lightSpace.set(focus.x, Number.isFinite(focus.y) ? focus.y : 0, focus.z).applyQuaternion(fromLight); // frustum ikut tanah
-    _lightSpace.x = Math.round(_lightSpace.x / SHADOW_TEXEL) * SHADOW_TEXEL;
-    _lightSpace.y = Math.round(_lightSpace.y / SHADOW_TEXEL) * SHADOW_TEXEL;
+    _lightSpace.x = Math.round(_lightSpace.x / texel) * texel;
+    _lightSpace.y = Math.round(_lightSpace.y / texel) * texel;
     _center.copy(_lightSpace).applyQuaternion(toLight);
     sun.target.position.copy(_center);
     sun.position.copy(dir).multiplyScalar(SUN_DISTANCE).add(_center);

@@ -5,6 +5,7 @@
  * ≤ jarak LOD0 masuk mesh LOD0, ≤ jarak LOD1 masuk mesh LOD1, sisanya disembunyikan (count 0). Variasi instans:
  * skala 0,8–1,25, rotasi acak, miring ±3°, tint ±6% (warna instans) — deterministik dari posisi (hash01).
  */
+import { styleState } from '../../engine/styleState.js';
 import * as THREE from 'three';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { currentScope, withScope } from '../../engine/ResourceScope.js';
@@ -146,18 +147,22 @@ export function createTreeLayer(list, geometries, material) {
   const stats = { lod0: 0, lod1: 0 };
   group.userData.stats = stats;
   let last = null;
+  let lastScale = 1;
   return {
     group,
     stats,
     /** Pilih LOD per instans untuk fokus region-lokal (fx, fz); abaikan bila bergeser < UPDATE_MOVE. */
     update(fx, fz) {
-      if (last && Math.hypot(fx - last[0], fz - last[1]) < UPDATE_MOVE) return;
+      const s = styleState.lod; // gaya hemat: jarak LOD dikecilkan
+      if (last && s === lastScale && Math.hypot(fx - last[0], fz - last[1]) < UPDATE_MOVE) return;
       last = [fx, fz];
+      lastScale = s;
+      const s2 = s * s;
       stats.lod0 = 0;
       stats.lod1 = 0;
       items.forEach((it, i) => {
         const d2 = (it.x - fx) ** 2 + (it.z - fz) ** 2;
-        const want = d2 <= near2[i] ? 1 : d2 <= far2[i] ? 2 : 0;
+        const want = d2 <= near2[i] * s2 ? 1 : d2 <= far2[i] * s2 ? 2 : 0;
         if (want === 1) stats.lod0 += 1;
         else if (want === 2) stats.lod1 += 1;
         if (want === state[i]) return;
@@ -167,6 +172,19 @@ export function createTreeLayer(list, geometries, material) {
         else if (want === 2) l1.batch.setVisibleAt(l1.ids[i], true);
         state[i] = want;
       });
+    },
+    /**
+     * Titik contact shadow: pohon LOD0 dalam `radius` m dari (fx, fz) (region-lokal). `emit(x, z, r)`.
+     * (Semak v14 dilewati: terlalu kecil.)
+     */
+    blobs(fx, fz, radius, emit) {
+      const r2 = radius * radius;
+      for (let i = 0; i < items.length; i += 1) {
+        if (state[i] !== 1 || items[i].sp === 'v14') continue;
+        const dx = items[i].x - fx;
+        const dz = items[i].z - fz;
+        if (dx * dx + dz * dz <= r2) emit(items[i].x, items[i].z, items[i].sp === 'v12' ? 1.4 : 2);
+      }
     },
     /** Paksa evaluasi ulang pada update berikut. */
     invalidate() { last = null; },

@@ -68,9 +68,9 @@ describe('TouchControls', () => {
     expect(ctx.input.isDown('KeyS')).toBe(false);
   });
 
-  it('tombol aksi: Bel=Space, E, Kamera=V, Jurnal=J sebagai satu ketukan', () => {
+  it('tombol aksi: Bel=Space, E, Kamera=CameraCycle, Jurnal=J sebagai satu ketukan', () => {
     ctx.ui.setVisible(true);
-    for (const [name, code] of [['bel', 'Space'], ['aksi', 'KeyE'], ['kamera', 'KeyV'], ['jurnal', 'KeyJ']]) {
+    for (const [name, code] of [['bel', 'Space'], ['aksi', 'KeyE'], ['kamera', 'CameraCycle'], ['jurnal', 'KeyJ']]) {
       ptr('pointerdown', ctx.ui.buttons[name], {});
       ptr('pointerup', ctx.ui.buttons[name], {});
       expect(ctx.input.consumePress(code)).toBe(true);

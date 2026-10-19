@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { currentScope } from '../engine/ResourceScope.js';
+import { styleState } from '../engine/styleState.js';
 
 export const LOD_NEAR = 60;  // m: di dalam jarak ini detail penuh + bayangan
 export const LOD_FAR = 320;  // m: di luar jarak ini disembunyikan
@@ -82,12 +83,13 @@ export function createHumanoidLod({ near = LOD_NEAR, far = LOD_FAR } = {}) {
 
     /** @param {THREE.Vector3} camPos */
     update(camPos) {
+      const s = styleState.lod; // gaya hemat (3/4 + kartun/facet): radius LOD lebih kecil
       for (const [group, e] of entries) {
         const m = group.matrixWorld.elements;
         const dx = m[12] - camPos.x;
         const dy = m[13] - camPos.y;
         const dz = m[14] - camPos.z;
-        const level = lodLevelFor(dx * dx + dy * dy + dz * dz, near, far);
+        const level = lodLevelFor(dx * dx + dy * dy + dz * dz, near * s, far * s);
         if (level === e.level) continue;
         e.level = level;
         e.body.visible = level === 0;

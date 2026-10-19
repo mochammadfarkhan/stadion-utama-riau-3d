@@ -2,13 +2,17 @@ import * as THREE from 'three';
 import { PovDirector } from './PovDirector.js';
 import { EXIT_KEY, POV_BY_KEY } from './cameraPresets.js';
 import {
+  ANGLED, angledOffset, clampDistance, decayYawOffset, shouldSnapAngled, stepPosition, stepYaw, wrap as wrapYaw, zoomDistance,
+} from './cameraAngled.js';
+import {
   THIRD, cameraFloor, decayLook, firstPersonDirection, pullInOffset, shouldSnap, sweepOffset, thirdPersonOffset, wrapAngle,
 } from './cameraMath.js';
 
 const FIRST_PERSON_EYE = new THREE.Vector3(0, 1.55, 0.15);
 const FOLLOW_SMOOTHING = 6;        // default; dapat diubah lewat rig.followSmoothing
 const MOUSE_SENSITIVITY = 0.0022;  // rad/piksel pada sensitivity = 1
-const CAMERA_MODES = Object.freeze(['third', 'first']);
+const CAMERA_MODES = Object.freeze(['third', 'first', 'angled']);
+const ANGLED_ZOOM_RATE = 8; // 1/s: jarak tampil mengejar jarak yang diminta
 const PITCH_LIMIT = Math.PI / 2.4;
 const FLAT = () => 0;
 
@@ -31,6 +35,16 @@ export class CameraRig {
     this.locked = false;
     this.sensitivity = 1;                    // pengali MOUSE_SENSITIVITY (settings camera.sensitivity)
     this.followSmoothing = FOLLOW_SMOOTHING; // 1/s (settings camera.followSmoothing)
+    this.userFov = camera.fov;               // FOV pengaturan; mode angled memakai ANGLED.fov
+    this.angledDistance = ANGLED.defaultDistance; // jarak kamera 3/4 (m), diminta pemain/pengaturan
+    this.angledLockYaw = false;              // true: yaw hanya berubah lewat input pemain (settings camera.angledLockYaw)
+    this._angledShown = ANGLED.defaultDistance;
+    this._angledYaw = 0;                     // yaw tampil kamera (mengejar arah sepeda dengan lag)
+    this._angledOffset = 0;                  // offset yaw manual (drag / tombol putar)
+    this._angledIdle = 0;
+    this._prevMode = null;
+    this._angledTarget = new THREE.Vector3();
+    this.lodPoint = new THREE.Vector3().copy(camera.position); // titik jarak LOD: pemain (angled) atau kamera
     this.director = new PovDirector(camera);
     this._heightAt = FLAT;                   // tanah (M1): fokus/target/lantai kamera relatif heightAt
     /** Titik fokus tampilan: posisi sepeda (mode pemain) atau titik pandang (POV). */
@@ -53,9 +67,17 @@ export class CameraRig {
       this.locked = document.pointerLockElement === this.dom;
     }, { signal });
     document.addEventListener('mousemove', (e) => {
+      // Mode 3/4: yaw hanya lewat DRAG (tombol mouse ditahan), tidak perlu pointer lock.
+      if (this.#angledActive) {
+        if (e.buttons) this.lookBy(e.movementX, 0);
+        return;
+      }
       if (this.locked) this.lookBy(e.movementX, e.movementY);
     }, { signal });
-    this.dom.addEventListener('wheel', (e) => this.director.zoomBy(e.deltaY), { signal, passive: true });
+    this.dom.addEventListener('wheel', (e) => {
+      if (this.#angledActive) this.setAngledDistance(zoomDistance(this.angledDistance, e.deltaY));
+      else this.director.zoomBy(e.deltaY);
+    }, { signal, passive: true });
   }
 
   /**
@@ -70,9 +92,28 @@ export class CameraRig {
       this.director.look(dx * k, dy * k);
       return;
     }
+    if (this.mode === 'angled') {
+      this.rotateAngled(-dx * k);
+      return;
+    }
     this._idle = 0;
     this.yawOffset = wrapAngle(this.yawOffset - dx * k);
     this.pitch = THREE.MathUtils.clamp(this.pitch + dy * k, -PITCH_LIMIT, PITCH_LIMIT);
+  }
+
+  get #angledActive() { return this.mode === 'angled' && !this.director.active; }
+
+  /** Putar yaw kamera 3/4 sebesar `delta` rad. */
+  rotateAngled(delta) {
+    if (!Number.isFinite(delta)) return;
+    this._angledYaw = wrapYaw(this._angledYaw + delta);
+    this._angledOffset = wrapYaw(this._angledOffset + delta);
+    this._angledIdle = 0;
+  }
+
+  /** Atur jarak kamera 3/4 (dijepit 10-45 m). */
+  setAngledDistance(d) {
+    this.angledDistance = clampDistance(d);
   }
 
   /** Pasang layanan terrain ({heightAt}); null = datar. Diteruskan ke PovDirector (pose POV relatif tanah). */
@@ -106,11 +147,22 @@ export class CameraRig {
     return this.mode;
   }
 
+  /** C: nyalakan/matikan mode 3/4; mematikan kembali ke mode sebelumnya (third bila belum ada). */
+  toggleAngled() {
+    if (this.mode === 'angled') this.setMode(this._prevMode && this._prevMode !== 'angled' ? this._prevMode : 'third');
+    else this.setMode('angled');
+    return this.mode;
+  }
+
   /** Set mode kamera pemain ('third' | 'first'); mode tak dikenal diabaikan. */
   setMode(mode) {
     if (!CAMERA_MODES.includes(mode) || mode === this.mode) return;
+    this._prevMode = this.mode;
     this.mode = mode;
     this.yawOffset = 0;
+    this._angledOffset = 0;
+    this._angledIdle = 0;
+    this.#applyBaseFov();
     this.pitch = mode === 'first' ? 0 : 0.12;
     this._idle = 0;
     this._snap = true;
@@ -118,6 +170,12 @@ export class CameraRig {
 
   /** FOV dasar (settings camera.fov); dipakai kamera pemain & dipulihkan setelah POV. */
   setBaseFov(fov) {
+    this.userFov = fov;
+    this.#applyBaseFov();
+  }
+
+  #applyBaseFov() {
+    const fov = this.mode === 'angled' ? ANGLED.fov : this.userFov;
     this.director.setBaseFov(fov);
     if (this.director.active) return;
     this.camera.fov = fov;
@@ -132,6 +190,7 @@ export class CameraRig {
     this._source = source;
   }
 
+  get previousMode() { return this._prevMode; }
   get povId() { return this.director.povId; }
   get povLabel() { return this.director.label; }
   /** True bila kontrol sepeda harus dibekukan (POV aktif yang tidak mengendalikan sepeda). */
@@ -185,16 +244,25 @@ export class CameraRig {
       const handled = this.director.update(dt, time, this._source, this._playerPose);
       const f = this.director.focus;
       if (this.director.active) this.focus.set(f.x, this._heightAt(f.x, f.z), f.z);
-      if (handled) return;
+      if (handled) { this.#syncLodPoint(); return; }
     }
     if (this.mode === 'first') this.#updateFirst(bike);
+    else if (this.mode === 'angled') this.#updateAngled(bike, dt);
     else this.#updateThird(bike, dt);
+    this.#syncLodPoint();
+  }
+
+  /** Jarak LOD (humanoid dll): mode 3/4 memakai POSISI PEMAIN (kamera 24 m dari pemain salah memilih LOD), selain itu kamera. */
+  #syncLodPoint() {
+    if (this.mode === 'angled' && !this.director.active) this.lodPoint.copy(this.focus);
+    else this.lodPoint.copy(this.camera.position);
   }
 
   /** Pose pemain ideal (tanpa smoothing) untuk transisi kembali dari POV. */
   #writePlayerPose(out) {
     const bike = this._bike;
     if (this.mode === 'first') this.#poseFirst(bike, this._desired, this._target);
+    else if (this.mode === 'angled') this.#poseAngled(bike, this._desired, this._target);
     else this.#poseThird(bike, this._desired, this._target);
     out.px = this._desired.x; out.py = this._desired.y; out.pz = this._desired.z;
     out.tx = this._target.x; out.ty = this._target.y; out.tz = this._target.z;
@@ -215,6 +283,40 @@ export class CameraRig {
     const safe = (this.obstacleTest && sweepOffset(outTarget, yaw, this.pitch, this.obstacleTest))
       || this.#pullIn(outTarget, thirdPersonOffset(yaw, this.pitch));
     outPos.set(outTarget.x + safe.x, outTarget.y + safe.y, outTarget.z + safe.z);
+  }
+
+  /** Pose 3/4 ideal (tanpa smoothing): titik pandang = pemain, kamera di belakang yaw tampil. Tanpa pull-in dinding. */
+  #poseAngled(bike, outPos, outTarget) {
+    outTarget.set(bike.x, this._heightAt(bike.x, bike.z) + ANGLED.lookHeight, bike.z);
+    const o = angledOffset(this._angledYaw, this.angledDistance);
+    outPos.set(outTarget.x + o.x, outTarget.y + o.y, outTarget.z + o.z);
+  }
+
+  #updateAngled(bike, dt) {
+    const goalTarget = this._target.set(bike.x, this._heightAt(bike.x, bike.z) + ANGLED.lookHeight, bike.z);
+    const cam = this.camera.position;
+    const snap = this._snap || shouldSnapAngled(
+      this._angledTarget.x - goalTarget.x, this._angledTarget.y - goalTarget.y, this._angledTarget.z - goalTarget.z,
+    );
+    this._angledIdle += dt;
+    this._angledOffset = decayYawOffset(this._angledOffset, dt, this._angledIdle);
+    const yawGoal = this.angledLockYaw ? this._angledYaw : bike.yaw + this._angledOffset;
+    if (snap) {
+      this._angledTarget.copy(goalTarget);
+      this._angledYaw = wrapYaw(yawGoal);
+      this._angledShown = this.angledDistance;
+      this._snap = false;
+    } else {
+      const t = stepPosition(this._angledTarget, goalTarget, dt);
+      this._angledTarget.set(t.x, t.y, t.z);
+      if (!this.angledLockYaw) this._angledYaw = stepYaw(this._angledYaw, yawGoal, dt);
+      this._angledShown += (this.angledDistance - this._angledShown) * (1 - Math.exp(-ANGLED_ZOOM_RATE * dt));
+    }
+    const o = angledOffset(this._angledYaw, this._angledShown);
+    const cx = this._angledTarget.x + o.x;
+    const cz = this._angledTarget.z + o.z;
+    cam.set(cx, Math.max(cameraFloor(this._heightAt(cx, cz)), this._angledTarget.y + o.y), cz);
+    this.camera.lookAt(this._angledTarget);
   }
 
   #pullIn(target, offset) {

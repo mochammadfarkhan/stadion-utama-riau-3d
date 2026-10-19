@@ -293,7 +293,7 @@ export function createInteriorPortal({
       return;
     }
     if (blocked) return;
-    if (input.consumePress('KeyV')) toast(c.rig.toggleMode() === 'third' ? 'Kamera: orang ketiga' : 'Kamera: orang pertama', true);
+    if (input.consumePress('KeyV') || input.consumePress('CameraCycle')) toast(c.rig.toggleMode() === 'third' ? 'Kamera: orang ketiga' : 'Kamera: orang pertama', true);
     if (input.consumePress('KeyE') && c.focus) interact(c, c.focus);
     // Esc yang baru menutup mode foto / panel / bantuan TIDAK ikut mengeluarkan pemain dari sekre.
     if (input.consumePress('Escape') && !wasPhoto && !wasBlocked) exit().catch((err) => logger.error('Keluar interior gagal:', err));

@@ -3,6 +3,8 @@
  * shadowQuality: 'mati' | 'rendah' | 'sedang' | 'tinggi' -> ukuran shadow map.
  */
 
+import { styleState } from '../../engine/styleState.js';
+
 export const SHADOW_MAP_SIZES = Object.freeze({ mati: 0, rendah: 1024, sedang: 2048, tinggi: 4096 });
 
 /**
@@ -29,13 +31,13 @@ export function bindGraphics(store, { app, lighting = null, crowd = null }) {
   const on = (key, fn) => unsubs.push(store.bind(key, fn));
   const sun = lighting?.userData?.sun ?? null;
 
-  on('graphics.shadowQuality', (q) => applyShadowQuality(sun, q));
+  on('graphics.shadowQuality', (q) => applyShadowQuality(sun, styleState.lod !== 1 && q !== 'mati' ? 'rendah' : q)); // gaya hemat: 1024 px
   on('graphics.pixelRatio', (v) => app.setPixelRatio?.(v));
   on('graphics.adaptiveResolution', (v) => app.setAdaptiveResolution?.(v));
-  on('graphics.ao', (v) => app.setAO?.(v));
-  on('graphics.vignette', (v) => app.setVignette?.(v));
+  on('graphics.ao', (v) => app.setAO?.(v && styleState.style === 'asli')); // kartun/facet: tanpa GTAO
+  on('graphics.vignette', (v) => app.setVignette?.(v && styleState.style === 'asli'));
   on('graphics.outline', (v) => app.setOutline?.(v));
-  on('graphics.crowdDensity', (v) => crowd?.setDensity?.(v));
+  on('graphics.crowdDensity', (v) => crowd?.setDensity?.(v * styleState.density));
 
   return () => { for (const u of unsubs) u(); };
 }

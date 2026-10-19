@@ -7,6 +7,7 @@
  * `addBuildings/removeBuildings`) selama klaster tampil; emisif malam lewat `registries` distrik (M2).
  * Nama grup berawalan `unri:` agar terhitung skrip ukur M2. Bagian murni diekspor untuk tes.
  */
+import { styleState } from '../../engine/styleState.js';
 import { Group, Mesh } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { freezeStatic } from '../../engine/freezeStatic.js';
@@ -56,6 +57,7 @@ export function groupByCluster(buildings) {
  * @returns {0|1|null}
  */
 export function desiredLod(dist, current, cfg = CLUSTER) {
+  if (styleState.lod !== 1) cfg = { ...cfg, lod0: cfg.lod0 * styleState.lod, lod1: cfg.lod1 * styleState.lod }; // gaya hemat
   if (dist <= (current === 0 ? cfg.lod0 + cfg.hysteresis : cfg.lod0)) return 0;
   return dist <= (current === null ? cfg.lod1 : cfg.lod1 + cfg.hysteresis) ? 1 : null;
 }

@@ -83,7 +83,7 @@ describe('createGamepadPoller', () => {
     const input = new Input(fakeTarget());
     const current = pad({ pressed: [0, 3, 9, 1] });
     createGamepadPoller(input, { getPads: () => [current], lookBy: () => {} }).update(0.016);
-    for (const code of ['Space', 'KeyV', 'KeyJ', 'Escape']) expect(input.consumePress(code)).toBe(true);
+    for (const code of ['Space', 'CameraCycle', 'KeyJ', 'Escape']) expect(input.consumePress(code)).toBe(true);
   });
 
   it('LB = perjalanan cepat (KeyG), tidak bentrok dengan aksi lain', () => {
@@ -91,7 +91,7 @@ describe('createGamepadPoller', () => {
     const current = pad({ pressed: [4] });
     createGamepadPoller(input, { getPads: () => [current], lookBy: () => {} }).update(0.016);
     expect(input.consumePress('KeyG')).toBe(true);
-    for (const code of ['Space', 'KeyE', 'KeyV', 'Escape', 'KeyJ', 'KeyH']) expect(input.consumePress(code)).toBe(false);
+    for (const code of ['Space', 'KeyE', 'CameraCycle', 'Escape', 'KeyJ', 'KeyH']) expect(input.consumePress(code)).toBe(false);
   });
 
   it('stick kanan memanggil lookBy proporsional dt; tanpa pad tidak melakukan apa pun', () => {
