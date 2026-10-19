@@ -29,7 +29,7 @@ const POINTS = {
   danau: { x: -778, z: 824, yaw: 0.35 }, // tepi utara Danau Buatan, menghadap ke danau
   danau2: { x: -745, z: 819, yaw: 2.3 }, // dekat batu pijakan, menghadap barat-daya sepanjang danau
   waduk: { x: -620, z: 520, yaw: 0 },
-  dermaga: { x: -795, z: 833, yaw: 0.2 },
+  dermaga: { x: -705, z: 806, yaw: -1.45 }, // taman bundaran, menghadap dermaga (ke barat)
 };
 
 const measure = async (n) => {
