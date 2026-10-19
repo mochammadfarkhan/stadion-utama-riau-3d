@@ -15,6 +15,7 @@ import * as THREE from 'three';
 import { currentScope } from '../../engine/ResourceScope.js';
 import { hasDocument } from '../../world/props/canvasText.js';
 import { createRandom } from '../../world/siteutil/rng.js';
+import { mergeAll } from '../../world/siteutil/rounded.js';
 import { drapePolygon } from '../../world/terrain/drape.js';
 import { LEMBAGA_PLACEMENT } from './placement.js';
 
@@ -103,10 +104,10 @@ function litterTexture() {
   canvas.height = 128;
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
-  ctx.fillStyle = '#5f5036';
+  ctx.fillStyle = '#7d6a48';
   ctx.fillRect(0, 0, 128, 128);
   const rnd = createRandom(2025);
-  const tones = ['#7a6342', '#4a3d2a', '#6c5a3a', '#556b3a', '#8a7048', '#3f3424'];
+  const tones = ['#9a8157', '#6a5a3c', '#8c7549', '#6f8444', '#a88b5c', '#5c4c34'];
   for (let i = 0; i < 520; i += 1) {
     ctx.fillStyle = tones[Math.floor(rnd.next() * tones.length)];
     ctx.save();
@@ -128,7 +129,7 @@ function litterMaterial() {
   return currentScope().get('ukm:serasah', () => {
     const map = litterTexture();
     const m = new THREE.MeshStandardMaterial({
-      color: map ? 0xffffff : 0x5f5036, roughness: 1, ...(map ? { map } : {}),
+      color: map ? 0xffffff : 0x7d6a48, roughness: 1, ...(map ? { map } : {}),
       polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
     });
     m.name = 'serasahHutan';
@@ -136,18 +137,17 @@ function litterMaterial() {
   });
 }
 
-/** Mesh serasah ter-drape; `heightAt` region-lokal. */
+/** Satu mesh serasah ter-drape (kotak digabung, 1 draw call); `heightAt` region-lokal. */
 function litterMeshes(heightAt) {
   const field = { heightAt: (x, z) => heightAt(x - LEMBAGA_PLACEMENT.x, z - LEMBAGA_PLACEMENT.z) };
-  const mat = litterMaterial();
-  return UKM_LITTER_BOXES.map((b) => {
+  const geos = UKM_LITTER_BOXES.map((b) => {
     const ring = [[b.minX, b.minZ], [b.maxX, b.minZ], [b.maxX, b.maxZ], [b.minX, b.maxZ]];
-    const geo = drapePolygon([ring], field, { lift: 0.02 }).translate(-LEMBAGA_PLACEMENT.x, 0, -LEMBAGA_PLACEMENT.z);
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.name = 'ukm-serasah';
-    mesh.receiveShadow = true;
-    return mesh;
+    return drapePolygon([ring], field, { lift: 0.02 }).translate(-LEMBAGA_PLACEMENT.x, 0, -LEMBAGA_PLACEMENT.z);
   });
+  const mesh = new THREE.Mesh(mergeAll(geos), litterMaterial());
+  mesh.name = 'ukm-serasah';
+  mesh.receiveShadow = true;
+  return mesh;
 }
 
 /** Builder bertahap: serasah + instans pohon per sel 200 m. `heightAt` region-lokal. */

@@ -22,6 +22,7 @@ export const UKM_GROUP = 'ukm-gedung';
 export const UKM_GLB = 'models/unri/h09-sekre-ukm.glb';
 export const RING_GLB = 'models/unri/h10-ring-basket.glb';
 const NIGHT_EMISSIVE = Object.freeze({ on: 2.6, off: 0 });
+const NIGHT_SIGN = Object.freeze({ on: 0.55, off: 0 });
 const LAMP_MATERIAL = 'unri:lampu-emisif';
 const BOARD_MATERIAL = 'unri:papan-nama';
 
@@ -55,6 +56,12 @@ export function createUkmHeroBuilder({ baseY, mats, labels = UKM_LABELS }) {
     color: 0xffffff, roughness: 0.8, ...(atlas.texture ? { map: atlas.texture } : {}),
   });
   faceMaterial.name = 'papanNamaUkm';
+  if (atlas.texture) { // papan tetap terbaca malam: emisif lemah mengikuti siklus malam (registry membaca userData)
+    faceMaterial.emissive = new THREE.Color(0xffffff);
+    faceMaterial.emissiveMap = atlas.texture;
+    faceMaterial.emissiveIntensity = NIGHT_SIGN.off;
+    faceMaterial.userData.nightEmissive = NIGHT_SIGN;
+  }
   const holderName = `${UKM_GROUP}:placeholder`;
   return staged(UKM_GROUP, [
     () => {

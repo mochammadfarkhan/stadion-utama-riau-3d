@@ -82,7 +82,7 @@ export function createKompleksBuilder({ heightAt, layout = UKM_LAYOUT }) {
     () => {
       const parts = palemParts().map((p) => ({ ...p, matrix: new THREE.Matrix4().makeScale(PALM_SCALE, PALM_SCALE, PALM_SCALE) }));
       const positions = layout.palms.map(([x, z], i) => ({ x, y: heightAt(x, z), z, rotY: (i * 2.399) % (Math.PI * 2) }));
-      return instanceParts(parts, positions, 'ukm-palem', { cellSize: 40 });
+      return instanceParts(parts, positions, 'ukm-palem', { cellSize: 0 });
     },
     () => yardMesh(layout.yard, m, heightAt),
     () => {
