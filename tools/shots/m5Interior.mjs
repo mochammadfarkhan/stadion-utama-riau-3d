@@ -37,7 +37,7 @@ const PAGE = {
     const s = window.__sim;
     s.rig.exitPov();
     s.store.set('sky.advanceTime', false);
-    await s.fastTravel('unri-lembaga');
+    await s.fastTravel('unri-sekre');
     const t0 = performance.now();
     while (!s.app.scene.getObjectByName('region:unri-lembaga')?.userData.lembagaReady && performance.now() - t0 < 90000) await new Promise((r) => setTimeout(r, 200));
     const d = s.portal.doors().find((x) => x.interiorId === 'sekre');

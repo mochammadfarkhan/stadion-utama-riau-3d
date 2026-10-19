@@ -64,7 +64,7 @@ const PAGE = {
     s.store.set('sky.hour', hour);
     s.store.set('weather.raining', rain);
     s.store.set('camera.mode', 'third');
-    await s.fastTravel('unri-lembaga');
+    await s.fastTravel('unri-sekre');
     await new Promise((r) => { const t = () => (s.app.scene.getObjectByName('region:unri-lembaga')?.userData.lembagaReady ? r() : setTimeout(t, 200)); t(); });
     s.app.systems.remove('cameraRig'); // kamera bebas
     return true;

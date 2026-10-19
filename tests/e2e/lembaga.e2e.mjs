@@ -103,7 +103,7 @@ const PAGE = {
     s.rig.exitPov();
     s.store.set('sky.advanceTime', false);
     s.store.set('camera.mode', 'third');
-    const status = await s.fastTravel('unri-lembaga');
+    const status = await s.fastTravel('unri-sekre');
     return { status, bike: { x: s.ents.bike.state.x, z: s.ents.bike.state.z } };
   },
   async view({ spot, hour, rain }) {
