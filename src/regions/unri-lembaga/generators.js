@@ -110,3 +110,79 @@ export function postRows(box, { spacing, inset = 0.25 }) {
   const count = Math.max(2, Math.round((box.maxZ - box.minZ - 2 * inset) / spacing) + 1);
   return [box.minX + inset, box.maxX - inset].flatMap((x) => rowPoints({ from: [x, box.minZ + inset], to: [x, box.maxZ - inset], count }));
 }
+
+/** Panjang total polyline 2D. */
+export function polylineLength(pts) {
+  let len = 0;
+  for (let i = 0; i < pts.length - 1; i += 1) len += Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
+  return len;
+}
+
+/**
+ * Polyline sejajar pada jarak `d` dari polyline asal: normal kanan-arah (tz, −tx) (menghadap timur bila arah ke
+ * selatan/+Z); d < 0 = sisi sebaliknya. Simpul dalam memakai garis bagi (miter, dibatasi 2,5×).
+ * @returns {Array<[number, number]>}
+ */
+export function polylineOffset(pts, d) {
+  const dir = (a, b) => {
+    const l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    return [(b[0] - a[0]) / l, (b[1] - a[1]) / l];
+  };
+  return pts.map((p, i) => {
+    const d1 = i > 0 ? dir(pts[i - 1], p) : null;
+    const d2 = i < pts.length - 1 ? dir(p, pts[i + 1]) : null;
+    const n1 = d1 ? [d1[1], -d1[0]] : null;
+    const n2 = d2 ? [d2[1], -d2[0]] : null;
+    if (!n1 || !n2) {
+      const n = n1 ?? n2;
+      return [p[0] + n[0] * d, p[1] + n[1] * d];
+    }
+    const sx = n1[0] + n2[0];
+    const sz = n1[1] + n2[1];
+    const sl = Math.hypot(sx, sz) || 1;
+    const m = [sx / sl, sz / sl];
+    const k = 1 / Math.max(m[0] * n1[0] + m[1] * n1[1], 0.4);
+    return [p[0] + m[0] * d * k, p[1] + m[1] * d * k];
+  });
+}
+
+/**
+ * Stasiun berjarak tetap sepanjang polyline: tiap `step` m dari `start` (default setengah langkah) sampai ≤ `end`
+ * (default panjang total). Tiap stasiun {x, z, tx, tz, s} (tx, tz = arah satuan polyline).
+ */
+export function polylineSteps(pts, step, { start = step / 2, end = polylineLength(pts) } = {}) {
+  const out = [];
+  let acc = 0;
+  let next = start;
+  for (let i = 0; i < pts.length - 1 && next <= end + 1e-9; i += 1) {
+    const [a, b] = [pts[i], pts[i + 1]];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (len === 0) continue;
+    while (next <= acc + len + 1e-9 && next <= end + 1e-9) {
+      const t = (next - acc) / len;
+      out.push({ x: a[0] + (b[0] - a[0]) * t, z: a[1] + (b[1] - a[1]) * t, tx: (b[0] - a[0]) / len, tz: (b[1] - a[1]) / len, s: next });
+      next += step;
+    }
+    acc += len;
+  }
+  return out;
+}
+
+/** Potong polyline ke rentang jarak [s0, s1] (titik batas diinterpolasi). */
+export function polylineSlice(pts, s0, s1) {
+  const out = [];
+  let acc = 0;
+  for (let i = 0; i < pts.length - 1; i += 1) {
+    const [a, b] = [pts[i], pts[i + 1]];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const lo = Math.max(s0, acc);
+    const hi = Math.min(s1, acc + len);
+    if (hi > lo && len > 0) {
+      const p = (s) => lerpPoint(a, b, (s - acc) / len);
+      if (out.length === 0) out.push(p(lo));
+      out.push(p(hi));
+    }
+    acc += len;
+  }
+  return out;
+}

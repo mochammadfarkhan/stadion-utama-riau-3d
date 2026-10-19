@@ -1,0 +1,495 @@
+{
+  "streetview-user": {
+    "calls": 424,
+    "triangles": 743511,
+    "eyeY": 3.17,
+    "groundY": 0.67,
+    "regionCalls": 226,
+    "regionTriangles": 308813,
+    "baruRegionCalls": 109,
+    "baruRegionTriangles": 141706,
+    "perBagian": {
+      "ukm-gedung": {
+        "calls": 50,
+        "triangles": 13844
+      },
+      "ukm-kompleks": {
+        "calls": 24,
+        "triangles": 26562
+      },
+      "ukm-vegetasi": {
+        "calls": 4,
+        "triangles": 15780
+      },
+      "ukm-jalan": {
+        "calls": 15,
+        "triangles": 7384
+      },
+      "ukm-pohon": {
+        "calls": 4,
+        "triangles": 76024
+      },
+      "ukm-ring-basket": {
+        "calls": 12,
+        "triangles": 2112
+      }
+    },
+    "pohonInstans": {
+      "lod0": 43,
+      "lod1": 183
+    },
+    "ms": 159497
+  },
+  "jalan-utara": {
+    "calls": 735,
+    "triangles": 2917825,
+    "eyeY": 2.2,
+    "groundY": 0,
+    "regionCalls": 246,
+    "regionTriangles": 320594,
+    "baruRegionCalls": 94,
+    "baruRegionTriangles": 128178,
+    "perBagian": {
+      "ukm-gedung": {
+        "calls": 34,
+        "triangles": 12906
+      },
+      "ukm-kompleks": {
+        "calls": 25,
+        "triangles": 26564
+      },
+      "ukm-vegetasi": {
+        "calls": 4,
+        "triangles": 15780
+      },
+      "ukm-jalan": {
+        "calls": 15,
+        "triangles": 7384
+      },
+      "ukm-pohon": {
+        "calls": 4,
+        "triangles": 63432
+      },
+      "ukm-ring-basket": {
+        "calls": 12,
+        "triangles": 2112
+      }
+    },
+    "pohonInstans": {
+      "lod0": 47,
+      "lod1": 176
+    },
+    "ms": 5444
+  },
+  "jalan-selatan": {
+    "calls": 423,
+    "triangles": 794682,
+    "eyeY": 3.12,
+    "groundY": 0.92,
+    "regionCalls": 240,
+    "regionTriangles": 371039,
+    "baruRegionCalls": 88,
+    "baruRegionTriangles": 110090,
+    "perBagian": {
+      "ukm-gedung": {
+        "calls": 46,
+        "triangles": 13816
+      },
+      "ukm-kompleks": {
+        "calls": 13,
+        "triangles": 13282
+      },
+      "ukm-vegetasi": {
+        "calls": 4,
+        "triangles": 15780
+      },
+      "ukm-jalan": {
+        "calls": 15,
+        "triangles": 7384
+      },
+      "ukm-pohon": {
+        "calls": 4,
+        "triangles": 58772
+      },
+      "ukm-ring-basket": {
+        "calls": 6,
+        "triangles": 1056
+      }
+    },
+    "pohonInstans": {
+      "lod0": 34,
+      "lod1": 186
+    },
+    "ms": 5320
+  },
+  "d5-mata": {
+    "calls": 310,
+    "triangles": 640953,
+    "eyeY": 1.7,
+    "groundY": 0,
+    "regionCalls": 167,
+    "regionTriangles": 251347,
+    "baruRegionCalls": 82,
+    "baruRegionTriangles": 120536,
+    "perBagian": {
+      "ukm-gedung": {
+        "calls": 42,
+        "triangles": 13598
+      },
+      "ukm-kompleks": {
+        "calls": 13,
+        "triangles": 13282
+      },
+      "ukm-vegetasi": {
+        "calls": 4,
+        "triangles": 15780
+      },
+      "ukm-jalan": {
+        "calls": 13,
+        "triangles": 5916
+      },
+      "ukm-pohon": {
+        "calls": 4,
+        "triangles": 70904
+      },
+      "ukm-ring-basket": {
+        "calls": 6,
+        "triangles": 1056
+      }
+    },
+    "pohonInstans": {
+      "lod0": 46,
+      "lod1": 180
+    },
+    "ms": 5109
+  },
+  "hutan-timur": {
+    "calls": 545,
+    "triangles": 1114861,
+    "eyeY": 1.8,
+    "groundY": 0,
+    "regionCalls": 270,
+    "regionTriangles": 421796,
+    "baruRegionCalls": 109,
+    "baruRegionTriangles": 161854,
+    "perBagian": {
+      "ukm-gedung": {
+        "calls": 50,
+        "triangles": 13844
+      },
+      "ukm-kompleks": {
+        "calls": 24,
+        "triangles": 26562
+      },
+      "ukm-vegetasi": {
+        "calls": 4,
+        "triangles": 15780
+      },
+      "ukm-jalan": {
+        "calls": 15,
+        "triangles": 7384
+      },
+      "ukm-pohon": {
+        "calls": 4,
+        "triangles": 96172
+      },
+      "ukm-ring-basket": {
+        "calls": 12,
+        "triangles": 2112
+      }
+    },
+    "pohonInstans": {
+      "lod0": 118,
+      "lod1": 108
+    },
+    "ms": 5176
+  },
+  "atas-area": {
+    "calls": 327,
+    "triangles": 789636,
+    "eyeY": 62,
+    "groundY": 0,
+    "regionCalls": 199,
+    "regionTriangles": 280998,
+    "baruRegionCalls": 110,
+    "baruRegionTriangles": 143788,
+    "perBagian": {
+      "ukm-gedung": {
+        "calls": 50,
+        "triangles": 13844
+      },
+      "ukm-kompleks": {
+        "calls": 25,
+        "triangles": 26564
+      },
+      "ukm-vegetasi": {
+        "calls": 4,
+        "triangles": 15780
+      },
+      "ukm-jalan": {
+        "calls": 15,
+        "triangles": 7384
+      },
+      "ukm-pohon": {
+        "calls": 4,
+        "triangles": 78104
+      },
+      "ukm-ring-basket": {
+        "calls": 12,
+        "triangles": 2112
+      }
+    },
+    "pohonInstans": {
+      "lod0": 40,
+      "lod1": 175
+    },
+    "ms": 37358
+  },
+  "atas-jalan": {
+    "calls": 378,
+    "triangles": 918432,
+    "eyeY": 28,
+    "groundY": 0,
+    "regionCalls": 189,
+    "regionTriangles": 274936,
+    "baruRegionCalls": 82,
+    "baruRegionTriangles": 124966,
+    "perBagian": {
+      "ukm-gedung": {
+        "calls": 30,
+        "triangles": 12366
+      },
+      "ukm-kompleks": {
+        "calls": 23,
+        "triangles": 26560
+      },
+      "ukm-vegetasi": {
+        "calls": 4,
+        "triangles": 15780
+      },
+      "ukm-jalan": {
+        "calls": 15,
+        "triangles": 7384
+      },
+      "ukm-pohon": {
+        "calls": 4,
+        "triangles": 61820
+      },
+      "ukm-ring-basket": {
+        "calls": 6,
+        "triangles": 1056
+      }
+    },
+    "pohonInstans": {
+      "lod0": 49,
+      "lod1": 177
+    },
+    "ms": 8417
+  },
+  "malam-streetview": {
+    "calls": 436,
+    "triangles": 880828,
+    "eyeY": 3.17,
+    "groundY": 0.67,
+    "regionCalls": 226,
+    "regionTriangles": 308813,
+    "baruRegionCalls": 109,
+    "baruRegionTriangles": 141706,
+    "perBagian": {
+      "ukm-gedung": {
+        "calls": 50,
+        "triangles": 13844
+      },
+      "ukm-kompleks": {
+        "calls": 24,
+        "triangles": 26562
+      },
+      "ukm-vegetasi": {
+        "calls": 4,
+        "triangles": 15780
+      },
+      "ukm-jalan": {
+        "calls": 15,
+        "triangles": 7384
+      },
+      "ukm-pohon": {
+        "calls": 4,
+        "triangles": 76024
+      },
+      "ukm-ring-basket": {
+        "calls": 12,
+        "triangles": 2112
+      }
+    },
+    "pohonInstans": {
+      "lod0": 43,
+      "lod1": 183
+    },
+    "ms": 8433
+  },
+  "malam-jalan": {
+    "calls": 753,
+    "triangles": 3019849,
+    "eyeY": 2.2,
+    "groundY": 0,
+    "regionCalls": 248,
+    "regionTriangles": 321494,
+    "baruRegionCalls": 94,
+    "baruRegionTriangles": 128178,
+    "perBagian": {
+      "ukm-gedung": {
+        "calls": 34,
+        "triangles": 12906
+      },
+      "ukm-kompleks": {
+        "calls": 25,
+        "triangles": 26564
+      },
+      "ukm-vegetasi": {
+        "calls": 4,
+        "triangles": 15780
+      },
+      "ukm-jalan": {
+        "calls": 15,
+        "triangles": 7384
+      },
+      "ukm-pohon": {
+        "calls": 4,
+        "triangles": 63432
+      },
+      "ukm-ring-basket": {
+        "calls": 12,
+        "triangles": 2112
+      }
+    },
+    "pohonInstans": {
+      "lod0": 47,
+      "lod1": 176
+    },
+    "ms": 7056
+  },
+  "malam-d5": {
+    "calls": 406,
+    "triangles": 913972,
+    "eyeY": 1.7,
+    "groundY": 0,
+    "regionCalls": 214,
+    "regionTriangles": 317859,
+    "baruRegionCalls": 87,
+    "baruRegionTriangles": 139216,
+    "perBagian": {
+      "ukm-gedung": {
+        "calls": 40,
+        "triangles": 13584
+      },
+      "ukm-kompleks": {
+        "calls": 20,
+        "triangles": 26376
+      },
+      "ukm-vegetasi": {
+        "calls": 4,
+        "triangles": 15780
+      },
+      "ukm-jalan": {
+        "calls": 13,
+        "triangles": 5916
+      },
+      "ukm-pohon": {
+        "calls": 4,
+        "triangles": 76504
+      },
+      "ukm-ring-basket": {
+        "calls": 6,
+        "triangles": 1056
+      }
+    },
+    "pohonInstans": {
+      "lod0": 55,
+      "lod1": 171
+    },
+    "ms": 7210
+  },
+  "hujan-halaman": {
+    "calls": 314,
+    "triangles": 760196,
+    "eyeY": 1.7,
+    "groundY": 0,
+    "regionCalls": 177,
+    "regionTriangles": 256471,
+    "baruRegionCalls": 89,
+    "baruRegionTriangles": 114396,
+    "perBagian": {
+      "ukm-gedung": {
+        "calls": 48,
+        "triangles": 13830
+      },
+      "ukm-kompleks": {
+        "calls": 13,
+        "triangles": 13282
+      },
+      "ukm-vegetasi": {
+        "calls": 4,
+        "triangles": 15780
+      },
+      "ukm-jalan": {
+        "calls": 14,
+        "triangles": 7352
+      },
+      "ukm-pohon": {
+        "calls": 4,
+        "triangles": 63096
+      },
+      "ukm-ring-basket": {
+        "calls": 6,
+        "triangles": 1056
+      }
+    },
+    "pohonInstans": {
+      "lod0": 47,
+      "lod1": 179
+    },
+    "ms": 7327
+  },
+  "lapangan-basket-mata": {
+    "calls": 671,
+    "triangles": 2931294,
+    "eyeY": 1.86,
+    "groundY": 0.16,
+    "regionCalls": 204,
+    "regionTriangles": 266682,
+    "baruRegionCalls": 73,
+    "baruRegionTriangles": 93172,
+    "perBagian": {
+      "ukm-gedung": {
+        "calls": 25,
+        "triangles": 6922
+      },
+      "ukm-kompleks": {
+        "calls": 21,
+        "triangles": 26378
+      },
+      "ukm-vegetasi": {
+        "calls": 4,
+        "triangles": 15780
+      },
+      "ukm-jalan": {
+        "calls": 8,
+        "triangles": 3692
+      },
+      "ukm-pohon": {
+        "calls": 3,
+        "triangles": 38288
+      },
+      "ukm-ring-basket": {
+        "calls": 12,
+        "triangles": 2112
+      }
+    },
+    "pohonInstans": {
+      "lod0": 22,
+      "lod1": 202
+    },
+    "ms": 7372
+  },
+  "errors": []
+}
