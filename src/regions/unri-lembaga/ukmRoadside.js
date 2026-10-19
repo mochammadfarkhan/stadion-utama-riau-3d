@@ -6,7 +6,10 @@
  */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { currentScope } from '../../engine/ResourceScope.js';
+import { currentScope, withScope } from '../../engine/ResourceScope.js';
+import { applyStyleSwap } from '../../engine/pbrSwap.js';
+import { styleState } from '../../engine/styleState.js';
+import { pbrSurfaceMaterial } from '../../world/textures/pbrMaterials.js';
 import { createLampPosts, LAMP_POST } from '../../world/props/LampPost.js';
 import { hasDocument } from '../../world/props/canvasText.js';
 import { createRandom } from '../../world/siteutil/rng.js';
@@ -122,13 +125,31 @@ function roadsideKit() {
     name: offsetMat(std({ color: 0xffffff, transparent: true, depthWrite: false, ...(name ? { map: name } : {}) }), -6),
     wire: new THREE.LineBasicMaterial({ color: 0x23262a }),
   };
+  if (road) road.repeat.set(1 / ROAD_SPEC.width, 1 / ROAD_SPEC.jointLength); // UV pita = meter (lebar × panjang)
+  const scope = currentScope();
+  kit.pbrCache = new Map();
+  /** Jalan beton PBR (Concrete034, UV meter) untuk kartun/facet; dibuat malas per kualitas di scope region. */
+  kit.pbrRoad = (quality) => {
+    let m = kit.pbrCache.get(quality);
+    if (!m) {
+      m = offsetMat(withScope(scope, () => pbrSurfaceMaterial('concrete', { quality, color: 0xb0aca0 })), -4);
+      m.name = 'jalanBetonUkmPbr';
+      kit.pbrCache.set(quality, m);
+    }
+    return m;
+  };
   kit.road.name = 'jalanBetonUkm';
   kit.ditch.name = 'paritBetonUkm';
   kit.name.name = 'markaNamaJalanUkm';
   return kit;
 }
 
-const kitOf = () => currentScope().get('ukm:roadside', roadsideKit);
+function disposeKit(kit) {
+  for (const r of new Set(Object.values(kit).filter((v) => v?.isMaterial || v?.isTexture || v?.isBufferGeometry))) r.dispose();
+  for (const m of kit.pbrCache.values()) m.dispose(); // tekstur PBR milik scope
+}
+
+const kitOf = () => currentScope().get('ukm:roadside', roadsideKit, { dispose: disposeKit });
 
 const mesh = (geo, mat, name, { cast = false } = {}) => {
   const m = new THREE.Mesh(geo, mat);
@@ -140,7 +161,13 @@ const mesh = (geo, mat, name, { cast = false } = {}) => {
 
 function roadSurfaceMesh(heightAt, kit) {
   const geos = ROAD_SURFACES.map((line) => ribbonGeometry(line, { width: ROAD_SPEC.width, heightAt, lift: 0.06, step: 2, cols: 2, vScale: 1 / ROAD_SPEC.jointLength }));
-  return mesh(mergeGeometries(geos, false), kit.road, 'jalan-beton');
+  const geo = mergeGeometries(geos, false);
+  const uv = geo.getAttribute('uv'); // u 0..1 = lebar jalan, v 1 = jarak sambungan -> UV meter
+  for (let i = 0; i < uv.count; i += 1) uv.setXY(i, uv.getX(i) * ROAD_SPEC.width, uv.getY(i) * ROAD_SPEC.jointLength);
+  const m = mesh(geo, kit.road, 'jalan-beton');
+  m.userData.pbrSwap = { asli: kit.road, pbr: kit.pbrRoad };
+  applyStyleSwap(m, styleState.style, styleState.terrainQuality);
+  return m;
 }
 
 function roadNameMesh(heightAt, kit) {

@@ -142,6 +142,9 @@ Model GLB dihasilkan dari Blender lewat `assets-src/blender/export_glb.py` (alur
 ## Kredit
 Pola UI panel pengaturan diadaptasi dari [dgreenheck/tidewater](https://github.com/dgreenheck/tidewater) (lisensi MIT).
 
+## Tekstur PBR (gaya Kartun / Facet)
+Tanah, jalan beton/aspal, paving, dan lantai hutan sekre memakai tekstur PBR nyata dari [ambientCG](https://ambientcg.com) (lisensi **CC0 1.0**, daftar ID di `public/textures/ATTRIBUTION.txt`) hanya pada gaya Kartun/Facet; gaya Asli tetap tekstur prosedural. Alur: `npm run download:tex` (unduh paket 1K-JPG ke `data-src/textures/`, tidak di-commit) lalu `npm run bake:tex` (WebP 512/256 px, 1024 untuk plester/seng/kayu/kulit pohon, ORM dipak R=AO G=Roughness, `manifest.json`). Tanah memakai shader splat 5 lapisan (`src/world/terrain/terrainSplat.js`) dengan tiga tingkat kualitas (pengaturan Grafik > Kualitas tekstur tanah: otomatis/tinggi/sedang/rendah). Galeri dev: `/tekstur-gallery.html` (atau `/?tekstur`).
+
 ## Data peta & atribusi
 Jalan, bangunan, air, dan tata guna lahan kota berasal dari © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors dan Overture Maps Foundation, di-bake offline oleh `tools/citybake` (`npm run bake -- --area stadion|pusat|all`; cache data mentah di `data-src/`, tidak di-commit). Data turunan di `public/tiles/` (`*.glb`, `*.data.json`) berlisensi **ODbL 1.0**; rincian sumber, waktu data, dan rilis Overture ada di `public/tiles/ATTRIBUTION.txt`. Atribusi juga tampil di pojok kiri bawah layar selama peta kota aktif.
 

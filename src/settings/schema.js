@@ -67,6 +67,12 @@ export const SETTINGS_SCHEMA = Object.freeze({
           gayaGrafis: select('Gaya grafis', 'asli', ['asli', 'kartun', 'facet'], {
             labels: { asli: 'Asli', kartun: 'Kartun (halus, hemat) — L', facet: 'Facet (low-poly bersegi)' },
           }),
+          tanahPbr: select('Kualitas tekstur tanah (kartun)', 'auto', ['auto', 'tinggi', 'sedang', 'rendah'], {
+            labels: { auto: 'Otomatis (ikut resolusi)', tinggi: 'Tinggi (5 lapisan + normal)', sedang: 'Sedang (3 lapisan + normal)', rendah: 'Rendah (albedo saja)' },
+          }),
+          bloom: toggle('Bloom (kartun/facet)', true),
+          tiltShift: toggle('Efek maket (blur atas-bawah)', false),
+          gradingStrength: range('Kekuatan grading', 1, 0, 1, 0.05, { format: 'percent' }),
           crowdDensity: range('Kepadatan penonton', 1, 0, 1, 0.05, { format: 'percent' }),
         }),
       }),

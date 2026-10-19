@@ -14,6 +14,8 @@
     "coverage": "vitest run --coverage",
     "bake": "node tools/citybake",
     "bake:campus": "node tools/campusbake",
+    "bake:tex": "node tools/texbake",
+    "download:tex": "node tools/texbake/download.mjs",
     "e2e": "node tests/e2e/smoke.e2e.mjs"
   },
   "dependencies": {
@@ -33,6 +35,7 @@
     "jsdom": "^30.1.2",
     "meshoptimizer": "^1.3.0",
     "polygon-clipping": "^0.15.7",
+    "sharp": "^0.35.5",
     "vite": "^8.3.4",
     "vitest": "^5.0.4"
   },

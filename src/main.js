@@ -81,6 +81,10 @@ function showFatal(msg) {
 }
 
 async function main() {
+  if (import.meta.env.DEV && parseFlagParam(window.location.search, 'tekstur')) { // galeri tekstur PBR (dev)
+    window.location.replace(`${import.meta.env.BASE_URL}tekstur-gallery.html`);
+    return;
+  }
   if (!hasWebGL()) return showFatal('Browser ini tidak mendukung WebGL. Coba Chrome/Edge terbaru.');
   const loading = createLoadingScreen();
   await loading.step(0.05, 'Menyiapkan mesin grafis…');

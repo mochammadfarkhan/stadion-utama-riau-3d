@@ -1,0 +1,17 @@
+Tekstur PBR dalam folder ini berasal dari ambientCG (https://ambientcg.com), lisensi CC0 1.0 (domain publik, tanpa kewajiban atribusi;
+dicatat di sini sebagai itikad baik). Lisensi: https://docs.ambientcg.com/license/
+Diubah ukuran ke 1024/512/256 px, dikonversi WebP, peta AO+Roughness dipak ke kanal R+G ("orm"). Tidak ada perubahan isi gambar lain.
+
+grass      Grass004             https://ambientcg.com/view?id=Grass004  (rumput, tile 1.4 m)
+soilMoist  Ground048            https://ambientcg.com/view?id=Ground048  (tanah-lembap, tile 1.4 m)
+soilDry    Ground054            https://ambientcg.com/view?id=Ground054  (tanah-kering, tile 3.5 m)
+gravel     Gravel023            https://ambientcg.com/view?id=Gravel023  (kerikil, tile 1.5 m)
+moss       Moss002              https://ambientcg.com/view?id=Moss002  (lumut, tile 1.5 m)
+plaster    Plaster001           https://ambientcg.com/view?id=Plaster001  (plester, tile 2 m)
+concrete   Concrete034          https://ambientcg.com/view?id=Concrete034  (beton, tile 2.2 m)
+paving     PavingStones070      https://ambientcg.com/view?id=PavingStones070  (paving, tile 1.15 m)
+asphalt    Asphalt031           https://ambientcg.com/view?id=Asphalt031  (aspal, tile 2.5 m)
+roofSteel  CorrugatedSteel005   https://ambientcg.com/view?id=CorrugatedSteel005  (atap-seng, tile 1.2 m)
+wood       Planks021            https://ambientcg.com/view?id=Planks021  (kayu, tile 1.4 m)
+tile       Tiles074             https://ambientcg.com/view?id=Tiles074  (ubin, tile 2.1 m)
+bark       Bark001              https://ambientcg.com/view?id=Bark001  (kulit-pohon, tile 1 m)
