@@ -99,8 +99,10 @@ export const LAYOUT = Object.freeze({
   bangku: BANGKU,
   /** P06 tiang bendera Merah Putih di tengah pulau taman parkir, pada sumbu Rektorat. */
   tiangBendera: Object.freeze({ x: 52.8, z: 0, tinggi: 12 }),
-  /** Tiang kanopi merah N03 (4 sudut tonjolan depan OSM). */
+  /** Tiang kanopi biru N03 (4 sudut tonjolan depan OSM). */
   kanopiTiang: freezeAll([{ x: 17.9, z: -3.7 }, { x: 17.9, z: 3.7 }, { x: 25.6, z: -3.7 }, { x: 25.6, z: 3.7 }]),
+  /** Lampu taman hitam berlentera ganda di tepi plaza depan [T Street View 2025; posisi INFERENSI]. */
+  lampuTaman: freezeAll([{ x: 23.4, z: -9.2 }, { x: 23.4, z: 9.2 }, { x: 19.6, z: -9.2 }, { x: 19.6, z: 9.2 }, { x: 15.4, z: -9.2 }, { x: 15.4, z: 9.2 }]),
   /** Teras lobi 0,9 m + 4 anak tangga (tidak dapat dilalui sepeda). */
   teras: Object.freeze({ x0: 17.1, x1: 22.4, z0: -6.5, z1: 6.5 }),
   /** Papan nama gedung granit hitam di taman depan (N05 gaya; INFERENSI posisi). */

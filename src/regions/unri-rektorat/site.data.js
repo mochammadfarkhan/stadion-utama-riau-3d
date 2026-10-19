@@ -104,7 +104,7 @@ export const ROADS = Object.freeze([
 /**
  * Massa Rektorat (turunan, bukan OSM mentah). slab = massa utama; tengah = blok tengah berkaca biru
  * (OSM x 12,1→17,1, z −7,5…10,2; disimetriskan ke ±8,8, geser 1,3 m < presisi tracing); kanopi =
- * tonjolan depan 8,6 × 8,3 (kanopi merah N03 di atas jalur drop-off).
+ * tonjolan depan 8,6 × 8,3 (kanopi biru + selembayung N03 di atas jalur drop-off).
  */
 export const REKTORAT_MASSA = Object.freeze({
   slab: Object.freeze({ x0: -11.7, x1: 11.7, z0: -32.3, z1: 32.2 }),

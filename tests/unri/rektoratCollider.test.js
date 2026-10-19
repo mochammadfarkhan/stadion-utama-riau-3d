@@ -23,6 +23,7 @@ describe('collider unri-rektorat (region-lokal)', () => {
     ['Danau Buatan', 230, 30],
     ['tiang kanopi', 25.6, 3.7],
     ['tiang bendera', 52.8, 0],
+    ['lampu taman depan', 23.4, 9.2],
     ['papan batu N01', 285.5, 10],
     ['NaN', Number.NaN, 0],
   ])('%s tidak dapat dilalui', (_n, x, z) => expect(isWalkable(x, z)).toBe(false));
@@ -39,6 +40,6 @@ describe('collider unri-rektorat (region-lokal)', () => {
   it('pabrik deterministik: dua instans sepakat', () => {
     const a = createRektoratColliders();
     expect(a.isWalkable(150, 4.2)).toBe(rektoratColliders.isWalkable(150, 4.2));
-    expect(a.posts).toHaveLength(5);
+    expect(a.posts).toHaveLength(11); // 4 tiang kanopi + 1 bendera + 6 lampu taman
   });
 });

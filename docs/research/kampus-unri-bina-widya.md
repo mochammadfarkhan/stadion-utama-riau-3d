@@ -312,3 +312,5 @@ Sumber: tangkapan layar yang dikirim pengguna (Google Maps, "Kampus Universitas 
 Yakin: S (hanya satu foto kecil; jumlah pilon, panjang, tinggi, titik koordinat tidak diketahui).
 
 Gap yang masih terbuka: tampak samping/atas jembatan (jumlah lengkung, bentang), koordinat, serta tampak Stadion Mini. Perlu tangkapan layar Street View tambahan dari pengguna.
+
+**Status implementasi §8b (Rektorat):** kanopi biru + lisplang "REKTORAT", selembayung emas + atap pelana biru, tiang bulat biru-abu, kerb kuning-hitam, pagar tanaman berbunga, 6 lampu taman berlentera (menyala malam, ber-collider) sudah masuk `src/regions/unri-rektorat/rektorat.js` (placeholder N03). GLB merah lama `n03-kanopi-merah-rektorat.glb` tidak lagi dipasang. Bukti: `docs/screenshots/unri/m8-rektorat-kanopi.jpg`, `m8-rektorat-depan-fasad.jpg` (SwiftShader, jam 12). Belum: ramp berpegangan besi, mobil golf, selembayung kecil di sisi fasad, warna kolom sayap biru-abu.

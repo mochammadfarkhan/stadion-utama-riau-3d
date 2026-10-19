@@ -3,8 +3,9 @@
  * Material region unri-rektorat, ber-cache di ResourceScope aktif (kunci 'unri-rektorat:<nama>') dan
  * dilepas bersama teksturnya. Material bercahaya malam memakai userData.nightEmissive {on, off}
  * (TimeOfDay.lights); overlay permukaan (paving, rumput, trotoar) memakai polygonOffset agar menang atas
- * ground distrik tanpa z-fighting. Warna [T] dari foto: dinding putih, kaca biru, parapet gelap, kanopi
- * merah; lainnya [INFERENSI].
+ * ground distrik tanpa z-fighting. Warna [T]: dinding putih, kaca biru, parapet gelap (foto 2016); kanopi
+ * pintu masuk biru, tiang bulat biru-abu, selembayung emas, kerb kuning-hitam, tiang lampu taman hitam
+ * (Street View Jan 2025, docs/research §8b); lainnya [INFERENSI].
  */
 import * as THREE from 'three';
 import { currentScope } from '../../engine/ResourceScope.js';
@@ -15,9 +16,10 @@ import { disposeMaterialDeep } from '../../world/kit/hero/heroFrame.js';
 
 export const WARNA = Object.freeze({
   dinding: 0xf3f1ec, parapet: 0x3d4148, kacaPita: 0x1d3148, kacaBiru: 0x3b78b8, granit: 0x8f8c86,
-  tangga: 0xdcd8cf, atap: 0x9c9e9d, merah: 0xb3282d, plafon: 0xf6f2e8, mesin: 0x878a8d, tandon: 0xd9d6cc,
+  tangga: 0xdcd8cf, atap: 0x9c9e9d, biru: 0x2b5ea7, biruTiang: 0xa9bdd6, plafon: 0xf6f2e8, mesin: 0x878a8d, tandon: 0xd9d6cc,
   perpusDinding: 0xe8dfcc, atapSeng: 0x7d8a96, batu: 0x857b70, beton: 0xb9b6ae, lobi: 0x24303c,
-  emas: 0xd4a017, malam: 0xffd9a0,
+  emas: 0xd4a017, emasGelap: 0x6b4a14, malam: 0xffd9a0,
+  kerbKuning: 0xe0b81a, kerbHitam: 0x1e2024, tiangLampu: 0x1b1d20, lentera: 0xf1e3b8, semak: 0x3f7a3c, bunga: 0xc2476b,
 });
 /** Lebar bay pita jendela (m) — juga satuan sel peta lampu malam (16 sel per tekstur). */
 export const BAY = 1.8;
@@ -68,11 +70,19 @@ export const MATS = Object.freeze({
   atap: () => lambert('atap', WARNA.atap),
   mesin: () => lambert('mesin', WARNA.mesin),
   tandon: () => lambert('tandon', WARNA.tandon),
-  merah: () => lambert('merah', WARNA.merah, { side: THREE.DoubleSide }),
+  biru: () => lambert('biru', WARNA.biru, { side: THREE.DoubleSide }),
+  biruTiang: () => lambert('biruTiang', WARNA.biruTiang),
+  kerbKuning: () => lambert('kerbKuning', WARNA.kerbKuning),
+  kerbHitam: () => lambert('kerbHitam', WARNA.kerbHitam),
+  tiangLampu: () => lambert('tiangLampu', WARNA.tiangLampu),
+  semak: () => lambert('semak', WARNA.semak),
+  bunga: () => lambert('bunga', WARNA.bunga),
+  emasGelap: () => lambert('emasGelap', WARNA.emasGelap, { side: THREE.DoubleSide }),
+  lentera: () => cached('lentera', () => nightGlow(named(new THREE.MeshStandardMaterial({ color: WARNA.lentera, roughness: 0.5 }), 'lentera'), 1.4)),
   perpusDinding: () => lambert('perpusDinding', WARNA.perpusDinding),
   atapSeng: () => lambert('atapSeng', WARNA.atapSeng, { side: THREE.DoubleSide }),
   granit: () => standard('granit', { color: WARNA.granit, roughness: 0.35, metalness: 0.05 }),
-  emas: () => standard('emas', { color: WARNA.emas, roughness: 0.35, metalness: 0.6 }),
+  emas: () => standard('emas', { color: WARNA.emas, roughness: 0.35, metalness: 0.6, side: THREE.DoubleSide }),
   kacaBiru: () => standard('kacaBiru', { color: WARNA.kacaBiru, roughness: 0.12, metalness: 0.45 }),
   kacaPita: () => cached('kacaPita', () => {
     const m = named(new THREE.MeshStandardMaterial({ color: WARNA.kacaPita, roughness: 0.15, metalness: 0.55 }), 'kacaPita');

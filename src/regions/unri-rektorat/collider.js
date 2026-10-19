@@ -13,6 +13,7 @@ export const BIKE_CLEARANCE = 0.6;
 const CAMERA_CLEARANCE = 0.8;
 const POST_R = 0.25;
 const FLAG_R = 0.4;
+const LAMP_R = 0.2;
 
 const inRect = (x, z, r, pad) => x >= r.x0 - pad && x <= r.x1 + pad && z >= r.z0 - pad && z <= r.z1 + pad;
 const solidRing = (x, z, ring, pad) => pointInPolygon(x, z, ring) || distanceToRing(x, z, ring) < pad;
@@ -29,6 +30,7 @@ export function createRektoratColliders({ layout = LAYOUT } = {}) {
   const papan = Object.freeze({ x0: pb.x - pb.d / 2, x1: pb.x + pb.d / 2, z0: pb.z - pb.w / 2, z1: pb.z + pb.w / 2 });
   const posts = Object.freeze([
     ...layout.kanopiTiang.map((p) => Object.freeze({ x: p.x, z: p.z, r: POST_R })),
+    ...layout.lampuTaman.map((p) => Object.freeze({ x: p.x, z: p.z, r: LAMP_R })),
     Object.freeze({ x: layout.tiangBendera.x, z: layout.tiangBendera.z, r: FLAG_R }),
   ]);
   const hitsPost = (x, z, pad) => posts.some((p) => Math.hypot(x - p.x, z - p.z) < p.r + pad);

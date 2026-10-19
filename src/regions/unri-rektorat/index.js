@@ -1,11 +1,11 @@
 // src/regions/unri-rektorat/index.js
 /**
- * Region handmade "unri-rektorat" (M6, spec §8.3): Gedung Rektorat (H04) + kanopi merah (N03) + huruf
+ * Region handmade "unri-rektorat" (M6, spec §8.3): Gedung Rektorat (H04) + kanopi biru & selembayung emas (N03) + huruf
  * puncak (N02), taman depan & tiang bendera, poros taman (akasia ramping + palem + bangku + PJU), Danau
  * Buatan (air dari distrik; batu pijakan, papan batu N01, trotoar tinggi), taman Putaran Jl. Mukhtar
  * Luthfi, Perpustakaan lama (4 massa 2 lt). build() cepat (< 30 ms): perakitan bertahap lewat ctx.schedule
  * setelah chunk terrain mask termuat; konten statis digabung per material (budget ≤ 250 draw call).
- * `ready` selesai setelah antrean + model GLB N01–N03 (gagal → placeholder prosedural tetap, spec §10).
+ * `ready` selesai setelah antrean + model GLB N01–N02 (gagal → placeholder prosedural tetap, spec §10).
  */
 import * as THREE from 'three';
 import { defineRegion, validateBuild } from '../Region.js';
@@ -32,13 +32,12 @@ export { REKTORAT_ID, REKTORAT_PLACEMENT };
 export const REKTORAT_DRAW_BUDGET = 250;
 const EMPTY_RESULT = Object.freeze({ placed: 0, failed: [], replaced: [] });
 
-/** Model GLB final (Blender) N01–N03, region-lokal; `replaces` = nama grup placeholder prosedural. */
+/** Model GLB final (Blender) N01–N02, region-lokal (N03 prosedural: GLB merah lama dilepas, lihat rektorat.js); `replaces` = nama grup placeholder prosedural. */
 export function rektoratModelItems(env) {
   const pb = LAYOUT.papanBatu;
   const y0 = env.hAt(0, 0);
   return [
     { path: 'models/unri/n02-huruf-nama-rektorat.glb', x: 17.55, y: y0 + ROOF_Y + LEVEL.atik / 2 - 0.75, z: 0, rotY: -Math.PI / 2, replaces: 'N02' },
-    { path: 'models/unri/n03-kanopi-merah-rektorat.glb', x: 21.7, y: y0, z: 0, rotY: 0, replaces: 'N03' },
     { path: 'models/unri/n01-papan-batu-unri.glb', x: pb.x, y: env.hAt(pb.x, pb.z), z: pb.z, rotY: pb.yaw, replaces: 'N01' },
   ];
 }
