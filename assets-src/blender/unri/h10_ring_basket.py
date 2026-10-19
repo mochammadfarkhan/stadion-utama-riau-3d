@@ -27,7 +27,7 @@ PALETTE = {
     "unri:papan-putih": ("#EDEDE8", 0.5, 0.0),
     "unri:ring-oranye": ("#E0561B", 0.45, 0.5),
     "unri:jaring": ("#F2F2F0", 0.9, 0.0),
-    "unri:bantalan": ("#C93A2B", 0.8, 0.0),
+    "unri:bantalan": ("#8E4238", 0.9, 0.0),
     "unri:logam-gelap": ("#2B2D30", 0.6, 0.5),
 }
 
@@ -92,7 +92,7 @@ def build():
             bpy.data.collections.remove(c)
     bms = {}
     # tiang: dasar beton + tiang persegi 0,15 m setinggi 3,6 m, lengan miring ke arah lapangan (+Y)
-    _box(bms, "unri:bantalan", (0, 0, 0.9), (0.40, 0.40, 1.80))                    # bantalan pelindung tiang
+    _box(bms, "unri:bantalan", (0, 0, 0.7), (0.24, 0.24, 1.40))                    # bantalan pelindung tiang (ramping, merah pudar)
     _box(bms, "unri:tiang-biru", (0, 0, 2.70), (0.15, 0.15, 3.60))
     _box(bms, "unri:tiang-biru", (0, 0.80, 3.55), (0.12, 1.70, 0.12))
     _box(bms, "unri:tiang-biru", (0, 0.55, 3.15), (0.08, 1.10, 0.08), rx=math.radians(-26))
