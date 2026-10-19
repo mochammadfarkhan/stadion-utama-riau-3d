@@ -10,6 +10,7 @@ import {
   MeshStandardMaterial, NoColorSpace, RGBAFormat, SRGBColorSpace,
 } from 'three';
 import { createAtlasCanvases } from './atlas.js';
+import { installKitPbr } from '../textures/pbrWorld.js';
 
 export const KIT_NIGHT = Object.freeze({ on: 1.0, off: 0 });
 const GLOW_COLOR = 0xffe2b0;
@@ -49,7 +50,7 @@ export function createAtlasTextures({ anisotropy = 8, createCanvas } = {}) {
   };
 }
 
-function buildKitMaterials(opts) {
+function buildKitMaterials(opts, scope) {
   const tex = createAtlasTextures(opts);
   const opak = new MeshStandardMaterial({
     map: tex.map, roughnessMap: tex.roughnessMap, emissiveMap: tex.emissiveMap, emissive: new Color(GLOW_COLOR),
@@ -57,6 +58,7 @@ function buildKitMaterials(opts) {
   });
   opak.name = 'kit:opak';
   opak.userData.nightEmissive = { ...KIT_NIGHT };
+  installKitPbr(opak, { scope }); // kartun/facet: plester + seng PBR di sel atlas dinding/atap (UV dunia)
   const potong = new MeshStandardMaterial({
     map: tex.map, roughnessMap: tex.roughnessMap, vertexColors: true, roughness: 1, metalness: 0,
     alphaTest: 0.5, side: DoubleSide,
@@ -80,5 +82,5 @@ function disposeKit(kit) {
  */
 export function createKitMaterials(scope, opts = {}) {
   if (!scope || typeof scope.get !== 'function') throw new TypeError('createKitMaterials: scope wajib (ResourceScope)');
-  return scope.get('kit:materials', () => buildKitMaterials(opts), { dispose: disposeKit });
+  return scope.get('kit:materials', () => buildKitMaterials(opts, scope), { dispose: disposeKit });
 }

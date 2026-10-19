@@ -59,6 +59,7 @@ export function createStyleManager({ store, app, scene, lighting, rig, time = nu
   const stash = new WeakMap();
   const applied = new WeakMap(); // material -> gaya yang sudah diterapkan
   const appliedSwap = new WeakMap(); // objek ber-pbrSwap -> "gaya:kualitas" yang terpasang
+  const appliedHook = new WeakMap(); // material ber-styleHook (PBR dunia: dinding/atap/kit) -> "gaya:kualitas"
   let rawQuality = 'tinggi';
   let qualityTimer = 0;
   const contact = createContactShadows({ heightAt: terrain.heightAt });
@@ -83,6 +84,10 @@ export function createStyleManager({ store, app, scene, lighting, rig, time = nu
       const m = o.material;
       if (!m) return;
       for (const mat of Array.isArray(m) ? m : [m]) {
+        if (mat.userData?.styleHook && appliedHook.get(mat) !== swapKey) { // PBR dunia: nyalakan/matikan uniform + muat tekstur malas
+          mat.userData.styleHook(style, styleState.terrainQuality);
+          appliedHook.set(mat, swapKey);
+        }
         if (applied.get(mat) === style) continue;
         styleMaterial(mat, style, stash);
         applied.set(mat, style);

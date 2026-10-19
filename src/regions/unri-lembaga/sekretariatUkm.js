@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { withScope } from '../../engine/ResourceScope.js';
 import { freezeStatic } from '../../engine/freezeStatic.js';
 import { loadModel } from '../../world/assets/models.js';
+import { applyBuildingPbr } from '../../world/textures/pbrWorld.js';
 import { instanceParts } from '../../world/siteutil/instanceParts.js';
 import { createCanvasAtlas } from '../../world/props/unri/atlas.js';
 import { drawPapanNama, createPapanNamaSekre, PAPAN_NAMA_SEKRE } from '../../world/props/unri/papanNamaSekre.js';
@@ -134,6 +135,7 @@ export async function upgradeUkmAssets({ root, scope, heightAt, layout = UKM_LAY
     const obj = prepareUkmModel(gedung.clone(true));
     obj.name = `${UKM_GROUP}:glb`;
     hero.add(obj);
+    applyBuildingPbr(obj, { scope }); // kartun/facet: plester/seng/beton/kayu PBR (UV dunia; 'asli' tidak berubah)
     const ph = hero.getObjectByName(`${UKM_GROUP}:placeholder`);
     if (ph) ph.visible = false;
     freezeStatic(hero);

@@ -4,7 +4,10 @@
  * dalam L, dan gubuk panahan beratap merah. Semua posisi dari UKM_LAYOUT (region-lokal); pad terrain rata.
  */
 import * as THREE from 'three';
-import { currentScope } from '../../engine/ResourceScope.js';
+import { currentScope, withScope } from '../../engine/ResourceScope.js';
+import { applyStyleSwap } from '../../engine/pbrSwap.js';
+import { styleState } from '../../engine/styleState.js';
+import { pbrSurfaceMaterial } from '../../world/textures/pbrMaterials.js';
 import { instanceParts } from '../../world/siteutil/instanceParts.js';
 import { palemParts } from '../../world/props/unri/palem.js';
 import { quad } from '../../world/props/unri/geom.js';
@@ -24,14 +27,34 @@ const named = (m, name) => {
 };
 
 function ukmMaterials() {
-  return currentScope().get('ukm:kompleks-material', () => ({
+  const scope = currentScope();
+  return scope.get('ukm:kompleks-material', () => ({
+    pbrCache: new Map(),
+    /** Halaman beton PBR (kartun/facet): Concrete034 hangat-netral; dibuat malas per kualitas di scope region. */
+    pbrHalaman(quality) {
+      let m = this.pbrCache.get(quality);
+      if (!m) {
+        m = withScope(scope, () => pbrSurfaceMaterial('concrete', { quality, color: 0xd2ccbf }));
+        m.polygonOffset = true;
+        m.polygonOffsetFactor = -2;
+        m.polygonOffsetUnits = -2;
+        m.name = 'halamanBetonPbr';
+        this.pbrCache.set(quality, m);
+      }
+      return m;
+    },
     halaman: Object.assign(surfaceMaterial('concrete', { color: 0xa9a8a2 }), {
       name: 'halamanBeton', polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
     }),
     slab: named(new THREE.MeshStandardMaterial({ color: 0xb9b6ad, roughness: 0.95 }), 'gubukLantai'),
     atap: named(new THREE.MeshStandardMaterial({ color: 0xa8302c, roughness: 0.5, metalness: 0.3, side: THREE.DoubleSide }), 'gubukAtapMerah'),
     tiang: named(new THREE.MeshStandardMaterial({ color: 0xd9d5c7, roughness: 0.8 }), 'gubukTiang'),
-  }));
+  }), {
+    dispose(set) {
+      for (const m of set.pbrCache.values()) m.dispose(); // tekstur PBR milik scope
+      for (const m of [set.halaman, set.slab, set.atap, set.tiang]) { m.map?.dispose(); m.normalMap?.dispose(); m.roughnessMap?.dispose(); m.dispose(); }
+    },
+  });
 }
 
 /** Halaman beton: satu persegi datar (UV = meter) di atas pad. */
@@ -43,6 +66,8 @@ function yardMesh(box, mats, y) {
   );
   const m = new THREE.Mesh(geo, mats.halaman);
   m.name = 'halaman-beton';
+  m.userData.pbrSwap = { asli: mats.halaman, pbr: (q) => mats.pbrHalaman(q) };
+  applyStyleSwap(m, styleState.style, styleState.terrainQuality);
   m.receiveShadow = true;
   return m;
 }
