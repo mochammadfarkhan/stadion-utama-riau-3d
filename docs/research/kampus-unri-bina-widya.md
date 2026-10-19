@@ -258,3 +258,32 @@ di tropis. (4) Nilai opentopodata diinterpolasi. (5) DEMNAS BIG (8 m) tidak dice
 8. Spesies pohon pada poros Rektorat (akasia vs eukaliptus); ada/tidaknya PKL & halte/bus kampus internal.
 9. Luas resmi (345,6 ha) vs poligon OSM (244,6 ha) — bagian mana yang tidak terpetakan.
 10. Elevasi: verifikasi dengan DEMNAS (BIG, 8 m) bila diperlukan detail parit/tanggul.
+
+---
+
+## 8. Tambahan riset 2026-10-19 — Stadion Mini, Rektorat, Danau, Jembatan Kupu-Kupu
+Pencarian lanjutan untuk detail stadion mini, Rektorat, danau, dan jembatan. Label keyakinan sama seperti bagian lain.
+
+### Jembatan Kupu-Kupu (baru; belum ada di kode)
+| Fakta | Sumber | Yakin |
+|---|---|---|
+| Jembatan Kupu-Kupu UNRI ada di sisi danau, **di depan Gedung Rektorat**; "desain terinspirasi dari bentuk kupu-kupu yang anggun"; menghubungkan dua area kampus yang dipisahkan danau buatan | https://www.indonesia.travel/id/id/destination/sumatra/riau/jembatan-kupu-kupu ; https://www.quipper.com/id/blog/quipper-campus/campus-life/10-tempat-favorit-mahasiswa-universitas-riau-yang-perlu-kamu-ketahui/ | S (teks populer; lokasi "depan Rektorat" dari ringkasan pencarian, belum diverifikasi di halaman sumber) |
+| Jadi ikon kampus bersama halaman Rektorat dan tulisan UNRI di tepi danau; ramai sore–malam (foto, nongkrong, belajar, olahraga) | quipper (di atas); https://rri.co.id/lain-lain/951803/danau-unri-tempat-nongkrong-diskusi-dan-olahraga-mahasiswa (ringkasan pencarian; halaman 403 saat di-fetch) | S |
+| Ada motif batik "Jembatan Kupu-Kupu Universitas Riau" (penelitian LPPM) → bentuk jembatan dikenal luas sebagai identitas visual | https://unri.ac.id/batik-unri-itu-bernama-batik-riau-prestasi/ (hanya nama; tanpa uraian bentuk) | T (nama), tanpa rincian bentuk |
+| Di area jembatan diresmikan **POLIDAN** (Pojok Literasi Danau) dan **GAMA** (Gerai Aksi Mahasiswa, UMKM mahasiswa) — "Ruang Kolaboratif Tepian Danau" | https://unri.ac.id/unri-resmikan-polidan-dan-gama-prof-hermandra-tingkatkan-minat-baca-dan-jiwa-wirausaha/ | T (ada & di tepian danau); bentuk fisik tidak diuraikan |
+| **Bukan** Jembatan Kupu-kupu Siak (500 m, dekat Istana Siak) | https://www.goriau.com/berita/baca/ingin-nikmati-kecantikan-jembatan-kupukupu-yang-satusatunya-di-indonesia-datanglah-ke-negeri-istana.html | T (jangan tertukar) |
+| **Tidak ditemukan**: dimensi, bahan, warna, bentuk lengkung/sayap, pagar, lampu, tahun bangun, perancang; tidak ada foto bebas lisensi di Commons; OSM way jembatan belum bisa di-query (Overpass 503) | — | **Gap** |
+
+### Stadion Mini
+- Dipakai sepak bola, tenis, futsal, basket, badminton; mahasiswa berolahraga hampir tiap hari terutama sore; **jogging track di luar area stadion** [S] — https://www.quipper.com/id/blog/quipper-campus/campus-info/5-fasilitas-di-universitas-riau-paling-populer/
+- Tidak ditemukan sumber untuk bentuk tribun, permukaan lintasan, atau lampu. Model saat ini (lintasan 6 lajur tanah merah, tribun 16 undakan, atap VIP) tetap [INF].
+
+### Rektorat & Danau
+- Tidak ada sumber baru untuk fasad/kanopi Rektorat; rujukan visual tetap foto Commons `Taman_Unri.jpg`.
+- Waduk dekat Rektorat berfungsi sebagai cadangan air saat kemarau [S] (quipper, ringkasan pencarian).
+- Aktivitas sekitar danau: foto, bermain, belajar sore, olahraga [S].
+
+### Gap baru
+11. **Bentuk fisik Jembatan Kupu-Kupu** (sayap/lengkung, lebar, bahan, pagar, lampu) dan koordinatnya — butuh foto/survei dari pengguna atau way OSM.
+12. Bentuk fisik POLIDAN dan GAMA di tepian danau.
+13. Tribun, lintasan, dan lampu Stadion Mini — butuh foto.
