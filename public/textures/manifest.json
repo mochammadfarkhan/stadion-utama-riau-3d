@@ -1,0 +1,223 @@
+{
+ "v": 1,
+ "source": {
+  "name": "ambientCG",
+  "url": "https://ambientcg.com",
+  "license": "CC0-1.0",
+  "licenseUrl": "https://docs.ambientcg.com/license/"
+ },
+ "sets": [
+  {
+   "name": "grass",
+   "category": "rumput",
+   "tileM": 1.4,
+   "sizes": [
+    512,
+    256
+   ],
+   "avg": "#616d31",
+   "hasAo": true,
+   "sourceId": "Grass004",
+   "sourceName": "Grass 004",
+   "sourceUrl": "https://ambientcg.com/view?id=Grass004",
+   "license": "CC0-1.0",
+   "bytes": 371152
+  },
+  {
+   "name": "soilMoist",
+   "category": "tanah-lembap",
+   "tileM": 1.4,
+   "sizes": [
+    512,
+    256
+   ],
+   "avg": "#543e33",
+   "hasAo": true,
+   "sourceId": "Ground048",
+   "sourceName": "Ground 048",
+   "sourceUrl": "https://ambientcg.com/view?id=Ground048",
+   "license": "CC0-1.0",
+   "bytes": 294036
+  },
+  {
+   "name": "soilDry",
+   "category": "tanah-kering",
+   "tileM": 3.5,
+   "sizes": [
+    512,
+    256
+   ],
+   "avg": "#9c8b6e",
+   "hasAo": true,
+   "sourceId": "Ground054",
+   "sourceName": "Ground 054",
+   "sourceUrl": "https://ambientcg.com/view?id=Ground054",
+   "license": "CC0-1.0",
+   "bytes": 153928
+  },
+  {
+   "name": "gravel",
+   "category": "kerikil",
+   "tileM": 1.5,
+   "sizes": [
+    512,
+    256
+   ],
+   "avg": "#dad6cf",
+   "hasAo": true,
+   "sourceId": "Gravel023",
+   "sourceName": "Gravel 023",
+   "sourceUrl": "https://ambientcg.com/view?id=Gravel023",
+   "license": "CC0-1.0",
+   "bytes": 385764
+  },
+  {
+   "name": "moss",
+   "category": "lumut",
+   "tileM": 1.5,
+   "sizes": [
+    512,
+    256
+   ],
+   "avg": "#4a6519",
+   "hasAo": true,
+   "sourceId": "Moss002",
+   "sourceName": "Moss 002",
+   "sourceUrl": "https://ambientcg.com/view?id=Moss002",
+   "license": "CC0-1.0",
+   "bytes": 313886
+  },
+  {
+   "name": "plaster",
+   "category": "plester",
+   "tileM": 2,
+   "sizes": [
+    1024,
+    512,
+    256
+   ],
+   "avg": "#d7d3d0",
+   "hasAo": false,
+   "sourceId": "Plaster001",
+   "sourceName": "Plaster 001",
+   "sourceUrl": "https://ambientcg.com/view?id=Plaster001",
+   "license": "CC0-1.0",
+   "bytes": 573390
+  },
+  {
+   "name": "concrete",
+   "category": "beton",
+   "tileM": 2.2,
+   "sizes": [
+    512,
+    256
+   ],
+   "avg": "#b9b9b9",
+   "hasAo": false,
+   "sourceId": "Concrete034",
+   "sourceName": "Concrete 034",
+   "sourceUrl": "https://ambientcg.com/view?id=Concrete034",
+   "license": "CC0-1.0",
+   "bytes": 88706
+  },
+  {
+   "name": "paving",
+   "category": "paving",
+   "tileM": 1.15,
+   "sizes": [
+    512,
+    256
+   ],
+   "avg": "#8c8a82",
+   "hasAo": true,
+   "sourceId": "PavingStones070",
+   "sourceName": "Paving Stones 070",
+   "sourceUrl": "https://ambientcg.com/view?id=PavingStones070",
+   "license": "CC0-1.0",
+   "bytes": 258492
+  },
+  {
+   "name": "asphalt",
+   "category": "aspal",
+   "tileM": 2.5,
+   "sizes": [
+    512,
+    256
+   ],
+   "avg": "#787878",
+   "hasAo": true,
+   "sourceId": "Asphalt031",
+   "sourceName": "Asphalt 031",
+   "sourceUrl": "https://ambientcg.com/view?id=Asphalt031",
+   "license": "CC0-1.0",
+   "bytes": 226792
+  },
+  {
+   "name": "roofSteel",
+   "category": "atap-seng",
+   "tileM": 1.2,
+   "sizes": [
+    1024,
+    512,
+    256
+   ],
+   "avg": "#9a9b9e",
+   "hasAo": true,
+   "sourceId": "CorrugatedSteel005",
+   "sourceName": "Corrugated Steel 005",
+   "sourceUrl": "https://ambientcg.com/view?id=CorrugatedSteel005",
+   "license": "CC0-1.0",
+   "bytes": 319832
+  },
+  {
+   "name": "wood",
+   "category": "kayu",
+   "tileM": 1.4,
+   "sizes": [
+    1024,
+    512,
+    256
+   ],
+   "avg": "#c4aa74",
+   "hasAo": true,
+   "sourceId": "Planks021",
+   "sourceName": "Planks 021",
+   "sourceUrl": "https://ambientcg.com/view?id=Planks021",
+   "license": "CC0-1.0",
+   "bytes": 445950
+  },
+  {
+   "name": "tile",
+   "category": "ubin",
+   "tileM": 2.1,
+   "sizes": [
+    512,
+    256
+   ],
+   "avg": "#554b44",
+   "hasAo": false,
+   "sourceId": "Tiles074",
+   "sourceName": "Tiles 074",
+   "sourceUrl": "https://ambientcg.com/view?id=Tiles074",
+   "license": "CC0-1.0",
+   "bytes": 47864
+  },
+  {
+   "name": "bark",
+   "category": "kulit-pohon",
+   "tileM": 1,
+   "sizes": [
+    1024,
+    512,
+    256
+   ],
+   "avg": "#7d7b75",
+   "hasAo": false,
+   "sourceId": "Bark001",
+   "sourceName": "Bark 001",
+   "sourceUrl": "https://ambientcg.com/view?id=Bark001",
+   "license": "CC0-1.0",
+   "bytes": 1125992
+  }
+ ]
+}
