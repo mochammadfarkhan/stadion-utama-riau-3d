@@ -71,6 +71,12 @@ export const MATS = Object.freeze({
   merah: () => lambert('merah', WARNA.merah, { side: THREE.DoubleSide }),
   perpusDinding: () => lambert('perpusDinding', WARNA.perpusDinding),
   atapSeng: () => lambert('atapSeng', WARNA.atapSeng, { side: THREE.DoubleSide }),
+  kayu: () => cached('kayu', () => {
+    const m = new THREE.MeshStandardMaterial({ color: 0x8a5a36, roughness: 0.85, metalness: 0 });
+    m.name = 'unri:kayu';
+    return m;
+  }),
+  tali: () => lambert('tali', 0xd8c9a0),
   granit: () => standard('granit', { color: WARNA.granit, roughness: 0.35, metalness: 0.05 }),
   emas: () => standard('emas', { color: WARNA.emas, roughness: 0.35, metalness: 0.6 }),
   kacaBiru: () => standard('kacaBiru', { color: WARNA.kacaBiru, roughness: 0.12, metalness: 0.45 }),

@@ -10,6 +10,7 @@ import { COLORS } from '../../config/constants.js';
 import { GROUND_COLORS, surfaceMaterial } from '../../world/Ground.materials.js';
 import { createTerrainSplatMaterial } from '../../world/terrain/terrainSplat.js';
 import { pbrSurfaceMaterial } from '../../world/textures/pbrMaterials.js';
+import { createWaterToonMaterial } from '../../world/shaders/waterToon.js';
 
 /**
  * Pengali warna. asphalt: tekstur aspal (basis COLORS.asphalt) × 0xb3b0a9 ≈ jalan tersier kota #484b51 (linear:
@@ -52,8 +53,14 @@ function createSet() {
   ditch.name = 'unri:parit';
   const scope = currentScope();
   const pbrCache = new Map();
+  let waterToon = null;
   return {
     pbrCache,
+    /** Air kartun/facet (dibuat malas di scope pemilik set; tekstur noise ikut scope). */
+    waterToon() {
+      if (!waterToon) waterToon = withScope(scope, () => createWaterToonMaterial());
+      return waterToon;
+    },
     /** Material PBR untuk kualitas `quality` (dibuat sekali; tekstur dimuat lewat scope pemilik set). */
     pbr(quality) {
       let hit = pbrCache.get(quality);
@@ -76,10 +83,11 @@ function createSet() {
 
 function disposeSet(set) {
   for (const [key, m] of Object.entries(set)) {
-    if (key === 'pbrCache' || key === 'pbr') continue;
+    if (key === 'pbrCache' || key === 'pbr' || key === 'waterToon') continue;
     for (const k of ['map', 'normalMap', 'roughnessMap']) m[k]?.dispose();
     m.dispose();
   }
+  // air kartun + noise-nya dimiliki scope (dilepas bersama scope distrik)
   for (const mats of set.pbrCache.values()) for (const m of Object.values(mats)) m.dispose(); // tekstur PBR milik scope
 }
 

@@ -55,7 +55,7 @@ export function styleMaterial(mat, style, stash, exclude = LOWPOLY_EXCLUDE) {
  * Manajer gaya grafis terpusat. Mengikuti 'graphics.gayaGrafis' + mode kamera: material (scan berkala menangkap
  * region/distrik/model yang dimuat kemudian), grading, atmosfer, bayangan, LOD (styleState), contact shadow.
  */
-export function createStyleManager({ store, app, scene, lighting, rig, time = null, crowd = null, bike, terrain, streamLoadRadius = 1000 }) {
+export function createStyleManager({ store, app, scene, lighting, rig, time = null, crowd = null, bike, terrain, streamLoadRadius = 1000, frameHooks = [] }) {
   const stash = new WeakMap();
   const applied = new WeakMap(); // material -> gaya yang sudah diterapkan
   const appliedSwap = new WeakMap(); // objek ber-pbrSwap -> "gaya:kualitas" yang terpasang
@@ -183,6 +183,7 @@ export function createStyleManager({ store, app, scene, lighting, rig, time = nu
       scanTimer -= dt;
       if ((needScan || style !== 'asli') && scanTimer <= 0) { scanTimer = SCAN_INTERVAL; scan(); }
       if (style === 'asli') return;
+      for (const hook of frameHooks) hook(dt, { hour: time?.hour ?? 12, sun }); // uniform bergaya (mis. air kartun) dari lapisan atas
       // Sesudah TimeOfDay & Weather (urutan pendaftaran): atmosfer gaya ditumpuk tiap frame.
       if (scene.fog && scene.fog.far < 0) return; // sudah ditumpuk (TimeOfDay digerbang): jangan menumpuk dua kali
       const L = lightByHour(time?.hour ?? 12);
