@@ -16,6 +16,7 @@ import { mergeByMaterial } from '../world/util/merge.js';
 import { makeRng, isFiniteXZ, lerpAngle, clamp, HAS_DOM, flatGround, groundOf } from './util.js';
 
 const LABEL_DISTANCE = 45;
+export const VENDOR_CULL_DISTANCE = 600; // m: di luar jarak ini pedagang + gerobak disembunyikan (hemat draw call)
 export const PROMPT_DISTANCE = 3.5;   // meter; jarak munculnya prompt beli
 const CART_OFFSET_Z = 1.35;           // gerobak fallback di depan pedagang
 const REAL_CART_EXTRA_Z = 0.55;       // Cart.js lebih panjang (gagang 1 m): geser lagi ke depan
@@ -150,6 +151,9 @@ export class VendorGroup {
     });
     const ground = groundOf(ctx);
     for (const e of this.#vendors) this.#place(e, time, ground);
+    const view = ctx.focus ?? ctx.bikePos;
+    // Pedagang jauh (mis. Kantin FKIP kampus ±1,5 km dari stadion) tidak digambar: gerobaknya bukan bagian LOD humanoid.
+    if (view) for (const e of this.#vendors) e.root.visible = Math.hypot(e.sim.pos.x - view.x, e.sim.pos.z - view.z) <= VENDOR_CULL_DISTANCE;
     this.#updatePrompt(ctx.bikePos);
     this.#updateLabels(ctx.focus ?? ctx.bikePos); // label mengikuti fokus tampilan (POV)
   }
