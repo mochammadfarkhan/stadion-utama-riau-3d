@@ -12,6 +12,7 @@ import { GROUND_SCALE } from '../src/districts/unri/life.js';
 import { parseGroundChunk } from '../src/districts/unri/groundData.js';
 import { toPoints } from '../src/sim/campusLife.js';
 import { PORTAL_DOORS } from '../src/regions/unri-lembaga/portalDoors.js';
+import { UKM_WALLS, UKM_WORLD } from '../src/regions/unri-lembaga/sekreUkm.data.js';
 import * as lembagaModule from '../src/regions/unri-lembaga/index.js';
 import * as rektoratModule from '../src/regions/unri-rektorat/index.js';
 import { EASTER_EGGS } from '../src/story/easterEggs.js';
@@ -42,20 +43,22 @@ describe('chapter 6 & kehidupan kampus vs data M3–M6 (keputusan D2)', () => {
     expect(LEMBAGA?.placement).toBeDefined();
     expect(REKTORAT?.placement).toBeDefined();
   });
-  it('ujung barat selasar ≤ 10 m dari pintu sekre pemain M4', () => {
+  it('titik pintu sekre pemain (ERC, D5) = titik pemicu portal, di dalam region Lembaga', () => {
     const door = PORTAL_DOORS.find((d) => d.id === 'sekre-pemain');
     const w = toWorld(LEMBAGA.placement, door.pos.lx, door.pos.lz);
-    expect(dist(w, UNRI_POINTS.sekreUjungBarat)).toBeLessThanOrEqual(10);
+    expect(dist(w, UNRI_POINTS.sekrePintu)).toBeLessThanOrEqual(0.5);
+    expect(regionContains(LEMBAGA, w.x, w.z)).toBe(true);
   });
-  it('pusat sekre di dalam footprint Sekretariat Lembaga Mahasiswa', () => {
-    expect(pointInPolygon(UNRI_POINTS.sekreTengah.x, UNRI_POINTS.sekreTengah.z, ringOf('w327530276'))).toBe(true);
-  });
-  it('NPC kampus di luar gedung, ≤ 6 m dari ujung selasar, berjarak ≥ 6 m satu sama lain', () => {
+  it('NPC kampus di luar gedung; Kak Nisa ≤ 6 m dari pintu ERC, Ketua BEM ≤ 6 m dari ujung selasar BEM, berjarak ≥ 6 m', () => {
+    const ukmWalls = UKM_WALLS.map(([x, z]) => [UKM_WORLD.x + x, UKM_WORLD.z + z]);
     UNRI_STORY_NPCS.forEach((n) => {
       expect(inBuilding(n.x, n.z)).toBe(false);
-      expect(dist(n, UNRI_POINTS.sekreUjungBarat)).toBeLessThanOrEqual(6);
+      expect(pointInPolygon(n.x, n.z, ukmWalls)).toBe(false);
     });
-    expect(dist(UNRI_STORY_NPCS[0], UNRI_STORY_NPCS[1])).toBeGreaterThanOrEqual(6);
+    const [bem, nisa] = [UNRI_STORY_NPCS.find((n) => n.id === 'ketua-bem'), UNRI_STORY_NPCS.find((n) => n.id === 'kak-nisa')];
+    expect(dist(nisa, UNRI_POINTS.sekrePintu)).toBeLessThanOrEqual(6);
+    expect(dist(bem, UNRI_POINTS.sekreUjungBarat)).toBeLessThanOrEqual(6);
+    expect(dist(bem, nisa)).toBeGreaterThanOrEqual(6);
   });
   it('pedagang kantin di luar gedung, ≤ 6 m dari Kantin FKIP, di dalam distrik', () => {
     const v = UNRI_VENDORS[0].waypoints[0];

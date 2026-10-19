@@ -3,7 +3,7 @@ import * as D from '../src/interiors/sekre/data.js';
 import { PERIODS } from '../src/sim/activitySchedule.js';
 import { POSE_IDS } from '../src/entities/Humanoid.poses.js';
 import { createRoomCollider } from '../src/interiors/roomCollider.js';
-import { sekreRooms, PLAYER_ROOM_INDEX } from '../src/regions/unri-lembaga/sekre.data.js';
+import { SEKRE_PEMAIN, UKM_LABELS } from '../src/regions/unri-lembaga/sekreUkm.data.js';
 
 const IDS = Array.from({ length: 30 }, (_, i) => `S${String(i + 1).padStart(2, '0')}`);
 const insideRoom = (p, m = 0.01) => Math.abs(p.x) <= D.ROOM.w / 2 + m && Math.abs(p.z) <= D.ROOM.d / 2 + m && p.y >= 0 && p.y <= D.ROOM.h;
@@ -12,11 +12,11 @@ const collider = (withNpc) => createRoomCollider({
   blockers: () => (withNpc ? D.SLOTS.map((s) => ({ x: s.x, z: s.z, r: s.block })) : []),
 });
 
-describe('data sekre: konsisten dengan sekre.data.js (region Lembaga)', () => {
-  it('nama organisasi pemain & deret seberang selasar sama dengan papan nama di luar', () => {
-    const rooms = sekreRooms();
-    expect(D.ORGANISASI.singkatan).toBe(rooms[PLAYER_ROOM_INDEX].nama);
-    expect(D.SELASAR_SEBERANG).toEqual([4, 5, 6, 7].map((i) => rooms[i].nama));
+describe('data sekre: konsisten dengan data sekre UKM (ERC)', () => {
+  it('nama organisasi interior = SEKRE_PEMAIN (ERC); deret selasar = label ruang lain gedung UKM', () => {
+    expect(D.ORGANISASI.singkatan).toBe(SEKRE_PEMAIN.nama);
+    expect(D.SELASAR_SEBERANG).toEqual(['KSR PMI', 'KOPMA UNRI', 'SEKRETARIAT', 'SEKRETARIAT']);
+    expect(D.SELASAR_SEBERANG.every((n) => Object.values(UKM_LABELS).includes(n))).toBe(true);
   });
 });
 

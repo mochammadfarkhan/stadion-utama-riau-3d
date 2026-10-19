@@ -1,25 +1,23 @@
 import { describe, it, expect } from 'vitest';
-import { PORTAL_DOORS, sekreExitTo } from '../../src/regions/unri-lembaga/portalDoors.js';
-import { fromSekre, toSekre } from '../../src/regions/unri-lembaga/placement.js';
-import { SEKRE_DIM, roomInfo } from '../../src/regions/unri-lembaga/layout.js';
+import { PORTAL_DOORS, sekreExitTo, PORTAL_STEP_OUT } from '../../src/regions/unri-lembaga/portalDoors.js';
+import { UKM_DOORS, PLAYER_DOOR_ID, fromUkm } from '../../src/regions/unri-lembaga/sekreUkm.data.js';
 
-describe('PORTAL_DOORS (kontrak indeks M4)', () => {
-  it('satu pintu sekre-pemain → interior sekre, radius 1,6, prompt', () => {
+describe('PORTAL_DOORS (pintu pemain = D5 gedung UKM blok biru, ERC)', () => {
+  it('satu pintu sekre-pemain → interior sekre, radius 1,6, prompt ERC', () => {
     expect(PORTAL_DOORS).toHaveLength(1);
     const [d] = PORTAL_DOORS;
-    expect(d).toMatchObject({ id: 'sekre-pemain', interiorId: 'sekre', radius: 1.6, prompt: 'Masuk sekre' });
-    expect(d.pos.lx).toBeCloseTo(-2.7875, 3);
-    expect(d.pos.lz).toBeCloseTo(-1.8632, 3);
-    expect(d.yaw).toBeCloseTo(-0.33248, 4);
+    expect(d).toMatchObject({ id: 'sekre-pemain', interiorId: 'sekre', radius: 1.6, prompt: 'Masuk sekre ERC' });
   });
 
-  it('1 m ke dalam selasar di depan pintu ruang 1, tepat satu ruang dari pintu BEM', () => {
+  it('titik pemicu 1 m di depan pintu D5 (ke arah halaman, barat); yaw keluar menghadap barat', () => {
     const [d] = PORTAL_DOORS;
-    const b = toSekre(d.pos.lx, d.pos.lz);
-    expect(b.x).toBeCloseTo(0.85, 6);
-    const bem = roomInfo(0);
-    const bemFront = fromSekre(0.85, bem.doorZ);
-    expect(Math.hypot(d.pos.lx - bemFront.x, d.pos.lz - bemFront.z)).toBeCloseTo(SEKRE_DIM.roomLen, 6);
+    const door = UKM_DOORS.find((v) => v.id === PLAYER_DOOR_ID);
+    const p = fromUkm(door.x + door.normal[0] * PORTAL_STEP_OUT, door.z + door.normal[1] * PORTAL_STEP_OUT);
+    expect(d.pos.lx).toBeCloseTo(p.x, 6);
+    expect(d.pos.lz).toBeCloseTo(p.z, 6);
+    const f = fromUkm(door.x, door.z);
+    expect(Math.hypot(d.pos.lx - f.x, d.pos.lz - f.z)).toBeCloseTo(1, 6);
+    expect(d.yaw).toBeCloseTo(-Math.PI / 2, 6); // konvensi entitas: maju = (sin yaw, cos yaw) → (−1, 0)
   });
 
   it('sekreExitTo = depan pintu, yaw keluar, region unri-lembaga', () => {

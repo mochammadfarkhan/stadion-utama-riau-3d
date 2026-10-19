@@ -30,13 +30,12 @@ export const WINDOW_CENTER = freeze({ x: WINDOW.x, y: WINDOW.sill + WINDOW.h / 2
 /** Pintu 0,9 × 2,1 m; daun pintu berengsel di x0, terbuka 85° ke dalam ruang (merapat ke kusen kiri). */
 export const DOOR = freeze({ x0: 0.9, x1: 1.8, h: 2.1, z: -3.0, openRad: -1.48 });
 /**
- * Selasar tengah gedung Sekretariat Lembaga (spec §8.1: 2 × 4 ruang 4,2 × 6 m + selasar 3,7 m terbuka di kedua
- * ujung [INFERENSI denah]). Sekre pemain = ruang indeks 1 ("UKM SENI", sebelah BEM) → mulut selasar 6,29 m di
- * barat dan 10,48 m di timur pusat ruang (M4). Ubah bila PLAYER_ROOM_INDEX di sekre.data.js M4 berubah.
+ * Selasar di luar ruang ERC (pintu D5 gedung UKM blok biru, sayap utara–selatan; ruang ini sama dengan interior generik 4,2 × 6 m
+ * [INFERENSI denah dalam]). Jendela mengintip selasar; panjang & papan nama deret seberang = label ruang lain di gedung.
  */
 export const SELASAR = freeze({ zDekat: -3.15, zSeberang: -6.85, ujungKiri: -6.3, ujungKanan: 10.5, tinggiAtap: 3.4, beratap: true });
-/** Papan nama deret seberang selasar dari barat (M4 sekre.data.js indeks 4–7; samakan bila diganti). */
-export const SELASAR_SEBERANG = freeze(['DPM', 'UKM PERS MAHASISWA', 'UKM PECINTA ALAM', 'UKM KEWIRAUSAHAAN']);
+/** Papan nama ruang tetangga di selasar (label sekreUkm.data.js: D1, D2, D3, D4; tes menjaga kesamaan). */
+export const SELASAR_SEBERANG = freeze(['KSR PMI', 'KOPMA UNRI', 'SEKRETARIAT', 'SEKRETARIAT']);
 export const SPAWN = freeze({ x: 1.5, z: -2.4, yaw: 0 });
 /** yaw dunia sumbu +Z ruang = yaw pintu M4 (menghadap selasar) + offset ini. */
 export const ROOM_YAW_OFFSET = PI;
@@ -44,7 +43,7 @@ export const TL_POS = freeze([freeze({ x: 0, y: ROOM.h, z: -1.3 }), freeze({ x: 
 
 // ---------- Organisasi (DATA CONTOH) ----------
 export const ORGANISASI = freeze({
-  singkatan: 'UKM SENI', nama: 'Unit Kegiatan Mahasiswa Seni', kabinet: 'Kabinet Harmoni Bertuah', periode: '2026/2027',
+  singkatan: 'ERC', nama: 'ERC', kabinet: 'Kabinet Harmoni Bertuah', periode: '2026/2027',
   motto: 'Bergerak · Berkarya · Bermakna', warna: '#c99a00', warna2: '#6fbfe8',
 });
 const p = (jabatan, nama) => freeze({ jabatan, nama });
