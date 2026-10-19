@@ -183,6 +183,7 @@ export function createStyleManager({ store, app, scene, lighting, rig, time = nu
         sun.color.lerp(tint.setHex(L.sunColor), 0.85);
       }
       app.renderer.toneMappingExposure *= L.expMul;
+      time?.setAura?.(ATMOSPHERE.auraBoost, L.sunColor, L.haze);
       const mie = lighting?.userData?.skyUniforms?.mieCoefficient;
       if (mie) mie.value = skyMieAsli + (ATMOSPHERE.skyMie - skyMieAsli) * L.haze;
       applyGrade();

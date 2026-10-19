@@ -10,6 +10,7 @@ import { sunMoonWeight } from '../sim/dayCycle.js';
 const DISTANCE = 1700;        // m dari kamera (di dalam far plane 2500)
 const SUN_DISC = 120;         // diameter cakram (≈ 4°)
 const SUN_GLOW = 700;
+const SUN_AURA = 3000;       // aura lebar gaya kartun (menghangatkan langit sekitar matahari)
 const MOON_DISC = 95;
 const MOON_GLOW = 420;
 const SUN_FADE_DEG = 3;       // matahari memudar tepat di sekitar horizon
@@ -65,6 +66,8 @@ function makeSprite(texture, color, size) {
 }
 
 const _p = new THREE.Vector3();
+const WHITE = new THREE.Color(1, 1, 1);
+const AURA_OPACITY = 0.8;
 
 /**
  * @returns {{group: THREE.Group, update(camera:THREE.Camera, sunDir:THREE.Vector3, moonDir:THREE.Vector3,
@@ -78,12 +81,15 @@ export function createCelestialBodies() {
   const disc = radialTexture(0.55);
   const glow = radialTexture(0);
   const sunGlow = makeSprite(glow, 0xffc98a, SUN_GLOW);
+  const sunAura = makeSprite(glow, 0xffb060, SUN_AURA);
   const sunDisc = makeSprite(disc, 0xfff4d6, SUN_DISC);
   const moonGlow = makeSprite(glow, 0x9db8ff, MOON_GLOW);
   const moonDisc = makeSprite(disc, 0xeaf0ff, MOON_DISC);
-  group.add(sunGlow, sunDisc, moonGlow, moonDisc);
+  group.add(sunAura, sunGlow, sunDisc, moonGlow, moonDisc);
 
-  let aura = 1; // pengali halo matahari (gaya kartun: aura keemasan lebih besar)
+  let aura = 1; // pengali halo matahari (gaya kartun: aura keemasan lebih besar); 1 = bawaan, tanpa aura lebar
+  let auraColor = 0xffb060;
+  let auraStrength = 1;
 
   const place = (sprites, camera, dir) => {
     _p.copy(camera.position).addScaledVector(dir, DISTANCE);
@@ -93,9 +99,13 @@ export function createCelestialBodies() {
   return {
     group,
     /** Pengali opasitas+ukuran halo matahari (1 = bawaan). */
-    setAura(k) { aura = Number.isFinite(k) && k > 0 ? k : 1; },
+    setAura(k, color = 0xffb060, strength = 1) {
+      aura = Number.isFinite(k) && k > 0 ? k : 1;
+      auraColor = color;
+      auraStrength = Number.isFinite(strength) ? Math.min(1, Math.max(0, strength)) : 1;
+    },
     update(camera, sunDir, moonDir, look, sunColor) {
-      place([sunGlow, sunDisc], camera, sunDir);
+      place([sunAura, sunGlow, sunDisc], camera, sunDir);
       place([moonGlow, moonDisc], camera, moonDir);
       sunDisc.material.opacity = look.sunOpacity;
       sunGlow.material.opacity = Math.min(1, look.sunOpacity * 0.6 * aura);
@@ -103,9 +113,16 @@ export function createCelestialBodies() {
       sunGlow.scale.setScalar(SUN_GLOW * look.glowScale * (1 + (aura - 1) * 0.6));
       moonDisc.material.opacity = look.moonOpacity;
       moonGlow.material.opacity = look.moonOpacity * 0.45;
+      const wide = aura > 1 ? look.sunOpacity * AURA_OPACITY * auraStrength : 0;
+      sunAura.material.opacity = wide;
+      sunAura.material.color.setHex(auraColor);
+      sunAura.visible = wide > 0.005;
+      if (aura > 1) sunDisc.material.color.setHex(auraColor).lerp(WHITE, 0.55);
+      else sunDisc.material.color.setHex(0xfff4d6);
       const visibleSun = look.sunOpacity > 0.01;
       const visibleMoon = look.moonOpacity > 0.01;
       sunGlow.visible = sunDisc.visible = visibleSun;
+      if (!visibleSun) sunAura.visible = false;
       moonGlow.visible = moonDisc.visible = visibleMoon;
     },
   };

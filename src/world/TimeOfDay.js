@@ -205,7 +205,7 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
     get fogLimit() { return fogLimit; },
     get overrides() { return over; },
     /** Pengali aura matahari (gaya kartun). */
-    setAura(k) { bodies.setAura(k); },
+    setAura(k, color, strength) { bodies.setAura(k, color, strength); },
     /** Pengali elevasi matahari siang (1 = asli); gaya kartun memakai < 1. */
     setElevationScale(k) { setOverride({ elevScale: THREE.MathUtils.clamp(Number(k) || 1, 0.3, 1) }); },
     update(dt, ctx, bikeState) {
