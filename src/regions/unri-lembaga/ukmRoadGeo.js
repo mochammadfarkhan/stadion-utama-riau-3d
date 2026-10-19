@@ -76,7 +76,7 @@ export function ditchProfile({ width, depth, wall }, buried = 0.06) {
  * Parit beton U terbuka: profil diekstrusi sepanjang `line` (region-lokal), per bagian normal mendatar (flat shading),
  * tinggi dasar = tanah di sumbu. `caps` = stasiun tutup pelat {x, z, tx, tz}. UV = meter (tekstur beton 2 m).
  */
-export function ditchGeometry(line, spec, heightAt, caps = [], step = 1.5) {
+export function ditchGeometry(line, spec, heightAt, caps = [], step = 1.5, extras = []) {
   const samples = resample(line, step);
   const centers = samples.map((s) => s.p);
   const prof = ditchProfile(spec);
@@ -110,7 +110,7 @@ export function ditchGeometry(line, spec, heightAt, caps = [], step = 1.5) {
     g.translate(c.x, heightAt(c.x, c.z) + top + 0.035, c.z);
     return g;
   });
-  const parts = [body, ...slabs.map((g) => g.toNonIndexed())].map((g) => {
+  const parts = [body, ...slabs.map((g) => g.toNonIndexed()), ...extras.map((g) => g.toNonIndexed())].map((g) => {
     const out = g.clone();
     if (!out.getAttribute('uv')) out.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(out.getAttribute('position').count * 2), 2));
     return out;

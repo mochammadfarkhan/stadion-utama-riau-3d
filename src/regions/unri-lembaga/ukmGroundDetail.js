@@ -31,7 +31,7 @@ export const UKM_TRASH_BANDS = Object.freeze([
 ].map((b) => Object.freeze({ ...b, box: Object.freeze(b.box) })));
 
 const TILE_M = 16;
-const LITTER_BASE = '#8c7a52';
+const LITTER_BASE = '#9a8056';
 
 const rgba = (hex, a) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
 
@@ -113,11 +113,9 @@ function groundKit() {
     polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
   });
   floor.name = 'lantaiHutanUkm';
-  const mound = new THREE.MeshLambertMaterial({ color: 0xffffff });
-  mound.name = 'gundukanUkm';
-  const trash = new THREE.MeshLambertMaterial({ color: 0xffffff });
-  trash.name = 'sampahUkm';
-  return { map, floor, mound, trash };
+  const detail = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
+  detail.name = 'gundukanSampahUkm';
+  return { map, floor, detail };
 }
 
 const kitOf = () => currentScope().get('ukm:ground-detail', groundKit);
@@ -146,9 +144,9 @@ function tintAttribute(geo) {
     const z = p.getZ(i);
     const v = 0.98 + 0.26 * valueNoise(x, z, 7, 5);
     const g = valueNoise(x, z, 11, 9);
-    col[i * 3] = v * (1.04 - 0.1 * g);
-    col[i * 3 + 1] = v * (0.96 + 0.1 * g);
-    col[i * 3 + 2] = v * 0.94;
+    col[i * 3] = v * (1.16 - 0.1 * g);
+    col[i * 3 + 1] = v * (1.0 + 0.08 * g);
+    col[i * 3 + 2] = v * 0.8;
   }
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   return geo;
@@ -191,49 +189,56 @@ export function trashPoints(plantable, bands = UKM_TRASH_BANDS) {
   return out;
 }
 
+const MOUND_COLORS = Object.freeze([0x7a9a40, 0x6a8c38, 0x86924a, 0x728a3e]);
+const TRASH_COLORS = Object.freeze([0xdcd9cc, 0xc4c1b2, 0x8fa5bd, 0xcdb88c, 0xa8473a, 0x9aa09a]);
+
 const _m = new THREE.Matrix4();
 const _q = new THREE.Quaternion();
 const _e = new THREE.Euler();
 const _c = new THREE.Color();
 
-function instances(geometry, material, list, name, cast = false) {
-  const mesh = new THREE.InstancedMesh(geometry, material, Math.max(list.length, 1));
-  list.forEach((it, i) => {
-    _q.setFromEuler(_e.set(it.tilt ?? 0, it.rot, 0));
-    mesh.setMatrixAt(i, _m.compose(new THREE.Vector3(it.x, it.y, it.z), _q, new THREE.Vector3(it.sx, it.sy, it.sz)));
-    mesh.setColorAt(i, _c.setHex(it.color));
-  });
-  mesh.count = list.length;
-  mesh.instanceMatrix.needsUpdate = true;
-  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  mesh.castShadow = cast;
-  mesh.receiveShadow = true;
-  mesh.computeBoundingSphere();
-  mesh.name = name;
-  return mesh;
+/** Salinan geometri dasar yang ditransformasi (skala, miring, putar, posisi) dan diwarnai (vertex color, sRGB→linear). */
+function bakedPiece(base, it) {
+  const g = base.clone();
+  g.applyMatrix4(_m.compose(new THREE.Vector3(it.x, it.y, it.z), _q.setFromEuler(_e.set(it.tilt ?? 0, it.rot, 0)), new THREE.Vector3(it.sx, it.sy, it.sz)));
+  _c.setHex(it.color);
+  const n = g.getAttribute('position').count;
+  const col = new Float32Array(n * 3);
+  for (let i = 0; i < n; i += 1) col.set([_c.r, _c.g, _c.b], i * 3);
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g;
 }
 
-const MOUND_COLORS = Object.freeze([0x6f8a45, 0x5d7a3a, 0x7d7a4a, 0x6a6c3e]);
-const TRASH_COLORS = Object.freeze([0xdcd9cc, 0xc4c1b2, 0x8fa5bd, 0xcdb88c, 0xa8473a, 0x9aa09a]);
-
-/** Gundukan berlumut (1 InstancedMesh): hemisfer rendah, jari-jari 0,9–2,2 m, tinggi 0,18–0,38 m, dasar terbenam. */
-export function moundMesh(points, heightAt) {
-  const geo = currentScope().get('ukm:mound-geo', () => new THREE.SphereGeometry(1, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2));
-  const list = points.map(([wx, wz]) => {
+/** Item gundukan berlumut: hemisfer rendah, jari-jari 1,4–3,2 m, tinggi 0,35–0,7 m, dasar terbenam. */
+export function moundItems(points, heightAt) {
+  return points.map(([wx, wz]) => {
     const [x, z] = toRegion(wx, wz);
-    const r = 0.9 + 1.3 * hash01(wx, wz, 31);
-    return { x, y: heightAt(x, z) - 0.04, z, rot: hash01(wx, wz, 32) * Math.PI * 2, sx: r, sy: 0.18 + 0.2 * hash01(wx, wz, 33), sz: r * (0.75 + 0.3 * hash01(wx, wz, 34)), color: MOUND_COLORS[Math.floor(hash01(wx, wz, 35) * MOUND_COLORS.length)] };
+    const r = 1.4 + 1.8 * hash01(wx, wz, 31);
+    return { x, y: heightAt(x, z) - 0.04, z, rot: hash01(wx, wz, 32) * Math.PI * 2, sx: r, sy: 0.35 + 0.35 * hash01(wx, wz, 33), sz: r * (0.75 + 0.3 * hash01(wx, wz, 34)), color: MOUND_COLORS[Math.floor(hash01(wx, wz, 35) * MOUND_COLORS.length)] };
   });
-  return instances(geo, kitOf().mound, list, 'ukm-gundukan');
 }
 
-/** Karung/bungkusan sampah (1 InstancedMesh): ellipsoid pipih; warna plastik/karung per instans. */
-export function trashMesh(points, heightAt) {
-  const geo = currentScope().get('ukm:trash-geo', () => new THREE.SphereGeometry(0.5, 7, 5).scale(1.2, 0.5, 0.8));
-  const list = points.map(([wx, wz, k]) => {
+/** Item karung/bungkusan sampah: ellipsoid pipih; warna plastik/karung per item. */
+export function trashItems(points, heightAt) {
+  return points.map(([wx, wz, k]) => {
     const [x, z] = toRegion(wx, wz);
     const s = 0.55 + 0.7 * hash01(wx, wz, 41 + k);
     return { x, y: heightAt(x, z) + 0.06 * s, z, rot: hash01(wx, wz, 42 + k) * Math.PI * 2, tilt: (hash01(wx, wz, 43) - 0.5) * 0.4, sx: s, sy: s, sz: s, color: TRASH_COLORS[Math.floor(hash01(wx, wz, 44 + k) * TRASH_COLORS.length)] };
   });
-  return instances(geo, kitOf().trash, list, 'ukm-sampah');
+}
+
+/** Gundukan + sampah digabung statis ber-vertex-color: SATU draw call (jumlah ±15 + ±15 buah, geometri murah). */
+export function detailMesh(moundPts, trashPts, heightAt) {
+  const mound = new THREE.SphereGeometry(1, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2);
+  const trash = new THREE.SphereGeometry(0.5, 7, 5).scale(1.2, 0.5, 0.8);
+  const pieces = [
+    ...moundItems(moundPts, heightAt).map((it) => bakedPiece(mound, it)),
+    ...trashItems(trashPts, heightAt).map((it) => bakedPiece(trash, it)),
+  ];
+  mound.dispose();
+  trash.dispose();
+  const mesh = new THREE.Mesh(mergeAll(pieces), kitOf().detail);
+  mesh.name = 'ukm-gundukan-sampah';
+  mesh.receiveShadow = true;
+  return mesh;
 }

@@ -13,7 +13,7 @@ import { toRegion } from './placement.js';
 import { UKM_ROOF, ukmToWorld, COMPLEX_BOX } from './sekreUkm.data.js';
 import { UKM_ROADS } from './ukmRoads.data.js';
 import { vegetationInstances, buildVegetationCells, createVegetationKit } from '../../world/vegetation/campusVegetation.js';
-import { litterFloorMesh, moundMesh, trashMesh, moundPoints, trashPoints } from './ukmGroundDetail.js';
+import { litterFloorMesh, detailMesh, moundPoints, trashPoints } from './ukmGroundDetail.js';
 import { staged } from './staged.js';
 
 export { UKM_ROADS };
@@ -60,7 +60,7 @@ export const UKM_ZONES = Object.freeze([
   { id: 'selatan-gedung', box: { minX: -124, maxX: -91, minZ: 1031, maxZ: 1037 }, spacing: 5, fill: 0.9, mix: { v12: 0.55, v14: 0.45 }, seed: 14 },
   { id: 'timur-kompleks', box: { minX: -49.2, maxX: -48, minZ: 905, maxZ: 957 }, spacing: 5.5, fill: 0.85, mix: { v11: 0.55, v13: 0.45 }, seed: 15 },
   { id: 'semak-hutan', box: { minX: -92, maxX: -50.5, minZ: 960, maxZ: 1036 }, spacing: 3.2, fill: 0.55, mix: { v14: 1 }, seed: 16 },
-  { id: 'semak-barat', box: { minX: -136, maxX: -122, minZ: 976, maxZ: 1050 }, spacing: 4.2, fill: 0.4, clear: 6.5, mix: { v14: 1 }, seed: 17 },
+  { id: 'semak-barat', box: { minX: -136, maxX: -122, minZ: 976, maxZ: 1050 }, spacing: 4.2, fill: 0.22, clear: 6.5, mix: { v14: 1 }, seed: 17 },
   { id: 'sekitar-lapangan', box: { minX: -126, maxX: -46, minZ: 901, maxZ: 910 }, spacing: 13, fill: 0.5, mix: { v12: 1 }, seed: 18 },
 ].map((z) => Object.freeze({ ...z, box: Object.freeze(z.box), mix: Object.freeze(z.mix) })));
 
@@ -119,7 +119,6 @@ export function fallbackTreeCells(points, heightAt) {
 export function createUkmVegetationBuilder({ heightAt }) {
   return staged('ukm-vegetasi', [
     () => litterFloorMesh(heightAt),
-    () => moundMesh(moundPoints(plantable), heightAt),
-    () => trashMesh(trashPoints(plantable), heightAt),
+    () => detailMesh(moundPoints(plantable), trashPoints(plantable), heightAt),
   ], null, { merge: false });
 }

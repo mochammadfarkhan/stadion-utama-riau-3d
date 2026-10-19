@@ -7,7 +7,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { currentScope } from '../../engine/ResourceScope.js';
-import { instanceParts } from '../../world/siteutil/instanceParts.js';
 import { createLampPosts, LAMP_POST } from '../../world/props/LampPost.js';
 import { hasDocument } from '../../world/props/canvasText.js';
 import { createRandom } from '../../world/siteutil/rng.js';
@@ -75,7 +74,7 @@ function roadConcreteTexture() {
 /** Beton parit/tutup pelat: lebih gelap, berlumut hijau tipis. */
 function ditchConcreteTexture() {
   return canvasTexture(128, 128, (ctx, w, h, rnd) => {
-    ctx.fillStyle = '#928f86';
+    ctx.fillStyle = '#868a7c';
     ctx.fillRect(0, 0, w, h);
     speckle(ctx, w, h, rnd, 1400, ['#7c7a72', '#a09d93', '#6f7560', '#646f50'], 1);
     ctx.fillStyle = 'rgba(70,90,50,0.16)';
@@ -118,16 +117,14 @@ function roadsideKit() {
     roadMap: road,
     ditchMap: ditch,
     nameMap: name,
-    road: offsetMat(std({ color: road ? 0xffffff : 0xb6b5ae, ...(road ? { map: road } : {}) }), -4),
-    ditch: std({ color: ditch ? 0xffffff : 0xa4a29a, ...(ditch ? { map: ditch } : {}), side: THREE.DoubleSide }),
+    road: offsetMat(std({ color: road ? 0xe6e0cf : 0xb6b5ae, ...(road ? { map: road } : {}) }), -4),
+    ditch: std({ color: ditch ? 0xe2dcc8 : 0xa4a29a, ...(ditch ? { map: ditch } : {}), side: THREE.DoubleSide }),
     name: offsetMat(std({ color: 0xffffff, transparent: true, depthWrite: false, ...(name ? { map: name } : {}) }), -6),
-    pole: new THREE.MeshLambertMaterial({ color: 0x96938b }),
     wire: new THREE.LineBasicMaterial({ color: 0x23262a }),
   };
   kit.road.name = 'jalanBetonUkm';
   kit.ditch.name = 'paritBetonUkm';
   kit.name.name = 'markaNamaJalanUkm';
-  kit.pole.name = 'tiangListrikUkm';
   return kit;
 }
 
@@ -156,20 +153,20 @@ function roadNameMesh(heightAt, kit) {
   return mesh(mergeGeometries(geos, false), kit.name, 'marka-nama-jalan');
 }
 
+/** Parit + tutup pelat + tiang listrik beton dalam SATU mesh (material beton sama; tiang dibakar ke posisinya). */
 function ditchMesh(heightAt, kit) {
-  const geo = ditchGeometry(ROAD_LAYOUT.ditch, { ...ROAD_SPEC.ditch }, heightAt, ROAD_LAYOUT.caps);
-  return mesh(geo, kit.ditch, 'parit-beton-u', { cast: true });
+  const pole = utilityPoleGeometry(ROAD_SPEC.pole);
+  const poles = ROAD_LAYOUT.poles.map((p) => pole.clone().rotateY(p.rotY).translate(p.x, heightAt(p.x, p.z), p.z));
+  pole.dispose();
+  const geo = ditchGeometry(ROAD_LAYOUT.ditch, { ...ROAD_SPEC.ditch }, heightAt, ROAD_LAYOUT.caps, 1.5, poles);
+  return mesh(geo, kit.ditch, 'parit-beton-u');
 }
 
-function poleObjects(heightAt, kit) {
-  const geo = currentScope().get('ukm:pole-geo', () => utilityPoleGeometry(ROAD_SPEC.pole));
-  const positions = ROAD_LAYOUT.poles.map((p) => ({ x: p.x, y: heightAt(p.x, p.z), z: p.z, rotY: p.rotY }));
-  const group = instanceParts([{ geometry: geo, material: kit.pole, castShadow: true, name: 'tiangListrik' }], positions, 'tiang-listrik');
+function wireObjects(heightAt, kit) {
   const wires = new THREE.LineSegments(wireGeometry(ROAD_LAYOUT.poles, ROAD_SPEC.pole.height, heightAt), kit.wire);
   wires.name = 'kabel-listrik';
   wires.frustumCulled = false;
-  group.add(wires);
-  return group;
+  return wires;
 }
 
 /** PJU kampus (LampPost 9 m): instans, lengan menghadap jalan. */
@@ -193,7 +190,7 @@ export function createUkmRoadsideBuilder({ heightAt }) {
     () => roadSurfaceMesh(heightAt, kit),
     () => roadNameMesh(heightAt, kit),
     () => ditchMesh(heightAt, kit),
-    () => poleObjects(heightAt, kit),
+    () => wireObjects(heightAt, kit),
     () => createLampPosts(ukmPjuPositions(heightAt)),
   ], null, { merge: false });
 }

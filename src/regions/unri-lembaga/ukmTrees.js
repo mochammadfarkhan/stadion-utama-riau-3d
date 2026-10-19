@@ -15,12 +15,12 @@ import { hash01 } from '../../world/vegetation/campusVegetation.js';
 export const TREE_GROUP = 'ukm-pohon';
 const BASE = 'models/unri/';
 
-/** Spesies → berkas GLB + jarak LOD (m). `far` = batas LOD1 (sembunyi sesudahnya). */
+/** Spesies → berkas GLB + jarak LOD (m). `far` = batas LOD1 (sembunyi sesudahnya); `scale` = pengali skala dasar (semak 1,5 m terlalu besar bila 1,0). */
 export const TREE_SPECIES = Object.freeze({
-  v11: Object.freeze({ lod0: `${BASE}v11-pohon-ramping.glb`, lod1: `${BASE}v11-pohon-ramping-lod.glb`, near: 46, far: 160 }),
-  v12: Object.freeze({ lod0: `${BASE}v12-pohon-kecil.glb`, lod1: `${BASE}v12-pohon-kecil-lod.glb`, near: 38, far: 140 }),
-  v13: Object.freeze({ lod0: `${BASE}v13-pohon-lurus.glb`, lod1: `${BASE}v13-pohon-lurus-lod.glb`, near: 46, far: 160 }),
-  v14: Object.freeze({ lod0: `${BASE}v14-semak.glb`, lod1: `${BASE}v14-semak-lod.glb`, near: 30, far: 90, shadow: false }),
+  v11: Object.freeze({ lod0: `${BASE}v11-pohon-ramping.glb`, lod1: `${BASE}v11-pohon-ramping-lod.glb`, near: 42, far: 160 }),
+  v12: Object.freeze({ lod0: `${BASE}v12-pohon-kecil.glb`, lod1: `${BASE}v12-pohon-kecil-lod.glb`, near: 34, far: 140 }),
+  v13: Object.freeze({ lod0: `${BASE}v13-pohon-lurus.glb`, lod1: `${BASE}v13-pohon-lurus-lod.glb`, near: 42, far: 160 }),
+  v14: Object.freeze({ lod0: `${BASE}v14-semak.glb`, lod1: `${BASE}v14-semak-lod.glb`, near: 30, far: 90, scale: 0.7 }),
 });
 
 const SCALE = Object.freeze({ min: 0.8, max: 1.25 });
@@ -36,7 +36,7 @@ export function treeInstances(points, heightAt) {
     const h = (salt) => hash01(p.x, p.z, salt + 100);
     return {
       sp: p.sp, x: p.x, y: heightAt(p.x, p.z), z: p.z,
-      scale: SCALE.min + (SCALE.max - SCALE.min) * h(1),
+      scale: (SCALE.min + (SCALE.max - SCALE.min) * h(1)) * (TREE_SPECIES[p.sp].scale ?? 1),
       rot: h(2) * Math.PI * 2,
       tiltX: (h(3) * 2 - 1) * TILT,
       tiltZ: (h(4) * 2 - 1) * TILT,
@@ -104,56 +104,48 @@ function instanceMatrix(it, out) {
   return out.compose(_p.set(it.x, it.y, it.z), _q, _s.setScalar(it.scale));
 }
 
-/** Mesh instans berkapasitas `capacity`, count awal 0, tidak di-culling (batas dinamis). */
-function lodMesh(geometry, material, capacity, name, cast) {
-  const mesh = new THREE.InstancedMesh(geometry, material, Math.max(capacity, 1));
-  mesh.count = 0;
-  mesh.visible = false;
-  mesh.frustumCulled = false;
-  mesh.castShadow = cast;
-  mesh.receiveShadow = true;
-  mesh.name = name;
-  mesh.setColorAt(0, new THREE.Color(1, 1, 1)); // alokasi instanceColor
-  return mesh;
+/** BatchedMesh satu LOD: geometri semua spesies, satu instans per pohon (awal tersembunyi), matriks + tint tetap. */
+function lodBatch(list, order, geoms, material, name, cast) {
+  const vertexCount = geoms.reduce((n, g) => n + g.getAttribute('position').count, 0);
+  const indexCount = geoms.reduce((n, g) => n + g.index.count, 0);
+  const batch = new THREE.BatchedMesh(list.length, vertexCount, indexCount, material);
+  batch.name = name;
+  batch.castShadow = cast;
+  batch.receiveShadow = true;
+  batch.sortObjects = false; // buram: urutan depan-belakang tak perlu
+  batch.frustumCulled = false; // culling per instans tetap aktif (perObjectFrustumCulled)
+  const gid = geoms.map((g) => batch.addGeometry(g));
+  const c = new THREE.Color();
+  const ids = list.map((it) => {
+    const id = batch.addInstance(gid[order.indexOf(it.sp)]);
+    batch.setMatrixAt(id, instanceMatrix(it, _m));
+    batch.setColorAt(id, c.setRGB(it.tint[0], it.tint[1], it.tint[2]));
+    batch.setVisibleAt(id, false);
+    return id;
+  });
+  return { batch, ids };
 }
 
 /**
- * Lapisan pohon: grup + pengendali LOD. `geometries` = {sp: {lod0, lod1}} sudah digabung.
- * @param {{x:number}[]} list hasil treeInstances
+ * Lapisan pohon: grup + pengendali LOD. `geometries` = {sp: {lod0, lod1}} sudah digabung. Dua BatchedMesh saja (LOD0
+ * berbayang, LOD1 tanpa bayangan) berisi semua spesies → draw call tetap kecil berapa pun jumlah pohon.
+ * @param {{sp:string, x:number, z:number}[]} list hasil treeInstances
  */
 export function createTreeLayer(list, geometries, material) {
   const group = new THREE.Group();
   group.name = TREE_GROUP;
-  const layers = Object.entries(TREE_SPECIES).map(([sp, cfg]) => {
-    const items = list.filter((it) => it.sp === sp);
-    if (!items.length || !geometries[sp]) return null;
-    const mats = new Float32Array(items.length * 16);
-    const cols = new Float32Array(items.length * 3);
-    const c = new THREE.Color();
-    items.forEach((it, i) => {
-      instanceMatrix(it, _m).toArray(mats, i * 16);
-      cols.set(c.setRGB(it.tint[0], it.tint[1], it.tint[2]).toArray(), i * 3);
-    });
-    const m0 = lodMesh(geometries[sp].lod0, material, items.length, `${TREE_GROUP}:${sp}:lod0`, true);
-    const m1 = lodMesh(geometries[sp].lod1, material, items.length, `${TREE_GROUP}:${sp}:lod1`, false);
-    if (cfg.shadow === false) m0.castShadow = false;
-    group.add(m0, m1);
-    return { items, mats, cols, m0, m1, near2: cfg.near ** 2, far2: cfg.far ** 2 };
-  }).filter(Boolean);
+  const order = Object.keys(TREE_SPECIES).filter((sp) => geometries[sp] && list.some((it) => it.sp === sp));
+  const items = list.filter((it) => order.includes(it.sp));
+  const near2 = items.map((it) => TREE_SPECIES[it.sp].near ** 2);
+  const far2 = items.map((it) => TREE_SPECIES[it.sp].far ** 2);
+  const l0 = lodBatch(items, order, order.map((sp) => geometries[sp].lod0), material, `${TREE_GROUP}:lod0`, true);
+  const l1 = lodBatch(items, order, order.map((sp) => geometries[sp].lod1), material, `${TREE_GROUP}:lod1`, false);
+  group.add(l0.batch, l1.batch);
 
-  const fill = (mesh, layer, picks) => {
-    picks.forEach((idx, k) => {
-      mesh.instanceMatrix.array.set(layer.mats.subarray(idx * 16, idx * 16 + 16), k * 16);
-      mesh.instanceColor.array.set(layer.cols.subarray(idx * 3, idx * 3 + 3), k * 3);
-    });
-    mesh.count = picks.length;
-    mesh.visible = picks.length > 0;
-    mesh.instanceMatrix.needsUpdate = true;
-    mesh.instanceColor.needsUpdate = true;
-  };
-
-  let last = null;
+  const state = new Uint8Array(items.length); // 0 tersembunyi, 1 LOD0, 2 LOD1
   const stats = { lod0: 0, lod1: 0 };
+  group.userData.stats = stats;
+  let last = null;
   return {
     group,
     stats,
@@ -163,22 +155,23 @@ export function createTreeLayer(list, geometries, material) {
       last = [fx, fz];
       stats.lod0 = 0;
       stats.lod1 = 0;
-      for (const layer of layers) {
-        const near = [];
-        const mid = [];
-        layer.items.forEach((it, i) => {
-          const d2 = (it.x - fx) ** 2 + (it.z - fz) ** 2;
-          if (d2 <= layer.near2) near.push(i);
-          else if (d2 <= layer.far2) mid.push(i);
-        });
-        fill(layer.m0, layer, near);
-        fill(layer.m1, layer, mid);
-        stats.lod0 += near.length;
-        stats.lod1 += mid.length;
-      }
+      items.forEach((it, i) => {
+        const d2 = (it.x - fx) ** 2 + (it.z - fz) ** 2;
+        const want = d2 <= near2[i] ? 1 : d2 <= far2[i] ? 2 : 0;
+        if (want === 1) stats.lod0 += 1;
+        else if (want === 2) stats.lod1 += 1;
+        if (want === state[i]) return;
+        if (state[i] === 1) l0.batch.setVisibleAt(l0.ids[i], false);
+        else if (state[i] === 2) l1.batch.setVisibleAt(l1.ids[i], false);
+        if (want === 1) l0.batch.setVisibleAt(l0.ids[i], true);
+        else if (want === 2) l1.batch.setVisibleAt(l1.ids[i], true);
+        state[i] = want;
+      });
     },
-    /** Paksa evaluasi ulang pada update berikut (mis. sesudah region baru terpasang). */
+    /** Paksa evaluasi ulang pada update berikut. */
     invalidate() { last = null; },
+    /** Lepas tekstur matriks/warna BatchedMesh (disposeTree hanya melepas geometri dan material). */
+    dispose() { l0.batch.dispose(); l1.batch.dispose(); },
   };
 }
 
@@ -205,7 +198,11 @@ export async function upgradeUkmTrees({ root, scope, instances, controller, fall
   try {
     const geometries = await loadTreeGeometries(scope);
     if (isCancelled()) return result;
-    const layer = withScope(scope, () => createTreeLayer(instances, geometries, treeMaterial()));
+    const layer = withScope(scope, () => {
+      const made = createTreeLayer(instances, geometries, treeMaterial());
+      currentScope().get('ukm:tree-layer', () => made, { dispose: (l) => l.dispose() });
+      return made;
+    });
     root.add(layer.group);
     controller.layer = layer;
     result.replaced.push(TREE_GROUP);

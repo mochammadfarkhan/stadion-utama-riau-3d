@@ -25,6 +25,7 @@ const VIEWS = [
   { id: 'jalan-utara', eye: [-138.9, 2.2, 1006], heading: 20, fov: 70, pitch: -1, area: [-110, 1010] },
   { id: 'jalan-selatan', eye: [-138.4, 2.2, 990], heading: 175, fov: 70, pitch: -1, area: [-110, 1010] },
   { id: 'd5-mata', eye: [-101, 1.7, 1004], look: [D5[0], 1.4, D5[1]], fov: 62, area: [-100, 1008] },
+  { id: 'hutan-timur', eye: [-60, 1.8, 1020], heading: 285, fov: 70, pitch: -1, area: [-80, 1015] },
   { id: 'atas-area', eye: [-125, 62, 1040], look: [-110, 0, 1000], fov: 55, area: [-110, 1005] },
   { id: 'atas-jalan', eye: [-125, 28, 1010], look: [-138, 0, 995], fov: 55, area: [-130, 1000] },
   { id: 'malam-streetview', hour: 20.5, eye: [-137.1, 2.5, 999.5], heading: 98, fov: 75, pitch: -0.6, area: [-110, 1010] },
@@ -112,9 +113,7 @@ const PAGE = {
       out.baruRegionTriangles = out.triangles - ri.triangles;
       mine.forEach((n) => { n.visible = true; });
       out.perBagian = sub;
-      const lod = { lod0: 0, lod1: 0 };
-      grp.getObjectByName('ukm-pohon')?.children.forEach((m) => { lod[m.name.endsWith('lod0') ? 'lod0' : 'lod1'] += m.count; });
-      out.pohonInstans = lod;
+      out.pohonInstans = { ...(grp.getObjectByName('ukm-pohon')?.userData.stats ?? {}) };
       s.app.renderFrame();
     }
     return out;
