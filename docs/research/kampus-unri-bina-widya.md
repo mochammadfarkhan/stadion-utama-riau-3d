@@ -287,3 +287,28 @@ Pencarian lanjutan untuk detail stadion mini, Rektorat, danau, dan jembatan. Lab
 11. **Bentuk fisik Jembatan Kupu-Kupu** (sayap/lengkung, lebar, bahan, pagar, lampu) dan koordinatnya — butuh foto/survei dari pengguna atau way OSM.
 12. Bentuk fisik POLIDAN dan GAMA di tepian danau.
 13. Tribun, lintasan, dan lampu Stadion Mini — butuh foto.
+
+### 8b. Tangkapan layar Google Street View dari pengguna (Jan 2025; koordinat kamera 0,4763741; 101,381061) — Rektorat & jembatan
+Sumber: tangkapan layar yang dikirim pengguna (Google Maps, "Kampus Universitas Riau", panoid `_czzmmcBUzfx0GV72TnG0g`). Hanya dipakai sebagai rujukan visual; gambar tidak disimpan di repo.
+
+**Rektorat (tampak depan, T visual)** — mengoreksi bagian 2 (foto 2016) dan komentar `rektorat.js`:
+| Elemen | Pengamatan |
+|---|---|
+| Kanopi pintu masuk | **Biru** (bukan merah), atap datar, fasciа biru dengan huruf timbul gelap **"REKTORAT"**; ditopang tiang bulat biru-abu muda berpangkal putih |
+| Ornamen Melayu | **Selembayung emas** besar: gable segitiga di atas kanopi, isi ukiran/kisi emas, **tanduk bersilang di puncak**, lis emas di tepi. Ada selembayung kecil serupa di sisi/pojok fasad |
+| Fasad | Putih keabu-abuan, ±4–5 lantai; jendela vertikal berbingkai biru; pita sunshade horizontal putih berulang; kolom bulat biru-abu di sayap; AC split di fasad |
+| Lobi | Pintu kaca ganda, tulisan "Selamat Datang Gedung Rektorat Universitas Riau" |
+| Halaman | Rendah: pagar tanaman, semak berbunga, palem; **kerb dicat kuning-hitam**; tiang lampu taman hitam bergaya klasik (lentera krem); jalur paving; ramp berpegangan besi; mobil golf terparkir; bendera merah-putih di pojok |
+| Lantai/ramp | Ramp aspal-beton ke teras depan, pegangan pipa besi putih |
+→ Konsekuensi: **N03 "kanopi merah" harus diganti kanopi biru + selembayung emas**; fasad perlu palet biru-putih (bukan putih polos).
+
+**Jembatan (foto kecil di panel Maps, T visual, sisi danau)**:
+| Elemen | Pengamatan |
+|---|---|
+| Struktur | **Rangka pipa baja putih**: pilon/lengkung tabung tebal putih dengan **kabel penggantung putih** bersebaran (bentuk kipas = "sayap kupu-kupu") |
+| Pagar | Pagar kabel/jaring baja putih dengan tiang vertikal berjarak rapat |
+| Lantai | Jalur beton abu-abu, lebar ±2–3 m [INF], dengan sisi tepi menyatu ke tanggul rumput |
+| Air | Danau hijau keruh; tepian rumput landai |
+Yakin: S (hanya satu foto kecil; jumlah pilon, panjang, tinggi, titik koordinat tidak diketahui).
+
+Gap yang masih terbuka: tampak samping/atas jembatan (jumlah lengkung, bentang), koordinat, serta tampak Stadion Mini. Perlu tangkapan layar Street View tambahan dari pengguna.
