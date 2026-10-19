@@ -11,6 +11,9 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { makeRng } from '../../entities/util.js';
 import { ROOM, WINDOW, DOOR, SELASAR, SELASAR_SEBERANG } from './data.js';
 import { makeCanvas, canvasTexture, fitFont, diamond, tint, FONT } from './canvas.js';
+import { styleState } from '../../engine/styleState.js';
+import { loadPbr } from '../../world/textures/pbr.js';
+import { TILE_M, tierForQuality } from '../../world/textures/pbrCore.js';
 
 const PLESTER_M = 2.0; // meter per ulangan tekstur plester
 const KERAMIK_M = 0.8; // 2 × 2 ubin 40 cm
@@ -266,6 +269,23 @@ function slab(x0, x1, y0, y1, z0, z1) {
   return new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0).translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
 }
 
+/**
+ * Gaya kartun/facet: tambah normal + roughness plester PBR ke dinding kanvas (albedo kanvas dengan bekas selotip dll.
+ * dipertahankan). Lantai tidak diganti: keramik PBR yang tersedia (Tiles074) berupa marmer hitam-putih, bukan keramik krem
+ * ruang sekre. Dilewati bila kualitas tekstur 'rendah' atau gaya 'asli'. Harus dipanggil di dalam withScope interior.
+ */
+function upgradeWallWithPbr(mat, uvMeters) {
+  if (styleState.style === 'asli' || styleState.terrainQuality === 'rendah') return;
+  const set = loadPbr('plaster', { tier: tierForQuality(styleState.terrainQuality), anisotropy: 8, kinds: ['normal', 'orm'] });
+  const r = uvMeters / TILE_M.plaster;
+  for (const t of [set.normalMap, set.roughnessMap]) t?.repeat.set(r, r);
+  mat.normalMap = set.normalMap;
+  mat.normalScale = new THREE.Vector2(0.6, 0.6);
+  mat.roughnessMap = set.roughnessMap;
+  mat.roughness = 1;
+  mat.needsUpdate = true;
+}
+
 /** UV dari koordinat dunia (proyeksi menurut normal dominan) agar tekstur menyambung antar potongan. */
 function worldUv(geo, size) {
   const pos = geo.attributes.position;
@@ -392,6 +412,7 @@ export function buildRoom({ renderer = null } = {}) {
   const plester = new THREE.MeshStandardMaterial({ map: tex(drawPlester, 512, 512, 11), roughness: 0.92 });
   const keramik = new THREE.MeshStandardMaterial({ map: tex(drawKeramik, 512, 512, 21), roughness: 0.32, envMapIntensity: 0.6 });
   const plafon = new THREE.MeshStandardMaterial({ map: tex(drawPlafon, 512, 512, 31), roughness: 0.95 });
+  upgradeWallWithPbr(plester, PLESTER_M);
   const facadeCanvas = makeCanvas(1024, 256);
   drawFacade(facadeCanvas.getContext('2d'), 1024, 256, SELASAR_SEBERANG);
   const facade = new THREE.MeshStandardMaterial({ map: canvasTexture(facadeCanvas, renderer), roughness: 0.9 });
