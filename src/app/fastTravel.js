@@ -1,5 +1,5 @@
 /**
- * Perjalanan cepat (Fase 3 + M7): daftar tujuan (Stadion, Masjid Raya An-Nur, Kampus UNRI: Sekretariat Lembaga & Rektorat)
+ * Perjalanan cepat (Fase 3 + M7): daftar tujuan (Stadion, Masjid Raya An-Nur, Kampus UNRI: Sekre UKM ERC, Sekretariat Lembaga & Rektorat)
  * dan teleport yang menunggu streamer kota, distrik, dan region hero memuat tujuan sebelum layar perjalanan ditutup.
  */
 import { createCollider } from '../core/Collider.js';
@@ -12,6 +12,8 @@ export const ANNUR_AREA_ID = 'pusat';
 
 /** Tujuan kampus (dunia; spec §8.4, titik ukur §9.2 sekre-luar & rektorat), menghadap gedung (yaw π = utara). */
 export const CAMPUS_DESTINATIONS = Object.freeze([
+  // Sekre UKM blok biru (ERC, pintu D5): 3 m di depan pintu, halaman beton, menghadap timur ke gedung (yaw π/2).
+  Object.freeze({ id: 'unri-sekre-ukm', label: 'Kampus UNRI — Sekre UKM (ERC)', x: -96.65, z: 1005.5, yaw: Math.PI / 2 }),
   Object.freeze({ id: 'unri-sekre', label: 'Kampus UNRI — Sekretariat Lembaga', x: -219, z: 1130, yaw: Math.PI }),
   Object.freeze({ id: 'unri-rektorat', label: 'Kampus UNRI — Rektorat', x: -979, z: 860, yaw: Math.PI }),
 ]);

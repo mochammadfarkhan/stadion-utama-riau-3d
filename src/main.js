@@ -57,13 +57,12 @@ import { withPlacement, regionContains } from './regions/Region.js';
 import { unriLembagaRegion } from './regions/unri-lembaga/index.js';
 import { unriRektoratRegion } from './regions/unri-rektorat/index.js';
 import { createHeroOrnamentLayer } from './app/heroOrnaments.js';
-import { LEMBAGA_LAYOUT } from './regions/unri-lembaga/layout.js';
 import { createInteriorPortal } from './app/interiorPortal.js';
 import { createSekreInterior, SEKRE_ID } from './interiors/sekre/index.js';
 import { createPortalTrigger } from './app/portalTrigger.js';
 import { createFadeOverlay } from './ui/FadeOverlay.js';
 import { sekreExitTo } from './regions/unri-lembaga/portalDoors.js';
-import { PLAYER_ROOM_INDEX } from './regions/unri-lembaga/sekre.data.js';
+import { SEKRE_PEMAIN } from './regions/unri-lembaga/sekreUkm.data.js';
 import { createCity } from './city/index.js';
 import { STREAM } from './city/ChunkStreamer.js';
 import { createAttribution } from './ui/Attribution.js';
@@ -388,7 +387,6 @@ function setupPortal({
 }) {
   const fader = createFadeOverlay(document.body);
   lifecycle.add(() => fader.dispose());
-  const ormawa = LEMBAGA_LAYOUT.rooms[PLAYER_ROOM_INDEX];
   const interiors = new Map([[SEKRE_ID, createSekreInterior({ exitTo: sekreExitTo() })]]);
   const teleport = (x, z, yaw) => {
     ents.bike.state = { ...ents.bike.state, x, z, yaw, v: 0 };
@@ -396,7 +394,7 @@ function setupPortal({
   };
   const portal = createInteriorPortal({
     app, input, hud, interiors, regionManager: regions, time, weather, store, audioBus, fader,
-    ctx: { ormawa }, // interiors tidak boleh mengimpor regions: data ormawa pemain diteruskan lewat ctx build
+    ctx: { ormawa: SEKRE_PEMAIN }, // interiors tidak boleh mengimpor regions: data ormawa pemain (ERC) diteruskan lewat ctx build
     bike: { get state() { return ents.bike.state; }, teleport },
     onInteracted: (interiorId, itemId) => story.onInteract(`${interiorId}:${itemId}`), // M5 → objective interact (M7)
     isUiBlocking: () => Boolean(hud.shopOpen || story.journal.open || travel.menu.open

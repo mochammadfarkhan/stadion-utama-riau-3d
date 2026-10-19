@@ -122,11 +122,12 @@ describe('findSpawnNear', () => {
 });
 
 describe('tujuan kampus (M7)', () => {
-  it('campus:true menambah Sekretariat Lembaga & Rektorat (dunia, menghadap utara)', () => {
+  it('campus:true menambah Sekre UKM (ERC) lebih dulu, lalu Sekretariat Lembaga & Rektorat (dunia)', () => {
     const d = travelDestinations({ manifest: null, frame: IDENTITY_FRAME, spawn: LAYOUT.spawn, campus: true });
-    expect(d.map((v) => v.id)).toEqual(['stadion', 'unri-sekre', 'unri-rektorat']);
-    expect(d[1]).toMatchObject({ label: 'Kampus UNRI — Sekretariat Lembaga', x: -219, z: 1130, yaw: Math.PI });
-    expect(d[2]).toMatchObject({ label: 'Kampus UNRI — Rektorat', x: -979, z: 860, yaw: Math.PI });
+    expect(d.map((v) => v.id)).toEqual(['stadion', 'unri-sekre-ukm', 'unri-sekre', 'unri-rektorat']);
+    expect(d[1]).toMatchObject({ label: 'Kampus UNRI — Sekre UKM (ERC)', x: -96.65, z: 1005.5, yaw: Math.PI / 2 });
+    expect(d[2]).toMatchObject({ label: 'Kampus UNRI — Sekretariat Lembaga', x: -219, z: 1130, yaw: Math.PI });
+    expect(d[3]).toMatchObject({ label: 'Kampus UNRI — Rektorat', x: -979, z: 860, yaw: Math.PI });
     expect(travelDestinations({ manifest: null, frame: IDENTITY_FRAME, spawn: LAYOUT.spawn }).map((v) => v.id)).toEqual(['stadion']);
   });
   it('settle tambahan (distrik/region) ikut menentukan status', async () => {
