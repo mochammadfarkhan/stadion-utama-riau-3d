@@ -65,6 +65,7 @@ import { sekreExitTo } from './regions/unri-lembaga/portalDoors.js';
 import { SEKRE_PEMAIN } from './regions/unri-lembaga/sekreUkm.data.js';
 import { createCity } from './city/index.js';
 import { createStyleManager } from './engine/styleManager.js';
+import { updateWaterToon } from './world/shaders/waterToon.js';
 import { STREAM } from './city/ChunkStreamer.js';
 import { createAttribution } from './ui/Attribution.js';
 import { travelDestinations, createFastTravel, waitForRegion } from './app/fastTravel.js';
@@ -250,6 +251,7 @@ async function main() {
   // Gaya grafis (L) + penghematan 3/4: SETELAH bindAll (menimpa AO/vignette/kepadatan) dan sistem timeOfDay/weather (atmosfer ditumpuk).
   const styleMgr = createStyleManager({
     store, app, scene: app.scene, lighting, rig, time, crowd: ents.crowd, bike: ents.bike, terrain, streamLoadRadius: STREAM.loadRadius,
+    frameHooks: [(dt, st) => updateWaterToon(dt, { ...st, rain: weather.intensity })], // air kartun: waktu, matahari, jam, hujan
   });
   app.addSystem(styleMgr.system);
   lifecycle.add(() => styleMgr.dispose());

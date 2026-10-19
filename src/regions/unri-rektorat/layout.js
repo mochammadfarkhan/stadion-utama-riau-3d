@@ -114,6 +114,8 @@ export const LAYOUT = Object.freeze({
     [281.0, 0.0], [285.0, 0.5], [289.5, 4.5], [291.0, 10.5], [290.0, 15.5], [286.5, 19.5], [279.0, 24.5],
     [268.0, 31.0], [261.5, 34.5], [259.0, 34.0], [264.5, 29.0], [272.0, 22.5], [278.0, 16.0], [280.0, 7.0],
   ]),
+  /** Dermaga kayu kecil di ujung timur danau (M8): mulai di taman bundaran, menjorok ke barat ke air. */
+  dermaga: Object.freeze({ start: Object.freeze([279.5, 4.8]), dir: Object.freeze([-1, 0.05]), papan: 8, panjang: 9, lebar: 1.8 }),
   /** Trotoar beton tinggi sisi danau (foto 2016), as 6 m dari as Jl. Muchtar Lutfi selatan. */
   trotoarDanau: freezeRing([[249.0, 43.1], [160.0, 96.1]]),
   /** Jalan setapak beton di tengah median poros. */
