@@ -31,7 +31,7 @@ const POINTS = {
   stadion: { x: null, z: null, yaw: null },
 };
 
-const measure = (n) => async () => {
+const measure = async (n) => {
   const s = window.__sim;
   const info = s.app.renderer.info.render;
   const times = [];
@@ -82,7 +82,7 @@ try {
           }
           await sim.page.waitForTimeout(Number(v.wait));
           if (v.perf) {
-            const m = await sim.page.evaluate(measure(Number(v.frames)));
+            const m = await sim.page.evaluate(measure, Number(v.frames));
             console.log(JSON.stringify({ point: pid, hour, cam, style, extra: v.set, ...m }));
           } else {
             const name = `${pid}-${cam}-${String(hour).replace('.', '')}-${style}${v.facesun ? '-sun' : ''}.jpg`;
