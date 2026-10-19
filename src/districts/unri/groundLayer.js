@@ -7,6 +7,7 @@
  * onChunkRelease(key) → semua dilepas, material terrain asli dipulihkan. Chunk ground gagal → dilewati
  * (peringatan sekali, spec §10). Visibilitas detail (vegetasi/props) per jarak 650 m dari fokus.
  */
+import { styleState } from '../../engine/styleState.js';
 import { Group } from 'three';
 import { withScope } from '../../engine/ResourceScope.js';
 import { freezeStatic } from '../../engine/freezeStatic.js';
@@ -117,10 +118,11 @@ export function createUnriGroundLayer({
 
   const applyVisibility = (rec) => {
     if (!rec.detail || !focus) return;
-    const near = rectDistance(focus.x, focus.z, rec.rect) <= GROUND_LAYER.detailRadius;
+    const radius = GROUND_LAYER.detailRadius * styleState.lod; // gaya hemat: detail lebih dekat saja
+    const near = rectDistance(focus.x, focus.z, rec.rect) <= radius;
     rec.detail.visible = near;
     if (!near) return;
-    const reach = GROUND_LAYER.detailRadius + VEGETATION_CELL * 0.71;
+    const reach = radius + VEGETATION_CELL * 0.71;
     for (const c of rec.vegCells) c.group.visible = Math.hypot(c.x - focus.x, c.z - focus.z) <= reach;
   };
 

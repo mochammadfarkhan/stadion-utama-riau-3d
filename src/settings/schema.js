@@ -64,6 +64,9 @@ export const SETTINGS_SCHEMA = Object.freeze({
           ao: toggle('Ambient occlusion', false),
           vignette: toggle('Vignette', true),
           outline: toggle('Garis tepi', true),
+          gayaGrafis: select('Gaya grafis', 'asli', ['asli', 'kartun', 'facet'], {
+            labels: { asli: 'Asli', kartun: 'Kartun (halus, hemat) — L', facet: 'Facet (low-poly bersegi)' },
+          }),
           crowdDensity: range('Kepadatan penonton', 1, 0, 1, 0.05, { format: 'percent' }),
         }),
       }),
@@ -76,7 +79,11 @@ export const SETTINGS_SCHEMA = Object.freeze({
       view: Object.freeze({
         title: 'Pandangan',
         fields: Object.freeze({
-          mode: select('Mode', 'third', ['third', 'first'], { labels: { third: 'Orang ketiga', first: 'Orang pertama' } }),
+          mode: select('Mode', 'third', ['third', 'first', 'angled'], {
+            labels: { third: 'Orang ketiga', first: 'Orang pertama', angled: '3/4 dari atas (C)' },
+          }),
+          angledLockYaw: toggle('Kunci arah kamera (3/4)', false),
+          angledDistance: range('Jarak kamera 3/4', 24, 10, 45, 0.5, { unit: 'm' }),
           fov: range('Sudut pandang (FOV)', 60, 40, 100, 1, { unit: '°' }),
           sensitivity: range('Sensitivitas mouse', 1, 0.2, 3, 0.05, { unit: '×' }),
           followSmoothing: range('Kehalusan kamera', 6, 1, 15, 0.5),

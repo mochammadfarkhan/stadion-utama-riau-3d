@@ -24,12 +24,19 @@ export function bindCamera(store, { rig, camera, hud = null, app = null }) {
       camera.updateProjectionMatrix();
     }
   });
+  on('camera.angledLockYaw', (v) => { rig.angledLockYaw = Boolean(v); });
+  on('camera.angledDistance', (v) => { if (Math.abs((rig.angledDistance ?? v) - v) > 1e-6) rig.setAngledDistance?.(v); });
   on('camera.sensitivity', (v) => { rig.sensitivity = v; });
   on('camera.followSmoothing', (v) => { rig.followSmoothing = v; });
 
   const sync = {
     update() {
       if (rig.mode !== store.get('camera.mode')) store.set('camera.mode', rig.mode);
+      // Roda mouse mengubah jarak di rig: tulis balik ke pengaturan (dibulatkan skema) bila bergeser cukup jauh.
+      if (rig.angledDistance !== undefined && Math.abs(rig.angledDistance - store.get('camera.angledDistance')) > 0.3) {
+        const stored = store.get('camera.angledDistance');
+        if (store.set('camera.angledDistance', rig.angledDistance) === false) rig.angledDistance = stored;
+      }
     },
   };
   app?.addUpdatable?.(sync);

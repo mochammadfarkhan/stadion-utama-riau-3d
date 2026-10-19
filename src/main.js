@@ -64,6 +64,7 @@ import { createFadeOverlay } from './ui/FadeOverlay.js';
 import { sekreExitTo } from './regions/unri-lembaga/portalDoors.js';
 import { SEKRE_PEMAIN } from './regions/unri-lembaga/sekreUkm.data.js';
 import { createCity } from './city/index.js';
+import { createStyleManager } from './engine/styleManager.js';
 import { STREAM } from './city/ChunkStreamer.js';
 import { createAttribution } from './ui/Attribution.js';
 import { travelDestinations, createFastTravel, waitForRegion } from './app/fastTravel.js';
@@ -94,6 +95,7 @@ async function main() {
   lifecycle.add(() => input.dispose());
   const hud = new HUD(document.getElementById('hud'));
   const rig = new CameraRig(app.camera, app.renderer.domElement);
+  const lodView = { position: rig.lodPoint }; // jarak LOD humanoid/distrik: pemain di mode 3/4, kamera selain itu
   lifecycle.add(() => rig.dispose());
   // Kontrol sentuh + gamepad menulis ke Input yang sama dengan keyboard.
   // Router lihat: kamera sepeda di luar, kamera interior di dalam sekre (target diganti portal.onInsideChange).
@@ -178,7 +180,7 @@ async function main() {
   lifecycle.add(() => anchor.removeFromParent());
   const spawn = region.layout.spawn; // region-lokal: plaza utara, menghadap stadion
   const start = { ...frame.toWorld(spawn.x, spawn.z), yaw: frame.yawToWorld(spawn.yaw) };
-  const ents = buildEntities({ start, world: region, wallet, camera: app.camera, extraVendors: UNRI_VENDORS });
+  const ents = buildEntities({ start, world: region, wallet, camera: lodView, extraVendors: UNRI_VENDORS });
   app.scene.add(ents.group);
   anchor.add(ents.regionGroup);
   lifecycle.add(() => {
@@ -212,7 +214,7 @@ async function main() {
   const regionIdAt = (x, z) => HERO_REGIONS.find((def) => regionContains(def, x, z))?.id ?? null;
   const districtServices = Object.freeze({
     npc: createStudentKit(),
-    camera: app.camera,
+    camera: lodView,
     hour: () => time.hour,
     excludeAt: (x, z) => regionIdAt(x, z) !== null,
   });
@@ -240,6 +242,13 @@ async function main() {
   lifecycle.add(bindAll(store, {
     app, time, lighting, weather, rig, hud, audioBus, crowd: ents.crowd, vendors: ents.vendors,
   }));
+
+  // Gaya grafis (L) + penghematan 3/4: SETELAH bindAll (menimpa AO/vignette/kepadatan) dan sistem timeOfDay/weather (atmosfer ditumpuk).
+  const styleMgr = createStyleManager({
+    store, app, scene: app.scene, lighting, rig, time, crowd: ents.crowd, bike: ents.bike, terrain, streamLoadRadius: STREAM.loadRadius,
+  });
+  app.addSystem(styleMgr.system);
+  lifecycle.add(() => styleMgr.dispose());
 
   const bikePos = new THREE.Vector3();
   app.start((dt, t, rawDt) => {
@@ -309,7 +318,7 @@ function addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, stor
   app.addSystem({
     id: 'keymap',
     phase: 'input',
-    update: () => { if (session.started) handleKeys(input, { rig, hud, ents, shop, time, store, story, travelMenu: travel.menu, portal }); }, // menu terbuka: tombol game diabaikan
+    update: (dt) => { if (session.started) handleKeys(input, { rig, hud, ents, shop, time, store, story, travelMenu: travel.menu, portal, dt }); }, // menu terbuka: tombol game diabaikan
   });
   app.addSystem({
     id: 'story',

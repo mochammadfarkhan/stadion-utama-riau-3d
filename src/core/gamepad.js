@@ -1,6 +1,6 @@
 /**
  * Dukungan gamepad (layout "standard" W3C): stick kiri / D-pad = kayuh & belok, stick kanan = lihat,
- * RT/RB = sprint, LT = rem, A = bel, X = interaksi (E), Y = ganti kamera, B = Esc, Start = jurnal, Back = panel,
+ * RT/RB = sprint, LT = rem, A = bel, X = interaksi (E), Y = siklus kamera (orang ketiga → pertama → 3/4), B = Esc, Start = jurnal, Back = panel,
  * LB = perjalanan cepat (G).
  * Pemeta murni (`padToIntents`) dipisah dari poller agar mudah dites tanpa navigator.
  */
@@ -12,7 +12,7 @@ const BTN = Object.freeze({ A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, 
 
 /** Tombol aksi (sekali per penekanan) → kode tombol keyboard yang setara. */
 const ACTIONS = Object.freeze([
-  [BTN.A, 'Space'], [BTN.X, 'KeyE'], [BTN.Y, 'KeyV'], [BTN.B, 'Escape'], [BTN.START, 'KeyJ'], [BTN.BACK, 'KeyH'],
+  [BTN.A, 'Space'], [BTN.X, 'KeyE'], [BTN.Y, 'CameraCycle'], [BTN.B, 'Escape'], [BTN.START, 'KeyJ'], [BTN.BACK, 'KeyH'],
   [BTN.LB, 'KeyG'],
 ]);
 const HELD_CODES = Object.freeze(['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ShiftLeft']);

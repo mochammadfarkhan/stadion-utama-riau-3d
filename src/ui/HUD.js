@@ -63,7 +63,8 @@ export class HUD {
   }
 
   setCameraMode(mode) {
-    this.#set('cam', mode === 'first' ? 'Kamera: orang pertama (V)' : 'Kamera: orang ketiga (V)');
+    const text = { first: 'Kamera: orang pertama (V)', angled: 'Kamera: 3/4 dari atas (C)' };
+    this.#set('cam', text[mode] ?? 'Kamera: orang ketiga (V)');
   }
 
   /** Teks kamera: nama POV aktif (dengan petunjuk keluar) atau mode kamera pemain. */

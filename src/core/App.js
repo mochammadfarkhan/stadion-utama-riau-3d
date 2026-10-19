@@ -10,6 +10,7 @@ import { RENDER, RENDER_LAYERS } from '../config/constants.js';
 import { DepthRenderPass, OutlinePass } from './postprocessing/OutlinePass.js';
 import { createSystemRunner } from '../engine/SystemRunner.js';
 import { gateSystem } from '../engine/systemGate.js';
+import { GradingShader, tintVector } from './postprocessing/gradingShader.js';
 
 const MAX_DT = 0.05;
 const MAX_PIXEL_RATIO = RENDER.pixelRatio;
@@ -179,6 +180,28 @@ export class App {
     return this.post.vignettePass.enabled;
   }
 
+  /**
+   * Color grading gaya kartun/facet; null = mati (pass dilewati, biaya nol).
+   * @param {{saturation:number, contrast:number, strength:number, highlight:number, shadow:number}|null} g
+   */
+  setGrading(g) {
+    const pass = this.post.gradingPass;
+    pass.enabled = Boolean(g);
+    if (!g) return;
+    const u = pass.uniforms;
+    u.saturation.value = g.saturation;
+    u.contrast.value = g.contrast;
+    u.strength.value = g.strength;
+    tintVector(g.highlight, u.highlight.value);
+    tintVector(g.shadow, u.shadow.value);
+  }
+
+  /** Batas atas pixel ratio dari gaya grafis (Infinity = tanpa batas); pengaturan resolusi tetap dihormati di bawah batas ini. */
+  setPixelCap(cap) {
+    this.pixelCap = cap;
+    if (this.pixelWanted) this.setPixelRatio(this.pixelWanted);
+  }
+
   /** Aktif/nonaktifkan garis tepi tipis (outline screen-space). */
   setOutline(enabled) {
     this.post.outlinePass.enabled = Boolean(enabled);
@@ -212,8 +235,10 @@ export class App {
 
   /** Ubah pixel ratio render (resolusi internal) lalu sesuaikan semua target. */
   setPixelRatio(ratio) {
-    const r = Number(ratio);
-    if (!Number.isFinite(r) || r <= 0) return;
+    const wanted = Number(ratio);
+    if (!Number.isFinite(wanted) || wanted <= 0) return;
+    this.pixelWanted = wanted;
+    const r = Math.min(wanted, this.pixelCap ?? Infinity);
     // Nilai dari pengaturan = batas atas; kontroler adaptif mulai ulang dari sini.
     this.pixelCeiling = r;
     this.adaptive = createAdaptiveResolution({ ceiling: r, floor: ADAPTIVE_MIN_RATIO, targetMs: ADAPTIVE_TARGET_MS });
@@ -412,8 +437,11 @@ function createComposer(renderer, scene, camera) {
   vignettePass.uniforms.darkness.value = RENDER.vignetteDarkness;
   vignettePass.enabled = RENDER.vignette;
   composer.addPass(vignettePass);
+  const gradingPass = new ShaderPass(GradingShader);
+  gradingPass.enabled = false; // aktif hanya pada gaya kartun/facet
+  composer.addPass(gradingPass);
   composer.addPass(new OutputPass());
-  return { composer, gtaoPass: null, scenePass, outlinePass, vignettePass }; // gtaoPass dibuat malas (App.setAO)
+  return { composer, gtaoPass: null, scenePass, outlinePass, vignettePass, gradingPass }; // gtaoPass dibuat malas (App.setAO)
 }
 
 /** Render target HDR composer + DepthTexture (ukuran fisik; diperbarui composer.setSize). */

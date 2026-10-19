@@ -14,7 +14,7 @@ const BUTTONS = Object.freeze([
   ['bel', 'Bel', 'Space', 'tap'],
   ['aksi', 'E', 'KeyE', 'tap'],
   ['sprint', 'Lari', 'ShiftLeft', 'hold'],
-  ['kamera', 'Kamera', 'KeyV', 'tap'],
+  ['kamera', 'Kamera', 'CameraCycle', 'tap'], // siklus third → first → angled
   ['jurnal', 'Jurnal', 'KeyJ', 'tap'],
 ]);
 

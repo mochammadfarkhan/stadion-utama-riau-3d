@@ -31,6 +31,9 @@ import { createKompleksBuilder } from './kompleks.js';
 import { createUkmVegetationBuilder, ukmPlantPoints, fallbackTreeCells } from './ukmVegetation.js';
 import { createUkmRoadsideBuilder, ukmLampHeads } from './ukmRoadside.js';
 import { treeInstances, upgradeUkmTrees } from './ukmTrees.js';
+import { registerContactSource } from '../../engine/contactShadows.js';
+
+const CONTACT_RADIUS = 32; // m: pohon sekitar pemain yang diberi contact shadow
 import { UKM_FRAME } from './sekreUkm.data.js';
 import { buildLembagaProxy } from './proxy.js';
 import { LEMBAGA_POVS } from './povs.js';
@@ -109,6 +112,7 @@ function buildLembaga(ctx) {
     const w = toWorld(LEMBAGA_PLACEMENT, p.x, p.z);
     return { x: w.x, z: w.z, y: h.world(w.x, w.z) };
   });
+  let unregisterBlobs = null;
   const treeLod = { layer: null }; // diisi upgradeUkmTrees; sistem LOD memperbarui per frame
   const work = makers.reduce((prev, make) => prev.then(async (placed) => {
     if (disposed) return placed;
@@ -148,6 +152,12 @@ function buildLembaga(ctx) {
       update: (dt, ctx) => {
         const f = ctx.focus ?? ctx.bikePos;
         if (f && treeLod.layer) treeLod.layer.update(f.x - LEMBAGA_PLACEMENT.x, f.z - LEMBAGA_PLACEMENT.z);
+        if (treeLod.layer && !unregisterBlobs) { // contact shadow pohon (gaya kartun/facet): daftar sekali saat lapisan siap
+          unregisterBlobs = registerContactSource((emit, focus) => treeLod.layer?.blobs(
+            focus.x - LEMBAGA_PLACEMENT.x, focus.z - LEMBAGA_PLACEMENT.z, CONTACT_RADIUS,
+            (x, z, r) => emit(x + LEMBAGA_PLACEMENT.x, z + LEMBAGA_PLACEMENT.z, r),
+          ));
+        }
       },
     }],
     layout: LEMBAGA_LAYOUT,
@@ -161,6 +171,7 @@ function buildLembaga(ctx) {
     dispose() {
       if (disposed) return;
       disposed = true;
+      unregisterBlobs?.();
       signalDisposed();
       group.removeFromParent();
       disposeTree(group, { scope });
