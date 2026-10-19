@@ -3,7 +3,7 @@
  * Bake tekstur PBR: data-src/textures/<ID>/ (hasil download.mjs) -> public/textures/<nama>/{albedo,normal,orm}.<ukuran>.webp
  * + public/textures/manifest.json. ORM: R=AO, G=Roughness, B=0.   npm run bake:tex
  */
-import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
@@ -54,7 +54,9 @@ for (const set of SETS) {
   sets.push(entry);
   console.log(`${entry.name.padEnd(10)} ${entry.sourceId.padEnd(20)} ${entry.sizes.join('/')} ${(entry.bytes / 1024).toFixed(0)} KB avg ${entry.avg}`);
 }
-const manifest = { v: 1, source: SOURCE, sets };
+const prevPath = join(OUT, 'manifest.json');
+const atlases = existsSync(prevPath) ? JSON.parse(readFileSync(prevPath, 'utf8')).atlases : undefined; // atlas daun milik leafAtlas.mjs
+const manifest = { v: 1, source: SOURCE, sets, ...(atlases ? { atlases } : {}) };
 const errs = validateManifest(manifest);
 if (errs.length) throw new Error(`manifest tidak valid:\n${errs.join('\n')}`);
 writeFileSync(join(OUT, 'manifest.json'), `${JSON.stringify(manifest, null, 1)}\n`);

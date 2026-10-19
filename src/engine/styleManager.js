@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {
   ANGLED_SHADOW_EXTENT, ATMOSPHERE, AUTO_QUALITY, GRADING, LOWPOLY_EXCLUDE, LOWPOLY_SAVINGS, STYLES,
 } from '../config/lowpoly.js';
-import { createAutoQuality, effectsAtLevel, stepAutoQuality } from './autoQuality.js';
+import { createAutoQuality, effectsAtLevel, leafCardsAtLevel, stepAutoQuality } from './autoQuality.js';
 import { createContactShadows } from './contactShadows.js';
 import { applyStyleSwap } from './pbrSwap.js';
 import { gradingParams } from './gradingParams.js';
@@ -114,6 +114,8 @@ export function createStyleManager({ store, app, scene, lighting, rig, time = nu
     const fx = effectsAtLevel(quality.level, { bloom: store.get('graphics.bloom'), tiltShift: store.get('graphics.tiltShift') });
     app.setBloom?.(lowpoly && fx.bloom);
     app.setTiltShift?.(lowpoly && fx.tiltShift);
+    // kartu daun pohon (hanya kartun): dipangkas paling akhir oleh auto-turun kualitas, atau dimatikan pengguna
+    setStyleState({ leafCards: style === 'kartun' && leafCardsAtLevel(quality.level, store.get('graphics.kartuDaun') !== false) });
   };
 
   const applyEnvironment = () => {
@@ -164,7 +166,7 @@ export function createStyleManager({ store, app, scene, lighting, rig, time = nu
   };
 
   const onFx = () => {
-    if (!store.get('graphics.bloom') && !store.get('graphics.tiltShift')) quality = createAutoQuality(AUTO_QUALITY);
+    if (!store.get('graphics.bloom') && !store.get('graphics.tiltShift') && style !== 'kartun') quality = createAutoQuality(AUTO_QUALITY);
     applyEffects();
   };
   const unsubs = [
@@ -172,6 +174,7 @@ export function createStyleManager({ store, app, scene, lighting, rig, time = nu
     store.bind('graphics.tanahPbr', updateTerrainQuality),
     store.bind('graphics.bloom', onFx),
     store.bind('graphics.tiltShift', onFx),
+    store.bind('graphics.kartuDaun', onFx),
     store.bind('graphics.gradingStrength', () => applyGrade()),
   ];
   let lastAngled = rig.mode === 'angled';

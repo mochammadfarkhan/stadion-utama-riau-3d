@@ -67,7 +67,7 @@ export const BLOOM = Object.freeze({ threshold: 1.25, knee: 0.5, intensity: 0.32
 export const TILT_SHIFT = Object.freeze({ focus: 0.5, band: 0.2, falloff: 0.28, radius: 1.8, scale: 0.5 });
 
 /** Auto-turun kualitas efek (urutan: tilt-shift -> bloom); histeresis: turun < lowFps selama lowSecs, naik > highFps selama highSecs. */
-export const AUTO_QUALITY = Object.freeze({ lowFps: 45, highFps: 58, lowSecs: 3, highSecs: 3, maxHighSecs: 24, smoothing: 1.0, maxLevel: 2 });
+export const AUTO_QUALITY = Object.freeze({ lowFps: 45, highFps: 58, lowSecs: 3, highSecs: 3, maxHighSecs: 24, smoothing: 1.0, maxLevel: 3 });
 
 /** Contact shadow (blob gelap bundar di bawah pemain & objek). */
 export const CONTACT_SHADOW = Object.freeze({ max: 96, opacity: 0.38, playerRadius: 1.0, y: 0.06 });
