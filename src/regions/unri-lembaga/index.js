@@ -28,7 +28,9 @@ import { createFhDetailBuilder } from './fhMangkrak.js';
 import { createParkingBuilder, upgradeSekreMotors } from './parking.js';
 import { createUkmHeroBuilder, upgradeUkmAssets } from './sekretariatUkm.js';
 import { createKompleksBuilder } from './kompleks.js';
-import { createUkmVegetationBuilder } from './ukmVegetation.js';
+import { createUkmVegetationBuilder, ukmPlantPoints, fallbackTreeCells } from './ukmVegetation.js';
+import { createUkmRoadsideBuilder, ukmLampHeads } from './ukmRoadside.js';
+import { treeInstances, upgradeUkmTrees } from './ukmTrees.js';
 import { UKM_FRAME } from './sekreUkm.data.js';
 import { buildLembagaProxy } from './proxy.js';
 import { LEMBAGA_POVS } from './povs.js';
@@ -96,11 +98,18 @@ function buildLembaga(ctx) {
     () => createUkmHeroBuilder({ baseY: ukmY, mats }),
     () => createKompleksBuilder({ heightAt: h.local }),
     () => createUkmVegetationBuilder({ heightAt: h.local }),
+    () => createUkmRoadsideBuilder({ heightAt: h.local }),
     () => createStadionMiniBuilder({ heightAt: h.local, mats, atlas }),
     () => createStudentCenterBuilder({ heightAt: h.local, heightAtWorld: h.world, mats, atlas, scope }),
     () => createRusunDetailBuilder({ heightAt: h.local, mats, atlas }),
     () => createFhDetailBuilder({ heightAt: h.local, mats, atlas }),
   ];
+  // PJU area sekre UKM: kepala lampu (dunia) dengan tinggi tanah di kakinya (kolam cahaya/halo menempel tanah)
+  const ukmLampsWorld = ukmLampHeads(h.local).map((p) => {
+    const w = toWorld(LEMBAGA_PLACEMENT, p.x, p.z);
+    return { x: w.x, z: w.z, y: h.world(w.x, w.z) };
+  });
+  const treeLod = { layer: null }; // diisi upgradeUkmTrees; sistem LOD memperbarui per frame
   const work = makers.reduce((prev, make) => prev.then(async (placed) => {
     if (disposed) return placed;
     const obj = await runSteps(ctx, scope, withScope(scope, make), isCancelled);
@@ -114,11 +123,18 @@ function buildLembaga(ctx) {
     work.then(async (placed) => {
       if (disposed) return { placed, failed: [], replaced: [], cancelled: true };
       group.userData.lembagaReady = true;
-      const [glb, ukm] = await Promise.all([
+      const points = ukmPlantPoints();
+      const [glb, ukm, trees] = await Promise.all([
         upgradeSekreMotors({ root: content, scope, heightAt: h.local, isCancelled }),
         upgradeUkmAssets({ root: content, scope, heightAt: h.local, isCancelled }),
+        upgradeUkmTrees({
+          root: content, scope, controller: treeLod, isCancelled,
+          instances: treeInstances(points, h.local), fallback: () => fallbackTreeCells(points, h.local),
+        }),
       ]);
-      return { placed, failed: [...glb.failed, ...ukm.failed], replaced: [...glb.replaced, ...ukm.replaced], cancelled: disposed };
+      return {
+        placed, failed: [...glb.failed, ...ukm.failed, ...trees.failed], replaced: [...glb.replaced, ...ukm.replaced, ...trees.replaced], cancelled: disposed,
+      };
     }),
     disposedSignal.then(() => ({ placed: 0, failed: [], replaced: [], cancelled: true })),
   ]);
@@ -127,10 +143,19 @@ function buildLembaga(ctx) {
     group,
     colliders: lembagaColliders,
     minimapLayer: () => {}, // peta dasar region di-bake dari layer minimap (atap, rumput, lintasan)
-    systems: [],
+    systems: [{
+      id: 'unri-lembaga.pohon-lod', phase: 'world',
+      update: (dt, ctx) => {
+        const f = ctx.focus ?? ctx.bikePos;
+        if (f && treeLod.layer) treeLod.layer.update(f.x - LEMBAGA_PLACEMENT.x, f.z - LEMBAGA_PLACEMENT.z);
+      },
+    }],
     layout: LEMBAGA_LAYOUT,
     portals: PORTAL_DOORS,
-    nightLights: { lamps: LEMBAGA_LAYOUT.pju.map((p) => toWorld(LEMBAGA_PLACEMENT, p.x, p.z)), floods: [] },
+    nightLights: {
+      lamps: [...LEMBAGA_LAYOUT.pju.map((p) => toWorld(LEMBAGA_PLACEMENT, p.x, p.z)), ...ukmLampsWorld],
+      floods: [],
+    },
     lateRoot: content,
     ready,
     dispose() {

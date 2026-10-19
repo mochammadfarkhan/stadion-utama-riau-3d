@@ -23,7 +23,9 @@ export const UKM_GLB = 'models/unri/h09-sekre-ukm.glb';
 export const RING_GLB = 'models/unri/h10-ring-basket.glb';
 const NIGHT_EMISSIVE = Object.freeze({ on: 2.6, off: 0 });
 const NIGHT_SIGN = Object.freeze({ on: 0.55, off: 0 });
+const NIGHT_WINDOW = Object.freeze({ on: 0.6, off: 0 }); // jendela menyala hangat samar malam hari
 const LAMP_MATERIAL = 'unri:lampu-emisif';
+const GLASS_MATERIAL = 'unri:kaca';
 const BOARD_MATERIAL = 'unri:papan-nama';
 
 const PLACEHOLDER = Object.freeze({ wall: 0xe4e5df, roof: 0x2352c4, wallTop: 3.75, ridge: 5.77 });
@@ -94,6 +96,11 @@ export function prepareUkmModel(root) {
       if (mat.emissive && mat.emissive.getHex() === 0) mat.emissive.set(0xffe2a8);
       mat.emissiveIntensity = NIGHT_EMISSIVE.off;
       mat.userData.nightEmissive = NIGHT_EMISSIVE;
+    }
+    if (mat?.name === GLASS_MATERIAL) { // satu material kaca = semua jendela: emisif hangat lemah (gedung tidak gelap total)
+      mat.emissive.set(0xffd9a0);
+      mat.emissiveIntensity = NIGHT_WINDOW.off;
+      mat.userData.nightEmissive = NIGHT_WINDOW;
     }
     if (mat?.name === BOARD_MATERIAL) o.visible = false;
   });

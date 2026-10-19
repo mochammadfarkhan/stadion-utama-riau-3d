@@ -10,6 +10,7 @@ import { pointInPolygon, distanceToRing, distanceToSegment } from '../../geo/pol
 import { FOOTPRINTS, toSekre } from './placement.js';
 import { SEKRE_DIM, LEMBAGA_LAYOUT } from './layout.js';
 import { UKM_LAYOUT } from './ukmLayout.js';
+import { ROAD_LAYOUT } from './ukmRoads.data.js';
 
 const BIKE_PAD = 0.55;     // jarak bebas sepeda dari dinding (m)
 const CAMERA_PAD = 0.3;
@@ -53,6 +54,7 @@ export function defaultShapes(layout = LEMBAGA_LAYOUT, ukm = UKM_LAYOUT) {
       ...layout.rusun.jemuran.map((p) => ({ x: p.x, z: p.z, r: 1.1 })),
       ...layout.fh.mounds.map((m) => ({ x: m.x, z: m.z, r: m.r })),
       ...ukm.obstacles, // tiang net, tiang ring, tiang gubuk panahan, tiang lampu & tong halaman UKM
+      ...ROAD_LAYOUT.obstacles, // tiang listrik dan PJU tepi Jl. Prof. Aras Mulyadi
     ],
   };
 }
