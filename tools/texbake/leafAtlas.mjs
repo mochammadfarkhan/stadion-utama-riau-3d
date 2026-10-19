@@ -3,6 +3,7 @@
  * Lukis atlas daun prosedural: public/textures/daun/atlas.webp (1024², alpha bersih) + entri `atlases` di manifest.json.
  *   node tools/texbake/leafAtlas.mjs
  */
+import { Buffer } from 'node:buffer';
 import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';

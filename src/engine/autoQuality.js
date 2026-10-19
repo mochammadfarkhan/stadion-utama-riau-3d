@@ -1,6 +1,6 @@
 /**
  * Auto-turun kualitas efek layar (murni, tanpa three). Level 0 = semua efek sesuai pengaturan, 1 = tilt-shift mati,
- * 2 = tilt-shift + bloom mati. Turun satu level bila FPS (EMA) < lowFps selama lowSecs; naik satu level bila > highFps
+ * 2 = tilt-shift + bloom mati, 3 = + kartu daun pohon mati (kembali ke gumpalan). Turun satu level bila FPS (EMA) < lowFps selama lowSecs; naik satu level bila > highFps
  * selama highSecs (histeresis). Tiap kali turun, syarat naik berikutnya digandakan (maks maxHighSecs) agar efek yang
  * mahal tidak berkedip hidup-mati.
  */
@@ -33,4 +33,9 @@ export function stepAutoQuality(state, dt, cfg = AUTO_QUALITY) {
 /** Efek yang boleh menyala pada level ini (dan diminta pengguna). */
 export function effectsAtLevel(level, wanted) {
   return { tiltShift: Boolean(wanted.tiltShift) && level < 1, bloom: Boolean(wanted.bloom) && level < 2 };
+}
+
+/** Kartu daun pohon (gaya kartun) boleh menyala di level ini? Pemangkasan terakhir: tilt-shift → bloom → kartu daun. */
+export function leafCardsAtLevel(level, wanted = true) {
+  return Boolean(wanted) && level < 3;
 }

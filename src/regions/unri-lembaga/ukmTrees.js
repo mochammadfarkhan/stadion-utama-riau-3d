@@ -106,12 +106,13 @@ function instanceMatrix(it, out) {
 }
 
 /** BatchedMesh satu LOD: geometri semua spesies, satu instans per pohon (awal tersembunyi), matriks + tint tetap. */
-function lodBatch(list, order, geoms, material, name, cast) {
+function lodBatch(list, order, geoms, material, name, cast, { depth = null, tintMul = 1 } = {}) {
   const vertexCount = geoms.reduce((n, g) => n + g.getAttribute('position').count, 0);
   const indexCount = geoms.reduce((n, g) => n + g.index.count, 0);
   const batch = new THREE.BatchedMesh(list.length, vertexCount, indexCount, material);
   batch.name = name;
   batch.castShadow = cast;
+  if (depth) batch.customDepthMaterial = depth; // kartu daun alpha-test: bayangan harus ikut alpha
   batch.receiveShadow = true;
   batch.sortObjects = false; // buram: urutan depan-belakang tak perlu
   batch.frustumCulled = false; // culling per instans tetap aktif (perObjectFrustumCulled)
@@ -120,7 +121,7 @@ function lodBatch(list, order, geoms, material, name, cast) {
   const ids = list.map((it) => {
     const id = batch.addInstance(gid[order.indexOf(it.sp)]);
     batch.setMatrixAt(id, instanceMatrix(it, _m));
-    batch.setColorAt(id, c.setRGB(it.tint[0], it.tint[1], it.tint[2]));
+    batch.setColorAt(id, c.setRGB(...it.tint.map((t) => 1 + (t - 1) * tintMul)));
     batch.setVisibleAt(id, false);
     return id;
   });
@@ -128,20 +129,42 @@ function lodBatch(list, order, geoms, material, name, cast) {
 }
 
 /**
+ * Pilih LOD per instans (murni): 1 = LOD0, 2 = LOD1, 0 = sembunyi. `budget` membatasi jumlah LOD0 (terdekat menang;
+ * sisanya turun ke LOD1) agar overdraw kartu daun terkendali. Mengembalikan Uint8Array baru.
+ */
+export function selectLods(d2, near2, far2, scale2, budget = Infinity) {
+  const want = new Uint8Array(d2.length);
+  const close = [];
+  for (let i = 0; i < d2.length; i += 1) {
+    if (d2[i] <= near2[i] * scale2) { want[i] = 1; close.push(i); } else if (d2[i] <= far2[i] * scale2) want[i] = 2;
+  }
+  if (close.length > budget) {
+    close.sort((a, b) => d2[a] - d2[b]);
+    for (let k = budget; k < close.length; k += 1) want[close[k]] = d2[close[k]] <= far2[close[k]] * scale2 ? 2 : 0;
+  }
+  return want;
+}
+
+/**
  * Lapisan pohon: grup + pengendali LOD. `geometries` = {sp: {lod0, lod1}} sudah digabung. Dua BatchedMesh saja (LOD0
  * berbayang, LOD1 tanpa bayangan) berisi semua spesies → draw call tetap kecil berapa pun jumlah pohon.
+ * `opts.parts` (mode kartu daun) = [{name, material, depth?, tintMul?, geoms:{sp: geometri}}]: LOD0 dipecah per material
+ * (kulit kayu PBR + daun alpha-test), tiap bagian satu BatchedMesh; `opts.budget` = batas pohon LOD0 serentak, `opts.near` = pagar jarak LOD0 (m).
  * @param {{sp:string, x:number, z:number}[]} list hasil treeInstances
  */
-export function createTreeLayer(list, geometries, material) {
+export function createTreeLayer(list, geometries, material, opts = {}) {
+  const { parts = null, budget = Infinity, near = Infinity } = opts;
   const group = new THREE.Group();
   group.name = TREE_GROUP;
   const order = Object.keys(TREE_SPECIES).filter((sp) => geometries[sp] && list.some((it) => it.sp === sp));
   const items = list.filter((it) => order.includes(it.sp));
-  const near2 = items.map((it) => TREE_SPECIES[it.sp].near ** 2);
+  const near2 = items.map((it) => Math.min(TREE_SPECIES[it.sp].near, near) ** 2);
   const far2 = items.map((it) => TREE_SPECIES[it.sp].far ** 2);
-  const l0 = lodBatch(items, order, order.map((sp) => geometries[sp].lod0), material, `${TREE_GROUP}:lod0`, true);
+  const l0 = (parts ?? [{ name: 'lod0', material, geoms: Object.fromEntries(order.map((sp) => [sp, geometries[sp].lod0])) }])
+    .map((p) => lodBatch(items, order, order.map((sp) => p.geoms[sp]), p.material, `${TREE_GROUP}:${p.name ?? 'lod0'}`, true, p));
   const l1 = lodBatch(items, order, order.map((sp) => geometries[sp].lod1), material, `${TREE_GROUP}:lod1`, false);
-  group.add(l0.batch, l1.batch);
+  group.add(...l0.map((x) => x.batch), l1.batch);
+  const setVisible = (set, i, v) => set.forEach((x) => x.batch.setVisibleAt(x.ids[i], v));
 
   const state = new Uint8Array(items.length); // 0 tersembunyi, 1 LOD0, 2 LOD1
   const stats = { lod0: 0, lod1: 0 };
@@ -157,20 +180,18 @@ export function createTreeLayer(list, geometries, material) {
       if (last && s === lastScale && Math.hypot(fx - last[0], fz - last[1]) < UPDATE_MOVE) return;
       last = [fx, fz];
       lastScale = s;
-      const s2 = s * s;
+      const want = selectLods(items.map((it) => (it.x - fx) ** 2 + (it.z - fz) ** 2), near2, far2, s * s, budget);
       stats.lod0 = 0;
       stats.lod1 = 0;
       items.forEach((it, i) => {
-        const d2 = (it.x - fx) ** 2 + (it.z - fz) ** 2;
-        const want = d2 <= near2[i] * s2 ? 1 : d2 <= far2[i] * s2 ? 2 : 0;
-        if (want === 1) stats.lod0 += 1;
-        else if (want === 2) stats.lod1 += 1;
-        if (want === state[i]) return;
-        if (state[i] === 1) l0.batch.setVisibleAt(l0.ids[i], false);
+        if (want[i] === 1) stats.lod0 += 1;
+        else if (want[i] === 2) stats.lod1 += 1;
+        if (want[i] === state[i]) return;
+        if (state[i] === 1) setVisible(l0, i, false);
         else if (state[i] === 2) l1.batch.setVisibleAt(l1.ids[i], false);
-        if (want === 1) l0.batch.setVisibleAt(l0.ids[i], true);
-        else if (want === 2) l1.batch.setVisibleAt(l1.ids[i], true);
-        state[i] = want;
+        if (want[i] === 1) setVisible(l0, i, true);
+        else if (want[i] === 2) l1.batch.setVisibleAt(l1.ids[i], true);
+        state[i] = want[i];
       });
     },
     /**
@@ -189,7 +210,54 @@ export function createTreeLayer(list, geometries, material) {
     /** Paksa evaluasi ulang pada update berikut. */
     invalidate() { last = null; },
     /** Lepas tekstur matriks/warna BatchedMesh (disposeTree hanya melepas geometri dan material). */
-    dispose() { l0.batch.dispose(); l1.batch.dispose(); },
+    dispose() { l0.forEach((x) => x.batch.dispose()); l1.batch.dispose(); },
+  };
+}
+
+/** Lapisan mana yang aktif (murni, dites): kartu daun hanya bila diminta (gaya kartun + kualitas cukup), siap, dan tak gagal dimuat. */
+export function pickTreeLayerMode({ leafCards, ready, failed }) {
+  return leafCards && ready && !failed ? 'cards' : 'blob';
+}
+
+/**
+ * Pembungkus dua lapisan pohon: gumpalan V11–V14 (selalu ada) dan kartu daun V15 (dimuat malas saat `styleState.leafCards`
+ * pertama menyala). Hanya satu yang terlihat; kualitas turun otomatis / mode asli-facet → gumpalan, tanpa muat ulang.
+ * API sama dengan lapisan biasa (update, blobs, invalidate, dispose).
+ */
+export function adaptiveTreeLayer({ base, root, scope, instances, isCancelled, logger = console, loader = null }) {
+  const state = { cards: null, loading: false, failed: false, mode: 'blob' };
+  const show = (mode) => {
+    if (mode === state.mode) return;
+    state.mode = mode;
+    base.group.visible = mode === 'blob';
+    if (state.cards) state.cards.group.visible = mode === 'cards';
+    base.invalidate();
+    state.cards?.invalidate();
+  };
+  const load = () => {
+    state.loading = true;
+    const make = loader ?? (() => import('./ukmTreeCards.js').then((m) => m.createCardLayer({ scope, instances })));
+    make().then((layer) => {
+      if (isCancelled()) { layer.dispose(); return; }
+      layer.group.visible = false;
+      root.add(layer.group);
+      state.cards = layer;
+    }).catch((err) => {
+      state.failed = true;
+      logger.warn('Pohon kartu daun gagal dimuat, gumpalan dipakai:', err?.message ?? err);
+    });
+  };
+  const active = () => (state.mode === 'cards' ? state.cards : base);
+  return {
+    get mode() { return state.mode; },
+    update(fx, fz) {
+      if (styleState.leafCards && !state.cards && !state.loading && !state.failed) load();
+      show(pickTreeLayerMode({ leafCards: styleState.leafCards, ready: Boolean(state.cards), failed: state.failed }));
+      active().update(fx, fz);
+    },
+    blobs(fx, fz, radius, emit) { active().blobs(fx, fz, radius, emit); },
+    invalidate() { base.invalidate(); state.cards?.invalidate(); },
+    dispose() { base.dispose(); state.cards?.dispose(); },
   };
 }
 
@@ -222,7 +290,7 @@ export async function upgradeUkmTrees({ root, scope, instances, controller, fall
       return made;
     });
     root.add(layer.group);
-    controller.layer = layer;
+    controller.layer = adaptiveTreeLayer({ base: layer, root, scope, instances, isCancelled, logger });
     result.replaced.push(TREE_GROUP);
   } catch (err) {
     logger.warn('Pohon GLB gagal dimuat, kit lama dipakai:', err?.message ?? err);
