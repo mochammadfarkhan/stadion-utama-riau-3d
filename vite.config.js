@@ -28,6 +28,8 @@ export default defineConfig({
         'src/engine/**', 'src/geo/**', 'src/shared/**', 'src/regions/Region.js', 'src/regions/stadion/mask.js',
         'src/districts/District.js', 'src/districts/terrainChunks.js',
       ],
+      // Pengait yang menyentuh renderer/material langsung: diverifikasi di browser, bukan unit test.
+      exclude: ['src/engine/{styleManager,pbrSwap,systemGate}.js'],
       reporter: ['text-summary', 'text'],
       thresholds: { lines: 90, statements: 90, functions: 90, branches: 85 },
     },

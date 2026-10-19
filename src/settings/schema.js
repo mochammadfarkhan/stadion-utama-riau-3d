@@ -64,7 +64,7 @@ export const SETTINGS_SCHEMA = Object.freeze({
           ao: toggle('Ambient occlusion', false),
           vignette: toggle('Vignette', true),
           outline: toggle('Garis tepi', true),
-          gayaGrafis: select('Gaya grafis', 'asli', ['asli', 'kartun', 'facet'], {
+          gayaGrafis: select('Gaya grafis', 'kartun', ['asli', 'kartun', 'facet'], {
             labels: { asli: 'Asli', kartun: 'Kartun (halus, hemat) — L', facet: 'Facet (low-poly bersegi)' },
           }),
           tanahPbr: select('Kualitas tekstur tanah (kartun)', 'auto', ['auto', 'tinggi', 'sedang', 'rendah'], {

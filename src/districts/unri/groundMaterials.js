@@ -23,7 +23,14 @@ export const UNRI_GROUND_COLORS = Object.freeze({
 });
 
 /** Aspal kartun: abu hangat netral menengah (bukan abu-biru gelap; bayangan kartun sudah biru, jadi jangan menambah). */
-export const ASPHALT_PBR_COLOR = 0xc2bcb2;
+export const ASPHALT_PBR_COLOR = 0xd9cfc0;
+/** Pengali kecerahan aspal (>1): di bayangan hanya ada cahaya langit biru, aspal gelap terlihat navy bila albedo terlalu rendah. */
+export const ASPHALT_BRIGHTNESS = 1.55;
+
+const brighten = (m, k) => {
+  m.color.multiplyScalar(k);
+  return m;
+};
 
 const offset = (m, f) => {
   m.polygonOffset = true;
@@ -38,7 +45,7 @@ function createPbrMaterials(quality) {
   const terrain = createTerrainSplatMaterial({ quality, moistBias: 0.35, name: 'unri:tanahSplat' });
   return {
     terrain,
-    asphalt: installAsphaltWear(offset(pbrSurfaceMaterial('asphalt', { ...q, color: ASPHALT_PBR_COLOR }), -1)),
+    asphalt: installAsphaltWear(offset(brighten(pbrSurfaceMaterial('asphalt', { ...q, color: ASPHALT_PBR_COLOR }), ASPHALT_BRIGHTNESS), -1)),
     paving: offset(pbrSurfaceMaterial('paving', { ...q, color: 0xe8e4da }), -2),
     walk: offset(pbrSurfaceMaterial('concrete', { ...q, color: GROUND_COLORS.sidewalk }), -3),
     pitch: offset(pbrSurfaceMaterial('grass', { ...q, color: 0xf2ffe0 }), -1),
