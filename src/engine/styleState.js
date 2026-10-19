@@ -2,7 +2,7 @@
  * Keadaan gaya grafis bersama (pub/sub kecil, tanpa three): gaya, faktor LOD, faktor tile, pengali kepadatan, batas pixel ratio.
  * Konsumen LOD membaca `styleState.lod` tiap evaluasi; styleManager menulis saat gaya/kamera berubah.
  */
-const state = { style: 'asli', angled: false, lod: 1, tileLoad: 1, tileLod0: 1, density: 1, pixelCap: Infinity };
+const state = { style: 'asli', angled: false, lod: 1, tileLoad: 1, tileLod0: 1, density: 1, pixelCap: Infinity, terrainQuality: 'tinggi' };
 const listeners = new Set();
 
 export const styleState = state;

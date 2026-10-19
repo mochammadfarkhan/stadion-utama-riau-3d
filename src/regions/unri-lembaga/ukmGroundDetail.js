@@ -5,7 +5,10 @@
  * generator `jitteredGrid` (kotak dunia → region-lokal), difilter `accept` (zona tanam + jarak aman).
  */
 import * as THREE from 'three';
-import { currentScope } from '../../engine/ResourceScope.js';
+import { currentScope, withScope } from '../../engine/ResourceScope.js';
+import { applyStyleSwap } from '../../engine/pbrSwap.js';
+import { styleState } from '../../engine/styleState.js';
+import { createTerrainSplatMaterial } from '../../world/terrain/terrainSplat.js';
 import { hasDocument } from '../../world/props/canvasText.js';
 import { createRandom } from '../../world/siteutil/rng.js';
 import { mergeAll } from '../../world/siteutil/rounded.js';
@@ -115,10 +118,31 @@ function groundKit() {
   floor.name = 'lantaiHutanUkm';
   const detail = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
   detail.name = 'gundukanSampahUkm';
-  return { map, floor, detail };
+  const scope = currentScope();
+  const pbrCache = new Map();
+  /** Lantai hutan PBR (kartun/facet): tanah splat, dominan serasah lembap + tambal rumput/lumut; dibuat malas per kualitas. */
+  const pbrFloor = (quality) => {
+    let m = pbrCache.get(quality);
+    if (!m) {
+      m = withScope(scope, () => createTerrainSplatMaterial({ quality, moistBias: 0.9, patch: 0.8, gravel: 0, name: 'lantaiHutanUkmPbr' }));
+      m.polygonOffset = true;
+      m.polygonOffsetFactor = -1;
+      m.polygonOffsetUnits = -1;
+      pbrCache.set(quality, m);
+    }
+    return m;
+  };
+  return { map, floor, detail, pbrCache, pbrFloor };
 }
 
-const kitOf = () => currentScope().get('ukm:ground-detail', groundKit);
+function disposeKit(kit) {
+  kit.map?.dispose();
+  kit.floor.dispose();
+  kit.detail.dispose();
+  for (const m of kit.pbrCache.values()) m.dispose(); // tekstur PBR milik scope
+}
+
+const kitOf = () => currentScope().get('ukm:ground-detail', groundKit, { dispose: disposeKit });
 
 /** Noise nilai halus [0, 1) dari hash01 pada kisi `cell` m (bilinear). */
 function valueNoise(x, z, cell, salt) {
@@ -149,6 +173,14 @@ function tintAttribute(geo) {
     col[i * 3 + 2] = v * 0.8;
   }
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const splat = new Float32Array(p.count * 4); // bobot tanah splat PBR: tambal rumput <-> serasah (noise 9 m)
+  for (let i = 0; i < p.count; i += 1) {
+    const n = valueNoise(p.getX(i), p.getZ(i), 9, 13);
+    const t = Math.min(Math.max((n - 0.38) / 0.24, 0), 1);
+    const g = 0.05 + 0.9 * t * t * (3 - 2 * t); // tambal tegas: rumput <-> serasah
+    splat.set([g, 0.93 - g, 0.07, 0], i * 4);
+  }
+  geo.setAttribute('splat', new THREE.BufferAttribute(splat, 4));
   return geo;
 }
 
@@ -160,8 +192,11 @@ export function litterFloorMesh(heightAt, boxes = UKM_LITTER_BOXES) {
     const g = drapePolygon([ring], field, { lift: 0.02 }).translate(-LEMBAGA_PLACEMENT.x, 0, -LEMBAGA_PLACEMENT.z);
     return tintAttribute(g);
   });
-  const mesh = new THREE.Mesh(mergeAll(geos), kitOf().floor);
+  const kit = kitOf();
+  const mesh = new THREE.Mesh(mergeAll(geos), kit.floor);
   mesh.name = 'ukm-serasah';
+  mesh.userData.pbrSwap = { asli: kit.floor, pbr: kit.pbrFloor };
+  applyStyleSwap(mesh, styleState.style, styleState.terrainQuality);
   mesh.receiveShadow = true;
   return mesh;
 }

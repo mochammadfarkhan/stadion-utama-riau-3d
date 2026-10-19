@@ -96,23 +96,23 @@ function loadKind(name, kind, tier, tex, state) {
   });
 }
 
-function createSet(name, tier, anisotropy) {
+function createSet(name, tier, anisotropy, kinds) {
   const state = { dead: false };
-  const map = makeTexture(FALLBACK_AVG, SRGBColorSpace, anisotropy);
-  const normalMap = makeTexture(FLAT_NORMAL, NoColorSpace, anisotropy);
-  const ormMap = makeTexture(FLAT_ORM, NoColorSpace, anisotropy);
+  const map = kinds.includes('albedo') ? makeTexture(FALLBACK_AVG, SRGBColorSpace, anisotropy) : null;
+  const normalMap = kinds.includes('normal') ? makeTexture(FLAT_NORMAL, NoColorSpace, anisotropy) : null;
+  const ormMap = kinds.includes('orm') ? makeTexture(FLAT_ORM, NoColorSpace, anisotropy) : null;
   const set = { map, normalMap, aoMap: ormMap, roughnessMap: ormMap, ormMap, name, tier };
   Object.defineProperty(set, 'state', { value: state, enumerable: false });
   const textures = { albedo: map, normal: normalMap, orm: ormMap };
-  for (const t of Object.values(textures)) registry.set(t, { name, kind: 'placeholder', tier: 0, w: 4, h: 4, bytes: textureBytes(4, 4) });
+  for (const t of Object.values(textures).filter(Boolean)) registry.set(t, { name, kind: 'placeholder', tier: 0, w: 4, h: 4, bytes: textureBytes(4, 4) });
   const ready = hasDocument()
     ? pbrManifest().then(async (m) => {
       const info = m?.sets?.find((s) => s.name === name);
       if (!info || state.dead) return false;
-      if (info.avg && map.image) swapImage(map, colorCanvas(info.avg));
+      if (info.avg && map?.image) swapImage(map, colorCanvas(info.avg));
       const use = resolveTier(tier, info.sizes);
       set.tier = use;
-      const ok = await Promise.all(PBR_KINDS.map((k) => loadKind(name, k, use, textures[k], state)));
+      const ok = await Promise.all(PBR_KINDS.filter((k) => textures[k]).map((k) => loadKind(name, k, use, textures[k], state)));
       return ok.every(Boolean);
     })
     : Promise.resolve(false);
@@ -122,7 +122,7 @@ function createSet(name, tier, anisotropy) {
 
 function disposeSet(set) {
   set.state.dead = true;
-  for (const t of new Set([set.map, set.normalMap, set.ormMap])) {
+  for (const t of new Set([set.map, set.normalMap, set.ormMap].filter(Boolean))) {
     registry.delete(t);
     t.dispose();
   }
@@ -132,10 +132,11 @@ function disposeSet(set) {
  * Set tekstur PBR bernama (cache per ResourceScope aktif; panggil di dalam withScope bila perlu). `set.ready` =
  * Promise<boolean> selesai-dimuat (tidak wajib ditunggu: placeholder tampil lebih dulu).
  * @param {string} name nama set (lihat public/textures/manifest.json)
- * @param {{tier?: 256|512|1024, anisotropy?: number}} [opts]
+ * @param {{tier?: 256|512|1024, anisotropy?: number, kinds?: readonly ('albedo'|'normal'|'orm')[]}} [opts] kinds: subset yang dimuat (hemat memori)
  */
-export function loadPbr(name, { tier = 512, anisotropy = 8 } = {}) {
-  return currentScope().get(`pbr:${name}:${tier}`, () => createSet(name, tier, anisotropy), { dispose: disposeSet });
+export function loadPbr(name, { tier = 512, anisotropy = 8, kinds = PBR_KINDS } = {}) {
+  const key = `pbr:${name}:${tier}:${anisotropy}:${[...kinds].sort().join('')}`;
+  return currentScope().get(key, () => createSet(name, tier, anisotropy, kinds), { dispose: disposeSet });
 }
 
 /** Memori GPU tekstur PBR yang sedang termuat (byte; gambar asli + placeholder), untuk galeri/pengukuran. */

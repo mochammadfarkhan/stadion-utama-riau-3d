@@ -83,3 +83,38 @@ describe('pbrCore: tier dan kualitas tanah', () => {
     for (const q of Object.keys(TERRAIN_LAYERS)) expect(maxTerrainSamples(q)).toBeLessThanOrEqual(8);
   });
 });
+
+describe('tanah splat: atribut bobot dan kualitas efektif', () => {
+  const weights = (g, s, w) => ({ n: 2, grass: Uint8Array.from(g), soil: Uint8Array.from(s), wet: Uint8Array.from(w) });
+  it('splatAttribute menormalkan per sampel dan menandai kota bila semua nol', async () => {
+    const { splatAttribute } = await import('../src/world/terrain/terrainSplat.js');
+    // 2x2: (0,0) rumput penuh, (1,0) tanah 100+basah 100, (0,1) nol (kota), (1,1) rumput 50+tanah 50
+    const wt = weights([255, 0, 0, 100], [0, 100, 0, 100], [0, 100, 0, 0]);
+    const out = splatAttribute(Float32Array.from([0, 0, 4, 0, 0, 4, 4, 4]), wt, { x: 0, z: 0 });
+    expect([...out.slice(0, 4)]).toEqual([1, 0, 0, 0]);
+    expect(out[4 + 1]).toBeCloseTo(0.5); expect(out[4 + 2]).toBeCloseTo(0.5); expect(out[4 + 3]).toBe(0);
+    expect([...out.slice(8, 12)]).toEqual([0, 0, 0, 1]);
+    expect(out[12]).toBeCloseTo(0.5); expect(out[13]).toBeCloseTo(0.5);
+  });
+  it('splatAttribute menginterpolasi bilinear di tengah dan menjepit di luar grid', async () => {
+    const { splatAttribute } = await import('../src/world/terrain/terrainSplat.js');
+    const wt = weights([255, 0, 255, 0], [0, 255, 0, 255], [0, 0, 0, 0]);
+    const out = splatAttribute(Float32Array.from([2, 0, -50, 0, 500, 500]), wt, { x: 0, z: 0 });
+    expect(out[0]).toBeCloseTo(0.5); expect(out[1]).toBeCloseTo(0.5);
+    expect(out[4]).toBeCloseTo(1); // jepit kiri
+    expect(out[9]).toBeCloseTo(1); // jepit kanan-bawah (sampel tanah)
+  });
+  it('facet selalu kualitas rendah; kualitas tak dikenal jatuh ke tinggi', async () => {
+    const { effectiveTerrainQuality } = await import('../src/engine/terrainQuality.js');
+    expect(effectiveTerrainQuality('facet', 'tinggi')).toBe('rendah');
+    expect(effectiveTerrainQuality('kartun', 'sedang')).toBe('sedang');
+    expect(effectiveTerrainQuality('kartun', 'x')).toBe('tinggi');
+  });
+  it('pickSwapMaterial memilih material per gaya', async () => {
+    const { pickSwapMaterial } = await import('../src/engine/pbrSwap.js');
+    const swap = { asli: 'A', pbr: (q) => `P-${q}` };
+    expect(pickSwapMaterial(swap, 'asli', 'tinggi')).toBe('A');
+    expect(pickSwapMaterial(swap, 'kartun', 'sedang')).toBe('P-sedang');
+    expect(pickSwapMaterial(swap, 'facet', 'rendah')).toBe('P-rendah');
+  });
+});

@@ -9,6 +9,9 @@ import { Float32BufferAttribute, Group, Mesh, Vector3 } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { DRAPE, drapePolygon, drapePolyline } from '../../world/terrain/drape.js';
 import { polylineLength, slicePolyline } from '../../geo/lineClip.js';
+import { applyStyleSwap } from '../../engine/pbrSwap.js';
+import { styleState } from '../../engine/styleState.js';
+import { splatAttribute } from '../../world/terrain/terrainSplat.js';
 import { surfaceColors } from './surfaceTint.js';
 
 export const MARKED_CLASSES = Object.freeze(['primary', 'secondary', 'tertiary', 'primary_link', 'secondary_link', 'tertiary_link']);
@@ -74,9 +77,15 @@ export function* buildGroundMeshes(data, surface, { lod, materials, rect, key })
   const mats = { aspal: materials.asphalt, marka: materials.marking, trotoar: materials.walk, plazaPaving: materials.paving, rumput: materials.pitch };
   const out = new Group();
   out.name = `unri:keras:${key}`;
+  const pbrKeys = { aspal: 'asphalt', trotoar: 'walk', plazaPaving: 'paving', rumput: 'pitch' };
   for (const [name, list] of Object.entries(geos)) {
     const mesh = mergedMesh(list, mats[name], `${name}+${key}`);
-    if (mesh) out.add(mesh);
+    if (!mesh) continue;
+    if (pbrKeys[name] && typeof materials.pbr === 'function') { // kartun/facet: aspal/beton/paving/lapangan PBR (jalan UV meter)
+      mesh.userData.pbrSwap = { asli: mats[name], pbr: (q) => materials.pbr(q)[pbrKeys[name]] };
+      applyStyleSwap(mesh, styleState.style, styleState.terrainQuality);
+    }
+    out.add(mesh);
   }
   return out;
 }
@@ -85,9 +94,10 @@ const _v = new Vector3();
 
 /**
  * Warnai semua mesh di bawah `root` (mesh terrain chunk M1) dari bobot permukaan: atribut `color` per simpul
- * (posisi dunia → bilinear grid bobot), material diganti `material` (vertexColors), ditandai permukaan basah.
+ * (posisi dunia → bilinear grid bobot) + atribut `splat` (bobot rumput/tanah/basah/kota untuk shader PBR), material diganti
+ * `material` (vertexColors), ditandai permukaan basah; `pbrTerrain(kualitas)` memberi material splat untuk gaya kartun/facet.
  */
-export function tintTerrainRoot(root, weights, origin, material, tints) {
+export function tintTerrainRoot(root, weights, origin, material, tints, pbrTerrain = null) {
   root.updateWorldMatrix(true, true);
   root.traverse((o) => {
     if (!o.isMesh) return;
@@ -99,7 +109,12 @@ export function tintTerrainRoot(root, weights, origin, material, tints) {
       xz[2 * i + 1] = _v.z;
     }
     o.geometry.setAttribute('color', new Float32BufferAttribute(surfaceColors(xz, weights, origin, tints), 3));
+    o.geometry.setAttribute('splat', new Float32BufferAttribute(splatAttribute(xz, weights, origin), 4));
     o.material = material;
     o.userData.wetSurface = true;
+    if (pbrTerrain) { // kartun/facet: tanah splat PBR (swap otomatis oleh styleManager + sekarang)
+      o.userData.pbrSwap = { asli: material, pbr: pbrTerrain };
+      applyStyleSwap(o, styleState.style, styleState.terrainQuality);
+    }
   });
 }

@@ -8,7 +8,7 @@
  * (peringatan sekali, spec §10). Visibilitas detail (vegetasi/props) per jarak 650 m dari fokus.
  */
 import { styleState } from '../../engine/styleState.js';
-import { Group } from 'three';
+import { BufferGeometry, Group, Mesh } from 'three';
 import { withScope } from '../../engine/ResourceScope.js';
 import { freezeStatic } from '../../engine/freezeStatic.js';
 import { parseTileKey, tileBounds } from '../../geo/tiles.js';
@@ -75,6 +75,7 @@ export function createUnriGroundLayer({
   const root = new Group();
   root.name = 'unri:tanah-root';
   const materials = withScope(scope, () => createUnriGroundMaterials());
+  const wetProxies = new Map(); // kualitas -> off(): material PBR ikut permukaan basah (hujan)
   const vegKit = withScope(scope, () => createVegetationKit());
   const tints = surfaceTints();
   const chunks = new Map();
@@ -110,10 +111,29 @@ export function createUnriGroundLayer({
     rec.terrainOff = null;
     if (!rec.terrain) return;
     for (const [mesh, mat] of rec.terrain.originals) {
+      delete mesh.userData.pbrSwap; // lepas dari penukaran gaya
       mesh.material = mat;
       mesh.userData.wetSurface = false;
     }
     rec.terrain = null;
+  };
+
+  /** Daftarkan material PBR kualitas q ke registry basah lewat mesh bayangan tak terlihat (sekali per kualitas). */
+  const ensureWetProxy = (q) => {
+    if (wetProxies.has(q)) return;
+    const proxy = new Group();
+    proxy.name = `unri:basah-pbr:${q}`;
+    for (const mat of Object.values(materials.pbr(q))) {
+      const m = new Mesh(new BufferGeometry(), mat);
+      m.userData.wetSurface = true;
+      m.visible = false;
+      proxy.add(m);
+    }
+    wetProxies.set(q, registries.registerWet(proxy));
+  };
+  const pbrTerrain = (q) => {
+    ensureWetProxy(q);
+    return materials.pbr(q).terrain;
   };
 
   const applyVisibility = (rec) => {
@@ -152,7 +172,7 @@ export function createUnriGroundLayer({
     terrainRoot.traverse((o) => {
       if (o.isMesh) originals.set(o, o.material);
     });
-    tintTerrainRoot(terrainRoot, data.weights, data.origin, materials.terrain, tints);
+    tintTerrainRoot(terrainRoot, data.weights, data.origin, materials.terrain, tints, pbrTerrain);
     terrainRoot.traverse((o) => {
       if (o.isMesh) o.renderOrder = GROUND_LAYER.terrainRenderOrder;
     });
@@ -266,6 +286,8 @@ export function createUnriGroundLayer({
       if (disposed) return;
       disposed = true;
       for (const key of [...chunks.keys()]) onChunkRelease(key);
+      for (const off of wetProxies.values()) off();
+      wetProxies.clear();
       root.removeFromParent();
     },
   };

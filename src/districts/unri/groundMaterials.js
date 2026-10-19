@@ -5,9 +5,11 @@
  * registry basah memilih berdasarkan NAMA MESH (ground.js), malam berdasarkan userData.nightEmissive.
  */
 import { MeshLambertMaterial, MeshStandardMaterial } from 'three';
-import { currentScope } from '../../engine/ResourceScope.js';
+import { currentScope, withScope } from '../../engine/ResourceScope.js';
 import { COLORS } from '../../config/constants.js';
 import { GROUND_COLORS, surfaceMaterial } from '../../world/Ground.materials.js';
+import { createTerrainSplatMaterial } from '../../world/terrain/terrainSplat.js';
+import { pbrSurfaceMaterial } from '../../world/textures/pbrMaterials.js';
 
 /**
  * Pengali warna. asphalt: tekstur aspal (basis COLORS.asphalt) × 0xb3b0a9 ≈ jalan tersier kota #484b51 (linear:
@@ -25,6 +27,19 @@ const offset = (m, f) => {
   return m;
 };
 
+/** Material PBR (kartun/facet) per tingkat kualitas: tanah splat + jalan/trotoar/paving/lapangan; dibuat malas, di scope pemilik set. */
+function createPbrMaterials(quality) {
+  const q = { quality };
+  const terrain = createTerrainSplatMaterial({ quality, moistBias: 0.35, name: 'unri:tanahSplat' });
+  return {
+    terrain,
+    asphalt: offset(pbrSurfaceMaterial('asphalt', { ...q, color: 0x7e8189 }), -1),
+    paving: offset(pbrSurfaceMaterial('paving', { ...q, color: 0xe8e4da }), -2),
+    walk: offset(pbrSurfaceMaterial('concrete', { ...q, color: GROUND_COLORS.sidewalk }), -3),
+    pitch: offset(pbrSurfaceMaterial('grass', { ...q, color: 0xf2ffe0 }), -1),
+  };
+}
+
 function createSet() {
   const terrain = surfaceMaterial('grass', { color: 0xffffff });
   terrain.vertexColors = true;
@@ -35,7 +50,19 @@ function createSet() {
   water.name = 'unri:air';
   const ditch = offset(new MeshStandardMaterial({ color: UNRI_GROUND_COLORS.ditch, roughness: 0.25, metalness: 0 }), -1);
   ditch.name = 'unri:parit';
+  const scope = currentScope();
+  const pbrCache = new Map();
   return {
+    pbrCache,
+    /** Material PBR untuk kualitas `quality` (dibuat sekali; tekstur dimuat lewat scope pemilik set). */
+    pbr(quality) {
+      let hit = pbrCache.get(quality);
+      if (!hit) {
+        hit = withScope(scope, () => createPbrMaterials(quality));
+        pbrCache.set(quality, hit);
+      }
+      return hit;
+    },
     terrain,
     asphalt: offset(surfaceMaterial('asphalt', { color: UNRI_GROUND_COLORS.asphalt }), -1),
     marking,
@@ -48,10 +75,12 @@ function createSet() {
 }
 
 function disposeSet(set) {
-  for (const m of Object.values(set)) {
+  for (const [key, m] of Object.entries(set)) {
+    if (key === 'pbrCache' || key === 'pbr') continue;
     for (const k of ['map', 'normalMap', 'roughnessMap']) m[k]?.dispose();
     m.dispose();
   }
+  for (const mats of set.pbrCache.values()) for (const m of Object.values(mats)) m.dispose(); // tekstur PBR milik scope
 }
 
 /** Panggil di dalam withScope(scopeDistrik, …). */
