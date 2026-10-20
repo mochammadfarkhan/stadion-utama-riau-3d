@@ -293,12 +293,15 @@ function wallGeometry() {
   const front = (x0, x1, y0, y1) => slab(x0, x1, y0, y1, -hd - t, -hd);
   const zb = REAR.zBack;
   const part = (x0, x1, y0, y1) => slab(x0, x1, y0, y1, hd, hd + t); // dinding pemisah ruang utama | ruang belakang
-  const { doorWc: dw, doorRoom2: dr } = REAR;
+  const { doorRoom3: dw, doorRoom2: dr, wc } = REAR;
+  const wcPart = (x0, x1, y0, y1) => slab(x0, x1, y0, y1, wc.z0, wc.z0 + t); // dinding pintu WC (dari dalam Ruang Kedua)
   return merged([
     slab(-hw - t, -hw, 0, h, -hd - t, zb + t),
     slab(hw, hw + t, 0, h, -hd - t, zb + t),
     slab(-hw, hw, 0, h, zb, zb + t),
-    slab(REAR.xSplit - t / 2, REAR.xSplit + t / 2, 0, h, hd + t, zb), // sekat WC | ruang kedua
+    slab(REAR.xSplit - t / 2, REAR.xSplit + t / 2, 0, h, hd + t, zb), // sekat Ruang Ketiga | Ruang Kedua
+    slab(wc.x0 - t / 2, wc.x0 + t / 2, 0, h, wc.z0 + t, zb), // sisi barat WC
+    wcPart(wc.x0 - t / 2, wc.door.x0, 0, h), wcPart(wc.door.x0, wc.door.x1, wc.door.h, h), wcPart(wc.door.x1, hw, 0, h),
     part(-hw, dw.x0, 0, h), part(dw.x0, dw.x1, dw.h, h), part(dw.x1, dr.x0, 0, h), part(dr.x0, dr.x1, dr.h, h), part(dr.x1, hw, 0, h),
     front(-hw, wx0, 0, h),
     front(wx0, wx1, 0, WINDOW.sill),

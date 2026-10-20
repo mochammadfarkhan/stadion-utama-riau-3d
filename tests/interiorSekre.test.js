@@ -108,22 +108,27 @@ describe('data sekre: interaksi & isi contoh', () => {
   });
 });
 
-describe('denah ERC: ruang utama + ruang kedua + WC', () => {
+describe('denah ERC: ruang utama, dua ruang belakang, WC tersembunyi', () => {
   const c = createRoomCollider({ halfW: D.ROOM.w / 2, halfD: D.ROOM.d / 2, zones: D.ZONES, solids: D.SOLIDS });
-  it('spawn bisa dijalani dan ruang belakang terjangkau lewat pintu dalam', () => {
+  const mid = (d) => (d.x0 + d.x1) / 2;
+  it('spawn bisa dijalani dan dua ruang belakang terjangkau lewat pintu dalam', () => {
     expect(c.isWalkable(D.SPAWN.x, D.SPAWN.z)).toBe(true);
-    const r2 = (D.REAR.doorRoom2.x0 + D.REAR.doorRoom2.x1) / 2;
-    const wc = (D.REAR.doorWc.x0 + D.REAR.doorWc.x1) / 2;
     for (const z of [2.4, 3.0, 3.6]) {
-      expect(c.isWalkable(r2, z)).toBe(true);
-      expect(c.isWalkable(wc, z)).toBe(true);
+      expect(c.isWalkable(mid(D.REAR.doorRoom2), z)).toBe(true);
+      expect(c.isWalkable(mid(D.REAR.doorRoom3), z)).toBe(true);
     }
-    expect(c.isWalkable(r2, 4.5)).toBe(true);
-    expect(c.isWalkable(wc, 5.0)).toBe(true);
+    expect(c.isWalkable(mid(D.REAR.doorRoom2), 4.5)).toBe(true);
+    expect(c.isWalkable(mid(D.REAR.doorRoom3), 5.0)).toBe(true);
+  });
+  it('WC hanya terjangkau dari dalam Ruang Kedua (pintu di dinding z = wc.z0)', () => {
+    const x = mid(D.REAR.wc.door);
+    for (const z of [4.4, D.REAR.wc.z0, 5.3]) expect(c.isWalkable(x, z)).toBe(true);
+    expect(c.isWalkable(2.45, 3.0)).toBe(false); // dinding pemisah utama, bukan pintu WC
   });
   it('dinding pemisah tidak bisa ditembus di luar pintu', () => {
     expect(c.isWalkable(-0.6, 3.0)).toBe(false);
     expect(c.isWalkable(2.4, 3.0)).toBe(false);
     expect(c.isWalkable(D.REAR.xSplit, 4.5)).toBe(false);
+    expect(c.isWalkable(D.REAR.wc.x0, 5.3)).toBe(false);
   });
 });

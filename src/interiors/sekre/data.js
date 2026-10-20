@@ -37,7 +37,7 @@ export const WINDOW_CENTER = freeze({ x: WINDOW.x, y: WINDOW.sill + WINDOW.h / 2
 /** Pintu 0,9 × 2,1 m; daun pintu berengsel di x0, terbuka 85° ke dalam ruang (merapat ke kusen kiri). */
 export const DOOR = freeze({ x0: kx(0.9), x1: kx(0.9) + 0.9, h: 2.1, z: -3.0, openRad: -1.48 });
 /**
- * Selasar di luar ruang ERC (pintu D5 gedung UKM blok biru, sayap utara–selatan; ruang ini sama dengan interior generik 4,2 × 6 m
+ * Selasar di luar ruang ERC (pintu D5 gedung UKM blok biru, sayap utara–selatan; ruang utama diperlebar jadi 6 × 6 m
  * [INFERENSI denah dalam]). Jendela mengintip selasar; panjang & papan nama deret seberang = label ruang lain di gedung.
  */
 export const SELASAR = freeze({ zDekat: -3.15, zSeberang: -6.85, ujungKiri: -6.3, ujungKanan: 10.5, tinggiAtap: 3.4, beratap: true });
@@ -53,7 +53,9 @@ export const ROOM_YAW_OFFSET = PI;
 export const REAR = freeze({
   zBack: 6.0, xSplit: -1.2, h: 4.0,
   doorRoom2: freeze({ x0: 0.1, x1: 1.0, h: 2.1 }),
-  doorWc: freeze({ x0: -2.9, x1: -2.0, h: 2.1 }),
+  doorRoom3: freeze({ x0: -2.9, x1: -2.0, h: 2.1 }),
+  /** WC tersembunyi di pojok tenggara Ruang Kedua: pintunya hanya dari dalam Ruang Kedua. */
+  wc: freeze({ x0: 1.9, z0: 4.8, door: freeze({ x0: 2.0, x1: 2.9, h: 2.1 }) }),
 });
 export const TL_POS = freeze([
   freeze({ x: 0, y: ROOM.h, z: -1.3 }), freeze({ x: 0, y: ROOM.h, z: 1.5 }),
@@ -62,10 +64,13 @@ export const TL_POS = freeze([
 /** Zona jalan kaki (persegi sumbu-sejajar) dan celah pintu; dinding antar zona tidak bisa ditembus. */
 export const ZONES = freeze([
   rectRaw('utama', -ROOM.w / 2, ROOM.w / 2, -ROOM.d / 2, ROOM.d / 2),
-  rectRaw('ruang-kedua', REAR.xSplit, ROOM.w / 2, ROOM.d / 2, REAR.zBack),
-  rectRaw('wc', -ROOM.w / 2, REAR.xSplit, ROOM.d / 2, REAR.zBack),
+  rectRaw('ruang-ketiga', -ROOM.w / 2, REAR.xSplit, ROOM.d / 2, REAR.zBack),
+  rectRaw('ruang-kedua', REAR.xSplit, REAR.wc.x0, ROOM.d / 2, REAR.zBack),
+  rectRaw('ruang-kedua-timur', REAR.wc.x0, ROOM.w / 2, ROOM.d / 2, REAR.wc.z0),
+  rectRaw('wc', REAR.wc.x0, ROOM.w / 2, REAR.wc.z0, REAR.zBack),
   rectRaw('pintu-ruang-kedua', REAR.doorRoom2.x0, REAR.doorRoom2.x1, 2.0, 4.0),
-  rectRaw('pintu-wc', REAR.doorWc.x0, REAR.doorWc.x1, 2.0, 4.0),
+  rectRaw('pintu-ruang-ketiga', REAR.doorRoom3.x0, REAR.doorRoom3.x1, 2.0, 4.0),
+  rectRaw('pintu-wc', REAR.wc.door.x0, REAR.wc.door.x1, 4.0, 5.6),
 ]);
 
 // ---------- Organisasi (DATA CONTOH) ----------
