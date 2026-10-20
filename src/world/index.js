@@ -40,7 +40,7 @@ const MINIMAP_TRIBUNE_PARTS = ['beton'];
  * `mask` (region-lokal): tanah berbentuk mask dan vegetasi/rumput hanya di dalam mask (di luar = kota).
  * `vegetationKeep` (region-lokal): titik boleh ditanami pohon/semak (mis. berjarak dari tepi mask; default = di dalam mask).
  * @param {{layout: object, site?: object, mask?: Array<[number, number]>|null, vegetationKeep?: ((x:number, z:number) => boolean)|null}} opts
- * @returns {{group: THREE.Group, update(dt:number, t:number, focus?:object):void, seatSamples: object[], layout: object}}
+ * @returns {{group: THREE.Group, update(dt:number, t:number, focus?:object):void, seatSamples: object[], layout: object, farDetail: THREE.Object3D[]}}
  */
 export function buildWorld({ layout, site = SITE, mask = null, vegetationKeep = null } = {}) {
   if (!layout) throw new TypeError('buildWorld: layout wajib (diberikan region)');
@@ -48,9 +48,11 @@ export function buildWorld({ layout, site = SITE, mask = null, vegetationKeep = 
   const group = new THREE.Group();
   group.name = 'world';
   const updatables = [];
-  const add = (obj, { merge = true, minimap = false } = {}) => {
+  const farDetail = []; // detail kecil yang disembunyikan region saat pemain jauh (lihat regions/stadion/farDetail.js)
+  const add = (obj, { merge = true, minimap = false, far = false } = {}) => {
     const out = merge ? mergeByMaterial(obj) : obj;
     if (minimap) enableMinimap(out);
+    if (far) farDetail.push(out);
     group.add(out);
     if (out.userData?.update) updatables.push(out.userData.update);
     return out;
@@ -63,22 +65,23 @@ export function buildWorld({ layout, site = SITE, mask = null, vegetationKeep = 
   add(createGrass({ keep }), { merge: false });
   add(withMinimapParts(createShell(), MINIMAP_SHELL_PARTS));
   add(createFacade());
-  const tribune = add(withMinimapParts(createTribune(), MINIMAP_TRIBUNE_PARTS), { merge: false });
+  const tribune = add(withMinimapParts(createTribune(), MINIMAP_TRIBUNE_PARTS), { merge: false, far: true });
   add(createPitch(), { minimap: true });
   add(createTrack(), { minimap: true });
-  add(createDecals(), { merge: false }); // dekal permukaan: 1 InstancedMesh, bukan layer minimap
-  add(createFixtures());
-  add(createSerinditStatue()); // terpisah dari fixtures agar namanya terjaga: model Blender menggantikannya (layout.blenderModels)
-  add(createTunnels());
+  add(createDecals(), { merge: false, far: true }); // dekal permukaan: 1 InstancedMesh, bukan layer minimap
+  add(createFixtures(), { far: true });
+  add(createSerinditStatue(), { far: true }); // terpisah dari fixtures agar namanya terjaga: model Blender menggantikannya (layout.blenderModels)
+  add(createTunnels(), { far: true });
   addStadiumSurroundings(add, layout, site);
-  addPlazaFurniture(add, layout);
-  addParking(add, lots);
+  addPlazaFurniture((obj, opts) => add(obj, { ...opts, far: true }), layout);
+  addParking((obj, opts) => add(obj, { ...opts, far: true }), lots);
 
   const seatSamples = sampleSeats(tribune.userData.tiers, layout.spectatorCount);
   return {
     group,
     seatSamples,
     layout,
+    farDetail,
     update: (dt, t, focus) => updatables.forEach((fn) => fn(dt, t, focus)),
   };
 }
@@ -106,17 +109,17 @@ function collectParkingLots(ground) {
 }
 
 function addStadiumSurroundings(add, layout, site) {
-  add(createFlagpoles());
+  add(createFlagpoles(), { far: true });
   add(createLancangKuning({ x: site.tugu.x, z: site.tugu.z }));
   add(createTanjakMonument({ x: site.tanjakMonument.x, z: site.tanjakMonument.z }));
   add(createGapura({ damaged: true }));
-  add(createGuardPosts(layout.guardPosts));
+  add(createGuardPosts(layout.guardPosts), { far: true });
   const signs = new THREE.Group();
   signs.name = 'signage';
   for (const s of layout.roadSigns) signs.add(placed(createRoadSign({ text: s.text, kind: s.kind }), s));
   for (const b of layout.banners) signs.add(placed(createBanner({ text: b.text }), b));
   for (const b of layout.billboards) signs.add(placed(createBillboard({ text: b.text }), b));
-  add(signs);
+  add(signs, { far: true });
 }
 
 function addPlazaFurniture(add, layout) {

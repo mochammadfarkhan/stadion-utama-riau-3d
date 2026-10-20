@@ -10,8 +10,8 @@ export const WORLD_RECIPES = Object.freeze({
   'unri:dinding': Object.freeze({ set: 'plaster', detail: 0.85, maxSat: 0.45, lift: 1.0, stain: true, rough: 1.0 }),
   'unri:plint': Object.freeze({ set: 'concrete', detail: 0.85, maxSat: 0.4, lift: 1.0, stain: true, rough: 1.0 }),
   'unri:beton': Object.freeze({ set: 'concrete', detail: 0.85, maxSat: 0.4, lift: 1.0, stain: true, rough: 1.0 }),
-  'unri:atap-biru': Object.freeze({ set: 'roofSteel', detail: 0.5, maxSat: 0.42, lift: 1.18, rust: true, rough: 1.0, metal: 0.55 }),
-  'unri:atap-bubungan': Object.freeze({ set: 'roofSteel', detail: 0.5, maxSat: 0.42, lift: 1.1, rust: true, rough: 1.0, metal: 0.55 }),
+  'unri:atap-biru': Object.freeze({ set: 'roofSteel', detail: 0.22, maxSat: 0.42, lift: 1.18, rust: true, rough: 1.0, metal: 0.55 }),
+  'unri:atap-bubungan': Object.freeze({ set: 'roofSteel', detail: 0.22, maxSat: 0.42, lift: 1.1, rust: true, rough: 1.0, metal: 0.55 }),
   'unri:kayu': Object.freeze({ set: 'wood', detail: 0.9, maxSat: 0.7, lift: 1.0, rough: 1.0 }),
 });
 

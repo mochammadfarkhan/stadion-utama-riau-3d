@@ -147,7 +147,7 @@ describe('mountRegion / unmount', () => {
       const scopes = [];
       const createScope = (name) => { const s = createResourceScope(name); scopes.push(s); return s; };
       const m = await mountRegion(app, stadionRegion, { createScope, logger: quiet });
-      expect(app.runner.ids).toEqual(['stadion.world']);
+      expect(app.runner.ids).toEqual(['stadion.world', 'stadion.farDetail']);
       m.unmount();
       expect(app.scene.children).toHaveLength(0);
       expect(app.runner.ids).toEqual([]);

@@ -21,7 +21,10 @@
    "sourceName": "Grass 004",
    "sourceUrl": "https://ambientcg.com/view?id=Grass004",
    "license": "CC0-1.0",
-   "bytes": 371152
+   "bytes": 371152,
+   "ktx2": [
+    512
+   ]
   },
   {
    "name": "soilMoist",
@@ -37,7 +40,10 @@
    "sourceName": "Ground 048",
    "sourceUrl": "https://ambientcg.com/view?id=Ground048",
    "license": "CC0-1.0",
-   "bytes": 294036
+   "bytes": 294036,
+   "ktx2": [
+    512
+   ]
   },
   {
    "name": "soilDry",
@@ -53,7 +59,10 @@
    "sourceName": "Ground 054",
    "sourceUrl": "https://ambientcg.com/view?id=Ground054",
    "license": "CC0-1.0",
-   "bytes": 153928
+   "bytes": 153928,
+   "ktx2": [
+    512
+   ]
   },
   {
    "name": "gravel",
@@ -69,7 +78,10 @@
    "sourceName": "Gravel 023",
    "sourceUrl": "https://ambientcg.com/view?id=Gravel023",
    "license": "CC0-1.0",
-   "bytes": 385764
+   "bytes": 385764,
+   "ktx2": [
+    512
+   ]
   },
   {
    "name": "moss",
@@ -85,7 +97,10 @@
    "sourceName": "Moss 002",
    "sourceUrl": "https://ambientcg.com/view?id=Moss002",
    "license": "CC0-1.0",
-   "bytes": 313886
+   "bytes": 313886,
+   "ktx2": [
+    512
+   ]
   },
   {
    "name": "plaster",
@@ -102,7 +117,11 @@
    "sourceName": "Plaster 001",
    "sourceUrl": "https://ambientcg.com/view?id=Plaster001",
    "license": "CC0-1.0",
-   "bytes": 573390
+   "bytes": 573390,
+   "ktx2": [
+    1024,
+    512
+   ]
   },
   {
    "name": "concrete",
@@ -118,7 +137,10 @@
    "sourceName": "Concrete 034",
    "sourceUrl": "https://ambientcg.com/view?id=Concrete034",
    "license": "CC0-1.0",
-   "bytes": 88706
+   "bytes": 88706,
+   "ktx2": [
+    512
+   ]
   },
   {
    "name": "paving",
@@ -134,7 +156,10 @@
    "sourceName": "Paving Stones 070",
    "sourceUrl": "https://ambientcg.com/view?id=PavingStones070",
    "license": "CC0-1.0",
-   "bytes": 258492
+   "bytes": 258492,
+   "ktx2": [
+    512
+   ]
   },
   {
    "name": "asphalt",
@@ -150,7 +175,10 @@
    "sourceName": "Asphalt 031",
    "sourceUrl": "https://ambientcg.com/view?id=Asphalt031",
    "license": "CC0-1.0",
-   "bytes": 226792
+   "bytes": 226792,
+   "ktx2": [
+    512
+   ]
   },
   {
    "name": "roofSteel",
@@ -167,7 +195,11 @@
    "sourceName": "Corrugated Steel 005",
    "sourceUrl": "https://ambientcg.com/view?id=CorrugatedSteel005",
    "license": "CC0-1.0",
-   "bytes": 319832
+   "bytes": 319832,
+   "ktx2": [
+    1024,
+    512
+   ]
   },
   {
    "name": "wood",
@@ -184,7 +216,11 @@
    "sourceName": "Planks 021",
    "sourceUrl": "https://ambientcg.com/view?id=Planks021",
    "license": "CC0-1.0",
-   "bytes": 445950
+   "bytes": 445950,
+   "ktx2": [
+    1024,
+    512
+   ]
   },
   {
    "name": "tile",
@@ -200,7 +236,10 @@
    "sourceName": "Tiles 074",
    "sourceUrl": "https://ambientcg.com/view?id=Tiles074",
    "license": "CC0-1.0",
-   "bytes": 47864
+   "bytes": 47864,
+   "ktx2": [
+    512
+   ]
   },
   {
    "name": "bark",
@@ -217,7 +256,11 @@
    "sourceName": "Bark 001",
    "sourceUrl": "https://ambientcg.com/view?id=Bark001",
    "license": "CC0-1.0",
-   "bytes": 1125992
+   "bytes": 1125992,
+   "ktx2": [
+    1024,
+    512
+   ]
   }
  ],
  "atlases": [

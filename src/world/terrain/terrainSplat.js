@@ -12,7 +12,7 @@ import { MeshStandardMaterial, Vector3 } from 'three';
 import { loadPbr } from '../textures/pbr.js';
 import { TERRAIN_LAYERS, TILE_M, tierForQuality } from '../textures/pbrCore.js';
 
-const DRY_TINT = Object.freeze([1.04, 0.82, 0.68]); // geser pasir -> tanah laterit Pekanbaru [INFERENSI visual]
+const DRY_TINT = Object.freeze([1.0, 0.86, 0.6]); // geser pasir -> tanah laterit Pekanbaru [INFERENSI visual]
 const MOIST_TINT = Object.freeze([3.6, 2.9, 1.55]);   // serasah gelap -> cokelat-oranye hangat (pengali LINEAR; grading kartun menggeser bayangan ke biru, jadi condong hangat)
 const GRAVEL_TINT = Object.freeze([0.66, 0.62, 0.55]); // kerikil putih bersih -> abu-krem
 const KOTA_COLOR = 0xb9b59a;                          // = CITY_GROUND_COLOR (sambungan ke tile kota)

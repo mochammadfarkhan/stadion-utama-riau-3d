@@ -15,3 +15,6 @@ roofSteel  CorrugatedSteel005   https://ambientcg.com/view?id=CorrugatedSteel005
 wood       Planks021            https://ambientcg.com/view?id=Planks021  (kayu, tile 1.4 m)
 tile       Tiles074             https://ambientcg.com/view?id=Tiles074  (ubin, tile 2.1 m)
 bark       Bark001              https://ambientcg.com/view?id=Bark001  (kulit-pohon, tile 1 m)
+
+Berkas .ktx2 dibuat dari WebP di atas dengan toktx (KTX-Software 4.4.2, Khronos Group, Apache-2.0) memakai penyandian Basis Universal;
+transcoder runtime (public/basis) berasal dari three.js examples (MIT). `npm run bake:ktx` (butuh env TOKTX).

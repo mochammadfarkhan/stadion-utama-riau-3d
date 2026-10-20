@@ -14,6 +14,7 @@ import { LAYOUT } from './layout.js';
 import { STADION_MASK, isVegetationSpot } from './mask.js';
 import { stadionNightLights } from './lamps.js';
 import { STADION_PLACEMENT } from './placement.js';
+import { createFarGate } from './farDetail.js';
 
 export const STADION_ID = 'stadion';
 export { STADION_PLACEMENT };
@@ -31,6 +32,7 @@ function loadModels(scope, models, worldGroup, enabled, isCancelled) {
 function buildStadion({ scope, placement = STADION_PLACEMENT, loadModels: withModels = true }) {
   if (!scope) throw new TypeError('Region stadion: ctx.scope (ResourceScope) wajib');
   const world = withScope(scope, () => buildWorld({ layout: LAYOUT, site: SITE, mask: STADION_MASK, vegetationKeep: isVegetationSpot }));
+  const farGate = createFarGate(world.farDetail);
   const models = createModelGroup();
   world.group.add(models);
   let disposed = false;
@@ -39,7 +41,10 @@ function buildStadion({ scope, placement = STADION_PLACEMENT, loadModels: withMo
     group: world.group,
     colliders: stadionColliders,
     minimapLayer: () => {}, // peta dasar region di-bake App.bakeMinimap dari layer minimap
-    systems: [{ id: 'stadion.world', phase: 'world', update: (dt, ctx) => world.update(dt, ctx.time, ctx.focus), dispose() {} }],
+    systems: [
+      { id: 'stadion.world', phase: 'world', update: (dt, ctx) => world.update(dt, ctx.time, ctx.focus), dispose() {} },
+      { id: 'stadion.farDetail', phase: 'world', update: (dt, ctx) => farGate.update(ctx.focus), dispose() {} },
+    ],
     seatSamples: world.seatSamples,
     layout: LAYOUT,
     nightLights: stadionNightLights(LAYOUT, placement),

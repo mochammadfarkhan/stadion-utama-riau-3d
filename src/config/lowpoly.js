@@ -16,6 +16,8 @@ export const LOWPOLY_SAVINGS = Object.freeze({
 
 /** Frustum bayangan matahari di mode 3/4 (setengah lebar, m) vs. asli (200 m). */
 export const ANGLED_SHADOW_EXTENT = 45;
+/** Setengah lebar frustum bayangan di gaya kartun/facet saat kamera orang pertama/ketiga (asli tetap 200 m): bayangan lebih tajam dan murah. */
+export const KARTUN_SHADOW_EXTENT = 130;
 
 /**
  * Color grading akhir (gaya kartun & facet). `satKnee`/`satCeil`: pembatas saturasi (HSV, ruang linear): saturasi di atas

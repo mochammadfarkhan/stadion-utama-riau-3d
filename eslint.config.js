@@ -18,7 +18,7 @@ const ALL = ['world', 'ui', 'regions', 'districts', 'interiors', 'city', 'core',
 const except = (...keep) => ALL.filter((d) => !keep.includes(d));
 
 export default [
-  { ignores: ['dist/**', 'coverage/**', 'node_modules/**', '.playwright-mcp/**', 'assets-src/**', 'data-src/**'] },
+  { ignores: ['dist/**', 'coverage/**', 'node_modules/**', '.playwright-mcp/**', 'assets-src/**', 'data-src/**', 'public/basis/**'] },
   js.configs.recommended,
   {
     languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: { ...globals.browser } },

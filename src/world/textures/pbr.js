@@ -7,12 +7,14 @@
  */
 import { ImageLoader, LinearFilter, LinearMipmapLinearFilter, NoColorSpace, RepeatWrapping, SRGBColorSpace, Texture } from 'three';
 import { currentScope } from '../../engine/ResourceScope.js';
-import { PBR_KINDS, resolveTier, textureBytes } from './pbrCore.js';
+import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+import { PBR_KINDS, compressedBytes, resolveTier, textureBytes } from './pbrCore.js';
 
 const FLAT_NORMAL = [128, 128, 255];
 const FLAT_ORM = [255, 200, 0];
 const FALLBACK_AVG = '#808080';
 
+let ktx2 = null; // KTX2Loader (Basis) bila renderer didaftarkan dan WASM/Worker tersedia; null = WebP saja
 let manifestPromise = null;
 let manifestData = null;
 const registry = new Map(); // Texture -> {name, kind, tier, w, h, bytes}
@@ -68,6 +70,31 @@ function makeTexture(rgb, colorSpace, anisotropy) {
   return t;
 }
 
+/**
+ * Daftarkan renderer agar tekstur PBR memakai KTX2 (Basis Universal: BC7/ASTC/ETC2 di GPU, ~3-4x lebih kecil di VRAM).
+ * Tanpa pemanggilan ini, atau dengan `?nokt2` di URL, atau bila Worker tidak ada, dipakai WebP.
+ */
+export function setPbrRenderer(renderer) {
+  if (ktx2 || !renderer || typeof Worker === 'undefined' || typeof location === 'undefined') return;
+  if (new URLSearchParams(location.search).has('nokt2')) return;
+  ktx2 = new KTX2Loader().setTranscoderPath(`${import.meta.env?.BASE_URL ?? '/'}basis/`).setWorkerLimit(3).detectSupport(renderer);
+}
+
+/** Pakai mip terkompresi hasil KTX2Loader pada tekstur yang sudah ada (isCompressedTexture adalah properti biasa di three). */
+function applyCompressed(tex, kt) {
+  tex.dispose();
+  tex.isCompressedTexture = true;
+  tex.image = kt.image;
+  tex.mipmaps = kt.mipmaps;
+  tex.format = kt.format;
+  tex.type = kt.type;
+  tex.generateMipmaps = false;
+  tex.flipY = false; // data sudah disimpan lower-left (toktx --lower_left_maps_to_s0t0): orientasi sama dengan flipY = true
+  tex.premultiplyAlpha = false;
+  tex.minFilter = kt.mipmaps.length > 1 ? LinearMipmapLinearFilter : LinearFilter;
+  tex.needsUpdate = true;
+}
+
 /** Ganti isi tekstur dengan gambar asli: dispose dulu agar penyimpanan GPU (ukuran berbeda) dialokasi ulang. */
 function swapImage(tex, image) {
   tex.dispose();
@@ -75,7 +102,21 @@ function swapImage(tex, image) {
   tex.needsUpdate = true;
 }
 
-function loadKind(name, kind, tier, tex, state) {
+async function loadKtx2(name, kind, tier, tex, state) {
+  try {
+    const kt = await ktx2.loadAsync(`${baseUrl()}${name}/${kind}.${tier}.ktx2`);
+    if (state.dead) return true;
+    applyCompressed(tex, kt);
+    registry.set(tex, { name, kind, tier, w: kt.image.width, h: kt.image.height, bytes: compressedBytes(kt.image.width, kt.image.height), compressed: true });
+    return true;
+  } catch (err) {
+    console.warn(`KTX2 ${name}/${kind}.${tier} gagal, memakai WebP:`, err);
+    return false;
+  }
+}
+
+async function loadKind(name, kind, tier, tex, state, useKtx) {
+  if (useKtx && await loadKtx2(name, kind, tier, tex, state)) return true;
   const loader = new ImageLoader();
   return new Promise((resolve) => {
     loader.load(
@@ -112,7 +153,8 @@ function createSet(name, tier, anisotropy, kinds) {
       if (info.avg && map?.image) swapImage(map, colorCanvas(info.avg));
       const use = resolveTier(tier, info.sizes);
       set.tier = use;
-      const ok = await Promise.all(PBR_KINDS.filter((k) => textures[k]).map((k) => loadKind(name, k, use, textures[k], state)));
+      const useKtx = Boolean(ktx2) && Array.isArray(info.ktx2) && info.ktx2.includes(use);
+      const ok = await Promise.all(PBR_KINDS.filter((k) => textures[k]).map((k) => loadKind(name, k, use, textures[k], state, useKtx)));
       return ok.every(Boolean);
     })
     : Promise.resolve(false);

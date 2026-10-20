@@ -29,6 +29,11 @@ export function textureBytes(w, h, mips = true) {
   return Math.round(w * h * 4 * (mips ? 4 / 3 : 1));
 }
 
+/** Perkiraan byte tekstur terkompresi GPU (BC7/ASTC 4x4 = 1 byte per piksel, ETC2 RGB = 0,5) beserta rantai mip. */
+export function compressedBytes(w, h, bytesPerPixel = 1) {
+  return Math.round(w * h * bytesPerPixel * (4 / 3));
+}
+
 /**
  * Lapisan yang dipakai shader tanah per kualitas (jumlah sampel albedo+normal dihitung dari sini, anggaran <= 8):
  * tinggi 5 lapisan + normal; sedang 3 lapisan + normal; rendah albedo saja.

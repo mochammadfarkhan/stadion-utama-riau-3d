@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {
-  ANGLED_SHADOW_EXTENT, ATMOSPHERE, AUTO_QUALITY, GRADING, LOWPOLY_EXCLUDE, LOWPOLY_SAVINGS, STYLES,
+  ANGLED_SHADOW_EXTENT, ATMOSPHERE, AUTO_QUALITY, GRADING, KARTUN_SHADOW_EXTENT, LOWPOLY_EXCLUDE, LOWPOLY_SAVINGS, STYLES,
 } from '../config/lowpoly.js';
 import { createAutoQuality, effectsAtLevel, leafCardsAtLevel, stepAutoQuality } from './autoQuality.js';
 import { createContactShadows } from './contactShadows.js';
@@ -137,7 +137,7 @@ export function createStyleManager({ store, app, scene, lighting, rig, time = nu
     crowd?.setDensity?.(store.get('graphics.crowdDensity') * f.density);
     time?.setFogLimit?.(streamLoadRadius * f.tileLoad);
     contact.setEnabled(style !== 'asli');
-    lighting?.userData?.setShadowExtent?.(angled ? ANGLED_SHADOW_EXTENT : lighting.userData.shadowExtentDefault);
+    lighting?.userData?.setShadowExtent?.(angled ? ANGLED_SHADOW_EXTENT : style === 'asli' ? lighting.userData.shadowExtentDefault : KARTUN_SHADOW_EXTENT);
     if (sun?.shadow) { // ukuran peta bayangan: 1024 saat hemat, selain itu pengaturan kualitas
       const size = saving ? LOWPOLY_SAVINGS.shadowMapSize : SHADOW_SIZES[store.get('graphics.shadowQuality')];
       if (size > 0 && sun.shadow.mapSize.x !== size) {
