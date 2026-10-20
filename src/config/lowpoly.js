@@ -72,7 +72,7 @@ export const TILT_SHIFT = Object.freeze({ focus: 0.5, band: 0.2, falloff: 0.28, 
 export const AUTO_QUALITY = Object.freeze({ lowFps: 45, highFps: 58, lowSecs: 3, highSecs: 3, maxHighSecs: 24, smoothing: 1.0, maxLevel: 3 });
 
 /** Contact shadow (blob gelap bundar di bawah pemain & objek). */
-export const CONTACT_SHADOW = Object.freeze({ max: 96, opacity: 0.38, playerRadius: 1.0, y: 0.06 });
+export const CONTACT_SHADOW = Object.freeze({ max: 192, opacity: 0.38, playerRadius: 1.0, y: 0.06 });
 
 /** Nama material yang TIDAK di-flat-shade pada gaya 'facet' (kaca/air/kain halus tampak jelek bersegi). */
 export const LOWPOLY_EXCLUDE = Object.freeze(['glass', 'kaca', 'water', 'air', 'jendela', 'window', 'sky', 'cloud', 'awan']);

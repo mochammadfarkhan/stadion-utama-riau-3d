@@ -21,6 +21,7 @@ import { buildGroundMeshes, tintTerrainRoot } from './ground.js';
 import { buildWaterMeshes } from './water.js';
 import { buildVegetationCells, createVegetationKit, vegetationInstances } from './vegetation.js';
 import { buildLamps, lampHeads } from './lamps.js';
+import { registerContactSource } from '../../engine/contactShadows.js';
 import { buildStreetProps } from './streetProps.js';
 import { colliderDataFromGround } from './collider.js';
 
@@ -32,6 +33,9 @@ export const GROUND_LAYER = Object.freeze({
   visibilityInterval: 0.5,
   chunkSize: 500,
 });
+
+/** Jarak (m) dari fokus dalam mana tiang PJU mendapat bayangan kontak. */
+const CONTACT_LAMP_RANGE = 40;
 
 const rectDistance = (x, z, b) => Math.hypot(Math.max(b.minX - x, 0, x - b.maxX), Math.max(b.minZ - z, 0, z - b.maxZ));
 
@@ -163,6 +167,15 @@ export function createUnriGroundLayer({
     rec.vegCells = cells;
     rec.offs.push(registries.registerEmissive(detail));
     if (lamps.length) rec.offs.push(registries.registerLamps({ lamps: lampHeads(lamps) }));
+    if (lamps.length) { // bayangan kontak di dasar tiang PJU dekat fokus
+      rec.offs.push(registerContactSource((emit, focus) => {
+        for (const l of lamps) {
+          const dx = l.x - focus.x;
+          const dz = l.z - focus.z;
+          if (dx * dx + dz * dz < CONTACT_LAMP_RANGE * CONTACT_LAMP_RANGE) emit(l.x, l.z, 0.5);
+        }
+      }));
+    }
     applyVisibility(rec);
   }
 
