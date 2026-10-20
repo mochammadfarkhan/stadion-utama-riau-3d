@@ -4,6 +4,7 @@ import {
 } from '../config/lowpoly.js';
 import { createAutoQuality, effectsAtLevel, leafCardsAtLevel, stepAutoQuality } from './autoQuality.js';
 import { createContactShadows } from './contactShadows.js';
+import { updateOcclusionFade } from './occlusionFade.js';
 import { applyStyleSwap } from './pbrSwap.js';
 import { gradingParams } from './gradingParams.js';
 import { encodeFogFar, installFogScatter } from './fogScatter.js';
@@ -220,6 +221,9 @@ export function createStyleManager({ store, app, scene, lighting, rig, time = nu
       const nextQuality = stepAutoQuality(quality, ctx?.rawDt ?? dt, AUTO_QUALITY);
       if (nextQuality.level !== quality.level) { quality = nextQuality; applyEffects(); } else quality = nextQuality;
       contact.update(ctx.focus, bike?.state);
+      const st = bike?.state;
+      const fadeOn = style !== 'asli' && !rig?.firstPersonView && st;
+      updateOcclusionFade(app.camera.position, fadeOn ? { x: st.x, y: terrain.heightAt(st.x, st.z), z: st.z } : null, fadeOn);
     },
     dispose() {},
   };

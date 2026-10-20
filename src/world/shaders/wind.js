@@ -1,5 +1,6 @@
 import { MeshDepthMaterial, RGBADepthPacking } from 'three';
 import { WIND_UNIFORMS, WIND_GLSL_UNIFORMS, WIND_GLSL_FUNC } from './windState.js';
+import { FADE_UNIFORMS, FADE_GLSL_DECL, FADE_GLSL_FRAGMENT } from '../../engine/occlusionFade.js';
 
 /**
  * Menyuntikkan goyangan angin ke material yang SUDAH ADA lewat onBeforeCompile
@@ -49,7 +50,7 @@ function weightExpr(o) {
 }
 
 /** Potongan GLSL yang disisipkan setelah #include <begin_vertex>. */
-function windVertexSnippet(o) {
+function windVertexSnippet(o, fade = true) {
   const flutter = o.flutter > 0
     ? `transformed.z += sin(uWindTime * 6.0 + wWorldPos.y * 3.0) * wWeight * ${f(o.flutter)};`
     : '';
@@ -62,6 +63,7 @@ function windVertexSnippet(o) {
     vec4 wWorld4 = modelMatrix * vec4(position, 1.0);
   #endif
   vec3 wWorldPos = wWorld4.xyz;
+  ${fade ? 'vFadeWorld = wWorldPos;' : ''}
   float wWeight = ${weightExpr(o)};
   transformed += windOffset(wWorldPos, wWeight) * ${f(o.amplitude)};
   ${flutter}
@@ -79,14 +81,19 @@ function normalizeOptions(options = {}) {
 }
 
 /** Hook onBeforeCompile: tautkan uniform by-reference + sisipkan GLSL. */
-function makeOnBeforeCompile(o, snippet) {
+function makeOnBeforeCompile(o, snippet, fade) {
   return (shader) => {
     shader.uniforms.uWindTime = WIND_UNIFORMS.uWindTime;
     shader.uniforms.uWindStrength = WIND_UNIFORMS.uWindStrength;
     shader.uniforms.uWindDir = WIND_UNIFORMS.uWindDir;
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', `#include <common>\n${WIND_GLSL_UNIFORMS}\n${WIND_GLSL_FUNC}`)
+      .replace('#include <common>', `#include <common>\n${WIND_GLSL_UNIFORMS}\n${WIND_GLSL_FUNC}${fade ? FADE_GLSL_DECL : ''}`)
       .replace('#include <begin_vertex>', snippet);
+    if (!fade) return;
+    Object.assign(shader.uniforms, FADE_UNIFORMS);
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>\n${FADE_GLSL_DECL}`)
+      .replace('#include <clipping_planes_fragment>', FADE_GLSL_FRAGMENT);
   };
 }
 
@@ -100,8 +107,9 @@ function makeOnBeforeCompile(o, snippet) {
 export function applyWind(material, options = {}) {
   if (!material || typeof material.onBeforeCompile === 'undefined') throw new Error('applyWind: material tidak valid');
   const o = normalizeOptions(options);
-  const key = `wind:${JSON.stringify(o)}`;
-  material.onBeforeCompile = makeOnBeforeCompile(o, windVertexSnippet(o));
+  const fade = !material.isMeshDepthMaterial; // pass bayangan tidak ikut fade (bayangan tidak boleh bolong)
+  const key = `wind:${JSON.stringify(o)}:${fade ? 'fade' : 'nofade'}`;
+  material.onBeforeCompile = makeOnBeforeCompile(o, windVertexSnippet(o, fade), fade);
   material.customProgramCacheKey = () => key;
   material.userData.wind = o;
   material.needsUpdate = true;
