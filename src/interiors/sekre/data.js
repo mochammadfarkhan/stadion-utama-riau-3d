@@ -43,20 +43,18 @@ export const TL_POS = freeze([freeze({ x: 0, y: ROOM.h, z: -1.3 }), freeze({ x: 
 
 // ---------- Organisasi (DATA CONTOH) ----------
 export const ORGANISASI = freeze({
-  singkatan: 'ERC', nama: 'ERC', kabinet: 'Kabinet Harmoni Bertuah', periode: '2026/2027',
+  singkatan: 'ERC', nama: 'Engineering Robotics Club', kabinet: 'Kabinet Harmoni Bertuah', periode: '2026/2027',
   motto: 'Bergerak · Berkarya · Bermakna', warna: '#c99a00', warna2: '#6fbfe8',
 });
 const p = (jabatan, nama) => freeze({ jabatan, nama });
 const divisi = (nama, koor, anggota) => freeze({ nama, koor, anggota: freeze(anggota) });
 export const STRUKTUR = freeze({
-  inti: freeze([p('Ketua Umum', 'Fajar Ramadhan'), p('Wakil Ketua', 'Nurul Aisyah')]),
-  sekben: freeze([p('Sekretaris', 'Dimas Pratama'), p('Bendahara', 'Sari Wulandari')]),
+  inti: freeze([p('Ketua', 'Farkhan'), p('Wakil Ketua', 'Abbiyu')]),
+  sekben: freeze([p('Bendahara', 'Mutia')]),
   divisi: freeze([
-    divisi('Kaderisasi', 'Rizky Saputra', ['Aldi', 'Mega', 'Yoga']),
-    divisi('Humas', 'Putri Amelia', ['Bayu', 'Intan', 'Reza']),
-    divisi('Minat & Bakat', 'Hendra Gunawan', ['Tiara', 'Fikri', 'Lala']),
-    divisi('Dana Usaha', 'Wulan Sari', ['Rahmat', 'Nisa', 'Doni']),
-    divisi('Kominfo', 'Arif Hidayat', ['Salsa', 'Ilham', 'Vina']),
+    divisi('Anggota', null, ['Mala', 'Juan', 'Naomi', 'Fazlie', 'Okta']),
+    divisi('Anggota', null, ['Hafizh', 'Rio', 'Musliadi', 'Fitri', 'Dwi']),
+    divisi('Anggota', null, ['Nisa', 'Ummi', 'Yuli', 'Ara']),
   ]),
 });
 const proker = (nama, bulan, status, catatan = '') => freeze({ nama, bulan, status, catatan });
@@ -92,8 +90,8 @@ export const KALENDER = freeze({
 });
 const piket = (hari, nama, centang = false) => freeze({ hari, nama: freeze(nama), centang });
 export const PIKET = freeze([
-  piket('Senin', ['Fajar', 'Mega'], true), piket('Selasa', ['Nurul', 'Bayu'], true), piket('Rabu', ['Dimas', 'Tiara']),
-  piket('Kamis', ['Sari', 'Ilham']), piket('Jumat', ['Rizky', 'Salsa']),
+  piket('Senin', ['Mutia', 'Mala'], true), piket('Selasa', ['Juan', 'Naomi'], true), piket('Rabu', ['Fazlie', 'Okta']),
+  piket('Kamis', ['Hafizh', 'Rio']), piket('Jumat', ['Musliadi', 'Fitri']),
 ]);
 const piagam = (judul, isi, tahun) => freeze({ judul, kepada: ORGANISASI.nama, isi, tahun });
 export const PIAGAM = freeze([
@@ -228,13 +226,49 @@ export const TALL_SOLIDS = freeze([SOLIDS[1]]);
 // ---------- NPC (3–6 hadir menurut jadwal) & slot aktivitas ----------
 const npc = (id, nama, outfit, seed, hijab, rambut) => freeze({ id, nama, outfit, seed, hijab, rambut });
 export const NPCS = freeze([
-  npc('npc-1', 'Fajar', 'almamater', 101, null, 'buzz'),
-  npc('npc-2', 'Nurul', 'almamater', 202, 0x2c3e50, null),
-  npc('npc-3', 'Dimas', 'kaus', 303, null, 'helmet'),
-  npc('npc-4', 'Sari', 'kaus', 404, 0x8e44ad, null),
-  npc('npc-5', 'Rizky', 'almamater', 505, null, 'afro'),
-  npc('npc-6', 'Putri', 'kaus', 606, 0x16a085, null),
+  npc('npc-1', 'Farkhan', 'almamater', 101, null, 'buzz'),
+  npc('npc-2', 'Abbiyu', 'kaus', 202, null, 'helmet'),
+  npc('npc-3', 'Mutia', 'almamater', 303, 0x2c3e50, null),
+  npc('npc-4', 'Mala', 'kaus', 404, 0x8e44ad, null),
+  npc('npc-5', 'Juan', 'kaus', 505, null, 'afro'),
+  npc('npc-6', 'Naomi', 'kaus', 606, 0x16a085, null),
+  npc('npc-7', 'Fazlie', 'almamater', 707, null, 'buzz'),
+  npc('npc-8', 'Okta', 'kaus', 808, null, 'helmet'),
+  npc('npc-9', 'Hafizh', 'kaus', 909, null, 'afro'),
+  npc('npc-10', 'Rio', 'kaus', 1010, null, 'buzz'),
+  npc('npc-11', 'Musliadi', 'almamater', 1111, null, 'helmet'),
+  npc('npc-12', 'Fitri', 'kaus', 1212, 0x8e44ad, null),
+  npc('npc-13', 'Dwi', 'kaus', 1313, null, 'buzz'),
+  npc('npc-14', 'Nisa', 'almamater', 1414, 0x16a085, null),
+  npc('npc-15', 'Ummi', 'kaus', 1515, 0x2c3e50, null),
+  npc('npc-16', 'Yuli', 'kaus', 1616, 0x8e44ad, null),
+  npc('npc-17', 'Ara', 'kaus', 1717, 0x16a085, null),
 ]);
+/**
+ * Jam hadir + kebiasaan tiap anggota (jam game; `suka` = slot yang paling sering mereka ambil). [INFERENSI] semua
+ * kebiasaan di sini karangan awal untuk variasi, bukan fakta anggota asli. Penampilan (hijab/rambut) di NPCS juga
+ * placeholder, silakan ubah. datang === pulang berarti selalu hadir.
+ */
+const profil = (datang, pulang, suka) => freeze({ datang, pulang, suka: freeze(suka) });
+export const NPC_PROFIL = freeze({
+  'npc-1': profil(8, 23, ['whiteboard', 'rapat-1', 'laptop']), // Farkhan: datang pagi, rapat dan papan tulis
+  'npc-2': profil(9, 21, ['rapat-2', 'whiteboard']),
+  'npc-3': profil(8, 17, ['laptop', 'rapat-3']), // Mutia: kerja siang, catatan keuangan
+  'npc-4': profil(10, 18, ['ngobrol-1', 'minum']),
+  'npc-5': profil(22, 6, ['rebahan', 'laptop']), // Juan: begadang
+  'npc-6': profil(9, 16, ['rapat-4', 'minum']),
+  'npc-7': profil(13, 23, ['laptop', 'rapat-3']),
+  'npc-8': profil(19, 5, ['laptop', 'rebahan']), // Okta: kerja malam
+  'npc-9': profil(14, 24, ['gitar', 'ngobrol-2']), // Hafizh: sore sampai malam, genjreng gitar
+  'npc-10': profil(15, 22, ['ngobrol-1', 'ngobrol-2']),
+  'npc-11': profil(11, 19, ['minum', 'rapat-1']),
+  'npc-12': profil(8, 15, ['rapat-1', 'rapat-2']),
+  'npc-13': profil(16, 2, ['laptop', 'gitar']),
+  'npc-14': profil(9, 14, ['whiteboard', 'minum']),
+  'npc-15': profil(12, 20, ['rapat-3', 'ngobrol-1']),
+  'npc-16': profil(7, 13, ['rebahan', 'rapat-4']), // Yuli: pagi sampai siang
+  'npc-17': profil(17, 23, ['ngobrol-2', 'gitar']),
+});
 const slot = (id, x, z, yaw, poseId, block) => freeze({ id, x, z, yaw, poseId, block });
 /** yaw = hadap NPC; `block` = radius penghalang bagi pemain (rebahan memanjang ±0,8 m). */
 export const SLOTS = freeze([

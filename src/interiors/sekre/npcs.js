@@ -13,7 +13,7 @@ import { bakeSkinnedHumanoid } from '../../entities/Humanoid.skinned.js';
 import { randomAlmamaterOutfit, randomCasualOutfit } from '../../entities/Humanoid.outfits.js';
 import { makeRng } from '../../entities/util.js';
 import { periodAt, scheduleFor } from '../../sim/activitySchedule.js';
-import { NPCS, SLOTS, TALK_SLOTS, SCHEDULE_SEED } from './data.js';
+import { NPCS, SLOTS, TALK_SLOTS, SCHEDULE_SEED, NPC_PROFIL } from './data.js';
 
 const HAIR_DARK = Object.freeze([0x1c1410, 0x2b1d14, 0x3b2a1e]);
 const SOCKS = Object.freeze([null, 0x2b2b2b, 0xf2f2f2]);
@@ -42,7 +42,7 @@ export function npcOutfit(def) {
  * @param {{props:{makeCup():THREE.Object3D, makeMarker():THREE.Object3D, holdGuitar(spine:THREE.Object3D):void, restGuitar():void},
  *   seed?:number, slots?:typeof SLOTS, roster?:typeof NPCS}} opts
  */
-export function createSekreNpcs({ props, seed = SCHEDULE_SEED, slots = SLOTS, roster = NPCS }) {
+export function createSekreNpcs({ props, seed = SCHEDULE_SEED, slots = SLOTS, roster = NPCS, profiles = NPC_PROFIL }) {
   const group = new THREE.Group();
   group.name = 'npc-sekre';
   const slotById = new Map(slots.map((s) => [s.id, s]));
@@ -72,7 +72,7 @@ export function createSekreNpcs({ props, seed = SCHEDULE_SEED, slots = SLOTS, ro
       n.marker.visible = false;
     }
     let guitarist = null;
-    for (const a of scheduleFor(hour, seed, slots, npcs.map((n) => n.def.id))) {
+    for (const a of scheduleFor(hour, seed, slots, npcs.map((n) => n.def.id), profiles)) {
       const n = npcs.find((m) => m.def.id === a.npcId);
       const slot = slotById.get(a.slotId);
       if (!n || !slot) continue;

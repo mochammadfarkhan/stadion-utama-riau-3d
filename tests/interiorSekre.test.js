@@ -67,8 +67,8 @@ describe('data sekre: NPC & slot', () => {
   });
 
   it('6 NPC unik, ≥ 2 berjas almamater, sisanya kaus', () => {
-    expect(D.NPCS).toHaveLength(6);
-    expect(new Set(D.NPCS.map((n) => n.id)).size).toBe(6);
+    expect(D.NPCS).toHaveLength(17);
+    expect(new Set(D.NPCS.map((n) => n.id)).size).toBe(17);
     expect(D.NPCS.filter((n) => n.outfit === 'almamater').length).toBeGreaterThanOrEqual(2);
     expect(D.NPCS.every((n) => ['almamater', 'kaus'].includes(n.outfit))).toBe(true);
   });
@@ -94,7 +94,7 @@ describe('data sekre: interaksi & isi contoh', () => {
   it('isi organisasi bertanda contoh; papan punya isi', () => {
     expect(typeof D.DATA_CONTOH).toBe('boolean');
     expect(D.STRUKTUR.inti.length).toBeGreaterThanOrEqual(2);
-    expect(D.STRUKTUR.divisi.length).toBeGreaterThanOrEqual(4);
+    expect(D.STRUKTUR.divisi.length).toBeGreaterThanOrEqual(1);
     expect(D.PROKER.length).toBeGreaterThanOrEqual(5);
     expect(D.CATATAN_RAPAT.poin.length).toBeGreaterThanOrEqual(4);
     expect(D.PIAGAM).toHaveLength(4);
