@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {
   ANGLED_SHADOW_EXTENT, ATMOSPHERE, AUTO_QUALITY, GRADING, LOWPOLY_EXCLUDE, LOWPOLY_SAVINGS, STYLES,
 } from '../config/lowpoly.js';
-import { createAutoQuality, effectsAtLevel, stepAutoQuality } from './autoQuality.js';
+import { createAutoQuality, effectsAtLevel, leafCardsAtLevel, stepAutoQuality } from './autoQuality.js';
 import { createContactShadows } from './contactShadows.js';
 import { applyStyleSwap } from './pbrSwap.js';
 import { gradingParams } from './gradingParams.js';
@@ -55,10 +55,11 @@ export function styleMaterial(mat, style, stash, exclude = LOWPOLY_EXCLUDE) {
  * Manajer gaya grafis terpusat. Mengikuti 'graphics.gayaGrafis' + mode kamera: material (scan berkala menangkap
  * region/distrik/model yang dimuat kemudian), grading, atmosfer, bayangan, LOD (styleState), contact shadow.
  */
-export function createStyleManager({ store, app, scene, lighting, rig, time = null, crowd = null, bike, terrain, streamLoadRadius = 1000 }) {
+export function createStyleManager({ store, app, scene, lighting, rig, time = null, crowd = null, bike, terrain, streamLoadRadius = 1000, frameHooks = [] }) {
   const stash = new WeakMap();
   const applied = new WeakMap(); // material -> gaya yang sudah diterapkan
   const appliedSwap = new WeakMap(); // objek ber-pbrSwap -> "gaya:kualitas" yang terpasang
+  const appliedHook = new WeakMap(); // material ber-styleHook (PBR dunia: dinding/atap/kit) -> "gaya:kualitas"
   let rawQuality = 'tinggi';
   let qualityTimer = 0;
   const contact = createContactShadows({ heightAt: terrain.heightAt });
@@ -83,6 +84,10 @@ export function createStyleManager({ store, app, scene, lighting, rig, time = nu
       const m = o.material;
       if (!m) return;
       for (const mat of Array.isArray(m) ? m : [m]) {
+        if (mat.userData?.styleHook && appliedHook.get(mat) !== swapKey) { // PBR dunia: nyalakan/matikan uniform + muat tekstur malas
+          mat.userData.styleHook(style, styleState.terrainQuality);
+          appliedHook.set(mat, swapKey);
+        }
         if (applied.get(mat) === style) continue;
         styleMaterial(mat, style, stash);
         applied.set(mat, style);
@@ -109,6 +114,8 @@ export function createStyleManager({ store, app, scene, lighting, rig, time = nu
     const fx = effectsAtLevel(quality.level, { bloom: store.get('graphics.bloom'), tiltShift: store.get('graphics.tiltShift') });
     app.setBloom?.(lowpoly && fx.bloom);
     app.setTiltShift?.(lowpoly && fx.tiltShift);
+    // kartu daun pohon (hanya kartun): dipangkas paling akhir oleh auto-turun kualitas, atau dimatikan pengguna
+    setStyleState({ leafCards: style === 'kartun' && leafCardsAtLevel(quality.level, store.get('graphics.kartuDaun') !== false) });
   };
 
   const applyEnvironment = () => {
@@ -159,7 +166,7 @@ export function createStyleManager({ store, app, scene, lighting, rig, time = nu
   };
 
   const onFx = () => {
-    if (!store.get('graphics.bloom') && !store.get('graphics.tiltShift')) quality = createAutoQuality(AUTO_QUALITY);
+    if (!store.get('graphics.bloom') && !store.get('graphics.tiltShift') && style !== 'kartun') quality = createAutoQuality(AUTO_QUALITY);
     applyEffects();
   };
   const unsubs = [
@@ -167,6 +174,7 @@ export function createStyleManager({ store, app, scene, lighting, rig, time = nu
     store.bind('graphics.tanahPbr', updateTerrainQuality),
     store.bind('graphics.bloom', onFx),
     store.bind('graphics.tiltShift', onFx),
+    store.bind('graphics.kartuDaun', onFx),
     store.bind('graphics.gradingStrength', () => applyGrade()),
   ];
   let lastAngled = rig.mode === 'angled';
@@ -183,6 +191,7 @@ export function createStyleManager({ store, app, scene, lighting, rig, time = nu
       scanTimer -= dt;
       if ((needScan || style !== 'asli') && scanTimer <= 0) { scanTimer = SCAN_INTERVAL; scan(); }
       if (style === 'asli') return;
+      for (const hook of frameHooks) hook(dt, { hour: time?.hour ?? 12, sun }); // uniform bergaya (mis. air kartun) dari lapisan atas
       // Sesudah TimeOfDay & Weather (urutan pendaftaran): atmosfer gaya ditumpuk tiap frame.
       if (scene.fog && scene.fog.far < 0) return; // sudah ditumpuk (TimeOfDay digerbang): jangan menumpuk dua kali
       const L = lightByHour(time?.hour ?? 12);

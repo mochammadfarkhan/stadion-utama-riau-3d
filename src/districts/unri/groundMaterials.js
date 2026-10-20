@@ -10,6 +10,8 @@ import { COLORS } from '../../config/constants.js';
 import { GROUND_COLORS, surfaceMaterial } from '../../world/Ground.materials.js';
 import { createTerrainSplatMaterial } from '../../world/terrain/terrainSplat.js';
 import { pbrSurfaceMaterial } from '../../world/textures/pbrMaterials.js';
+import { installAsphaltWear } from '../../world/textures/pbrWorld.js';
+import { createWaterToonMaterial } from '../../world/shaders/waterToon.js';
 
 /**
  * Pengali warna. asphalt: tekstur aspal (basis COLORS.asphalt) × 0xb3b0a9 ≈ jalan tersier kota #484b51 (linear:
@@ -19,6 +21,16 @@ import { pbrSurfaceMaterial } from '../../world/textures/pbrMaterials.js';
 export const UNRI_GROUND_COLORS = Object.freeze({
   asphalt: 0xb3b0a9, marking: 0xf4f1e8, pitch: 0xdcefc4, water: 0x3f6f8f, ditch: 0x4b5a4a,
 });
+
+/** Aspal kartun: abu hangat netral menengah (bukan abu-biru gelap; bayangan kartun sudah biru, jadi jangan menambah). */
+export const ASPHALT_PBR_COLOR = 0xd9cfc0;
+/** Pengali kecerahan aspal (>1): di bayangan hanya ada cahaya langit biru, aspal gelap terlihat navy bila albedo terlalu rendah. */
+export const ASPHALT_BRIGHTNESS = 1.55;
+
+const brighten = (m, k) => {
+  m.color.multiplyScalar(k);
+  return m;
+};
 
 const offset = (m, f) => {
   m.polygonOffset = true;
@@ -33,7 +45,7 @@ function createPbrMaterials(quality) {
   const terrain = createTerrainSplatMaterial({ quality, moistBias: 0.35, name: 'unri:tanahSplat' });
   return {
     terrain,
-    asphalt: offset(pbrSurfaceMaterial('asphalt', { ...q, color: 0x7e8189 }), -1),
+    asphalt: installAsphaltWear(offset(brighten(pbrSurfaceMaterial('asphalt', { ...q, color: ASPHALT_PBR_COLOR }), ASPHALT_BRIGHTNESS), -1)),
     paving: offset(pbrSurfaceMaterial('paving', { ...q, color: 0xe8e4da }), -2),
     walk: offset(pbrSurfaceMaterial('concrete', { ...q, color: GROUND_COLORS.sidewalk }), -3),
     pitch: offset(pbrSurfaceMaterial('grass', { ...q, color: 0xf2ffe0 }), -1),
@@ -52,8 +64,14 @@ function createSet() {
   ditch.name = 'unri:parit';
   const scope = currentScope();
   const pbrCache = new Map();
+  let waterToon = null;
   return {
     pbrCache,
+    /** Air kartun/facet (dibuat malas di scope pemilik set; tekstur noise ikut scope). */
+    waterToon() {
+      if (!waterToon) waterToon = withScope(scope, () => createWaterToonMaterial());
+      return waterToon;
+    },
     /** Material PBR untuk kualitas `quality` (dibuat sekali; tekstur dimuat lewat scope pemilik set). */
     pbr(quality) {
       let hit = pbrCache.get(quality);
@@ -76,10 +94,11 @@ function createSet() {
 
 function disposeSet(set) {
   for (const [key, m] of Object.entries(set)) {
-    if (key === 'pbrCache' || key === 'pbr') continue;
+    if (key === 'pbrCache' || key === 'pbr' || key === 'waterToon') continue;
     for (const k of ['map', 'normalMap', 'roughnessMap']) m[k]?.dispose();
     m.dispose();
   }
+  // air kartun + noise-nya dimiliki scope (dilepas bersama scope distrik)
   for (const mats of set.pbrCache.values()) for (const m of Object.values(mats)) m.dispose(); // tekstur PBR milik scope
 }
 

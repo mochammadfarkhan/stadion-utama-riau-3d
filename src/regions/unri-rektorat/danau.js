@@ -14,6 +14,7 @@ import { LAYOUT } from './layout.js';
 import { MATS } from './materials.js';
 import { drapePolylineLocal, kerbWall } from './env.js';
 import { addBox } from './rektorat.js';
+import { dermaga } from './dermaga.js';
 
 export const DANAU = Object.freeze({
   batu: 0.8,        // sisi batu pijakan (m)
@@ -136,6 +137,22 @@ function titian(group, env) {
   group.add(g);
 }
 
+/** Dermaga kayu (M8 P2): geladak sedikit di atas muka air, tiang sampai dasar; papan+tiang `unri:kayu`, tali terpisah. */
+function dermagaKayu(group, env) {
+  const cfg = LAYOUT.dermaga;
+  const deckY = Math.max(waterLevel(env) + 0.5, env.hAt(cfg.start[0], cfg.start[1]) + 0.1);
+  const d = dermaga({ ...cfg, deckY, bedY: waterLevel(env) - 1.5 });
+  for (const b of d.boxes) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(b.sx, b.sy, b.sz), b.kind === 'tali' ? MATS.tali() : MATS.kayu());
+    m.position.set(b.x, b.y, b.z);
+    m.rotation.y = b.yaw;
+    m.castShadow = b.kind !== 'tali';
+    m.receiveShadow = true;
+    m.name = b.kind === 'tali' ? 'dermagaTali' : 'dermagaKayu';
+    group.add(m);
+  }
+}
+
 /** @returns {{raw: THREE.Group, placeholders: THREE.Group}} */
 export function buildDanau(env) {
   const raw = new THREE.Group();
@@ -143,6 +160,7 @@ export function buildDanau(env) {
   batuPijakan(raw, env);
   trotoarDanau(raw, env);
   titian(raw, env);
+  dermagaKayu(raw, env);
   const placeholders = new THREE.Group();
   placeholders.name = 'danauPlaceholder';
   placeholders.add(papanBatu(env));

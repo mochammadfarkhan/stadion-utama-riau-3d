@@ -93,11 +93,11 @@ describe('autoQuality (histeresis)', () => {
   });
 
   it('naik lagi hanya saat > 58 FPS cukup lama; pita 45-58 tidak mengubah', () => {
-    let s = run(createAutoQuality(), 30, 12);
-    expect(s.level).toBe(2);
+    let s = run(createAutoQuality(), 30, 14);
+    expect(s.level).toBe(3);
     s = run(s, 52, 20);
-    expect(s.level).toBe(2); // di pita histeresis
-    s = run(s, 62, 40);
+    expect(s.level).toBe(3); // di pita histeresis
+    s = run(s, 62, 100);
     expect(s.level).toBe(0);
   });
 

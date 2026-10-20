@@ -176,7 +176,7 @@ function tintAttribute(geo) {
   const splat = new Float32Array(p.count * 4); // bobot tanah splat PBR: tambal rumput <-> serasah (noise 9 m)
   for (let i = 0; i < p.count; i += 1) {
     const n = valueNoise(p.getX(i), p.getZ(i), 9, 13);
-    const t = Math.min(Math.max((n - 0.38) / 0.24, 0), 1);
+    const t = Math.min(Math.max((n - 0.27) / 0.22, 0), 1); // ambang diturunkan: tambalan rumput hijau lebih dominan
     const g = 0.05 + 0.9 * t * t * (3 - 2 * t); // tambal tegas: rumput <-> serasah
     splat.set([g, 0.93 - g, 0.07, 0], i * 4);
   }
