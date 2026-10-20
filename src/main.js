@@ -45,6 +45,7 @@ import { session, setupMenu } from './app/session.js';
 import { handleKeys } from './app/keymap.js';
 import { setupShop, updatePrompt } from './app/shop.js';
 import { exposeDevTools, parsePlacementParam, parseFlagParam } from './app/devtools.js';
+import { preloadProcTextures, releaseBaked } from './world/textures/procBake.js';
 import { createDisposerStack } from './app/lifecycle.js';
 import { setPbrRenderer } from './world/textures/pbr.js';
 import { applyPlacement } from './app/mountRegion.js';
@@ -102,6 +103,8 @@ async function main() {
   if (!hasWebGL()) return showFatal('Browser ini tidak mendukung WebGL. Coba Chrome/Edge terbaru.');
   const loading = createLoadingScreen();
   await loading.step(0.05, 'Menyiapkan mesin grafis…');
+  // Tekstur prosedural hasil bake di-decode paralel sejak awal; ?procbake (skrip bake) memaksa semua prosedural.
+  const procTextures = parseFlagParam(window.location.search, 'procbake') ? Promise.resolve(0) : preloadProcTextures(import.meta.env.BASE_URL);
   // Kit karakter chibi (Blender) dimuat paralel; gagal = Humanoid tetap memakai bentuk prosedural.
   const humanoidKit = loadModel(HUMANOID_KIT_PATH)
     .then(setHumanoidKit)
@@ -139,6 +142,7 @@ async function main() {
   window.addEventListener('pagehide', () => store.flush(), { signal: listeners.signal });
   document.addEventListener('visibilitychange', () => { if (document.hidden) store.flush(); }, { signal: listeners.signal });
 
+  await procTextures; // sebelum lighting/dunia: keduanya memanggil fillCanvas
   await loading.step(0.12, 'Menyiapkan langit, pencahayaan, waktu, dan cuaca…');
   const lighting = createLighting(app.scene, app.renderer);
   app.scene.add(lighting);
@@ -319,6 +323,7 @@ async function main() {
   await settleStartArea({ city, unri, at: rig.focus });
   await precompile(); // objek hasil streaming; program yang sudah ada diambil dari cache
   app.holdRender = false;
+  releaseBaked(); // bitmap tekstur bake tidak dibutuhkan lagi (pemasangan ulang = prosedural)
   await loading.step(1, 'Siap!');
   loading.done();
   menu.ready({ hasProgress: hasStoryProgress(story.state), touch });

@@ -1,0 +1,100 @@
+{
+  "generatedBy": "npm run bake:proc",
+  "entries": [
+    {
+      "key": "128x128-1ha7q9shgxj",
+      "file": "128x128-1ha7q9shgxj.webp",
+      "srgb": false
+    },
+    {
+      "key": "256x256-1ag8ovkvtk6",
+      "file": "256x256-1ag8ovkvtk6.webp",
+      "srgb": false
+    },
+    {
+      "key": "256x256-1h6hcgvlqgt",
+      "file": "256x256-1h6hcgvlqgt.webp",
+      "srgb": false
+    },
+    {
+      "key": "256x256-22kij1qnbh9",
+      "file": "256x256-22kij1qnbh9.webp",
+      "srgb": false
+    },
+    {
+      "key": "256x256-22zkv3xxve",
+      "file": "256x256-22zkv3xxve.webp",
+      "srgb": false
+    },
+    {
+      "key": "256x256-2ct5v9qgyx9",
+      "file": "256x256-2ct5v9qgyx9.webp",
+      "srgb": false
+    },
+    {
+      "key": "256x256-2cz4gmeturv",
+      "file": "256x256-2cz4gmeturv.webp",
+      "srgb": false
+    },
+    {
+      "key": "256x256-2fgfe5jdlql",
+      "file": "256x256-2fgfe5jdlql.webp",
+      "srgb": false
+    },
+    {
+      "key": "256x256-2g4zea3egmj",
+      "file": "256x256-2g4zea3egmj.webp",
+      "srgb": false
+    },
+    {
+      "key": "256x256-fb609r2ixk",
+      "file": "256x256-fb609r2ixk.webp",
+      "srgb": false
+    },
+    {
+      "key": "256x256-xqlibbqjf1",
+      "file": "256x256-xqlibbqjf1.webp",
+      "srgb": false
+    },
+    {
+      "key": "512x512-10sbdasbatn",
+      "file": "512x512-10sbdasbatn.webp",
+      "srgb": true
+    },
+    {
+      "key": "512x512-1ahwl3blbg8",
+      "file": "512x512-1ahwl3blbg8.webp",
+      "srgb": true
+    },
+    {
+      "key": "512x512-1xiuumzytyy",
+      "file": "512x512-1xiuumzytyy.webp",
+      "srgb": true
+    },
+    {
+      "key": "512x512-271hxbdsnxd",
+      "file": "512x512-271hxbdsnxd.webp",
+      "srgb": true
+    },
+    {
+      "key": "512x512-cdgj123y7y",
+      "file": "512x512-cdgj123y7y.webp",
+      "srgb": true
+    },
+    {
+      "key": "512x512-n0licqksrx",
+      "file": "512x512-n0licqksrx.webp",
+      "srgb": true
+    },
+    {
+      "key": "512x512-o5x2n7smjl",
+      "file": "512x512-o5x2n7smjl.webp",
+      "srgb": true
+    },
+    {
+      "key": "512x768-8857wv3b0b",
+      "file": "512x768-8857wv3b0b.webp",
+      "srgb": true
+    }
+  ]
+}
