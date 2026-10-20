@@ -219,6 +219,7 @@ export const SOLIDS = freeze([
   rect('kursi', 0.9, 1.35, 0.98, 1.42),
   rect('daun-pintu', 0.86, 1.05, -3.0, -2.08),
   rect('tas', 1.75, 2.1, -2.05, -1.45),
+  rect('sofa', -2.1, -1.2, -0.6, 1.6),
 ]);
 /** Perabot tinggi yang menghalangi kamera orang ketiga. */
 export const TALL_SOLIDS = freeze([SOLIDS[1]]);
@@ -275,7 +276,7 @@ export const SLOTS = freeze([
   slot('rapat-1', -0.4, -0.25, 0, 'sitCrossLegged', 0.35),
   slot('rapat-2', 0.5, 0.7, -PI / 2, 'sitCrossLegged', 0.35),
   slot('rapat-3', -0.4, 1.65, PI, 'sitCrossLegged', 0.35),
-  slot('rapat-4', -1.3, 0.7, PI / 2, 'sitCrossLegged', 0.35),
+  slot('rapat-4', -0.85, 0.7, PI / 2, 'sitCrossLegged', 0.35),
   slot('laptop', 1.12, 1.2, PI / 2, 'sitChairTyping', 0.4),
   slot('gitar', -1.35, 2.2, 2.58, 'guitarStrum', 0.4),
   slot('rebahan', -0.1, 2.35, -PI / 2, 'lieDown', 0.85),
