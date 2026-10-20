@@ -10,6 +10,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { DIM } from './Humanoid.dim.js';
 import { matFor } from './util.js';
 import { currentScope } from '../engine/ResourceScope.js';
+import { kitGeometry } from './Humanoid.kit.js';
 
 const R = DIM.headR;
 const CY = DIM.headLift;
@@ -86,6 +87,8 @@ function unindexed(geo) {
 /** Geometri gabungan untuk satu gaya; dibuat sekali per ResourceScope aktif. */
 export function hairGeometry(style) {
   const key = BUILDERS[style] ? style : 'helmet';
+  const kit = kitGeometry(key === 'hijab' ? 'hijab' : `hair_${key}`);
+  if (kit) return kit;
   return currentScope().get(`humanoid:hair:${key}`, () => {
     const pieces = BUILDERS[key]().map(unindexed);
     return pieces.length === 1 ? pieces[0] : mergeGeometries(pieces, false);
@@ -100,7 +103,9 @@ export function styleUnderHat(style) {
 /** Mesh rambut/penutup kepala (1 draw call) untuk pivot kepala. */
 export function createHair(style, color) {
   const key = BUILDERS[style] ? style : 'helmet';
-  const mat = DOUBLE_SIDED.has(key) ? matFor(color, { side: THREE.DoubleSide }) : matFor(color);
+  // Cangkang rambut/hijab kit Blender terbuka (tanpa ketebalan) → dua sisi.
+  const twoSided = DOUBLE_SIDED.has(key) || kitGeometry(key === 'hijab' ? 'hijab' : `hair_${key}`) != null;
+  const mat = twoSided ? matFor(color, { side: THREE.DoubleSide }) : matFor(color);
   const mesh = new THREE.Mesh(hairGeometry(key), mat);
   mesh.castShadow = false;
   return mesh;

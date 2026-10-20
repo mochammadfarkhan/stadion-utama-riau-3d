@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { DIM } from './Humanoid.dim.js';
 import { currentScope } from '../engine/ResourceScope.js';
+import { kitGeometry } from './Humanoid.kit.js';
 
 const EYE_COLOR = 0x151515;
 const CHEEK_COLOR = 0xf5a3b0;   // merah muda lembut (meniru opacity rendah di atas kulit)
@@ -52,23 +53,39 @@ function cheeks() {
   return [-1, 1].map((s) => onHead(tint(new THREE.CircleGeometry(0.055, 12), CHEEK_COLOR), s * 0.62, -0.18, 0.78));
 }
 
-function glasses() {
-  const rims = [-1, 1].map((s) => onHead(tint(new THREE.TorusGeometry(0.065, 0.008, 6, 14), GLASSES_COLOR), s * 0.34, 0.08, 1, 0.02));
-  const bridge = onHead(tint(new THREE.BoxGeometry(0.08, 0.012, 0.012), GLASSES_COLOR), 0, 0.08, 1, 0.02);
+/** Posisi mata: titik kecil prosedural vs mata anime besar kit (u = ±0.36, v = −0.08 rad di chibi_kit.py). */
+const EYES_PROC = { x: 0.34, y: 0.08, rim: 0.065 };
+const EYES_KIT = { x: 0.38, y: -0.08, rim: 0.082 };
+
+function glasses(e) {
+  const rims = [-1, 1].map((s) => onHead(tint(new THREE.TorusGeometry(e.rim, 0.009, 6, 16), GLASSES_COLOR), s * e.x, e.y, 1, 0.02));
+  const bridge = onHead(tint(new THREE.BoxGeometry(e.x * 0.5, 0.012, 0.012), GLASSES_COLOR), 0, e.y + 0.02, 1, 0.02);
   return [...rims, bridge];
 }
 
-function mustache() {
+function mustache(y = -0.26) {
   const g = new THREE.CapsuleGeometry(0.016, 0.09, 2, 6).rotateZ(Math.PI / 2);
-  return [onHead(tint(g, MUSTACHE_COLOR), 0, -0.26, 1, 0.006)];
+  return [onHead(tint(g, MUSTACHE_COLOR), 0, y, 1, 0.006)];
+}
+
+/** Kepingan prosedural tanpa uv agar bisa digabung dengan wajah kit (position/normal/color saja). */
+function stripUv(geo) {
+  geo.deleteAttribute('uv');
+  return geo;
 }
 
 /** Geometri wajah untuk kombinasi {glasses, mustache}; dibuat sekali per ResourceScope aktif. */
 export function faceGeometry({ glasses: hasGlasses = false, mustache: hasMustache = false } = {}) {
-  const key = `${hasGlasses ? 'g' : '-'}${hasMustache ? 'm' : '-'}`;
+  const kit = kitGeometry('face');
+  if (kit && !hasGlasses && !hasMustache) return kit;
+  const key = `${kit ? 'k' : 'p'}${hasGlasses ? 'g' : '-'}${hasMustache ? 'm' : '-'}`;
   return currentScope().get(`humanoid:face:${key}`, () => {
+    if (kit) {
+      const extra = [...(hasGlasses ? glasses(EYES_KIT) : []), ...(hasMustache ? mustache(-0.24) : [])].map(stripUv);
+      return mergeGeometries([kit, ...extra], false);
+    }
     const pieces = [...eyes(), ...cheeks()];
-    if (hasGlasses) pieces.push(...glasses());
+    if (hasGlasses) pieces.push(...glasses(EYES_PROC));
     if (hasMustache) pieces.push(...mustache());
     return mergeGeometries(pieces, false);
   });

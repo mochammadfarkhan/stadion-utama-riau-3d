@@ -32,11 +32,12 @@ function bakePart(mesh) {
   geo.applyMatrix4(mesh.matrixWorld);
   const count = geo.attributes.position.count;
   const color = mesh.material.color ?? new THREE.Color(0xffffff);
+  const vc = src.getAttribute('color'); // wajah: warna per-vertex (mata/pipi) ikut ke LOD
   const data = new Float32Array(count * 3);
   for (let i = 0; i < count; i += 1) {
-    data[i * 3] = color.r;
-    data[i * 3 + 1] = color.g;
-    data[i * 3 + 2] = color.b;
+    data[i * 3] = color.r * (vc ? vc.getX(i) : 1);
+    data[i * 3 + 1] = color.g * (vc ? vc.getY(i) : 1);
+    data[i * 3 + 2] = color.b * (vc ? vc.getZ(i) : 1);
   }
   geo.setAttribute('color', new THREE.BufferAttribute(data, 3));
   return geo;
