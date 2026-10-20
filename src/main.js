@@ -5,6 +5,7 @@ import { createGamepadPoller } from './core/gamepad.js';
 import { TouchControls } from './ui/TouchControls.js';
 import { isTouchPrimary } from './ui/touchMath.js';
 import './ui/touch.css';
+import './ui/perkamen.css';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/jetbrains-mono';
 import { CameraRig } from './core/CameraRig.js';
