@@ -75,6 +75,14 @@ import { travelDestinations, createFastTravel, waitForRegion } from './app/fastT
 import { FastTravelMenu, createTravelScreen } from './ui/FastTravelMenu.js';
 
 const MODELS_TIMEOUT_MS = 8000;
+const START_SETTLE_TIMEOUT_MS = 12000; // batas tunggu streaming area awal sebelum render pertama
+
+/** Tunggu tile kota + distrik di sekitar titik awal termuat (dibatasi waktu: streaming lambat tidak menahan Mulai). */
+function settleStartArea({ city, unri, at }) {
+  const settled = Promise.all([city?.whenSettled(at.x, at.z), unri?.whenSettled(at.x, at.z)])
+    .catch((err) => console.error('Streaming area awal gagal ditunggu:', err));
+  return Promise.race([settled, new Promise((resolve) => setTimeout(resolve, START_SETTLE_TIMEOUT_MS))]);
+}
 
 /** Region hero di dalam distrik UNRI: distrik tidak menaruh vegetasi/props/rintangan di dalam mask-nya (M2 isReserved). M6 menambah region Rektorat. */
 const HERO_REGIONS = Object.freeze([unriLembagaRegion, unriRektoratRegion]);
@@ -263,8 +271,11 @@ async function main() {
   lifecycle.add(() => styleMgr.dispose());
 
   const bikePos = new THREE.Vector3();
-  // Shader dikompilasi paralel sebelum frame pertama (tanpa ini render pertama membeku belasan detik). Gagal → lanjut.
-  await app.precompile().catch((err) => console.error('Prekompilasi shader gagal:', err));
+  // Render ditahan selama layar muat: sistem (streaming kota/distrik/region) tetap jalan, lalu shader area awal
+  // dikompilasi paralel sebelum frame pertama (render pertama yang mengompilasi sinkron membeku belasan detik).
+  app.holdRender = true;
+  const precompile = () => app.precompile().catch((err) => console.error('Prekompilasi shader gagal:', err));
+  const precompiled = precompile(); // mulai paralel sekarang; dunia yang sudah ada tidak menunggu streaming
   app.start((dt, t, rawDt) => {
     bikePos.set(ents.bike.state.x, ents.bike.groundY, ents.bike.state.z);
     // focus = titik pusat tampilan (sepeda, atau titik pandang saat POV); sepeda beku di POV tanpa kendali.
@@ -293,10 +304,16 @@ async function main() {
   // Base layer minimap per region aktif dibake sekarang (galat bake ditangani manager: latar polos);
   // region yang dipasang kemudian dibake setelah siap.
   regions.attachMinimap(minimap);
+  // Latar menu: kamera orbit sinematik mengelilingi stadion (sepeda dibekukan, cerita dijeda) sampai pemain menekan Mulai.
+  // Dipasang sebelum menunggu streaming agar area yang dimuat = area yang tampil di belakang menu.
+  rig.handlePovKey(POVS.find((p) => p.id === 'orbit').key);
+  await loading.step(0.98, 'Menyiapkan shader…');
+  await precompiled;
+  await settleStartArea({ city, unri, at: rig.focus });
+  await precompile(); // objek hasil streaming; program yang sudah ada diambil dari cache
+  app.holdRender = false;
   await loading.step(1, 'Siap!');
   loading.done();
-  // Latar menu: kamera orbit sinematik mengelilingi stadion (sepeda dibekukan, cerita dijeda) sampai pemain menekan Mulai.
-  rig.handlePovKey(POVS.find((p) => p.id === 'orbit').key);
   menu.ready({ hasProgress: hasStoryProgress(story.state), touch });
   if (import.meta.env.DEV) {
     exposeDevTools({
