@@ -314,6 +314,23 @@ export class App {
     this.labelRenderer.setSize(w, h);
   }
 
+  /**
+   * Kompilasi shader scene SEBELUM frame pertama tanpa memblokir thread (KHR_parallel_shader_compile).
+   * Tanpa ini render pertama menunggu link ~90 program secara sinkron (belasan detik di ANGLE/D3D11).
+   * Render target diarahkan ke buffer composer: kunci program memuat toneMapping/outputColorSpace target,
+   * jadi kompilasi ke kanvas (target null) menghasilkan varian yang tidak pernah dipakai RenderPass.
+   */
+  async precompile() {
+    const r = this.renderer;
+    const prev = r.getRenderTarget();
+    r.setRenderTarget(this.post.composer.readBuffer);
+    try {
+      await r.compileAsync(this.view.scene, this.view.camera);
+    } finally {
+      r.setRenderTarget(prev);
+    }
+  }
+
   /** Mulai loop. makeContext(dt) mengembalikan ctx untuk semua updatable. */
   start(makeContext) {
     const loop = () => {

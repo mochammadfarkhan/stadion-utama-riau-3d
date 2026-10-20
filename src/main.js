@@ -263,6 +263,8 @@ async function main() {
   lifecycle.add(() => styleMgr.dispose());
 
   const bikePos = new THREE.Vector3();
+  // Shader dikompilasi paralel sebelum frame pertama (tanpa ini render pertama membeku belasan detik). Gagal → lanjut.
+  await app.precompile().catch((err) => console.error('Prekompilasi shader gagal:', err));
   app.start((dt, t, rawDt) => {
     bikePos.set(ents.bike.state.x, ents.bike.groundY, ents.bike.state.z);
     // focus = titik pusat tampilan (sepeda, atau titik pandang saat POV); sepeda beku di POV tanpa kendali.
