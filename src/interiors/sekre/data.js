@@ -78,7 +78,7 @@ export const CATATAN_RAPAT = freeze({
     'Poster + IG: Kominfo',
     'LPJ kegiatan lalu BELUM selesai!!',
   ]),
-  tabel: freeze({ kolom: freeze(['Konsumsi', 'Dana', 'Publikasi']), isi: freeze(['Wulan', 'Sari', 'Arif']) }),
+  tabel: freeze({ kolom: freeze(['Konsumsi', 'Dana', 'Publikasi']), isi: freeze(['Mutia', 'Mala', 'Juan']) }),
   tenggat: 'DL PROPOSAL: JUMAT!!',
   sudut: 'JANGAN DIHAPUS!!',
   semangat: 'semangat!!',
