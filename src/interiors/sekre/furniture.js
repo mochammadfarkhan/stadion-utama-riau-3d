@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { instantiateModel } from '../../world/assets/models.js';
-import { ASET, EKSTRA, GLB_ASET, GUITAR_HOLD, ordnerSlots } from './data.js';
+import { ASET, EKSTRA, GLB_ASET, GUITAR_HOLD, ordnerSlots, kx, REAR, DOOR } from './data.js';
 import { makeCanvas, canvasTexture, tint } from './canvas.js';
 import { drawKarpet } from './room.js';
 
@@ -383,8 +383,8 @@ function buildKabel(m) {
   const s = ASET.S25.items[0];
   const w = ASET.S25.stopDinding;
   return groupOf('S25-kabel', piece([
-    tube([[s.x, 0.012, s.z], [1.7, 0.012, 0.7], [2.0, 0.012, 0.42], [2.08, 0.05, 0.3], [w.x - 0.01, w.y, w.z]], 0.004, '#1a1a1a'),
-    tube([[s.x + 0.05, 0.012, s.z + 0.05], [1.47, 0.02, 1.12], [1.47, 0.5, 1.18], [1.5, 0.76, 1.24], [1.62, 0.77, 1.3]], 0.004, '#1a1a1a'),
+    tube([[s.x, 0.012, s.z], [kx(1.7), 0.012, 0.7], [kx(2.0), 0.012, 0.42], [kx(2.08), 0.05, 0.3], [w.x - 0.01, w.y, w.z]], 0.004, '#1a1a1a'),
+    tube([[s.x + 0.05, 0.012, s.z + 0.05], [kx(1.47), 0.02, 1.12], [kx(1.47), 0.5, 1.18], [kx(1.5), 0.76, 1.24], [kx(1.62), 0.77, 1.3]], 0.004, '#1a1a1a'),
     box(0.012, 0.08, 0.08, '#f2f2f2', { x: w.x, y: w.y, z: w.z }),
   ], m.prop, 'kabel', false));
 }
@@ -417,9 +417,9 @@ function buildPintu(m) {
   const it = ASET.S30.items[0];
   const WOOD = '#d4d6da';
   const kusen = piece([
-    box(0.06, 2.16, 0.17, WOOD, { x: 0.87, y: 1.08, z: -3.075 }),
-    box(0.06, 2.16, 0.17, WOOD, { x: 1.83, y: 1.08, z: -3.075 }),
-    box(1.02, 0.06, 0.17, WOOD, { x: 1.35, y: 2.13, z: -3.075 }),
+    box(0.06, 2.16, 0.17, WOOD, { x: DOOR.x0 - 0.03, y: 1.08, z: -3.075 }),
+    box(0.06, 2.16, 0.17, WOOD, { x: DOOR.x1 + 0.03, y: 1.08, z: -3.075 }),
+    box(DOOR.x1 - DOOR.x0 + 0.12, 0.06, 0.17, WOOD, { x: (DOOR.x0 + DOOR.x1) / 2, y: 2.13, z: -3.075 }),
   ], m.prop, 'kusen');
   const panel = piece([
     box(0.9, 2.08, 0.04, '#1f3768', { x: 0.45, y: 1.04, z: 0.02 }),
@@ -448,26 +448,27 @@ function buildPerlengkapanErc(m) {
   blinds.push(box(1.5, 0.06, 0.05, '#cfc8b0', { x: it.x, y: it.y + 1.35, z: -2.93 }));
   const vents = [];
   const ventFrames = [];
-  for (let k = 0; k < 9; k += 1) {
-    vents.push(box(0.15, 0.27, 0.01, '#f4f8ff', { x: -2.0 + k * 0.33, y: 2.78, z: -2.985 }));
-    ventFrames.push(box(0.19, 0.31, 0.008, '#c9cdd0', { x: -2.0 + k * 0.33, y: 2.78, z: -2.99 }));
+  for (let k = 0; k < 10; k += 1) {
+    const x = -2.75 + k * 0.6;
+    vents.push(box(0.15, 0.27, 0.01, '#f4f8ff', { x, y: 3.35, z: -2.985 }));
+    ventFrames.push(box(0.19, 0.31, 0.008, '#c9cdd0', { x, y: 3.35, z: -2.99 }));
   }
   for (let k = 0; k < 7; k += 1) {
-    vents.push(box(0.01, 0.27, 0.15, '#f4f8ff', { x: -2.085, y: 2.78, z: -2.2 + k * 0.4 }));
-    ventFrames.push(box(0.008, 0.31, 0.19, '#c9cdd0', { x: -2.09, y: 2.78, z: -2.2 + k * 0.4 }));
+    vents.push(box(0.01, 0.27, 0.15, '#f4f8ff', { x: -2.985, y: 3.35, z: -2.2 + k * 0.6 }));
+    ventFrames.push(box(0.008, 0.31, 0.19, '#c9cdd0', { x: -2.99, y: 3.35, z: -2.2 + k * 0.6 }));
   }
   const ac = [
-    box(0.22, 0.28, 0.92, '#f2f3f4', { x: 2.0, y: 2.62, z: 1.3 }),
-    box(0.02, 0.05, 0.8, '#3a3f45', { x: 1.89, y: 2.55, z: 1.3 }),
-    box(0.02, 0.03, 0.9, '#d9dcdf', { x: 1.89, y: 2.7, z: 1.3 }),
+    box(0.22, 0.28, 0.92, '#f2f3f4', { x: 2.9, y: 3.3, z: 1.3 }),
+    box(0.02, 0.05, 0.8, '#3a3f45', { x: 2.79, y: 3.23, z: 1.3 }),
+    box(0.02, 0.03, 0.9, '#d9dcdf', { x: 2.79, y: 3.38, z: 1.3 }),
   ];
   const bins = [];
-  for (const [x, z, r] of [[0.95, -0.4, 0.1], [-0.95, -0.75, -0.25]]) {
+  for (const [x, z, r] of [[kx(0.95), -0.4, 0.1], [kx(-0.95), -0.75, -0.25]]) {
     bins.push(box(0.5, 0.3, 0.36, '#d9ecef', { x, y: 0.15, z, ry: r }));
     bins.push(box(0.52, 0.05, 0.38, '#43a047', { x, y: 0.325, z, ry: r }));
     bins.push(box(0.12, 0.03, 0.02, '#f2c230', { x, y: 0.31, z: z - 0.19, ry: r }));
   }
-  const ballG = [ball(0.11, '#ef6c1a', { x: -1.7, y: 0.11, z: 0.15 })];
+  const ballG = [ball(0.11, '#ef6c1a', { x: kx(-1.7), y: 0.11, z: 0.15 })];
   return groupOf('perlengkapan-erc',
     piece(blinds, m.prop, 'tirai-vertikal', false), piece(vents, m.tl, 'ventilasi-kotak', false),
     piece(ventFrames, m.prop, 'bingkai-ventilasi', false), piece(ac, m.prop, 'ac-split', false),
@@ -493,25 +494,91 @@ export function drawProyeksi(c, w, h) {
 function buildSofaProyektor(m) {
   const LEATHER = '#9a5b34';
   const DARK = '#7d4528';
+  const SX = kx(-1.62);
   const sofa = [
-    rbox(0.86, 0.4, 2.2, 0.06, LEATHER, { x: -1.62, y: 0.3, z: 0.5 }),
-    rbox(0.2, 0.5, 2.2, 0.07, DARK, { x: -1.95, y: 0.62, z: 0.5 }),
-    rbox(0.86, 0.5, 0.2, 0.07, DARK, { x: -1.62, y: 0.5, z: -0.5 }),
-    rbox(0.86, 0.5, 0.2, 0.07, DARK, { x: -1.62, y: 0.5, z: 1.5 }),
-    box(0.8, 0.1, 2.1, '#3a2b22', { x: -1.62, y: 0.05, z: 0.5 }),
-    ball(0.15, '#1b1b1f', { x: -1.5, y: 0.66, z: 0.2 }),
-    ball(0.15, '#2b2b30', { x: -1.5, y: 0.66, z: 0.55 }),
+    rbox(0.86, 0.4, 2.2, 0.06, LEATHER, { x: SX, y: 0.3, z: 0.5 }),
+    rbox(0.2, 0.5, 2.2, 0.07, DARK, { x: SX - 0.33, y: 0.62, z: 0.5 }),
+    rbox(0.86, 0.5, 0.2, 0.07, DARK, { x: SX, y: 0.5, z: -0.5 }),
+    rbox(0.86, 0.5, 0.2, 0.07, DARK, { x: SX, y: 0.5, z: 1.5 }),
+    box(0.8, 0.1, 2.1, '#3a2b22', { x: SX, y: 0.05, z: 0.5 }),
+    ball(0.15, '#1b1b1f', { x: SX + 0.1, y: 0.66, z: 0.2 }),
+    ball(0.15, '#2b2b30', { x: SX + 0.1, y: 0.66, z: 0.55 }),
   ];
-  const projector = [box(0.28, 0.1, 0.22, '#e9e6dc', { x: -0.95, y: 0.4, z: -0.75 }), cyl(0.04, 0.04, 0.03, '#2b2b30', { x: -0.82, y: 0.4, z: -0.75, rz: PI / 2 })];
+  const PX = kx(-0.95);
+  const projector = [box(0.28, 0.1, 0.22, '#e9e6dc', { x: PX, y: 0.4, z: -0.75 }), cyl(0.04, 0.04, 0.03, '#2b2b30', { x: PX + 0.13, y: 0.4, z: -0.75, rz: PI / 2 })];
   const canvas = makeCanvas(512, 340);
   drawProyeksi(canvas.getContext('2d'), 512, 340);
   const tex = canvasTexture(canvas, null);
   const mat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, transparent: true, opacity: 0.92 });
   const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.93), mat);
   screen.name = 'layar-proyeksi';
-  screen.position.set(2.085, 1.9, 1.15);
+  screen.position.set(2.985, 2.1, 1.15);
   screen.rotation.y = -PI / 2;
   return groupOf('sofa-proyektor', piece(sofa, m.prop, 'sofa'), piece(projector, m.prop, 'proyektor', false), screen);
+}
+
+
+/** Daun pintu dalam navy berkaca tipis, terbuka ke ruang belakang (engsel di sisi x0). */
+function buildPintuDalam(m, d, name) {
+  const NAVY = '#1f3768';
+  const kusen = piece([
+    box(0.05, 2.12, 0.16, '#cfd2d6', { x: d.x0 - 0.025, y: 1.06, z: 3.075 }),
+    box(0.05, 2.12, 0.16, '#cfd2d6', { x: d.x1 + 0.025, y: 1.06, z: 3.075 }),
+    box(d.x1 - d.x0 + 0.1, 0.05, 0.16, '#cfd2d6', { x: (d.x0 + d.x1) / 2, y: 2.125, z: 3.075 }),
+  ], m.prop, `kusen-${name}`);
+  const w = d.x1 - d.x0;
+  const leaf = piece([
+    box(w, 2.05, 0.04, NAVY, { x: w / 2, y: 1.025, z: 0 }),
+    box(0.1, 0.9, 0.012, '#e8efe0', { x: w * 0.75, y: 1.35, z: 0.026 }),
+    cyl(0.012, 0.012, 0.11, '#cfd8dc', { x: w - 0.07, y: 1.0, z: 0.05, rz: PI / 2 }),
+  ], m.prop, `daun-${name}`);
+  const g = groupOf(name, kusen, leaf);
+  leaf.position.set(d.x0, 0, 3.075);
+  leaf.rotation.y = -1.48;
+  return g;
+}
+
+/** Ruang Kedua (timur) dan WC (barat) di belakang ruang utama. [INFERENSI] isinya: rak komponen robot, meja kerja, kloset, wastafel. */
+function buildRuangBelakang(m) {
+  const rak = [];
+  for (const y of [0.02, 0.55, 1.1, 1.65]) rak.push(box(1.9, 0.03, 0.45, '#9ea7ad', { x: 1.9, y, z: 5.72 }));
+  for (const x of [0.97, 2.83]) for (const z of [5.52, 5.92]) rak.push(box(0.04, 1.85, 0.04, '#7d868c', { x, y: 0.92, z }));
+  const stuff = [];
+  [[1.35, 0.57, '#c9a46a'], [1.95, 0.57, '#b58a50'], [2.5, 0.57, '#d8b87c'], [1.4, 1.12, '#e9e6dc'], [2.1, 1.12, '#c9a46a'], [2.55, 1.67, '#b58a50'], [1.5, 1.67, '#2f3a46']]
+    .forEach(([x, y, c], i) => stuff.push(box(0.36 + (i % 3) * 0.08, 0.28, 0.32, c, { x, y: y + 0.14, z: 5.72, ry: 0.05 * (i % 4) })));
+  const meja = [
+    box(0.7, 0.04, 1.8, '#2b2f36', { x: 2.55, y: 0.74, z: 4.3 }),
+    ...[[-0.3, -0.8], [-0.3, 0.8], [0.3, -0.8], [0.3, 0.8]].map(([dx, dz]) => box(0.04, 0.72, 0.04, '#3a3f45', { x: 2.55 + dx, y: 0.36, z: 4.3 + dz })),
+    box(0.3, 0.02, 0.22, '#c9ccd0', { x: 2.55, y: 0.77, z: 3.9, ry: 0.4 }),
+    box(0.3, 0.2, 0.01, '#1a1e24', { x: 2.69, y: 0.88, z: 3.86, ry: 0.4 }),
+  ];
+  const robot = [
+    rbox(0.22, 0.1, 0.16, 0.02, '#e9e6dc', { x: 2.5, y: 0.83, z: 4.7 }),
+    cyl(0.04, 0.04, 0.03, '#212121', { x: 2.5, y: 0.8, z: 4.6, rx: PI / 2 }, 12),
+    cyl(0.04, 0.04, 0.03, '#212121', { x: 2.5, y: 0.8, z: 4.8, rx: PI / 2 }, 12),
+    box(0.06, 0.08, 0.06, '#2a9d8f', { x: 2.5, y: 0.93, z: 4.7 }),
+  ];
+  const kursi = [
+    box(0.42, 0.04, 0.42, '#37474f', { x: 1.85, y: 0.46, z: 4.3 }),
+    box(0.03, 0.4, 0.42, '#37474f', { x: 1.65, y: 0.7, z: 4.3 }),
+    cyl(0.012, 0.012, 0.44, '#9ea7ad', { x: 1.85, y: 0.22, z: 4.3 }),
+  ];
+  const kardus = [box(0.5, 0.4, 0.4, '#c9a46a', { x: -0.7, y: 0.2, z: 5.7, ry: 0.2 }), box(0.45, 0.35, 0.35, '#b58a50', { x: -0.55, y: 0.575, z: 5.7, ry: -0.1 })];
+  const wc = [
+    cyl(0.22, 0.17, 0.4, '#f4f6f8', { x: -2.4, y: 0.2, z: 5.6 }, 16),
+    box(0.4, 0.4, 0.16, '#f4f6f8', { x: -2.4, y: 0.6, z: 5.88 }),
+    cyl(0.2, 0.2, 0.03, '#e9edf0', { x: -2.4, y: 0.42, z: 5.6 }, 16),
+    box(0.5, 0.12, 0.4, '#f4f6f8', { x: -2.82, y: 0.88, z: 4.3 }),
+    box(0.05, 0.8, 0.05, '#cfd8dc', { x: -2.82, y: 0.44, z: 4.3 }),
+    box(0.02, 0.6, 0.5, '#d8eef7', { x: -2.97, y: 1.55, z: 4.3 }),
+    cyl(0.16, 0.13, 0.28, '#2a7fd0', { x: -1.6, y: 0.14, z: 5.7 }, 12),
+    cyl(0.07, 0.06, 0.1, '#e53935', { x: -1.6, y: 0.33, z: 5.5 }, 10),
+  ];
+  return groupOf('ruang-belakang',
+    piece(rak, m.metal, 'rak-besi'), piece(stuff, m.prop, 'komponen-robot'), piece(meja, m.prop, 'meja-kerja'),
+    piece(robot, m.prop, 'robot-mini'), piece(kursi, m.prop, 'kursi-kerja'), piece(kardus, m.prop, 'kardus-belakang'),
+    piece(wc, m.prop, 'wc'),
+    buildPintuDalam(m, REAR.doorRoom2, 'pintu-ruang-kedua'), buildPintuDalam(m, REAR.doorWc, 'pintu-wc'));
 }
 
 // ---------- Perabot hidup ----------
@@ -574,6 +641,7 @@ export function buildFurniture({ materials }) {
   staticGroup.add(buildPintu(m));
   staticGroup.add(buildPerlengkapanErc(m));
   staticGroup.add(buildSofaProyektor(m));
+  staticGroup.add(buildRuangBelakang(m));
 
   // dinamis / dapat diganti GLB
   ASET.S07.items.forEach((it, k) => addContainer('S07', it, buildPiala(m), k));

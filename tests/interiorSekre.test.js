@@ -6,7 +6,7 @@ import { createRoomCollider } from '../src/interiors/roomCollider.js';
 import { SEKRE_PEMAIN, UKM_LABELS } from '../src/regions/unri-lembaga/sekreUkm.data.js';
 
 const IDS = Array.from({ length: 30 }, (_, i) => `S${String(i + 1).padStart(2, '0')}`);
-const insideRoom = (p, m = 0.01) => Math.abs(p.x) <= D.ROOM.w / 2 + m && Math.abs(p.z) <= D.ROOM.d / 2 + m && p.y >= 0 && p.y <= D.ROOM.h;
+const insideRoom = (p, m = 0.01) => Math.abs(p.x) <= D.ROOM.w / 2 + m && p.z >= -D.ROOM.d / 2 - m && p.z <= D.REAR.zBack + m && p.y >= 0 && p.y <= D.ROOM.h;
 const collider = (withNpc) => createRoomCollider({
   halfW: D.ROOM.w / 2, halfD: D.ROOM.d / 2, solids: D.SOLIDS, tallSolids: D.TALL_SOLIDS,
   blockers: () => (withNpc ? D.SLOTS.map((s) => ({ x: s.x, z: s.z, r: s.block })) : []),
@@ -50,7 +50,7 @@ describe('data sekre: aset katalog', () => {
     expect(D.ASET.S17.items).toHaveLength(2);
     expect(D.ASET.S20.items).toHaveLength(3);
     expect(D.ASET.S21.items).toHaveLength(4);
-    expect(D.ASET.S24.items).toHaveLength(2);
+    expect(D.ASET.S24.items).toHaveLength(4); // 2 ruang utama + 2 ruang belakang
     expect(D.ASET.S26.items).toHaveLength(4);
   });
 });
@@ -105,5 +105,25 @@ describe('data sekre: interaksi & isi contoh', () => {
   it('kalender Oktober 2026 dimulai Kamis (Senin = 0 → 3)', () => {
     expect(new Date(2026, 9, 1).getDay()).toBe(4);
     expect(D.KALENDER.hariMulai).toBe(3);
+  });
+});
+
+describe('denah ERC: ruang utama + ruang kedua + WC', () => {
+  const c = createRoomCollider({ halfW: D.ROOM.w / 2, halfD: D.ROOM.d / 2, zones: D.ZONES, solids: D.SOLIDS });
+  it('spawn bisa dijalani dan ruang belakang terjangkau lewat pintu dalam', () => {
+    expect(c.isWalkable(D.SPAWN.x, D.SPAWN.z)).toBe(true);
+    const r2 = (D.REAR.doorRoom2.x0 + D.REAR.doorRoom2.x1) / 2;
+    const wc = (D.REAR.doorWc.x0 + D.REAR.doorWc.x1) / 2;
+    for (const z of [2.4, 3.0, 3.6]) {
+      expect(c.isWalkable(r2, z)).toBe(true);
+      expect(c.isWalkable(wc, z)).toBe(true);
+    }
+    expect(c.isWalkable(r2, 4.5)).toBe(true);
+    expect(c.isWalkable(wc, 5.0)).toBe(true);
+  });
+  it('dinding pemisah tidak bisa ditembus di luar pintu', () => {
+    expect(c.isWalkable(-0.6, 3.0)).toBe(false);
+    expect(c.isWalkable(2.4, 3.0)).toBe(false);
+    expect(c.isWalkable(D.REAR.xSplit, 4.5)).toBe(false);
   });
 });

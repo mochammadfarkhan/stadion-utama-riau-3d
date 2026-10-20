@@ -9,8 +9,8 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { makeRng } from '../../entities/util.js';
-import { ROOM, WINDOW, DOOR, SELASAR, SELASAR_SEBERANG } from './data.js';
-import { makeCanvas, canvasTexture, fitFont, diamond, tint, FONT } from './canvas.js';
+import { ROOM, WINDOW, DOOR, REAR, SELASAR, SELASAR_SEBERANG } from './data.js';
+import { makeCanvas, canvasTexture, fitFont, tint, FONT } from './canvas.js';
 import { styleState } from '../../engine/styleState.js';
 import { loadPbr } from '../../world/textures/pbr.js';
 import { TILE_M, tierForQuality } from '../../world/textures/pbrCore.js';
@@ -291,10 +291,15 @@ function wallGeometry() {
   const wx0 = WINDOW.x - WINDOW.w / 2;
   const wx1 = WINDOW.x + WINDOW.w / 2;
   const front = (x0, x1, y0, y1) => slab(x0, x1, y0, y1, -hd - t, -hd);
+  const zb = REAR.zBack;
+  const part = (x0, x1, y0, y1) => slab(x0, x1, y0, y1, hd, hd + t); // dinding pemisah ruang utama | ruang belakang
+  const { doorWc: dw, doorRoom2: dr } = REAR;
   return merged([
-    slab(-hw - t, -hw, 0, h, -hd - t, hd + t),
-    slab(hw, hw + t, 0, h, -hd - t, hd + t),
-    slab(-hw, hw, 0, h, hd, hd + t),
+    slab(-hw - t, -hw, 0, h, -hd - t, zb + t),
+    slab(hw, hw + t, 0, h, -hd - t, zb + t),
+    slab(-hw, hw, 0, h, zb, zb + t),
+    slab(REAR.xSplit - t / 2, REAR.xSplit + t / 2, 0, h, hd + t, zb), // sekat WC | ruang kedua
+    part(-hw, dw.x0, 0, h), part(dw.x0, dw.x1, dw.h, h), part(dw.x1, dr.x0, 0, h), part(dr.x0, dr.x1, dr.h, h), part(dr.x1, hw, 0, h),
     front(-hw, wx0, 0, h),
     front(wx0, wx1, 0, WINDOW.sill),
     front(wx0, wx1, top, h),
@@ -314,8 +319,11 @@ function floorGeometry() {
   const hd = d / 2;
   const e = 0.012;
   const floor = new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2);
+  const rearDepth = REAR.zBack - hd;
+  const rearFloor = new THREE.PlaneGeometry(w, rearDepth).rotateX(-Math.PI / 2).translate(0, 0, hd + rearDepth / 2);
   return merged([
     floor,
+    rearFloor,
     slab(-hw, -hw + e, 0, PLINT_H, -hd, hd),
     slab(hw - e, hw, 0, PLINT_H, -hd, hd),
     slab(-hw, hw, 0, PLINT_H, hd - e, hd),
@@ -325,7 +333,12 @@ function floorGeometry() {
 }
 
 function ceilingGeometry() {
-  return worldUv(new THREE.PlaneGeometry(ROOM.w, ROOM.d).rotateX(Math.PI / 2).translate(0, ROOM.h, 0), PLAFON_M);
+  const hd = ROOM.d / 2;
+  const rearDepth = REAR.zBack - hd;
+  return worldUv(merged([
+    new THREE.PlaneGeometry(ROOM.w, ROOM.d).rotateX(Math.PI / 2).translate(0, ROOM.h, 0),
+    new THREE.PlaneGeometry(ROOM.w, rearDepth).rotateX(Math.PI / 2).translate(0, ROOM.h, hd + rearDepth / 2),
+  ]), PLAFON_M);
 }
 
 /** Atap selasar, rak sepatu & sandal di depan pintu (warna vertex). */
