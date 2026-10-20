@@ -16,47 +16,77 @@
  */
 const PI = Math.PI;
 const freeze = Object.freeze;
-const at = (x, y, z, hadap = 0, extra = {}) => freeze({ x, y, z, hadap, ...extra });
+/**
+ * Denah diperlebar (ruang utama 6 × 6 m, plafon 4 m) dari tata letak lama 4,2 m: koordinat X lama dipetakan keluar
+ * (barang dekat dinding ikut menempel dinding baru, barang di tengah tetap). Semua koordinat X di berkas ini lewat `kx`.
+ */
+const SHIFT = 0.9;
+export const kx = (x) => x + SHIFT * Math.max(-1, Math.min(1, x / 1.2));
+const at = (x, y, z, hadap = 0, extra = {}) => freeze({ x: kx(x), y, z, hadap, ...extra });
 const aset = (nama, w, d, h, items, extra = {}) => freeze({ nama, dim: freeze({ w, d, h }), items: freeze(items), ...extra });
-const rect = (id, x0, x1, z0, z1) => freeze({ id, x0, x1, z0, z1 });
+const rect = (id, x0, x1, z0, z1) => freeze({ id, x0: kx(x0), x1: kx(x1), z0, z1 });
+const rectRaw = (id, x0, x1, z0, z1) => freeze({ id, x0, x1, z0, z1 });
 
 export const DATA_CONTOH = true;
 export const SCHEDULE_SEED = 2026;
 
 // ---------- Ruang (spec §8.2: 4,2 × 6,0 × 3,2 m dalam) ----------
-export const ROOM = freeze({ w: 4.2, d: 6.0, h: 3.2, wall: 0.15 });
-export const WINDOW = freeze({ x: -0.9, w: 1.2, sill: 0.9, h: 1.2, z: -3.0 });
+export const ROOM = freeze({ w: 6.0, d: 6.0, h: 4.0, wall: 0.15 });
+export const WINDOW = freeze({ x: kx(-0.9), w: 1.2, sill: 0.9, h: 1.2, z: -3.0 });
 export const WINDOW_CENTER = freeze({ x: WINDOW.x, y: WINDOW.sill + WINDOW.h / 2, z: WINDOW.z });
 /** Pintu 0,9 × 2,1 m; daun pintu berengsel di x0, terbuka 85° ke dalam ruang (merapat ke kusen kiri). */
-export const DOOR = freeze({ x0: 0.9, x1: 1.8, h: 2.1, z: -3.0, openRad: -1.48 });
+export const DOOR = freeze({ x0: kx(0.9), x1: kx(0.9) + 0.9, h: 2.1, z: -3.0, openRad: -1.48 });
 /**
- * Selasar di luar ruang ERC (pintu D5 gedung UKM blok biru, sayap utara–selatan; ruang ini sama dengan interior generik 4,2 × 6 m
+ * Selasar di luar ruang ERC (pintu D5 gedung UKM blok biru, sayap utara–selatan; ruang utama diperlebar jadi 6 × 6 m
  * [INFERENSI denah dalam]). Jendela mengintip selasar; panjang & papan nama deret seberang = label ruang lain di gedung.
  */
 export const SELASAR = freeze({ zDekat: -3.15, zSeberang: -6.85, ujungKiri: -6.3, ujungKanan: 10.5, tinggiAtap: 3.4, beratap: true });
 /** Papan nama ruang tetangga di selasar (label sekreUkm.data.js: D1, D2, D3, D4; tes menjaga kesamaan). */
 export const SELASAR_SEBERANG = freeze(['KSR PMI', 'KOPMA UNRI', 'SEKRETARIAT', 'SEKRETARIAT']);
-export const SPAWN = freeze({ x: 1.5, z: -2.4, yaw: 0 });
+export const SPAWN = freeze({ x: kx(1.5), z: -2.4, yaw: 0 });
 /** yaw dunia sumbu +Z ruang = yaw pintu M4 (menghadap selasar) + offset ini. */
 export const ROOM_YAW_OFFSET = PI;
-export const TL_POS = freeze([freeze({ x: 0, y: ROOM.h, z: -1.3 }), freeze({ x: 0, y: ROOM.h, z: 1.5 })]);
+/**
+ * Bagian belakang gedung: dinding pemisah di z = 3 dengan dua pintu dalam (navy berkaca tipis) ke Ruang Kedua
+ * (timur) dan WC (barat). [INFERENSI] ukuran ruang belakang; denah dari penjelasan anggota ERC (dua ruang + WC di belakang).
+ */
+export const REAR = freeze({
+  zBack: 6.0, xSplit: -1.2, h: 4.0,
+  doorRoom2: freeze({ x0: 0.1, x1: 1.0, h: 2.1 }),
+  doorRoom3: freeze({ x0: -2.9, x1: -2.0, h: 2.1 }),
+  /** WC tersembunyi di pojok tenggara Ruang Kedua: pintunya hanya dari dalam Ruang Kedua. */
+  wc: freeze({ x0: 1.9, z0: 4.8, door: freeze({ x0: 2.0, x1: 2.9, h: 2.1 }) }),
+});
+export const TL_POS = freeze([
+  freeze({ x: 0, y: ROOM.h, z: -1.3 }), freeze({ x: 0, y: ROOM.h, z: 1.5 }),
+  freeze({ x: 1.0, y: ROOM.h, z: 4.5 }), freeze({ x: -2.1, y: ROOM.h, z: 4.5 }),
+]);
+/** Zona jalan kaki (persegi sumbu-sejajar) dan celah pintu; dinding antar zona tidak bisa ditembus. */
+export const ZONES = freeze([
+  rectRaw('utama', -ROOM.w / 2, ROOM.w / 2, -ROOM.d / 2, ROOM.d / 2),
+  rectRaw('ruang-ketiga', -ROOM.w / 2, REAR.xSplit, ROOM.d / 2, REAR.zBack),
+  rectRaw('ruang-kedua', REAR.xSplit, REAR.wc.x0, ROOM.d / 2, REAR.zBack),
+  rectRaw('ruang-kedua-timur', REAR.wc.x0, ROOM.w / 2, ROOM.d / 2, REAR.wc.z0),
+  rectRaw('wc', REAR.wc.x0, ROOM.w / 2, REAR.wc.z0, REAR.zBack),
+  rectRaw('pintu-ruang-kedua', REAR.doorRoom2.x0, REAR.doorRoom2.x1, 2.0, 4.0),
+  rectRaw('pintu-ruang-ketiga', REAR.doorRoom3.x0, REAR.doorRoom3.x1, 2.0, 4.0),
+  rectRaw('pintu-wc', REAR.wc.door.x0, REAR.wc.door.x1, 4.0, 5.6),
+]);
 
 // ---------- Organisasi (DATA CONTOH) ----------
 export const ORGANISASI = freeze({
-  singkatan: 'ERC', nama: 'ERC', kabinet: 'Kabinet Harmoni Bertuah', periode: '2026/2027',
+  singkatan: 'ERC', nama: 'Engineering Robotics Club', kabinet: 'Kabinet Harmoni Bertuah', periode: '2026/2027',
   motto: 'Bergerak · Berkarya · Bermakna', warna: '#c99a00', warna2: '#6fbfe8',
 });
 const p = (jabatan, nama) => freeze({ jabatan, nama });
 const divisi = (nama, koor, anggota) => freeze({ nama, koor, anggota: freeze(anggota) });
 export const STRUKTUR = freeze({
-  inti: freeze([p('Ketua Umum', 'Fajar Ramadhan'), p('Wakil Ketua', 'Nurul Aisyah')]),
-  sekben: freeze([p('Sekretaris', 'Dimas Pratama'), p('Bendahara', 'Sari Wulandari')]),
+  inti: freeze([p('Ketua', 'Farkhan'), p('Wakil Ketua', 'Abbiyu')]),
+  sekben: freeze([p('Bendahara', 'Mutia')]),
   divisi: freeze([
-    divisi('Kaderisasi', 'Rizky Saputra', ['Aldi', 'Mega', 'Yoga']),
-    divisi('Humas', 'Putri Amelia', ['Bayu', 'Intan', 'Reza']),
-    divisi('Minat & Bakat', 'Hendra Gunawan', ['Tiara', 'Fikri', 'Lala']),
-    divisi('Dana Usaha', 'Wulan Sari', ['Rahmat', 'Nisa', 'Doni']),
-    divisi('Kominfo', 'Arif Hidayat', ['Salsa', 'Ilham', 'Vina']),
+    divisi('Anggota', null, ['Mala', 'Juan', 'Naomi', 'Fazlie', 'Okta']),
+    divisi('Anggota', null, ['Hafizh', 'Rio', 'Musliadi', 'Fitri', 'Dwi']),
+    divisi('Anggota', null, ['Nisa', 'Ummi', 'Yuli', 'Ara']),
   ]),
 });
 const proker = (nama, bulan, status, catatan = '') => freeze({ nama, bulan, status, catatan });
@@ -80,7 +110,7 @@ export const CATATAN_RAPAT = freeze({
     'Poster + IG: Kominfo',
     'LPJ kegiatan lalu BELUM selesai!!',
   ]),
-  tabel: freeze({ kolom: freeze(['Konsumsi', 'Dana', 'Publikasi']), isi: freeze(['Wulan', 'Sari', 'Arif']) }),
+  tabel: freeze({ kolom: freeze(['Konsumsi', 'Dana', 'Publikasi']), isi: freeze(['Mutia', 'Mala', 'Juan']) }),
   tenggat: 'DL PROPOSAL: JUMAT!!',
   sudut: 'JANGAN DIHAPUS!!',
   semangat: 'semangat!!',
@@ -92,8 +122,8 @@ export const KALENDER = freeze({
 });
 const piket = (hari, nama, centang = false) => freeze({ hari, nama: freeze(nama), centang });
 export const PIKET = freeze([
-  piket('Senin', ['Fajar', 'Mega'], true), piket('Selasa', ['Nurul', 'Bayu'], true), piket('Rabu', ['Dimas', 'Tiara']),
-  piket('Kamis', ['Sari', 'Ilham']), piket('Jumat', ['Rizky', 'Salsa']),
+  piket('Senin', ['Mutia', 'Mala'], true), piket('Selasa', ['Juan', 'Naomi'], true), piket('Rabu', ['Fazlie', 'Okta']),
+  piket('Kamis', ['Hafizh', 'Rio']), piket('Jumat', ['Musliadi', 'Fitri']),
 ]);
 const piagam = (judul, isi, tahun) => freeze({ judul, kepada: ORGANISASI.nama, isi, tahun });
 export const PIAGAM = freeze([
@@ -138,7 +168,7 @@ export const ASET = freeze({
   S08: aset('bendera-meja', 0.3, 0.3, 0.6, [at(1.85, 0.75, 0.52, -PI / 2)], { bendera: freeze(['organisasi', 'unri', 'merah-putih']) }),
   S09: aset('lemari-arsip-besi', 0.9, 0.45, 1.8, [at(1.5, 0, 2.775, PI)]),
   S10: aset('map-ordner', 0.08, 0.3, 0.32, []),
-  S11: aset('kardus-properti', 0.5, 0.4, 0.35, [at(-1.82, 0, -2.1, 0.1), at(-1.8, 0.35, -2.08, -0.15), at(-1.85, 0, 2.76, 0.05)]),
+  S11: aset('kardus-properti', 0.5, 0.4, 0.35, [at(-1.82, 0, -2.1, 0.1), at(-1.8, 0.35, -2.08, -0.15), at(-0.75, 0, 2.76, 0.05)]),
   S12: aset('spanduk-tergulung', 0.1, 0.1, 2, [at(-1.97, 0, -2.85, PI / 2, { miring: 0.12 }), at(-1.86, 0, -2.9, PI / 2, { miring: 0.08 })]),
   S13: aset('dispenser-galon', 0.32, 0.32, 1.25, [at(0.35, 0, -2.82, 0)]),
   S14: aset('kipas-berdiri', 0.45, 0.45, 1.3, [at(-1.8, 0, -1.0, 0.69)]),
@@ -163,7 +193,7 @@ export const ASET = freeze({
     at(0.7, 0.012, -0.55, -0.3, { warna: '#e9c46a' }),
   ]),
   S24: aset('lampu-tl-plafon', 1.2, 0.1, 0.08, TL_POS.map((t) => at(t.x, t.y, t.z, 0))),
-  S25: aset('stopkontak-sambungan', 0.3, 0.06, 0.04, [at(1.42, 0, 0.92, 0.3)], { stopDinding: freeze({ x: 2.095, y: 0.35, z: 0.25 }) }),
+  S25: aset('stopkontak-sambungan', 0.3, 0.06, 0.04, [at(1.42, 0, 0.92, 0.3)], { stopDinding: freeze({ x: 2.995, y: 0.35, z: 0.25 }) }),
   S26: aset('poster-acara', 0.42, 0.01, 0.6, [
     at(0.68, 1.7, 2.992, PI, { poster: 0 }), at(2.093, 1.75, -2.35, -PI / 2, { poster: 1 }),
     at(0.45, 2.3, -2.993, 0, { poster: 2 }), at(-2.093, 1.75, 2.45, PI / 2, { poster: 3 }),
@@ -216,11 +246,12 @@ export const SOLIDS = freeze([
   rect('dispenser', 0.17, 0.53, -3.0, -2.64),
   rect('kipas', -2.0, -1.6, -1.2, -0.8),
   rect('kardus-depan', -2.1, -1.55, -2.35, -1.85),
-  rect('kardus-belakang', -2.1, -1.58, 2.54, 3.0),
+  rect('kardus-belakang', -1.0, -0.5, 2.54, 3.0),
   rect('spanduk', -2.1, -1.78, -3.0, -2.6),
   rect('kursi', 0.9, 1.35, 0.98, 1.42),
   rect('daun-pintu', 0.86, 1.05, -3.0, -2.08),
   rect('tas', 1.75, 2.1, -2.05, -1.45),
+  rect('sofa', -2.1, -1.2, -0.6, 1.6),
 ]);
 /** Perabot tinggi yang menghalangi kamera orang ketiga. */
 export const TALL_SOLIDS = freeze([SOLIDS[1]]);
@@ -228,20 +259,56 @@ export const TALL_SOLIDS = freeze([SOLIDS[1]]);
 // ---------- NPC (3–6 hadir menurut jadwal) & slot aktivitas ----------
 const npc = (id, nama, outfit, seed, hijab, rambut) => freeze({ id, nama, outfit, seed, hijab, rambut });
 export const NPCS = freeze([
-  npc('npc-1', 'Fajar', 'almamater', 101, null, 'buzz'),
-  npc('npc-2', 'Nurul', 'almamater', 202, 0x2c3e50, null),
-  npc('npc-3', 'Dimas', 'kaus', 303, null, 'helmet'),
-  npc('npc-4', 'Sari', 'kaus', 404, 0x8e44ad, null),
-  npc('npc-5', 'Rizky', 'almamater', 505, null, 'afro'),
-  npc('npc-6', 'Putri', 'kaus', 606, 0x16a085, null),
+  npc('npc-1', 'Farkhan', 'almamater', 101, null, 'buzz'),
+  npc('npc-2', 'Abbiyu', 'kaus', 202, null, 'helmet'),
+  npc('npc-3', 'Mutia', 'almamater', 303, 0x2c3e50, null),
+  npc('npc-4', 'Mala', 'kaus', 404, 0x8e44ad, null),
+  npc('npc-5', 'Juan', 'kaus', 505, null, 'afro'),
+  npc('npc-6', 'Naomi', 'kaus', 606, 0x16a085, null),
+  npc('npc-7', 'Fazlie', 'almamater', 707, null, 'buzz'),
+  npc('npc-8', 'Okta', 'kaus', 808, null, 'helmet'),
+  npc('npc-9', 'Hafizh', 'kaus', 909, null, 'afro'),
+  npc('npc-10', 'Rio', 'kaus', 1010, null, 'buzz'),
+  npc('npc-11', 'Musliadi', 'almamater', 1111, null, 'helmet'),
+  npc('npc-12', 'Fitri', 'kaus', 1212, 0x8e44ad, null),
+  npc('npc-13', 'Dwi', 'kaus', 1313, null, 'buzz'),
+  npc('npc-14', 'Nisa', 'almamater', 1414, 0x16a085, null),
+  npc('npc-15', 'Ummi', 'kaus', 1515, 0x2c3e50, null),
+  npc('npc-16', 'Yuli', 'kaus', 1616, 0x8e44ad, null),
+  npc('npc-17', 'Ara', 'kaus', 1717, 0x16a085, null),
 ]);
-const slot = (id, x, z, yaw, poseId, block) => freeze({ id, x, z, yaw, poseId, block });
+/**
+ * Jam hadir + kebiasaan tiap anggota (jam game; `suka` = slot yang paling sering mereka ambil). [INFERENSI] semua
+ * kebiasaan di sini karangan awal untuk variasi, bukan fakta anggota asli. Penampilan (hijab/rambut) di NPCS juga
+ * placeholder, silakan ubah. datang === pulang berarti selalu hadir.
+ */
+const profil = (datang, pulang, suka) => freeze({ datang, pulang, suka: freeze(suka) });
+export const NPC_PROFIL = freeze({
+  'npc-1': profil(8, 23, ['whiteboard', 'rapat-1', 'laptop']), // Farkhan: datang pagi, rapat dan papan tulis
+  'npc-2': profil(9, 21, ['rapat-2', 'whiteboard']),
+  'npc-3': profil(8, 17, ['laptop', 'rapat-3']), // Mutia: kerja siang, catatan keuangan
+  'npc-4': profil(10, 18, ['ngobrol-1', 'minum']),
+  'npc-5': profil(22, 6, ['rebahan', 'laptop']), // Juan: begadang
+  'npc-6': profil(9, 16, ['rapat-4', 'minum']),
+  'npc-7': profil(13, 23, ['laptop', 'rapat-3']),
+  'npc-8': profil(19, 5, ['laptop', 'rebahan']), // Okta: kerja malam
+  'npc-9': profil(14, 24, ['gitar', 'ngobrol-2']), // Hafizh: sore sampai malam, genjreng gitar
+  'npc-10': profil(15, 22, ['ngobrol-1', 'ngobrol-2']),
+  'npc-11': profil(11, 19, ['minum', 'rapat-1']),
+  'npc-12': profil(8, 15, ['rapat-1', 'rapat-2']),
+  'npc-13': profil(16, 2, ['laptop', 'gitar']),
+  'npc-14': profil(9, 14, ['whiteboard', 'minum']),
+  'npc-15': profil(12, 20, ['rapat-3', 'ngobrol-1']),
+  'npc-16': profil(7, 13, ['rebahan', 'rapat-4']), // Yuli: pagi sampai siang
+  'npc-17': profil(17, 23, ['ngobrol-2', 'gitar']),
+});
+const slot = (id, x, z, yaw, poseId, block) => freeze({ id, x: kx(x), z, yaw, poseId, block });
 /** yaw = hadap NPC; `block` = radius penghalang bagi pemain (rebahan memanjang ±0,8 m). */
 export const SLOTS = freeze([
   slot('rapat-1', -0.4, -0.25, 0, 'sitCrossLegged', 0.35),
   slot('rapat-2', 0.5, 0.7, -PI / 2, 'sitCrossLegged', 0.35),
   slot('rapat-3', -0.4, 1.65, PI, 'sitCrossLegged', 0.35),
-  slot('rapat-4', -1.3, 0.7, PI / 2, 'sitCrossLegged', 0.35),
+  slot('rapat-4', -0.85, 0.7, PI / 2, 'sitCrossLegged', 0.35),
   slot('laptop', 1.12, 1.2, PI / 2, 'sitChairTyping', 0.4),
   slot('gitar', -1.35, 2.2, 2.58, 'guitarStrum', 0.4),
   slot('rebahan', -0.1, 2.35, -PI / 2, 'lieDown', 0.85),
@@ -254,7 +321,7 @@ export const SLOTS = freeze([
 export const TALK_SLOTS = freeze(['rapat-1', 'rapat-2', 'rapat-3', 'rapat-4', 'whiteboard', 'ngobrol-1', 'ngobrol-2']);
 
 // ---------- Barang interaktif (spec §8.2: ≥ 10) ----------
-const item = (id, label, [x, y, z], radius, prompt) => freeze({ id, label, pos: freeze({ x, y, z }), radius, prompt });
+const item = (id, label, [x, y, z], radius, prompt) => freeze({ id, label, pos: freeze({ x: kx(x), y, z }), radius, prompt });
 export const INTERAKSI = freeze([
   item('papan-struktur', 'Papan struktur kabinet', [-0.6, 1.75, 2.95], 2.0, 'Lihat struktur pengurus'),
   item('papan-proker', 'Papan program kerja', [-2.05, 1.65, 0.9], 1.8, 'Baca program kerja'),

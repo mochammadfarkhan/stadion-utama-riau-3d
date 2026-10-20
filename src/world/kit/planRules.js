@@ -227,6 +227,11 @@ export function planOrnaments(arch, variant, mass, baseY, height, rng, ground) {
   if (arch.id === 'K05') {
     const [x, z] = at(front.len / 2, 1.2);
     add('kanopi-masuk', T(x, baseY + 2.9, z, yaw, 3.6, 1, 2.4));
+    add('kolom-kanopi', T(x, baseY + 2.9, z, yaw, 3.6, 2.9 + (baseY - ground), 2.4)); // kolom sampai tanah
+    for (const s of [-1, 1]) {
+      const [px, pz] = at(front.len / 2 + s * 3.4, 1.0);
+      add('pot', T(px, ground, pz, yaw));
+    }
   }
   if (arch.id === 'K06') {
     const side = mass.faces[(mass.faces.indexOf(front) + 1) % mass.faces.length]; // sisi samping (tegak lurus depan)
@@ -246,6 +251,12 @@ export function planOrnaments(arch, variant, mass, baseY, height, rng, ground) {
     }
     const [bx, bz] = at(front.len / 2, 0.05);
     add('spanduk-menu', T(bx, baseY + height - 0.55, bz, yaw, Math.min(4, front.len * 0.5)));
+    for (const s of [-1, 1]) { // tong sampah + pot di kedua ujung muka kantin
+      const [tx, tz] = at(front.len / 2 + s * (front.len / 2 - 0.9), 0.9);
+      add('tong-sampah', T(tx, ground, tz, yaw));
+      const [px, pz] = at(front.len / 2 + s * (front.len / 2 - 2.0), 0.8);
+      add('pot', T(px, ground, pz, yaw));
+    }
   }
   if (arch.id === 'K09') {
     const { obb } = mass;

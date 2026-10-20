@@ -67,7 +67,7 @@ Masjid Arfa'unnas, Gerbang SM Amin, dan Gedung Grand Gasing Millenium.
 - **Kehidupan kampus:** mahasiswa (±30% berjas almamater biru langit, banyak yang beransel) berjalan di bahu jalan/selasar dan duduk di bangku diskusi — ramai 07.00–17.00, sedang 17.00–21.00, sepi malam; motor parkir rapat (empat model Blender: bebek, matic, sport, tua; parkir dekat Integrated Classroom penuh siang hari) dengan LOD per instans; satpam di Pos Keamanan Gerbang Binakrida; pedagang nasi kotak di Kantin FKIP.
 - **Sekretariat:** tekan **E** di depan pintu sekre untuk masuk; di dalam berjalan kaki, NPC beraktivitas sesuai jam game, ≥ 10 barang bisa dipakai, 4 preset kamera foto.
 - **Cerita:** chapter 6 "Kampus Biru Langit" (nasi kotak dari Kantin FKIP, tanda tangan Ketua BEM, keliling Danau Buatan, kipas sekre) dan 3 easter egg kampus (lambang 1-10-62 di plang dekat Gerbang Soebrantas, julukan "Kampus Biru Langit", mengitari GGM).
-- **Fakta vs inferensi:** fakta bersumber di `docs/research/kampus-unri-bina-widya.md`; status & keyakinan aset di `docs/superpowers/specs/2026-10-17-unri-asset-catalog.md`; sumber & keyakinan per gedung di `src/districts/unri/buildings.data.js`. Detail yang tidak terkonfirmasi (denah sekre, warna gedung lama, penempatan plang lambang, seragam satpam, bentuk motor) ditandai [INFERENSI]. **Isi interior sekre (struktur pengurus, proker, catatan rapat, dst.) adalah data contoh** di `src/interiors/sekre/data.js` — ganti dengan data organisasi nyata.
+- **Fakta vs inferensi:** fakta bersumber di `docs/research/kampus-unri-bina-widya.md`; status & keyakinan aset di `docs/superpowers/specs/2026-10-17-unri-asset-catalog.md`; sumber & keyakinan per gedung di `src/districts/unri/buildings.data.js`. Detail yang tidak terkonfirmasi (denah sekre, warna gedung lama, penempatan plang lambang, seragam satpam, bentuk motor) ditandai [INFERENSI]. **Sekre = ERC (Engineering Robotics Club).** Nama 17 anggota di `src/interiors/sekre/data.js` asli (Farkhan, Abbiyu, Mutia, dst.), tetapi jam hadir/kebiasaan (`NPC_PROFIL`), penampilan (hijab/rambut), proker, catatan rapat, piagam, dan poster masih **data contoh/[INFERENSI]**; ganti sesuai kenyataan.
 
 ### Kontrol di dalam sekre
 | Tombol | Aksi |
@@ -138,6 +138,9 @@ docs/
 ```
 
 Model GLB dihasilkan dari Blender lewat `assets-src/blender/export_glb.py` (alur Blender → GLB → `src/world/assets/models.js`).
+
+## Performa & tampilan (gaya Kartun)
+Diukur di Chromium headless (GPU D3D11, 1600×900, kamera 3/4, jam 11) dengan `tools/shots/infoPoints.mjs`: sekre ERC ±150 draw call / 0,31 juta segitiga / 16,6 ms; pusat Lembaga 169 / 0,41 juta / 17 ms; Rektorat 134 / 0,52 juta / 20,4 ms; Masjid 197 / 0,72 juta / 19,6 ms; GGM 178 / 0,61 juta / 19 ms. Teknik: detail stadion > 650 m dan penonton tribun disembunyikan (layer 0 / `visible`), frustum bayangan 130 m, tekstur KTX2, instancing, LOD klaster gedung (150/900 m), LOD humanoid/pohon, bayangan kontak (pemain, NPC, tiang), fade dither pohon yang menutup pemain, tema UI perkamen. Efek maket (tilt-shift) tetap opsional (default mati).
 
 ## Kredit
 Pola UI panel pengaturan diadaptasi dari [dgreenheck/tidewater](https://github.com/dgreenheck/tidewater) (lisensi MIT).

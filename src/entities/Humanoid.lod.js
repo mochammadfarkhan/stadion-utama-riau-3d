@@ -81,6 +81,22 @@ export function createHumanoidLod({ near = LOD_NEAR, far = LOD_FAR } = {}) {
       return entries.size;
     },
 
+    /**
+     * Panggil cb(x, z) untuk tiap humanoid yang masih tampil (level 0/1) dalam radius datar dari fokus; dipakai bayangan
+     * kontak (engine/contactShadows) tanpa mengimpor entitas.
+     * @param {{x:number, z:number}} focus
+     */
+    forEachNear(focus, radius, cb) {
+      const r2 = radius * radius;
+      for (const [group, e] of entries) {
+        if (e.level > 1) continue;
+        const m = group.matrixWorld.elements;
+        const dx = m[12] - focus.x;
+        const dz = m[14] - focus.z;
+        if (dx * dx + dz * dz <= r2) cb(m[12], m[14]);
+      }
+    },
+
     /** @param {THREE.Vector3} camPos */
     update(camPos) {
       const s = styleState.lod; // gaya hemat (3/4 + kartun/facet): radius LOD lebih kecil

@@ -6,7 +6,7 @@ import { createRoomCollider } from '../src/interiors/roomCollider.js';
 import { SEKRE_PEMAIN, UKM_LABELS } from '../src/regions/unri-lembaga/sekreUkm.data.js';
 
 const IDS = Array.from({ length: 30 }, (_, i) => `S${String(i + 1).padStart(2, '0')}`);
-const insideRoom = (p, m = 0.01) => Math.abs(p.x) <= D.ROOM.w / 2 + m && Math.abs(p.z) <= D.ROOM.d / 2 + m && p.y >= 0 && p.y <= D.ROOM.h;
+const insideRoom = (p, m = 0.01) => Math.abs(p.x) <= D.ROOM.w / 2 + m && p.z >= -D.ROOM.d / 2 - m && p.z <= D.REAR.zBack + m && p.y >= 0 && p.y <= D.ROOM.h;
 const collider = (withNpc) => createRoomCollider({
   halfW: D.ROOM.w / 2, halfD: D.ROOM.d / 2, solids: D.SOLIDS, tallSolids: D.TALL_SOLIDS,
   blockers: () => (withNpc ? D.SLOTS.map((s) => ({ x: s.x, z: s.z, r: s.block })) : []),
@@ -50,7 +50,7 @@ describe('data sekre: aset katalog', () => {
     expect(D.ASET.S17.items).toHaveLength(2);
     expect(D.ASET.S20.items).toHaveLength(3);
     expect(D.ASET.S21.items).toHaveLength(4);
-    expect(D.ASET.S24.items).toHaveLength(2);
+    expect(D.ASET.S24.items).toHaveLength(4); // 2 ruang utama + 2 ruang belakang
     expect(D.ASET.S26.items).toHaveLength(4);
   });
 });
@@ -67,8 +67,8 @@ describe('data sekre: NPC & slot', () => {
   });
 
   it('6 NPC unik, ≥ 2 berjas almamater, sisanya kaus', () => {
-    expect(D.NPCS).toHaveLength(6);
-    expect(new Set(D.NPCS.map((n) => n.id)).size).toBe(6);
+    expect(D.NPCS).toHaveLength(17);
+    expect(new Set(D.NPCS.map((n) => n.id)).size).toBe(17);
     expect(D.NPCS.filter((n) => n.outfit === 'almamater').length).toBeGreaterThanOrEqual(2);
     expect(D.NPCS.every((n) => ['almamater', 'kaus'].includes(n.outfit))).toBe(true);
   });
@@ -94,7 +94,7 @@ describe('data sekre: interaksi & isi contoh', () => {
   it('isi organisasi bertanda contoh; papan punya isi', () => {
     expect(typeof D.DATA_CONTOH).toBe('boolean');
     expect(D.STRUKTUR.inti.length).toBeGreaterThanOrEqual(2);
-    expect(D.STRUKTUR.divisi.length).toBeGreaterThanOrEqual(4);
+    expect(D.STRUKTUR.divisi.length).toBeGreaterThanOrEqual(1);
     expect(D.PROKER.length).toBeGreaterThanOrEqual(5);
     expect(D.CATATAN_RAPAT.poin.length).toBeGreaterThanOrEqual(4);
     expect(D.PIAGAM).toHaveLength(4);
@@ -105,5 +105,30 @@ describe('data sekre: interaksi & isi contoh', () => {
   it('kalender Oktober 2026 dimulai Kamis (Senin = 0 → 3)', () => {
     expect(new Date(2026, 9, 1).getDay()).toBe(4);
     expect(D.KALENDER.hariMulai).toBe(3);
+  });
+});
+
+describe('denah ERC: ruang utama, dua ruang belakang, WC tersembunyi', () => {
+  const c = createRoomCollider({ halfW: D.ROOM.w / 2, halfD: D.ROOM.d / 2, zones: D.ZONES, solids: D.SOLIDS });
+  const mid = (d) => (d.x0 + d.x1) / 2;
+  it('spawn bisa dijalani dan dua ruang belakang terjangkau lewat pintu dalam', () => {
+    expect(c.isWalkable(D.SPAWN.x, D.SPAWN.z)).toBe(true);
+    for (const z of [2.4, 3.0, 3.6]) {
+      expect(c.isWalkable(mid(D.REAR.doorRoom2), z)).toBe(true);
+      expect(c.isWalkable(mid(D.REAR.doorRoom3), z)).toBe(true);
+    }
+    expect(c.isWalkable(mid(D.REAR.doorRoom2), 4.5)).toBe(true);
+    expect(c.isWalkable(mid(D.REAR.doorRoom3), 5.0)).toBe(true);
+  });
+  it('WC hanya terjangkau dari dalam Ruang Kedua (pintu di dinding z = wc.z0)', () => {
+    const x = mid(D.REAR.wc.door);
+    for (const z of [4.4, D.REAR.wc.z0, 5.3]) expect(c.isWalkable(x, z)).toBe(true);
+    expect(c.isWalkable(2.45, 3.0)).toBe(false); // dinding pemisah utama, bukan pintu WC
+  });
+  it('dinding pemisah tidak bisa ditembus di luar pintu', () => {
+    expect(c.isWalkable(-0.6, 3.0)).toBe(false);
+    expect(c.isWalkable(2.4, 3.0)).toBe(false);
+    expect(c.isWalkable(D.REAR.xSplit, 4.5)).toBe(false);
+    expect(c.isWalkable(D.REAR.wc.x0, 5.3)).toBe(false);
   });
 });

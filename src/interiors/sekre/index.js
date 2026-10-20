@@ -13,7 +13,7 @@ import { withScope } from '../../engine/ResourceScope.js';
 import { freezeStatic } from '../../engine/freezeStatic.js';
 import { mergeByMaterial } from '../../world/util/merge.js';
 import { lightingPreset } from '../../sim/dayCycle.js';
-import { ROOM, SPAWN, SOLIDS, TALL_SOLIDS, ROOM_YAW_OFFSET } from './data.js';
+import { ROOM, SPAWN, SOLIDS, TALL_SOLIDS, ROOM_YAW_OFFSET, ZONES } from './data.js';
 import { buildRoom } from './room.js';
 import { buildFurniture, createSekreMaterials } from './furniture.js';
 import { buildBoards } from './boards.js';
@@ -78,7 +78,7 @@ async function buildSekre(ctx) {
   freezeStatic(merged);
 
   const colliders = createRoomCollider({
-    halfW: ROOM.w / 2, halfD: ROOM.d / 2, solids: SOLIDS, tallSolids: TALL_SOLIDS, blockers: () => npcs.blockers(),
+    halfW: ROOM.w / 2, halfD: ROOM.d / 2, zones: ZONES, solids: SOLIDS, tallSolids: TALL_SOLIDS, blockers: () => npcs.blockers(),
   });
   const audio = createSekreAudio({ audioBus: ctx.audioBus ?? null });
   const interactables = createSekreInteractables({ furniture, lighting, audio });

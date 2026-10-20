@@ -14,7 +14,7 @@ const contoh = () => (DATA_CONTOH ? `\n${TEKS.contoh}` : '');
 export function strukturText() {
   const lines = [`${ORGANISASI.nama} — periode ${ORGANISASI.periode}`];
   for (const p of [...STRUKTUR.inti, ...STRUKTUR.sekben]) lines.push(`• ${p.jabatan}: ${p.nama}`);
-  for (const d of STRUKTUR.divisi) lines.push(`• Divisi ${d.nama}: ${d.koor} (koor.), ${d.anggota.join(', ')}`);
+  for (const d of STRUKTUR.divisi) lines.push(d.koor ? `• Divisi ${d.nama}: ${d.koor} (koor.), ${d.anggota.join(', ')}` : `• Anggota: ${d.anggota.join(', ')}`);
   return lines.join('\n') + contoh();
 }
 

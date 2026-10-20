@@ -28,6 +28,7 @@ import { createFhDetailBuilder } from './fhMangkrak.js';
 import { createParkingBuilder, upgradeSekreMotors } from './parking.js';
 import { createUkmHeroBuilder, upgradeUkmAssets } from './sekretariatUkm.js';
 import { createKompleksBuilder } from './kompleks.js';
+import { createYardPropsBuilder } from './yardProps.js';
 import { createUkmVegetationBuilder, ukmPlantPoints, fallbackTreeCells } from './ukmVegetation.js';
 import { createUkmRoadsideBuilder, ukmLampHeads } from './ukmRoadside.js';
 import { treeInstances, upgradeUkmTrees } from './ukmTrees.js';
@@ -98,6 +99,7 @@ function buildLembaga(ctx) {
     () => createSekretariatBuilder({ baseY: sekreY, mats, atlas }),
     () => createTerraceBuilder({ heightAt: h.local, mats, atlas }),
     () => createParkingBuilder({ heightAt: h.local }),
+    () => createYardPropsBuilder({ heightAt: h.local }),
     () => createUkmHeroBuilder({ baseY: ukmY, mats }),
     () => createKompleksBuilder({ heightAt: h.local }),
     () => createUkmVegetationBuilder({ heightAt: h.local }),

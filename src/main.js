@@ -5,6 +5,7 @@ import { createGamepadPoller } from './core/gamepad.js';
 import { TouchControls } from './ui/TouchControls.js';
 import { isTouchPrimary } from './ui/touchMath.js';
 import './ui/touch.css';
+import './ui/perkamen.css';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/jetbrains-mono';
 import { CameraRig } from './core/CameraRig.js';
@@ -66,6 +67,7 @@ import { sekreExitTo } from './regions/unri-lembaga/portalDoors.js';
 import { SEKRE_PEMAIN } from './regions/unri-lembaga/sekreUkm.data.js';
 import { createCity } from './city/index.js';
 import { createStyleManager } from './engine/styleManager.js';
+import { registerContactSource } from './engine/contactShadows.js';
 import { updateWaterToon } from './world/shaders/waterToon.js';
 import { STREAM } from './city/ChunkStreamer.js';
 import { createAttribution } from './ui/Attribution.js';
@@ -212,6 +214,8 @@ async function main() {
 
   hud.setWallet(wallet);
   hud.setCameraMode(rig.mode);
+  // bayangan kontak untuk semua humanoid ber-LOD (NPC cerita, mahasiswa, satpam, pedagang) dalam 30 m dari fokus
+  lifecycle.add(registerContactSource((emit, focus) => ents.lod.forEachNear(focus, 30, (x, z) => emit(x, z, 0.55))));
   const story = setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle, terrain });
   const shop = setupShop(hud, ents, story);
   const minimap = setupMinimap(app, ents, story, frame, regions);

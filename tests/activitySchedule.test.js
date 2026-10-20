@@ -80,3 +80,26 @@ describe('scheduleFor', () => {
     expect(scheduleFor(10, 1, null)).toEqual([]);
   });
 });
+
+describe('profil kehadiran', () => {
+  const slots = [{ id: 'gitar', poseId: 'guitarStrum' }, { id: 'rapat-1', poseId: 'sitCrossLegged' }];
+  const profiles = {
+    a: { datang: 14, pulang: 24, suka: ['gitar'] },
+    b: { datang: 22, pulang: 6, suka: ['rapat-1'] },
+    c: { datang: 7, pulang: 13, suka: [] },
+  };
+  it('presentAt: jam wrap dan datang===pulang selalu hadir', async () => {
+    const { presentAt } = await import('../src/sim/activitySchedule.js');
+    expect(presentAt(profiles.b, 23)).toBe(true);
+    expect(presentAt(profiles.b, 3)).toBe(true);
+    expect(presentAt(profiles.b, 12)).toBe(false);
+    expect(presentAt({ datang: 0, pulang: 0 }, 5)).toBe(true);
+    expect(presentAt(undefined, 5)).toBe(true);
+  });
+  it('hanya NPC yang hadir dipilih dan slot favorit didahulukan', () => {
+    for (let seed = 1; seed < 20; seed += 1) {
+      const out = scheduleFor(15, seed, slots, ['a', 'b', 'c'], profiles);
+      expect(out.every((x) => x.npcId === 'a')).toBe(true); // jam 15: hanya 'a' hadir (periode santai punya slot gitar)
+    }
+  });
+});

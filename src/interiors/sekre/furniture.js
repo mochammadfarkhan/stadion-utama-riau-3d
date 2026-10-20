@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { instantiateModel } from '../../world/assets/models.js';
-import { ASET, EKSTRA, GLB_ASET, GUITAR_HOLD, ordnerSlots } from './data.js';
+import { ASET, EKSTRA, GLB_ASET, GUITAR_HOLD, ordnerSlots, kx, REAR, DOOR } from './data.js';
 import { makeCanvas, canvasTexture, tint } from './canvas.js';
 import { drawKarpet } from './room.js';
 
@@ -230,8 +230,10 @@ function buildMeja(m) {
 
 function buildKursi(m) {
   const seat = piece([
-    box(0.42, 0.03, 0.4, '#37474f', { y: 0.45 }),
-    box(0.42, 0.28, 0.02, '#37474f', { y: 0.76, z: 0.2 }),
+    box(0.42, 0.04, 0.4, '#8a5a2b', { y: 0.45 }),
+    box(0.42, 0.34, 0.03, '#8a5a2b', { y: 0.78, z: 0.2 }),
+    box(0.03, 0.2, 0.36, '#7a4c22', { x: -0.22, y: 0.58 }),
+    box(0.03, 0.2, 0.36, '#7a4c22', { x: 0.22, y: 0.58 }),
   ], m.prop, 'dudukan');
   const legs = [];
   for (const x of [-0.19, 0.19]) {
@@ -269,12 +271,9 @@ function buildSepatu(m, color) {
 function buildKarpet(m, it) {
   const g = new THREE.Group();
   g.name = 'S22';
-  const rug = new THREE.Mesh(new THREE.PlaneGeometry(3, 4).rotateX(-PI / 2).translate(0, 0.006, 0), m.karpet);
+  const rug = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 2.4).rotateX(-PI / 2).translate(0, 0.006, 0), m.karpet);
   rug.receiveShadow = true;
-  g.add(rug, piece([
-    box(3, 0.004, 0.05, '#efe3c6', { y: 0.004, z: -2.025 }),
-    box(3, 0.004, 0.05, '#efe3c6', { y: 0.004, z: 2.025 }),
-  ], m.prop, 'rumbai', false));
+  g.add(rug);
   g.position.set(it.x, it.y, it.z);
   return g;
 }
@@ -384,8 +383,8 @@ function buildKabel(m) {
   const s = ASET.S25.items[0];
   const w = ASET.S25.stopDinding;
   return groupOf('S25-kabel', piece([
-    tube([[s.x, 0.012, s.z], [1.7, 0.012, 0.7], [2.0, 0.012, 0.42], [2.08, 0.05, 0.3], [w.x - 0.01, w.y, w.z]], 0.004, '#1a1a1a'),
-    tube([[s.x + 0.05, 0.012, s.z + 0.05], [1.47, 0.02, 1.12], [1.47, 0.5, 1.18], [1.5, 0.76, 1.24], [1.62, 0.77, 1.3]], 0.004, '#1a1a1a'),
+    tube([[s.x, 0.012, s.z], [kx(1.7), 0.012, 0.7], [kx(2.0), 0.012, 0.42], [kx(2.08), 0.05, 0.3], [w.x - 0.01, w.y, w.z]], 0.004, '#1a1a1a'),
+    tube([[s.x + 0.05, 0.012, s.z + 0.05], [kx(1.47), 0.02, 1.12], [kx(1.47), 0.5, 1.18], [kx(1.5), 0.76, 1.24], [kx(1.62), 0.77, 1.3]], 0.004, '#1a1a1a'),
     box(0.012, 0.08, 0.08, '#f2f2f2', { x: w.x, y: w.y, z: w.z }),
   ], m.prop, 'kabel', false));
 }
@@ -416,17 +415,17 @@ function buildJendela(m) {
 /** S30 pintu kayu + kusen, daun terbuka ke dalam (engsel di DOOR.x0). Koordinat ruang. */
 function buildPintu(m) {
   const it = ASET.S30.items[0];
-  const WOOD = '#6d4428';
+  const WOOD = '#d4d6da';
   const kusen = piece([
-    box(0.06, 2.16, 0.17, WOOD, { x: 0.87, y: 1.08, z: -3.075 }),
-    box(0.06, 2.16, 0.17, WOOD, { x: 1.83, y: 1.08, z: -3.075 }),
-    box(1.02, 0.06, 0.17, WOOD, { x: 1.35, y: 2.13, z: -3.075 }),
+    box(0.06, 2.16, 0.17, WOOD, { x: DOOR.x0 - 0.03, y: 1.08, z: -3.075 }),
+    box(0.06, 2.16, 0.17, WOOD, { x: DOOR.x1 + 0.03, y: 1.08, z: -3.075 }),
+    box(DOOR.x1 - DOOR.x0 + 0.12, 0.06, 0.17, WOOD, { x: (DOOR.x0 + DOOR.x1) / 2, y: 2.13, z: -3.075 }),
   ], m.prop, 'kusen');
   const panel = piece([
-    box(0.9, 2.08, 0.04, '#7a4b2a', { x: 0.45, y: 1.04, z: 0.02 }),
+    box(0.9, 2.08, 0.04, '#1f3768', { x: 0.45, y: 1.04, z: 0.02 }),
     ...[0.25, 0.65].flatMap((x) => [0.6, 1.5].flatMap((y) => [
-      box(0.3, 0.75, 0.008, '#5e3a20', { x, y, z: 0.042 }),
-      box(0.3, 0.75, 0.008, '#5e3a20', { x, y, z: -0.002 }),
+      box(0.3, 0.75, 0.008, '#182d58', { x, y, z: 0.042 }),
+      box(0.3, 0.75, 0.008, '#182d58', { x, y, z: -0.002 }),
     ])),
   ], m.prop, 'daun');
   const handle = piece([
@@ -438,6 +437,150 @@ function buildPintu(m) {
   hinge.position.set(it.x, 0, it.z);
   hinge.rotation.y = it.buka;
   return groupOf('S30', kusen, hinge);
+}
+
+
+/** Perlengkapan khas sekre ERC (dari foto): tirai vertikal krem, ventilasi kotak, AC split, boks plastik, bola futsal. */
+function buildPerlengkapanErc(m) {
+  const it = ASET.S29.items[0];
+  const blinds = [];
+  for (let k = 0; k < 13; k += 1) blinds.push(box(0.1, 1.55, 0.012, k % 2 ? '#e8e1c9' : '#f1ecda', { x: it.x - 0.66 + k * 0.11, y: it.y + 0.55, z: -2.93 }));
+  blinds.push(box(1.5, 0.06, 0.05, '#cfc8b0', { x: it.x, y: it.y + 1.35, z: -2.93 }));
+  const vents = [];
+  const ventFrames = [];
+  for (let k = 0; k < 10; k += 1) {
+    const x = -2.75 + k * 0.6;
+    vents.push(box(0.15, 0.27, 0.01, '#f4f8ff', { x, y: 3.35, z: -2.985 }));
+    ventFrames.push(box(0.19, 0.31, 0.008, '#c9cdd0', { x, y: 3.35, z: -2.99 }));
+  }
+  for (let k = 0; k < 7; k += 1) {
+    vents.push(box(0.01, 0.27, 0.15, '#f4f8ff', { x: -2.985, y: 3.35, z: -2.2 + k * 0.6 }));
+    ventFrames.push(box(0.008, 0.31, 0.19, '#c9cdd0', { x: -2.99, y: 3.35, z: -2.2 + k * 0.6 }));
+  }
+  const ac = [
+    box(0.22, 0.28, 0.92, '#f2f3f4', { x: 2.9, y: 3.3, z: 1.3 }),
+    box(0.02, 0.05, 0.8, '#3a3f45', { x: 2.79, y: 3.23, z: 1.3 }),
+    box(0.02, 0.03, 0.9, '#d9dcdf', { x: 2.79, y: 3.38, z: 1.3 }),
+  ];
+  const bins = [];
+  for (const [x, z, r] of [[kx(0.95), -0.4, 0.1], [kx(-0.95), -0.75, -0.25]]) {
+    bins.push(box(0.5, 0.3, 0.36, '#d9ecef', { x, y: 0.15, z, ry: r }));
+    bins.push(box(0.52, 0.05, 0.38, '#43a047', { x, y: 0.325, z, ry: r }));
+    bins.push(box(0.12, 0.03, 0.02, '#f2c230', { x, y: 0.31, z: z - 0.19, ry: r }));
+  }
+  const ballG = [ball(0.11, '#ef6c1a', { x: kx(-1.7), y: 0.11, z: 0.15 })];
+  return groupOf('perlengkapan-erc',
+    piece(blinds, m.prop, 'tirai-vertikal', false), piece(vents, m.tl, 'ventilasi-kotak', false),
+    piece(ventFrames, m.prop, 'bingkai-ventilasi', false), piece(ac, m.prop, 'ac-split', false),
+    piece(bins, m.prop, 'boks-plastik'), piece(ballG, m.prop, 'bola', false));
+}
+
+
+/** Layar proyeksi di dinding timur (kode di laptop yang diproyeksikan, seperti di foto). */
+export function drawProyeksi(c, w, h) {
+  c.fillStyle = '#0f1a2e';
+  c.fillRect(0, 0, w, h);
+  const COLORS = ['#7fb8ff', '#9be28f', '#f2c97d', '#d0d7e2', '#ff8fa3'];
+  for (let i = 0; i < 22; i += 1) {
+    c.fillStyle = COLORS[(i * 7) % COLORS.length];
+    const indent = ((i * 5) % 4) * 28;
+    c.fillRect(24 + indent, 22 + i * 21, 60 + ((i * 53) % 220), 9);
+  }
+  c.fillStyle = 'rgba(80,140,255,0.25)';
+  c.fillRect(0, 0, 12, h);
+}
+
+/** Sofa kulit coklat di dinding barat + helm di sandaran, proyektor di atas boks plastik, dan layar proyeksi (E). */
+function buildSofaProyektor(m) {
+  const LEATHER = '#9a5b34';
+  const DARK = '#7d4528';
+  const SX = kx(-1.62);
+  const sofa = [
+    rbox(0.86, 0.4, 2.2, 0.06, LEATHER, { x: SX, y: 0.3, z: 0.5 }),
+    rbox(0.2, 0.5, 2.2, 0.07, DARK, { x: SX - 0.33, y: 0.62, z: 0.5 }),
+    rbox(0.86, 0.5, 0.2, 0.07, DARK, { x: SX, y: 0.5, z: -0.5 }),
+    rbox(0.86, 0.5, 0.2, 0.07, DARK, { x: SX, y: 0.5, z: 1.5 }),
+    box(0.8, 0.1, 2.1, '#3a2b22', { x: SX, y: 0.05, z: 0.5 }),
+    ball(0.15, '#1b1b1f', { x: SX + 0.1, y: 0.66, z: 0.2 }),
+    ball(0.15, '#2b2b30', { x: SX + 0.1, y: 0.66, z: 0.55 }),
+  ];
+  const PX = kx(-0.95);
+  const projector = [box(0.28, 0.1, 0.22, '#e9e6dc', { x: PX, y: 0.4, z: -0.75 }), cyl(0.04, 0.04, 0.03, '#2b2b30', { x: PX + 0.13, y: 0.4, z: -0.75, rz: PI / 2 })];
+  const canvas = makeCanvas(512, 340);
+  drawProyeksi(canvas.getContext('2d'), 512, 340);
+  const tex = canvasTexture(canvas, null);
+  const mat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, transparent: true, opacity: 0.92 });
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.93), mat);
+  screen.name = 'layar-proyeksi';
+  screen.position.set(2.985, 2.1, 1.15);
+  screen.rotation.y = -PI / 2;
+  return groupOf('sofa-proyektor', piece(sofa, m.prop, 'sofa'), piece(projector, m.prop, 'proyektor', false), screen);
+}
+
+
+/** Daun pintu dalam navy berkaca tipis, terbuka ke ruang belakang (engsel di sisi x0). */
+function buildPintuDalam(m, d, name, zc) {
+  const NAVY = '#1f3768';
+  const kusen = piece([
+    box(0.05, 2.12, 0.16, '#cfd2d6', { x: d.x0 - 0.025, y: 1.06, z: zc }),
+    box(0.05, 2.12, 0.16, '#cfd2d6', { x: d.x1 + 0.025, y: 1.06, z: zc }),
+    box(d.x1 - d.x0 + 0.1, 0.05, 0.16, '#cfd2d6', { x: (d.x0 + d.x1) / 2, y: 2.125, z: zc }),
+  ], m.prop, `kusen-${name}`);
+  const w = d.x1 - d.x0;
+  const leaf = piece([
+    box(w, 2.05, 0.04, NAVY, { x: w / 2, y: 1.025, z: 0 }),
+    box(0.1, 0.9, 0.012, '#e8efe0', { x: w * 0.75, y: 1.35, z: 0.026 }),
+    cyl(0.012, 0.012, 0.11, '#cfd8dc', { x: w - 0.07, y: 1.0, z: 0.05, rz: PI / 2 }),
+  ], m.prop, `daun-${name}`);
+  const g = groupOf(name, kusen, leaf);
+  leaf.position.set(d.x0, 0, zc);
+  leaf.rotation.y = -1.48;
+  return g;
+}
+
+/** Ruang Ketiga (barat, rak komponen), Ruang Kedua (tengah-timur, meja kerja), dan WC tersembunyi di pojok tenggara. [INFERENSI] isinya. */
+function buildRuangBelakang(m) {
+  const rak = [];
+  for (const y of [0.02, 0.55, 1.1, 1.65]) rak.push(box(1.5, 0.03, 0.45, '#9ea7ad', { x: -2.1, y, z: 5.72 }));
+  for (const x of [-2.83, -1.37]) for (const z of [5.52, 5.92]) rak.push(box(0.04, 1.85, 0.04, '#7d868c', { x, y: 0.92, z }));
+  const stuff = [];
+  [[-2.5, 0.57, '#c9a46a'], [-2.0, 0.57, '#b58a50'], [-1.6, 0.57, '#d8b87c'], [-2.4, 1.12, '#e9e6dc'], [-1.8, 1.12, '#c9a46a'], [-1.7, 1.67, '#b58a50'], [-2.5, 1.67, '#2f3a46']]
+    .forEach(([x, y, c], i) => stuff.push(box(0.36 + (i % 3) * 0.08, 0.28, 0.32, c, { x, y: y + 0.14, z: 5.72, ry: 0.05 * (i % 4) })));
+  const meja = [
+    box(0.7, 0.04, 1.5, '#2b2f36', { x: 2.55, y: 0.74, z: 3.95 }),
+    ...[[-0.3, -0.7], [-0.3, 0.7], [0.3, -0.7], [0.3, 0.7]].map(([dx, dz]) => box(0.04, 0.72, 0.04, '#3a3f45', { x: 2.55 + dx, y: 0.36, z: 3.95 + dz })),
+    box(0.3, 0.02, 0.22, '#c9ccd0', { x: 2.55, y: 0.77, z: 3.6, ry: 0.4 }),
+    box(0.3, 0.2, 0.01, '#1a1e24', { x: 2.69, y: 0.88, z: 3.56, ry: 0.4 }),
+  ];
+  const robot = [
+    rbox(0.22, 0.1, 0.16, 0.02, '#e9e6dc', { x: 2.5, y: 0.83, z: 4.2 }),
+    cyl(0.04, 0.04, 0.03, '#212121', { x: 2.5, y: 0.8, z: 4.1, rx: PI / 2 }, 12),
+    cyl(0.04, 0.04, 0.03, '#212121', { x: 2.5, y: 0.8, z: 4.3, rx: PI / 2 }, 12),
+    box(0.06, 0.08, 0.06, '#2a9d8f', { x: 2.5, y: 0.93, z: 4.2 }),
+  ];
+  const kursi = [
+    box(0.42, 0.04, 0.42, '#37474f', { x: 1.85, y: 0.46, z: 3.95 }),
+    box(0.03, 0.4, 0.42, '#37474f', { x: 1.65, y: 0.7, z: 3.95 }),
+    cyl(0.012, 0.012, 0.44, '#9ea7ad', { x: 1.85, y: 0.22, z: 3.95 }),
+  ];
+  const kardus = [box(0.5, 0.4, 0.4, '#c9a46a', { x: 0.3, y: 0.2, z: 5.7, ry: 0.2 }), box(0.45, 0.35, 0.35, '#b58a50', { x: 0.45, y: 0.575, z: 5.7, ry: -0.1 }), box(0.5, 0.4, 0.4, '#d8b87c', { x: -0.7, y: 0.2, z: 5.7 })];
+  const wc = [
+    cyl(0.22, 0.17, 0.4, '#f4f6f8', { x: 2.45, y: 0.2, z: 5.6 }, 16),
+    box(0.4, 0.4, 0.16, '#f4f6f8', { x: 2.45, y: 0.6, z: 5.88 }),
+    cyl(0.2, 0.2, 0.03, '#e9edf0', { x: 2.45, y: 0.42, z: 5.6 }, 16),
+    box(0.4, 0.12, 0.5, '#f4f6f8', { x: 2.78, y: 0.88, z: 5.15 }),
+    box(0.05, 0.8, 0.05, '#cfd8dc', { x: 2.78, y: 0.44, z: 5.15 }),
+    box(0.02, 0.5, 0.6, '#d8eef7', { x: 2.97, y: 1.55, z: 5.15 }),
+    cyl(0.16, 0.13, 0.28, '#2a7fd0', { x: 2.1, y: 0.14, z: 5.75 }, 12),
+    cyl(0.07, 0.06, 0.1, '#e53935', { x: 2.1, y: 0.33, z: 5.55 }, 10),
+  ];
+  return groupOf('ruang-belakang',
+    piece(rak, m.metal, 'rak-besi'), piece(stuff, m.prop, 'komponen-robot'), piece(meja, m.prop, 'meja-kerja'),
+    piece(robot, m.prop, 'robot-mini'), piece(kursi, m.prop, 'kursi-kerja'), piece(kardus, m.prop, 'kardus-belakang'),
+    piece(wc, m.prop, 'wc'),
+    buildPintuDalam(m, REAR.doorRoom2, 'pintu-ruang-kedua', 3.075),
+    buildPintuDalam(m, REAR.doorRoom3, 'pintu-ruang-ketiga', 3.075),
+    buildPintuDalam(m, REAR.wc.door, 'pintu-wc', REAR.wc.z0 + 0.075));
 }
 
 // ---------- Perabot hidup ----------
@@ -498,6 +641,9 @@ export function buildFurniture({ materials }) {
   staticGroup.add(placed(buildSaklar(m), ASET.S27.items[0]));
   staticGroup.add(buildJendela(m));
   staticGroup.add(buildPintu(m));
+  staticGroup.add(buildPerlengkapanErc(m));
+  staticGroup.add(buildSofaProyektor(m));
+  staticGroup.add(buildRuangBelakang(m));
 
   // dinamis / dapat diganti GLB
   ASET.S07.items.forEach((it, k) => addContainer('S07', it, buildPiala(m), k));

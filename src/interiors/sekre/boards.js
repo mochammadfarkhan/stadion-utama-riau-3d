@@ -114,7 +114,8 @@ export function drawStruktur(c, w, h) {
   STRUKTUR.divisi.forEach((d, i) => {
     const x = 20 + i * (dw + 12);
     line(c, x + dw / 2, y3 - 22, x + dw / 2, y3);
-    personCard(c, x, y3, dw, ch, `Koor. ${d.nama}`, d.koor, '#2a9d8f');
+    if (d.koor) personCard(c, x, y3, dw, ch, `Koor. ${d.nama}`, d.koor, '#2a9d8f');
+    else personCard(c, x, y3, dw, ch, 'Anggota', ORGANISASI.singkatan, '#2a9d8f');
     c.fillStyle = '#3b3b3b';
     c.textAlign = 'left';
     d.anggota.forEach((a, k) => {

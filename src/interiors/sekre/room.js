@@ -9,8 +9,8 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { makeRng } from '../../entities/util.js';
-import { ROOM, WINDOW, DOOR, SELASAR, SELASAR_SEBERANG } from './data.js';
-import { makeCanvas, canvasTexture, fitFont, diamond, tint, FONT } from './canvas.js';
+import { ROOM, WINDOW, DOOR, REAR, SELASAR, SELASAR_SEBERANG } from './data.js';
+import { makeCanvas, canvasTexture, fitFont, tint, FONT } from './canvas.js';
 import { styleState } from '../../engine/styleState.js';
 import { loadPbr } from '../../world/textures/pbr.js';
 import { TILE_M, tierForQuality } from '../../world/textures/pbrCore.js';
@@ -28,7 +28,7 @@ const WET = new THREE.Color('#6f6a60');
 
 export function drawPlester(c, w, h, seed = 11) {
   const rnd = makeRng(seed);
-  c.fillStyle = '#e8e3d6';
+  c.fillStyle = '#f4f3ef';
   c.fillRect(0, 0, w, h);
   for (let i = 0; i < 260; i += 1) { // belang cat & noda transparan
     const x = rnd() * w;
@@ -99,7 +99,7 @@ export function drawKeramik(c, w, h, seed = 21) {
   for (let i = 0; i < n; i += 1) {
     for (let j = 0; j < n; j += 1) {
       const v = (rnd() - 0.5) * 10;
-      c.fillStyle = `rgb(${232 + v},${216 + v},${184 + v})`;
+      c.fillStyle = `rgb(${243 + v},${243 + v},${240 + v})`;
       c.fillRect(i * tw, j * th, tw, th);
       for (let k = 0; k < 900; k += 1) {
         c.fillStyle = `rgba(${rnd() < 0.5 ? '150,130,100' : '255,250,235'},${0.05 + rnd() * 0.08})`;
@@ -112,7 +112,7 @@ export function drawKeramik(c, w, h, seed = 21) {
       c.fillRect(i * tw, j * th, tw, th);
     }
   }
-  c.strokeStyle = '#b9ad97'; // nat
+  c.strokeStyle = '#c4c4c0'; // nat
   c.lineWidth = 3;
   for (let i = 0; i <= n; i += 1) {
     c.beginPath(); c.moveTo(i * tw, 0); c.lineTo(i * tw, h); c.stroke();
@@ -141,69 +141,39 @@ export function drawPlafon(c, w, h, seed = 31) {
   }
 }
 
-function rosette(c, x, y, r, a, b) {
-  c.fillStyle = a;
-  for (let i = 0; i < 4; i += 1) {
-    const ang = (i * Math.PI) / 2;
-    c.beginPath();
-    c.ellipse(x + Math.cos(ang) * r * 0.7, y + Math.sin(ang) * r * 0.7, r * 0.55, r * 0.3, ang, 0, Math.PI * 2);
-    c.fill();
-  }
-  c.fillStyle = b;
-  c.beginPath();
-  c.arc(x, y, r * 0.35, 0, Math.PI * 2);
-  c.fill();
-}
-
-/** Karpet ambal merah marun bermotif (S22, 3 × 4 m → kanvas 3:4). */
+/** Matras busa alfabet warna-warni (S22; 3 × 4 ubin 60 cm, kanvas 3:4) seperti di sekre ERC. */
 export function drawKarpet(c, w, h, seed = 41) {
   const rnd = makeRng(seed);
-  const MARUN = '#6e1a26';
-  const MARUN2 = '#8a2433';
-  const EMAS = '#cf9e4a';
-  const KREM = '#ecdcb6';
-  const NAVY = '#1f2444';
-  c.fillStyle = MARUN;
-  c.fillRect(0, 0, w, h);
-  const band = (inset, width, color) => {
-    c.strokeStyle = color;
-    c.lineWidth = width;
-    c.strokeRect(inset + width / 2, inset + width / 2, w - 2 * inset - width, h - 2 * inset - width);
-  };
-  band(0, 46, NAVY);
-  band(10, 4, EMAS);
-  band(36, 4, EMAS);
-  band(46, 10, MARUN2);
-  c.fillStyle = EMAS;
-  for (let x = 30; x < w - 20; x += 36) { diamond(c, x, 23, 9, 13); diamond(c, x, h - 23, 9, 13); }
-  for (let y = 30; y < h - 20; y += 36) { diamond(c, 23, y, 13, 9); diamond(c, w - 23, y, 13, 9); }
-  const cx = w / 2;
-  const cy = h / 2;
-  for (const [r, col] of [[260, NAVY], [230, EMAS], [218, MARUN2], [170, KREM], [158, MARUN], [110, EMAS], [96, NAVY], [52, EMAS], [40, MARUN2]]) {
-    c.fillStyle = col;
-    diamond(c, cx, cy, r * 0.8, r);
-  }
-  for (const [x, y] of [[56, 56], [w - 56, 56], [56, h - 56], [w - 56, h - 56]]) {
-    c.fillStyle = EMAS; diamond(c, x, y, 70, 90);
-    c.fillStyle = MARUN2; diamond(c, x, y, 56, 72);
-    c.fillStyle = NAVY; diamond(c, x, y, 26, 34);
-  }
-  for (let y = 110; y < h - 100; y += 72) {
-    for (let x = 100; x < w - 90; x += 72) {
-      const ox = x + (Math.round(y / 72) % 2) * 36;
-      if (Math.hypot((ox - cx) / 0.8, y - cy) < 290) continue;
-      rosette(c, ox, y, 10, EMAS, KREM);
+  const cols = 3;
+  const rows = 4;
+  const tw = w / cols;
+  const th = h / rows;
+  const PAL = ['#e85d75', '#f4a261', '#2a9d8f', '#4a90d9', '#e9c46a', '#9b6bd1', '#6cc24a', '#ef8354'];
+  const LETTERS = 'ABCDEFGHIJKL';
+  for (let j = 0; j < rows; j += 1) {
+    for (let i = 0; i < cols; i += 1) {
+      const k = j * cols + i;
+      c.fillStyle = PAL[(k * 3 + j) % PAL.length];
+      c.fillRect(i * tw, j * th, tw, th);
+      c.fillStyle = 'rgba(255,255,255,0.88)';
+      c.font = `bold ${Math.round(th * 0.55)}px sans-serif`;
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText(LETTERS[k], i * tw + tw / 2, j * th + th * 0.5);
+      c.fillStyle = 'rgba(255,255,255,0.35)'; // siluet hewan sederhana di sudut
+      c.beginPath();
+      c.arc(i * tw + tw * 0.2, j * th + th * 0.78, th * 0.09, 0, Math.PI * 2);
+      c.arc(i * tw + tw * 0.2 + th * 0.1, j * th + th * 0.74, th * 0.06, 0, Math.PI * 2);
+      c.fill();
+      c.strokeStyle = 'rgba(0,0,0,0.25)';
+      c.lineWidth = 3;
+      c.strokeRect(i * tw + 1.5, j * th + 1.5, tw - 3, th - 3);
     }
   }
-  for (let k = 0; k < 7000; k += 1) { // serat
-    c.fillStyle = `rgba(${rnd() < 0.5 ? '0,0,0' : '255,230,200'},${rnd() * 0.06})`;
-    c.fillRect(rnd() * w, rnd() * h, 1, 2 + rnd() * 3);
+  for (let k = 0; k < 2500; k += 1) { // noda dan debu
+    c.fillStyle = `rgba(${rnd() < 0.5 ? '0,0,0' : '255,255,255'},${rnd() * 0.05})`;
+    c.fillRect(rnd() * w, rnd() * h, 2, 2);
   }
-  const fade = c.createRadialGradient(cx, cy * 1.1, 40, cx, cy, h * 0.6); // pudar di area paling sering diduduki
-  fade.addColorStop(0, 'rgba(255,220,200,0.10)');
-  fade.addColorStop(1, 'rgba(0,0,0,0)');
-  c.fillStyle = fade;
-  c.fillRect(0, 0, w, h);
 }
 
 /** Fasad deret sekre seberang selasar (latar jendela & pintu). */
@@ -321,10 +291,18 @@ function wallGeometry() {
   const wx0 = WINDOW.x - WINDOW.w / 2;
   const wx1 = WINDOW.x + WINDOW.w / 2;
   const front = (x0, x1, y0, y1) => slab(x0, x1, y0, y1, -hd - t, -hd);
+  const zb = REAR.zBack;
+  const part = (x0, x1, y0, y1) => slab(x0, x1, y0, y1, hd, hd + t); // dinding pemisah ruang utama | ruang belakang
+  const { doorRoom3: dw, doorRoom2: dr, wc } = REAR;
+  const wcPart = (x0, x1, y0, y1) => slab(x0, x1, y0, y1, wc.z0, wc.z0 + t); // dinding pintu WC (dari dalam Ruang Kedua)
   return merged([
-    slab(-hw - t, -hw, 0, h, -hd - t, hd + t),
-    slab(hw, hw + t, 0, h, -hd - t, hd + t),
-    slab(-hw, hw, 0, h, hd, hd + t),
+    slab(-hw - t, -hw, 0, h, -hd - t, zb + t),
+    slab(hw, hw + t, 0, h, -hd - t, zb + t),
+    slab(-hw, hw, 0, h, zb, zb + t),
+    slab(REAR.xSplit - t / 2, REAR.xSplit + t / 2, 0, h, hd + t, zb), // sekat Ruang Ketiga | Ruang Kedua
+    slab(wc.x0 - t / 2, wc.x0 + t / 2, 0, h, wc.z0 + t, zb), // sisi barat WC
+    wcPart(wc.x0 - t / 2, wc.door.x0, 0, h), wcPart(wc.door.x0, wc.door.x1, wc.door.h, h), wcPart(wc.door.x1, hw, 0, h),
+    part(-hw, dw.x0, 0, h), part(dw.x0, dw.x1, dw.h, h), part(dw.x1, dr.x0, 0, h), part(dr.x0, dr.x1, dr.h, h), part(dr.x1, hw, 0, h),
     front(-hw, wx0, 0, h),
     front(wx0, wx1, 0, WINDOW.sill),
     front(wx0, wx1, top, h),
@@ -344,8 +322,11 @@ function floorGeometry() {
   const hd = d / 2;
   const e = 0.012;
   const floor = new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2);
+  const rearDepth = REAR.zBack - hd;
+  const rearFloor = new THREE.PlaneGeometry(w, rearDepth).rotateX(-Math.PI / 2).translate(0, 0, hd + rearDepth / 2);
   return merged([
     floor,
+    rearFloor,
     slab(-hw, -hw + e, 0, PLINT_H, -hd, hd),
     slab(hw - e, hw, 0, PLINT_H, -hd, hd),
     slab(-hw, hw, 0, PLINT_H, hd - e, hd),
@@ -355,7 +336,12 @@ function floorGeometry() {
 }
 
 function ceilingGeometry() {
-  return worldUv(new THREE.PlaneGeometry(ROOM.w, ROOM.d).rotateX(Math.PI / 2).translate(0, ROOM.h, 0), PLAFON_M);
+  const hd = ROOM.d / 2;
+  const rearDepth = REAR.zBack - hd;
+  return worldUv(merged([
+    new THREE.PlaneGeometry(ROOM.w, ROOM.d).rotateX(Math.PI / 2).translate(0, ROOM.h, 0),
+    new THREE.PlaneGeometry(ROOM.w, rearDepth).rotateX(Math.PI / 2).translate(0, ROOM.h, hd + rearDepth / 2),
+  ]), PLAFON_M);
 }
 
 /** Atap selasar, rak sepatu & sandal di depan pintu (warna vertex). */

@@ -54,6 +54,7 @@ function nako(ctx, w, h, rnd, { tirai = false, lit = false } = {}) {
     const sh = (h - 2 * t) / slats;
     for (let s = 0; s < slats; s += 1) {
       const y = t + s * sh;
+      if (!lit && s > 0 && s < slats - 1 && rnd.chance(0.06)) continue; // bilah hilang: interior terlihat
       const g = ctx.createLinearGradient(0, y, 0, y + sh);
       g.addColorStop(0, rgba(190, 210, 222, lit ? 0.25 : 0.55));
       g.addColorStop(0.7, rgba(120, 140, 155, lit ? 0.12 : 0.35));
@@ -66,6 +67,12 @@ function nako(ctx, w, h, rnd, { tirai = false, lit = false } = {}) {
     }
   }
   frame(ctx, 0, 0, w, h, t, [176, 181, 186]);
+  const sill = ctx.createLinearGradient(0, h * 0.72, 0, h); // bekas air hujan menetes dari ambang atas
+  sill.addColorStop(0, rgba(80, 74, 64, 0));
+  sill.addColorStop(1, rgba(80, 74, 64, 0.28));
+  ctx.fillStyle = sill;
+  ctx.fillRect(t, h * 0.72, w - 2 * t, h * 0.28 - t);
+  streaks(ctx, w, h, rnd, 7, [74, 70, 62], 0.22, 0.45);
   speckle(ctx, w, h, rnd, 60, [90, 90, 90], 0.2, 1);
 }
 

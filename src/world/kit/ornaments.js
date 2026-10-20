@@ -66,6 +66,10 @@ const BUILDERS = {
   },
   exhaust: (s, t, c) => lbox(s.opak, t, 0, 0, 0.06, 0.7, 0.7, 0.12, 'exhaust', c.white),
   'kanopi-masuk': (s, t, c) => lbox(s.opak, t, 0, 0, 0, t.sx, 0.18, t.sz, 'beton', c.trim, { bottom: true }),
+  'kolom-kanopi': (s, t, c) => { // dua kolom dari kanopi (t.y = muka atas kolom) ke tanah, di sudut luar
+    for (const side of [-1, 1]) lbox(s.opak, t, side * (t.sx / 2 - 0.25), -t.sy / 2, t.sz / 2 - 0.25, 0.36, t.sy, 0.36, 'beton', c.column);
+  },
+  'tong-sampah': (s, t, c) => prism(s.opak, t, 0.3, 0.85, 8, 'besi', c.white),
   'tempat-wudu': (s, t, c) => {
     lbox(s.opak, t, 0, 0.55, 0, t.sx, 1.1, 0.3, 'tempat-wudu', c.white);
     lbox(s.opak, t, 0, 0.05, 0.4, t.sx, 0.1, 0.5, 'keramik-lantai', c.white);

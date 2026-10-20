@@ -62,23 +62,39 @@ function shuffled(list, rnd) {
   return out;
 }
 
+/** Apakah jam `h` berada di [datang, pulang) (wrap 24; datang === pulang = selalu hadir). */
+export function presentAt(profile, hour) {
+  if (!profile) return true;
+  const h = wrapHour(hour);
+  const { datang, pulang } = profile;
+  if (datang === pulang) return true;
+  return datang < pulang ? h >= datang && h < pulang : h >= datang || h < pulang;
+}
+
 /**
  * @param {number} hourFloat jam game desimal
  * @param {number} seed
  * @param {Array<{id:string, poseId:string}>} slots slot aktivitas yang ada di ruangan
  * @param {readonly string[]} [npcIds]
+ * @param {Record<string,{datang:number, pulang:number, suka?:readonly string[]}>} [profiles] jam hadir + slot favorit
+ *   per NPC; tanpa profil = selalu hadir tanpa preferensi (perilaku lama). NPC di luar jam hadir tidak dipilih;
+ *   tiap slot diberikan ke NPC hadir yang menyukainya lebih dulu, sisanya diisi acak.
  * @returns {ReadonlyArray<Readonly<{npcId:string, slotId:string, poseId:string}>>}
  */
-export function scheduleFor(hourFloat, seed, slots, npcIds = DEFAULT_NPC_IDS) {
+export function scheduleFor(hourFloat, seed, slots, npcIds = DEFAULT_NPC_IDS, profiles = null) {
   const p = periodAt(hourFloat);
   const byId = new Map((Array.isArray(slots) ? slots : []).map((s) => [s.id, s]));
   const available = p.slots.filter((id) => byId.has(id));
   const rnd = rngFrom(mix(Number.isFinite(seed) ? seed >>> 0 : 0, hashString(p.id)));
   const want = p.min + Math.floor(rnd() * (p.max - p.min + 1));
-  const ids = Array.isArray(npcIds) ? npcIds : [];
+  const all = Array.isArray(npcIds) ? npcIds : [];
+  const ids = profiles ? all.filter((id) => presentAt(profiles[id], hourFloat)) : all;
   const count = Math.min(want, available.length, ids.length);
-  const roster = shuffled(ids, rnd);
-  return Object.freeze(available.slice(0, count).map((slotId, i) => Object.freeze({
-    npcId: roster[i], slotId, poseId: byId.get(slotId).poseId,
-  })));
+  const pool = shuffled(ids, rnd);
+  const picked = [];
+  for (const slotId of available.slice(0, count)) {
+    const likes = pool.findIndex((id) => profiles?.[id]?.suka?.includes(slotId));
+    picked.push({ npcId: pool.splice(likes >= 0 ? likes : 0, 1)[0], slotId });
+  }
+  return Object.freeze(picked.map(({ npcId, slotId }) => Object.freeze({ npcId, slotId, poseId: byId.get(slotId).poseId })));
 }

@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { createPlazaActivities } from './Crowd.plaza.js';
 import { SKIN_TONES, SHIRT_COLORS } from './Humanoid.outfits.js';
 import { makeRng, pick, clamp, groundOf } from './util.js';
+import { CROWD_FAR } from '../config/lowpoly.js';
 
 const SEATED = Object.freeze({
   torsoR: 0.17, torsoH: 0.3, torsoY: 0.42,   // pusat torso relatif permukaan kursi
@@ -86,6 +87,10 @@ class Spectators {
 
   get count() { return this.#seats.length; }
 
+  /** Sembunyikan/tampilkan penonton (jauh dari stadion: ±500 ribu segitiga tak terlihat). */
+  setHidden(hidden) { this.group.visible = !hidden; }
+  get hidden() { return !this.group.visible; }
+
   /** Jumlah instance yang dirender proporsional density 0..1 (kursi diisi dari indeks awal). */
   setDensity(density) {
     const d = clamp(Number(density) || 0, 0, 1);
@@ -126,7 +131,11 @@ export class Crowd {
   update(dt, ctx = {}) {
     const step = clamp(dt, 0, MAX_DT);
     const time = ctx.time ?? 0;
-    this.#spectators?.update(time);
+    if (this.#spectators && ctx.focus) {
+      const d = Math.hypot(ctx.focus.x, ctx.focus.z);
+      if (Number.isFinite(d)) this.#spectators.setHidden(this.#spectators.hidden ? d > CROWD_FAR.showAt : d > CROWD_FAR.hideAt);
+    }
+    if (!this.#spectators?.hidden) this.#spectators?.update(time);
     this.#plaza?.update(step, time, groundOf(ctx));
   }
 
