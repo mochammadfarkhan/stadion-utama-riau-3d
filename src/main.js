@@ -25,6 +25,8 @@ import { STORY_NPCS } from './story/chapters.js';
 import { resolvePoint, localizePoint } from './story/points.js';
 import { updateWind } from './world/shaders/windState.js';
 import { buildEntities } from './entities/index.js';
+import { HUMANOID_KIT_PATH, setHumanoidKit } from './entities/Humanoid.kit.js';
+import { loadModel } from './world/assets/models.js';
 import { HUD } from './ui/HUD.js';
 import { createWallet } from './sim/vendorSim.js';
 import { createSettingsStore, STORAGE_KEY } from './settings/store.js';
@@ -103,6 +105,10 @@ async function main() {
   await loading.step(0.05, 'Menyiapkan mesin grafis…');
   // Tekstur prosedural hasil bake di-decode paralel sejak awal; ?procbake (skrip bake) memaksa semua prosedural.
   const procTextures = parseFlagParam(window.location.search, 'procbake') ? Promise.resolve(0) : preloadProcTextures(import.meta.env.BASE_URL);
+  // Kit karakter chibi (Blender) dimuat paralel; gagal = Humanoid tetap memakai bentuk prosedural.
+  const humanoidKit = loadModel(HUMANOID_KIT_PATH)
+    .then(setHumanoidKit)
+    .catch((err) => console.error('Kit karakter gagal dimuat; memakai bentuk prosedural:', err));
 
   // Pembongkaran berurutan terbalik (LIFO); dipakai __sim.teardown() di mode dev.
   const lifecycle = createDisposerStack();
@@ -193,6 +199,7 @@ async function main() {
     .catch((err) => console.error('Model 3D region gagal diproses:', err));
 
   await loading.step(0.55, 'Menyiapkan pemain, pelari, pedagang, dan penonton…');
+  await humanoidKit;
   const wallet = createWallet();
   // Jangkar region: entitas & objek cerita region-lokal ditempel di bawah grup ber-placement.
   const anchor = applyPlacement(new THREE.Group(), frame.placement);

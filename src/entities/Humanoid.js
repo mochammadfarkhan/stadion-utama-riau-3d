@@ -17,6 +17,7 @@ import * as THREE from 'three';
 import { BASE_HEIGHT, DIM, GEO } from './Humanoid.dim.js';
 import { createFace } from './Humanoid.face.js';
 import { ALL_HAIR_STYLES, HAIR_STYLES, createHair, createHat, styleUnderHat } from './Humanoid.hair.js';
+import { kitGeometry } from './Humanoid.kit.js';
 import { buildStaticLodMesh } from './Humanoid.lod.js';
 import { makeRng, matFor, pick } from './util.js';
 
@@ -99,7 +100,7 @@ export function createHumanoid(opts = {}) {
 function buildSpine(body, parts, o) {
   const spine = new THREE.Group();
   body.add(spine);
-  const torso = mesh(GEO.torso, o.shirt, { castShadow: true });
+  const torso = mesh(kitGeometry('torso') ?? GEO.torso, o.shirt, { castShadow: true });
   spine.add(torso);
   Object.assign(parts, { spine, torso });
   if (o.vest != null) { parts.vest = mesh(GEO.vest, o.vest); spine.add(parts.vest); }
@@ -114,7 +115,7 @@ function buildHead(spine, parts, o) {
   headPivot.position.y = DIM.neckY;
   headPivot.userData.baseY = DIM.neckY;    // dipakai animasi untuk bob kepala
   spine.add(headPivot);
-  const head = mesh(GEO.head, o.skin, { castShadow: true });
+  const head = mesh(kitGeometry('head') ?? GEO.head, o.skin, { castShadow: true });
   headPivot.add(head);
   const face = createFace({ glasses: o.glasses, mustache: o.mustache });
   headPivot.add(face);
