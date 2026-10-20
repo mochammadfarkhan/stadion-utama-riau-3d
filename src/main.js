@@ -43,6 +43,7 @@ import { handleKeys } from './app/keymap.js';
 import { setupShop, updatePrompt } from './app/shop.js';
 import { exposeDevTools, parsePlacementParam, parseFlagParam } from './app/devtools.js';
 import { createDisposerStack } from './app/lifecycle.js';
+import { setPbrRenderer } from './world/textures/pbr.js';
 import { applyPlacement } from './app/mountRegion.js';
 import { createRegionManager } from './app/regionManager.js';
 import { createTerrainService } from './app/terrainService.js';
@@ -94,6 +95,7 @@ async function main() {
   const lifecycle = createDisposerStack();
   const listeners = new AbortController();
   const app = new App(document.getElementById('app'));
+  setPbrRenderer(app.renderer); // tekstur PBR memakai KTX2 (Basis) bila didukung; ?nokt2 = WebP
   lifecycle.add(() => app.dispose());
   lifecycle.add(() => listeners.abort());
   const input = new Input();

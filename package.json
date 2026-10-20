@@ -15,6 +15,7 @@
     "bake": "node tools/citybake",
     "bake:campus": "node tools/campusbake",
     "bake:tex": "node tools/texbake",
+    "bake:ktx": "node tools/texbake/ktx.mjs",
     "download:tex": "node tools/texbake/download.mjs",
     "e2e": "node tests/e2e/smoke.e2e.mjs"
   },
