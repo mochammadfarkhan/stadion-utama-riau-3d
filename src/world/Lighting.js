@@ -74,7 +74,7 @@ export function createLighting(scene, renderer) {
   env.rebuild();
 
   Object.assign(group.userData, {
-    sun, hemi, sky, skyUniforms: sky.material.uniforms, envSky: env.envSky,
+    sun, hemi, sky, clouds, skyUniforms: sky.material.uniforms, envSky: env.envSky,
     defaults: Object.freeze({ envIntensity: ENV_INTENSITY, fogNear: FOG_NEAR, fogFar: FOG_FAR, cloudCoverage: CLOUD_COVERAGE, cloudDensity: CLOUD_DENSITY }),
     /** shadowFrame=false: frustum bayangan tidak diikutkan, agar peta bayangan basi tidak bergeser (shimmer). */
     update: (dt, t, focus, shadowFrame = true) => {
