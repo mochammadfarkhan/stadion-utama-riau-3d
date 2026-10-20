@@ -41,6 +41,34 @@ export function valueNoise(x, y, seed = 0) {
   return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
 }
 
+// Kisi hash per (periodX, periodY, seed): hash2 (Math.sin) dihitung sekali per titik kisi, bukan 4x per piksel
+// per oktaf. Nilai identik dengan hash2 langsung (dites); kisi besar/periode pecahan memakai rumus langsung.
+// Cincin kecil tanpa kunci string: fbm memakai ≤ 8 oktaf berselang-seling, jadi pencarian linear numerik cukup.
+const LATTICE_MAX_CELLS = 1 << 16;
+const LATTICE_SLOTS = 16;
+const slotPx = new Float64Array(LATTICE_SLOTS).fill(NaN);
+const slotPy = new Float64Array(LATTICE_SLOTS);
+const slotSeed = new Float64Array(LATTICE_SLOTS);
+const slotTable = new Array(LATTICE_SLOTS).fill(null);
+let slotNext = 0;
+
+function latticeOf(px, py, seed) {
+  for (let i = 0; i < LATTICE_SLOTS; i += 1) {
+    if (slotPx[i] === px && slotPy[i] === py && slotSeed[i] === seed) return slotTable[i];
+  }
+  const table = new Float64Array(px * py);
+  for (let y = 0; y < py; y += 1) {
+    for (let x = 0; x < px; x += 1) table[y * px + x] = hash2(x, y, seed);
+  }
+  const i = slotNext;
+  slotNext = (slotNext + 1) % LATTICE_SLOTS;
+  slotPx[i] = px;
+  slotPy[i] = py;
+  slotSeed[i] = seed;
+  slotTable[i] = table;
+  return table;
+}
+
 /**
  * Value noise periodik (mulus di tepi tile): sel dibungkus modulo `period`
  * sehingga tekstur bisa diulang tanpa sambungan terlihat.
@@ -50,6 +78,22 @@ export function periodicNoise(x, y, periodX, periodY = periodX, seed = 0) {
   const yi = Math.floor(y);
   const fx = x - xi;
   const fy = y - yi;
+  if (Number.isInteger(periodX) && Number.isInteger(periodY) && periodX > 0 && periodY > 0
+    && periodX * periodY <= LATTICE_MAX_CELLS) {
+    const t = latticeOf(periodX, periodY, seed);
+    const x0 = ((xi % periodX) + periodX) % periodX;
+    const y0 = ((yi % periodY) + periodY) % periodY;
+    const x1 = x0 + 1 === periodX ? 0 : x0 + 1;
+    const r0 = y0 * periodX;
+    const r1 = (y0 + 1 === periodY ? 0 : y0 + 1) * periodX;
+    const a = t[r0 + x0];
+    const b = t[r0 + x1];
+    const c = t[r1 + x0];
+    const d = t[r1 + x1];
+    const sx = fx * fx * (3 - 2 * fx);
+    const sy = fy * fy * (3 - 2 * fy);
+    return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
+  }
   const wx = (v) => ((v % periodX) + periodX) % periodX;
   const wy = (v) => ((v % periodY) + periodY) % periodY;
   const a = hash2(wx(xi), wy(yi), seed);
