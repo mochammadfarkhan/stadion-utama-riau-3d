@@ -6,7 +6,8 @@
 import { createHumanoid, animateWalk, animateIdle } from './Humanoid.js';
 import { applyPose, clearPose } from './Humanoid.poses.js';
 import { createHumanoidLod } from './Humanoid.lod.js';
-import { randomStudentOutfit, campusGuardOutfit } from './Humanoid.outfits.js';
+import { campusGuardOutfit } from './Humanoid.outfits.js';
+import { NPC_MIX, outfitFromMix } from './npcTypes.js';
 import { makeRng } from './util.js';
 
 /** Ambang LOD mahasiswa/satpam (m): detail penuh ≤ near, mesh gabungan ≤ far, di luar disembunyikan. */
@@ -20,7 +21,8 @@ export const STUDENT_LOD = Object.freeze({ near: 30, far: 220 });
  */
 export function createStudentKit({ almamaterChance = 0.3 } = {}) {
   return Object.freeze({
-    createStudent: (seed) => createHumanoid(randomStudentOutfit(makeRng(seed), { almamaterChance })),
+    // Penghuni kampus: sebagian besar mahasiswa, sisanya dosen / orang luar / anak (NPC_MIX.kampus).
+    createStudent: (seed) => createHumanoid(outfitFromMix(NPC_MIX.kampus, makeRng(seed), { almamaterChance })),
     createGuard: (seed) => createHumanoid(campusGuardOutfit(makeRng(seed))),
     createLod: () => createHumanoidLod(STUDENT_LOD),
     walk: (h, t) => animateWalk(h, t),

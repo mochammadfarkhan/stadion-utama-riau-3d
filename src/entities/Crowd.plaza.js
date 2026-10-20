@@ -8,6 +8,7 @@ import {
   createHumanoid, animateExercise, animateWalk, animateIdle, animateSkate, animateSwing,
 } from './Humanoid.js';
 import { randomCasualOutfit, randomRunnerOutfit } from './Humanoid.outfits.js';
+import { NPC_MIX, outfitFromMix } from './npcTypes.js';
 import { matFor, range, yawFromDir, lerpAngle, clamp, flatGround } from './util.js';
 
 const EXERCISE = { rows: 3, cols: 4, spacing: 1.6 };
@@ -139,7 +140,7 @@ function randomTarget(center, rng) {
 function createWalkers(center, count, rng) {
   const g = new THREE.Group();
   const walkers = Array.from({ length: count }, () => {
-    const h = createHumanoid(randomCasualOutfit(rng));
+    const h = createHumanoid(outfitFromMix(NPC_MIX.plaza, rng));
     const start = randomTarget(center, rng);
     h.group.position.set(start.x, 0, start.z);
     g.add(h.group);
