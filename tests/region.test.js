@@ -65,7 +65,7 @@ describe('region stadion: build & dispose', () => {
     const scope = createResourceScope('uji');
     const built = await stadionRegion.build({ scope });
     expect(built.group.children.length).toBeGreaterThan(0);
-    expect(built.systems.map((s) => s.id)).toEqual(['stadion.world']);
+    expect(built.systems.map((s) => s.id)).toEqual(['stadion.world', 'stadion.farDetail']);
     expect(typeof built.colliders.isWalkable).toBe('function');
     expect(built.seatSamples.length).toBeGreaterThan(0);
     expect(built.nightLights).toEqual(stadionNightLights(LAYOUT, STADION_PLACEMENT)); // dunia (placement OSM)

@@ -47,3 +47,8 @@ Urut dari dampak terbesar:
 
 ## Di luar rencana (tidak dikerjakan kecuali diminta)
 Lalu lintas berjalan, interior lain selain sekre, terrain seluruh kota, WebGPU, multiplayer.
+
+## Status (diperbarui 2026-10-20, dikerjakan langsung tanpa agen)
+- **Tahap 0:** selesai (PR #12): gabungan M8, kartun default, coverage CI.
+- **Tahap 1:** selesai kecuali pengecekan visual Rektorat (skrip bidik `m6Visual.mjs` gagal jalan; belum dilihat). Interior sekre: dinding plester PBR (lantai keramik PBR dibatalkan: Tiles074 berupa marmer hitam-putih). Atap dan tint tanah kering dikoreksi. Air malam dan hujan sudah dilihat.
+- **Tahap 2:** stadion jauh selesai (detail kecil disembunyikan > 650 m lewat layer 0; saat 700 m segitiga −52%, draw call −13%; 1100 m segitiga −53%, draw call −31%); frustum bayangan kartun 130 m (titik dekat stadion: draw call −11%, segitiga −8%). **Dilewati:** KTX2 (alat `toktx` tidak ada; butuh izin unduh program), pohon jauh sebagai billboard (LOD1 sudah 116–232 segitiga), parsing GLB di worker (belum ada hentakan terukur).
