@@ -19,11 +19,11 @@ try {
       if (!v || !o.layers.test(cam.layers)) return;
       const g = o.geometry;
       const t = (g.index ? g.index.count : g.attributes.position.count) / 3 * (o.isInstancedMesh ? o.count : 1);
-      const k = top(o);
+      const k = top(o) + (top(o) === 'distrik:unri' || top(o) === 'world' ? '/' + (o.name || o.parent?.name || '?').slice(0, 24) : '');
       const e = by.get(k) ?? { tris: 0, meshes: 0 };
       e.tris += t; e.meshes += 1; by.set(k, e);
     });
-    return [...by.entries()].map(([k, e]) => ({ k, tris: Math.round(e.tris), meshes: e.meshes })).sort((a, b) => b.tris - a.tris).slice(0, 12);
+    return [...by.entries()].map(([k, e]) => ({ k, tris: Math.round(e.tris), meshes: e.meshes })).sort((a, b) => b.tris - a.tris).slice(0, 18);
   });
   console.log(JSON.stringify(rows));
 } finally { await sim.close(); }

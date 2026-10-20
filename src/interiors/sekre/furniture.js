@@ -230,8 +230,10 @@ function buildMeja(m) {
 
 function buildKursi(m) {
   const seat = piece([
-    box(0.42, 0.03, 0.4, '#37474f', { y: 0.45 }),
-    box(0.42, 0.28, 0.02, '#37474f', { y: 0.76, z: 0.2 }),
+    box(0.42, 0.04, 0.4, '#8a5a2b', { y: 0.45 }),
+    box(0.42, 0.34, 0.03, '#8a5a2b', { y: 0.78, z: 0.2 }),
+    box(0.03, 0.2, 0.36, '#7a4c22', { x: -0.22, y: 0.58 }),
+    box(0.03, 0.2, 0.36, '#7a4c22', { x: 0.22, y: 0.58 }),
   ], m.prop, 'dudukan');
   const legs = [];
   for (const x of [-0.19, 0.19]) {
@@ -269,12 +271,9 @@ function buildSepatu(m, color) {
 function buildKarpet(m, it) {
   const g = new THREE.Group();
   g.name = 'S22';
-  const rug = new THREE.Mesh(new THREE.PlaneGeometry(3, 4).rotateX(-PI / 2).translate(0, 0.006, 0), m.karpet);
+  const rug = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 2.4).rotateX(-PI / 2).translate(0, 0.006, 0), m.karpet);
   rug.receiveShadow = true;
-  g.add(rug, piece([
-    box(3, 0.004, 0.05, '#efe3c6', { y: 0.004, z: -2.025 }),
-    box(3, 0.004, 0.05, '#efe3c6', { y: 0.004, z: 2.025 }),
-  ], m.prop, 'rumbai', false));
+  g.add(rug);
   g.position.set(it.x, it.y, it.z);
   return g;
 }
@@ -416,17 +415,17 @@ function buildJendela(m) {
 /** S30 pintu kayu + kusen, daun terbuka ke dalam (engsel di DOOR.x0). Koordinat ruang. */
 function buildPintu(m) {
   const it = ASET.S30.items[0];
-  const WOOD = '#6d4428';
+  const WOOD = '#d4d6da';
   const kusen = piece([
     box(0.06, 2.16, 0.17, WOOD, { x: 0.87, y: 1.08, z: -3.075 }),
     box(0.06, 2.16, 0.17, WOOD, { x: 1.83, y: 1.08, z: -3.075 }),
     box(1.02, 0.06, 0.17, WOOD, { x: 1.35, y: 2.13, z: -3.075 }),
   ], m.prop, 'kusen');
   const panel = piece([
-    box(0.9, 2.08, 0.04, '#7a4b2a', { x: 0.45, y: 1.04, z: 0.02 }),
+    box(0.9, 2.08, 0.04, '#1f3768', { x: 0.45, y: 1.04, z: 0.02 }),
     ...[0.25, 0.65].flatMap((x) => [0.6, 1.5].flatMap((y) => [
-      box(0.3, 0.75, 0.008, '#5e3a20', { x, y, z: 0.042 }),
-      box(0.3, 0.75, 0.008, '#5e3a20', { x, y, z: -0.002 }),
+      box(0.3, 0.75, 0.008, '#182d58', { x, y, z: 0.042 }),
+      box(0.3, 0.75, 0.008, '#182d58', { x, y, z: -0.002 }),
     ])),
   ], m.prop, 'daun');
   const handle = piece([
@@ -438,6 +437,41 @@ function buildPintu(m) {
   hinge.position.set(it.x, 0, it.z);
   hinge.rotation.y = it.buka;
   return groupOf('S30', kusen, hinge);
+}
+
+
+/** Perlengkapan khas sekre ERC (dari foto): tirai vertikal krem, ventilasi kotak, AC split, boks plastik, bola futsal. */
+function buildPerlengkapanErc(m) {
+  const it = ASET.S29.items[0];
+  const blinds = [];
+  for (let k = 0; k < 13; k += 1) blinds.push(box(0.1, 1.55, 0.012, k % 2 ? '#e8e1c9' : '#f1ecda', { x: it.x - 0.66 + k * 0.11, y: it.y + 0.55, z: -2.93 }));
+  blinds.push(box(1.5, 0.06, 0.05, '#cfc8b0', { x: it.x, y: it.y + 1.35, z: -2.93 }));
+  const vents = [];
+  const ventFrames = [];
+  for (let k = 0; k < 9; k += 1) {
+    vents.push(box(0.15, 0.27, 0.01, '#f4f8ff', { x: -2.0 + k * 0.33, y: 2.78, z: -2.985 }));
+    ventFrames.push(box(0.19, 0.31, 0.008, '#c9cdd0', { x: -2.0 + k * 0.33, y: 2.78, z: -2.99 }));
+  }
+  for (let k = 0; k < 7; k += 1) {
+    vents.push(box(0.01, 0.27, 0.15, '#f4f8ff', { x: -2.085, y: 2.78, z: -2.2 + k * 0.4 }));
+    ventFrames.push(box(0.008, 0.31, 0.19, '#c9cdd0', { x: -2.09, y: 2.78, z: -2.2 + k * 0.4 }));
+  }
+  const ac = [
+    box(0.22, 0.28, 0.92, '#f2f3f4', { x: 2.0, y: 2.62, z: 1.3 }),
+    box(0.02, 0.05, 0.8, '#3a3f45', { x: 1.89, y: 2.55, z: 1.3 }),
+    box(0.02, 0.03, 0.9, '#d9dcdf', { x: 1.89, y: 2.7, z: 1.3 }),
+  ];
+  const bins = [];
+  for (const [x, z, r] of [[0.95, -0.4, 0.1], [-0.95, -0.75, -0.25]]) {
+    bins.push(box(0.5, 0.3, 0.36, '#d9ecef', { x, y: 0.15, z, ry: r }));
+    bins.push(box(0.52, 0.05, 0.38, '#43a047', { x, y: 0.325, z, ry: r }));
+    bins.push(box(0.12, 0.03, 0.02, '#f2c230', { x, y: 0.31, z: z - 0.19, ry: r }));
+  }
+  const ballG = [ball(0.11, '#ef6c1a', { x: -1.7, y: 0.11, z: 0.15 })];
+  return groupOf('perlengkapan-erc',
+    piece(blinds, m.prop, 'tirai-vertikal', false), piece(vents, m.tl, 'ventilasi-kotak', false),
+    piece(ventFrames, m.prop, 'bingkai-ventilasi', false), piece(ac, m.prop, 'ac-split', false),
+    piece(bins, m.prop, 'boks-plastik'), piece(ballG, m.prop, 'bola', false));
 }
 
 // ---------- Perabot hidup ----------
@@ -498,6 +532,7 @@ export function buildFurniture({ materials }) {
   staticGroup.add(placed(buildSaklar(m), ASET.S27.items[0]));
   staticGroup.add(buildJendela(m));
   staticGroup.add(buildPintu(m));
+  staticGroup.add(buildPerlengkapanErc(m));
 
   // dinamis / dapat diganti GLB
   ASET.S07.items.forEach((it, k) => addContainer('S07', it, buildPiala(m), k));
