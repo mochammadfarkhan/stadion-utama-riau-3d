@@ -39,6 +39,7 @@ export const ATMOSPHERE = Object.freeze({
   fogColorMix: 0.75,       // warna kabut tabel jam vs. preset dasar
   sunElevationScale: 0.82, // elevasi matahari siang x ini (bayangan lebih panjang, cahaya lebih emas)
   shadowRadius: 2.2,       // VSM: >= 3 menghapus bayangan; 2.2 lebih lembut dari 1.5 tanpa hilang
+  shadowNormalBias: 0.25,  // kartun/facet: cegah acne bergaris di jalan saat matahari rendah
   scatterPower: 4,         // eksponen dot(viewDir, sunDir)
   skyMie: 0.011,           // Mie langit (halo di sekitar matahari)
   auraBoost: 1.5,          // pengali aura/halo matahari
@@ -50,16 +51,16 @@ export const ATMOSPHERE = Object.freeze({
  * atau dicampur (fogColor). split = kekuatan split-toning; haze = kekuatan hamburan kabut ke matahari (0..1).
  */
 export const LIGHT_BY_HOUR = Object.freeze([
-  { hour: 0, sunColor: 0x8fa6e6, sunMul: 2.4, hemiSky: 0x5a78c0, hemiGround: 0x38426a, hemiMul: 3.2, fogColor: 0x20305c, expMul: 1.28, split: 0.45, haze: 0.1 },
-  { hour: 5, sunColor: 0xb9b0f0, sunMul: 2.2, hemiSky: 0x7488c8, hemiGround: 0x4a4a68, hemiMul: 2.6, fogColor: 0x5c6a9a, expMul: 1.3, split: 0.5, haze: 0.3 },
+  { hour: 0, sunColor: 0x8fa6e6, sunMul: 2.4, hemiSky: 0x5a78c0, hemiGround: 0x38426a, hemiMul: 3.6, fogColor: 0x070d1f, expMul: 0.95, split: 0.45, haze: 0.1 },
+  { hour: 5, sunColor: 0xb9b0f0, sunMul: 2.2, hemiSky: 0x7488c8, hemiGround: 0x4a4a68, hemiMul: 2.6, fogColor: 0x2a3560, expMul: 1.1, split: 0.5, haze: 0.3 },
   { hour: 6.5, sunColor: 0xffc890, sunMul: 1.3, hemiSky: 0xa0b4e0, hemiGround: 0xe8c898, hemiMul: 1.5, fogColor: 0xf0c8a4, expMul: 1.05, split: 0.6, haze: 0.8 },
   { hour: 7.5, sunColor: 0xffd9a0, sunMul: 1.25, hemiSky: 0xa8c4ee, hemiGround: 0xf0cf9a, hemiMul: 1.2, fogColor: 0xf3dcc0, expMul: 1.0, split: 0.5, haze: 0.7 },
   { hour: 12, sunColor: 0xfff4e6, sunMul: 1.1, hemiSky: 0x9cc8ff, hemiGround: 0xe0d4a8, hemiMul: 1.15, fogColor: 0xcfe0f0, expMul: 0.97, split: 0.3, haze: 0.35 },
   { hour: 16, sunColor: 0xffcf8a, sunMul: 1.3, hemiSky: 0xa4bce8, hemiGround: 0xf0c488, hemiMul: 1.15, fogColor: 0xf6d3a2, expMul: 1.0, split: 0.7, haze: 0.9 },
   { hour: 17.5, sunColor: 0xff9d55, sunMul: 1.5, hemiSky: 0x9a8cc4, hemiGround: 0xd8946a, hemiMul: 1.3, fogColor: 0xf0a878, expMul: 1.05, split: 0.85, haze: 1.0 },
   { hour: 18.5, sunColor: 0xff7a50, sunMul: 1.5, hemiSky: 0x7280c4, hemiGround: 0x8a5a70, hemiMul: 1.8, fogColor: 0xc87a8a, expMul: 1.2, split: 0.8, haze: 0.8 },
-  { hour: 19.5, sunColor: 0x7f92d6, sunMul: 2.2, hemiSky: 0x5068b0, hemiGround: 0x30365a, hemiMul: 2.5, fogColor: 0x2e3e70, expMul: 1.32, split: 0.5, haze: 0.3 },
-  { hour: 21, sunColor: 0x8fa6e6, sunMul: 2.4, hemiSky: 0x5a78c0, hemiGround: 0x38426a, hemiMul: 3.2, fogColor: 0x20305c, expMul: 1.28, split: 0.45, haze: 0.1 },
+  { hour: 19.5, sunColor: 0x7f92d6, sunMul: 2.2, hemiSky: 0x5068b0, hemiGround: 0x30365a, hemiMul: 2.5, fogColor: 0x1a2650, expMul: 1.1, split: 0.5, haze: 0.3 },
+  { hour: 21, sunColor: 0x8fa6e6, sunMul: 2.4, hemiSky: 0x5a78c0, hemiGround: 0x38426a, hemiMul: 3.6, fogColor: 0x0a1226, expMul: 0.98, split: 0.45, haze: 0.1 },
 ]);
 
 /** Bloom halus: setengah resolusi, ambang tinggi (luma HDR linear) -> hanya matahari, kaca, air, lampu. */

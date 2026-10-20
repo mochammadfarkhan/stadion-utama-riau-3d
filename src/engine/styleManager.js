@@ -68,6 +68,7 @@ export function createStyleManager({ store, app, scene, lighting, rig, time = nu
   const sun = lighting?.userData?.sun ?? null;
   const tint = new THREE.Color();
   const asliShadowRadius = sun?.shadow?.radius ?? 1.5;
+  const asliNormalBias = sun?.shadow?.normalBias ?? 0.05;
   const skyMieAsli = lighting?.userData?.skyUniforms?.mieCoefficient?.value ?? 0.006;
   let style = 'asli';
   let quality = createAutoQuality(AUTO_QUALITY);
@@ -130,6 +131,7 @@ export function createStyleManager({ store, app, scene, lighting, rig, time = nu
     time?.setElevationScale?.(style === 'asli' ? 1 : ATMOSPHERE.sunElevationScale);
     time?.setAura?.(style === 'asli' ? 1 : ATMOSPHERE.auraBoost);
     if (sun?.shadow) sun.shadow.radius = style === 'asli' ? asliShadowRadius : ATMOSPHERE.shadowRadius;
+    if (sun?.shadow) sun.shadow.normalBias = style === 'asli' ? asliNormalBias : ATMOSPHERE.shadowNormalBias; // sore hari: tanpa ini jalan bergaris (acne)
     const mie = lighting?.userData?.skyUniforms?.mieCoefficient;
     if (mie && style === 'asli') mie.value = skyMieAsli;
     app.setPixelCap?.(f.pixelCap);
