@@ -13,7 +13,7 @@
 import { pick, range } from './util.js';
 import {
   BACKPACK_COLORS, HAIR_COLORS, HAT_COLORS, HIJAB_COLORS, PANTS_COLORS, SKIN_TONES, SKIRT_COLORS,
-  campusGuardOutfit, randomCasualOutfit, randomRunnerOutfit, randomStudentOutfit,
+  campusGuardOutfit, randomBuild, randomCasualOutfit, randomRunnerOutfit, randomStudentOutfit,
 } from './Humanoid.outfits.js';
 
 export const NPC_TYPES = Object.freeze(['jogger', 'mahasiswa', 'dosen', 'pengunjung', 'anak', 'satpam']);
@@ -32,7 +32,7 @@ const KID_HIJAB = Object.freeze([0xff8fb1, 0xffffff, 0x7fd1ff, 0xffd23f, 0xb39dd
 /** Dosen: rapi, lengan panjang, kacamata ±45%, hijab ±40%, kumis/uban sebagian. */
 export function randomLecturerOutfit(rng) {
   const hijab = rng() < 0.4 ? pick(rng, HIJAB_COLORS) : null;
-  const skirt = hijab != null && rng() < 0.6;
+  const skirt = hijab != null && rng() < 0.75; // dosen berhijab: rok panjang
   return {
     skin: pick(rng, SKIN_TONES),
     shirt: pick(rng, LECTURER_SHIRTS),
@@ -45,9 +45,10 @@ export function randomLecturerOutfit(rng) {
     hat: null,
     vest: null,
     badge: 0xffffff,          // kartu identitas pegawai
-    bottom: skirt ? 'skirt' : 'pants',
+    bottom: skirt ? 'longskirt' : 'pants',
     longSleeve: true,
     shoes: 0x1a1a1a,
+    build: randomBuild(rng, { slim: 20, average: 50, chubby: 30 }),
     height: range(rng, 1.58, 1.78),
     rng,
   };
@@ -82,6 +83,8 @@ export function randomChildOutfit(rng) {
     bottom,
     backpack: rng() < 0.3 ? pick(rng, BACKPACK_COLORS) : null,
     shoes: pick(rng, [0xffffff, 0xff5722, 0x03a9f4]),
+    build: 'child',          // kepala lebih besar
+    longSleeve: hijab != null && rng() < 0.5,
     height: range(rng, 1.0, 1.3),
     rng,
   };

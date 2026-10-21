@@ -15,6 +15,8 @@ export const KIT_PARTS = Object.freeze([
   'head', 'face', 'torso', 'hijab',
   'hair_helmet', 'hair_bob', 'hair_long', 'hair_bun', 'hair_twintails', 'hair_buzz', 'hair_afro',
   'hair_cap', 'hair_hardhat',
+  'arm_upper_short', 'arm_upper_long', 'arm_lower_skin', 'arm_lower_sleeve', 'hand',
+  'leg_thigh', 'leg_shin', 'shoe', 'shorts', 'hips', 'skirt', 'skirt_long',
 ]);
 
 /** @type {Map<string, THREE.BufferGeometry>} */

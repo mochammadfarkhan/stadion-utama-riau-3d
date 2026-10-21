@@ -58,7 +58,9 @@ async function stage({ hour, angle, half }) {
   const variants = NPC_TYPES.flatMap((t) => [[t, 3, false], [t, 11, t !== 'satpam']]);
   variants.forEach(([type, seed, hijab], i) => {
     const o = outfitForNpcType(type, makeRng(seed));
-    const hm = createHumanoid(hijab ? { ...o, hair: null, hat: null, hijab: [0x16a085, 0x8e44ad, 0xf5f5f5, 0x2c3e50, 0xff8fb1][i % 5] } : o);
+    // Varian hijab paksa ikut busana sopan seperti generator (lengan panjang, tanpa celana pendek untuk dewasa).
+    const modest = type === 'anak' ? {} : { longSleeve: true, bottom: o.bottom === 'shorts' || o.bottom === 'skirt' ? 'longskirt' : o.bottom };
+    const hm = createHumanoid(hijab ? { ...o, ...modest, hair: null, hat: null, hijab: [0x16a085, 0x8e44ad, 0xf5f5f5, 0x2c3e50, 0xff8fb1][i % 5] } : o);
     const x = base.x + (i - (variants.length - 1) / 2) * spacing;
     hm.group.position.set(x, h(x, base.z), base.z);
     hm.group.rotation.y = angle;
@@ -73,10 +75,11 @@ async function stage({ hour, angle, half }) {
   people[0].group.traverse((o) => { if (o.isMesh && o.visible) tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; });
   const cam = s.app.camera;
   // Bidik setengah barisan (kiri/kanan) dari depan sepeda pemain agar tidak terhalang.
-  const fx = base.x + (half === 0 ? -1 : 1) * spacing * 3;
+  const fx = half === 2 ? base.x - spacing * 0.5 : base.x + (half === 0 ? -1 : 1) * spacing * 3;
+  const camDist = half === 2 ? 2.6 : 5.2;
   cam.fov = 38;
   cam.updateProjectionMatrix();
-  cam.position.set(fx, h(fx, base.z) + 1.25, base.z + 5.2);
+  cam.position.set(fx, h(fx, base.z) + 1.2, base.z + camDist);
   cam.lookAt(fx, h(fx, base.z) + 0.8, base.z);
   cam.updateMatrixWorld(true);
   s.app.renderFrame();
@@ -101,7 +104,7 @@ async function main() {
     await page.click('#start');
     await page.waitForTimeout(Number(opts.wait));
     const report = {};
-    for (const [id, angle, half] of [['kiri', 0, 0], ['kanan', 0, 1], ['kiri-samping', 0.7, 0]]) {
+    for (const [id, angle, half] of [['kiri', 0, 0], ['kanan', 0, 1], ['dekat', 0.35, 2]]) {
       report[id] = await page.evaluate(stage, { hour: Number(opts.hour), angle, half });
       await page.waitForTimeout(600);
       await page.screenshot({ path: join(OUT_DIR, `npc-lineup-${id}.jpg`), quality: 88 });

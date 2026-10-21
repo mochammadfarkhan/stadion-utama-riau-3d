@@ -73,3 +73,15 @@ export const GEO = Object.freeze({
   shin: hanging(LIMB.shinR, DIM.shin),
   foot: shoe(),
 });
+
+/**
+ * Tipe tubuh (skala per bagian di atas proporsi dasar; geometri tetap bersama):
+ * w/d = lebar/tebal torso & bawahan (bahu & pinggul ikut melebar), limb = tebal lengan/kaki,
+ * head = skala kepala (anak berkepala lebih besar, khas chibi).
+ */
+export const BODY_BUILDS = Object.freeze({
+  slim: Object.freeze({ w: 0.88, d: 0.9, limb: 0.86, head: 1.06 }),
+  average: Object.freeze({ w: 1, d: 1, limb: 1, head: 1.08 }),
+  chubby: Object.freeze({ w: 1.2, d: 1.24, limb: 1.18, head: 1.08 }),
+  child: Object.freeze({ w: 1, d: 1, limb: 1.06, head: 1.25 }),
+});
