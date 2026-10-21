@@ -23,11 +23,13 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..',
 COLL = 'KIT_Chibi'
 
 # Ellipsoid kepala (sedikit lebih lebar dari tinggi; harus serasi dengan DIM.headR = 0.30 di Humanoid.dim.js)
-CY = 0.24
-HA, HB, HC = 0.30, 0.25, 0.29   # setengah lebar (x), dalam (y), tinggi (z) kepala avatar
-HN = 3.4    # kekotakan penampang mendatar (2 = elips; makin besar muka & samping makin datar)
-HM = 2.5    # kekotakan profil tegak (ubun-ubun lebar agak datar)
-JAW = 0.24  # penyempitan lebar dari pipi ke dagu (bentuk U, pipi penuh)
+# Proporsi diukur dari referensi tim (avatar "aesthetic"): lebar kepala ≈ 0,9 × lebar torso (0,32 m),
+# tinggi ≈ 1,2 × lebar (oval tegak), bentuk telur terbalik (lebar di pelipis, meruncing ke dagu), leher kurus terlihat.
+CY = 0.2    # pusat kepala di atas pivot kepala; dagu ≈ z 0, bahu (atas torso) di z -0.06 → leher ±6 cm
+HA, HB, HC = 0.158, 0.15, 0.2   # setengah lebar (x), dalam (y), tinggi (z)
+HN = 2.3    # penampang mendatar hampir elips (avatar halus, bukan kotak)
+HM = 2.45   # profil tegak (ubun-ubun & dagu membulat penuh)
+JAW = 0.3   # penyempitan dari pelipis ke dagu (telur terbalik, dagu tetap membulat)
 
 # Palet wajah (sRGB hex)
 WHITE = 0xffffff
@@ -103,9 +105,9 @@ def ellipsoid(ob_builder, cx, cy, cz, rx, ry, rz, seg=16, rings=10, color=None):
 def head_f(x, y, z):
     """Bentuk implisit kepala relatif pusat (<= 0 di dalam): superquadric kotak-membulat yang menyempit ke dagu."""
     zn = z / HC
-    low = smooth((-zn - 0.12) / 0.88)               # 0 sampai sedikit di bawah mata, 1 di dagu
+    low = smooth((0.15 - zn) / 1.15) ** 1.6         # pipi tetap penuh, menyempit terutama di rahang bawah
     a = HA * (1 - JAW * low)
-    b = HB * (1 - 0.12 * low)
+    b = HB * (1 - 0.18 * low)
     h = (abs(x / a) ** HN + abs(y / b) ** HN) ** (HM / HN)
     return h + abs(zn) ** HM - 1
 
@@ -361,27 +363,27 @@ def build_hair():
                      lambda p, u: 0.06 + 0.06 * math.sin(min(u, 2.2) * 1.3) + 0.018 * math.sin(6 * p) * math.sin(5 * u),
                      n_az=36, n_rings=14))
     # pet (topi satpam/pengunjung): mahkota sampai dahi + lidah topi ke depan
-    pet = shell('hair_cap', lambda p: u_at(zcut_blend(p, 0.13, 0.06, 0.0)), lambda p, u: 0.035, n_az=28, n_rings=8)
+    pet = shell('hair_cap', lambda p: u_at(zcut_blend(p, 0.42 * HC, 0.15 * HC, -0.05 * HC)), lambda p, u: 0.03, n_az=28, n_rings=8)
     vb = Builder()
-    ellipsoid(vb, 0, -(HB + 0.07), CY + 0.135, 0.14, 0.12, 0.012, seg=16, rings=4)
+    ellipsoid(vb, 0, -(HB + 0.035), CY + 0.42 * HC, 0.1, 0.07, 0.016, seg=16, rings=4)  # lidah pet seukuran kepala
     obs.append(attach(pet, vb))
     # helm proyek: kubah + pinggiran
-    hat = shell('hair_hardhat', lambda p: u_at(0.12), lambda p, u: 0.045, n_az=28, n_rings=8)
+    hat = shell('hair_hardhat', lambda p: u_at(0.3 * HC), lambda p, u: 0.04, n_az=28, n_rings=8)
     hb = Builder()
-    ellipsoid(hb, 0, -0.02, CY + 0.115, HA + 0.1, HB + 0.11, 0.014, seg=24, rings=4)
+    ellipsoid(hb, 0, -0.01, CY + 0.3 * HC, HA + 0.06, HB + 0.07, 0.014, seg=24, rings=4)
     obs.append(attach(hat, hb))
     hl = shell('hair_bun', lambda p: u_at(zcut_blend(p, 0.08, 0.0, -0.1)) + front_w(p, 1.0) * tooth(p, 20, 0.12),
                lambda p, u: 0.026 + clumps(p, u, 11, 0.015))
     obs.append(hl)
     hb = Builder()
-    ellipsoid(hb, 0, 0.09, CY + HC + 0.02, 0.11, 0.11, 0.1, seg=14, rings=8)
+    ellipsoid(hb, 0, 0.6 * HB, CY + HC + 0.01, 0.075, 0.075, 0.068, seg=14, rings=8)  # cepol seukuran kepala
     obs.append(attach(hl, hb))
     ht = shell('hair_twintails', lambda p: u_at(zcut_blend(p, 0.08, 0.0, -0.12)) + front_w(p, 1.0) * tooth(p, 20, 0.12),
                lambda p, u: 0.026 + clumps(p, u, 11, 0.015))
     tb = Builder()
     for s in (-1, 1):
-        ellipsoid(tb, s * (HA + 0.06), 0.1, CY - 0.06, 0.08, 0.08, 0.2, seg=12, rings=8)
-        ellipsoid(tb, s * (HA + 0.02), 0.08, CY + 0.1, 0.05, 0.05, 0.05, seg=8, rings=5)
+        ellipsoid(tb, s * (HA + 0.045), 0.6 * HB, CY - 0.05, 0.055, 0.055, 0.15, seg=12, rings=8)
+        ellipsoid(tb, s * (HA + 0.015), 0.5 * HB, CY + 0.06, 0.035, 0.035, 0.035, seg=8, rings=5)
     obs.append(attach(ht, tb))
     return obs
 
@@ -404,7 +406,7 @@ def build_hijab():
     sudut theta_t), lalu menjuntai melebar menutup bahu & dada; ujung depan sedikit lancip.
     Jendela wajah = elips di ruang (phi, z) dengan tepi di-snap mulus.
     """
-    win_c, win_hz, win_hp = CY - 0.045, 0.22, 0.8
+    win_c, win_hz, win_hp = CY - 0.12 * HC, 0.8 * HC, 0.85   # jendela wajah relatif tinggi kepala
 
     def ell(p, z):
         p = math.atan2(math.sin(p), math.cos(p))  # bungkus ke -pi..pi (grid memakai 0..2pi)
@@ -421,7 +423,7 @@ def build_hijab():
         return on_surface(d, offset(p, on_surface(d)[2]))
 
     def bottom_z(p):
-        return CY - 0.6 - 0.07 * front_w(p, 3.0)
+        return CY - 0.48 - 0.06 * front_w(p, 3.0)
 
     def cut(p):
         tt = theta_t(p)
@@ -435,7 +437,8 @@ def build_hijab():
         L = (u - tt) * HC
         dh = dir_tp(math.pi / 2, p)
         r0 = math.hypot(x0, y0)
-        r_sh = (1.05 + 0.4 * (1 - front_w(p, 1.0)) - 0.12 * max(0, -math.cos(p))) * head_r(dh)
+        # jubah menutup bahu (ukuran absolut: bahu ±0.27 m dari tengah), depan dada lebih rapat
+        r_sh = 0.2 + 0.12 * (1 - front_w(p, 1.0)) - 0.03 * max(0, -math.cos(p))
         r = r0 + (r_sh - r0) * smooth(L / 0.26)
         return (dh[0] * r, dh[1] * r, z0 - L)
 
