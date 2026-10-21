@@ -71,7 +71,8 @@ function resolveHair(o) {
  *   hairColor?:number, height?:number, hat?:number|null, hijab?:number|null,
  *   apron?:number|null, vest?:number|null, badge?:number|null, backpack?:number|null,
  *   bottom?:'shorts'|'pants'|'skirt', longSleeve?:boolean, shoes?:number,
- *   glasses?:boolean, mustache?:boolean, build?:'slim'|'average'|'chubby'|'child', rng?:() => number}} opts
+ *   glasses?:boolean, mustache?:boolean, build?:'slim'|'average'|'chubby'|'child', pantsFit?:'wide'|'slim',
+ *   rng?:() => number}} opts
  * bottom 'longskirt' = rok panjang/gamis sampai mata kaki.
  * @returns {{group: THREE.Group, parts: Record<string, THREE.Object3D>, height: number}}
  */
@@ -185,11 +186,13 @@ function buildLeg(body, parts, o, side, sx) {
   body.add(hip);
   const skirted = o.bottom === 'skirt' || o.bottom === 'longskirt';
   const legColor = o.bottom === 'pants' ? o.pants : o.skin;
-  hip.add(scaled(mesh(kitOr('leg_thigh', GEO.thigh), skirted ? o.skin : o.pants), limb, 1, limb));
+  // Celana panjang: kaki lebar lurus (gaya kargo) kecuali legging/training ('slim').
+  const wide = o.bottom === 'pants' && o.pantsFit !== 'slim' ? '_wide' : '';
+  hip.add(scaled(mesh(kitOr(`leg_thigh${wide}`, GEO.thigh), skirted ? o.skin : o.pants), limb, 1, limb));
   const knee = new THREE.Group();
   knee.position.y = -DIM.thigh;
   hip.add(knee);
-  const shin = scaled(mesh(kitOr('leg_shin', GEO.shin), legColor), limb, 1, limb);
+  const shin = scaled(mesh(kitOr(`leg_shin${wide}`, GEO.shin), legColor), limb, 1, limb);
   knee.add(shin);
   knee.add(mesh(kitOr('shoe', GEO.foot), o.shoes));
   parts[`hip${side}`] = hip;

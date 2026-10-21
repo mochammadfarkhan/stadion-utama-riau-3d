@@ -24,7 +24,7 @@ COLL = 'KIT_Chibi'
 
 # Ellipsoid kepala (sedikit lebih lebar dari tinggi; harus serasi dengan DIM.headR = 0.30 di Humanoid.dim.js)
 CY = 0.24
-HA, HB, HC = 0.31, 0.29, 0.30   # setengah lebar (x), dalam (y), tinggi (z)
+HA, HB, HC = 0.30, 0.275, 0.295   # setengah lebar (x), dalam (y), tinggi (z): kepala avatar halus, muka agak datar
 
 # Palet wajah (sRGB hex)
 WHITE = 0xffffff
@@ -109,10 +109,9 @@ def head_point(u, v, lift):
 
 def build_head():
     b = Builder()
-    ellipsoid(b, 0, 0, CY, HA, HB, HC, seg=24, rings=14)
-    for s in (-1, 1):  # telinga: elips pipih di samping, sedikit ke belakang
-        ellipsoid(b, s * (HA - 0.01), 0.02, CY - 0.03, 0.035, 0.05, 0.065, seg=10, rings=6)
-    return b.to_object('head')
+    ellipsoid(b, 0, 0, CY, HA, HB, HC, seg=26, rings=16)  # tanpa telinga (gaya avatar)
+    ellipsoid(b, 0, 0.01, -0.02, 0.048, 0.044, 0.11, seg=10, rings=6)  # leher kecil di antara bahu & kepala
+    return finish_part(b, 'head')  # normal keluar dihitung ulang (winding elipsoid tidak dijamin)
 
 
 def decal_ellipse(b, uc, vc, hu, hv, lift, color, seg=18, rot=0.0):
@@ -383,45 +382,6 @@ def build_hijab():
     return shell('hijab', cut, keep_fn=keep, point_fn=point, snap_fn=snap, n_az=44, n_rings=22)
 
 
-def build_torso():
-    b = Builder()
-    w, h, d, zc = 0.34, 0.30, 0.24, 0.24
-    bpy.ops.mesh.primitive_cube_add(size=1)
-    ob = bpy.context.active_object
-    ob.name = 'torso'
-    for c in ob.users_collection:
-        c.objects.unlink(ob)
-    bpy.data.collections[COLL].objects.link(ob)
-    ob.scale = (w, d, h)
-    ob.location = (0, 0, zc)
-    bpy.context.view_layer.objects.active = ob
-    bpy.ops.object.transform_apply(location=True, scale=True)
-    me = ob.data
-    for v in me.vertices:  # sedikit melebar ke bawah (kemeja kotak kartun)
-        if v.co.z < zc:
-            v.co.x *= 1.08
-            v.co.y *= 1.05
-    bev = ob.modifiers.new('Bulat', 'BEVEL')
-    bev.width = 0.07
-    bev.segments = 3
-    apply_mods(ob)
-    for p in ob.data.polygons:
-        p.use_smooth = True
-    # kerah kemeja: dua sayap segitiga tebal di leher depan
-    top, fy = zc + h / 2, -d / 2
-    for s in (-1, 1):
-        a = (s * 0.012, fy - 0.012, top - 0.015)
-        bb = (s * 0.11, fy + 0.03, top + 0.005)
-        c = (s * 0.035, fy - 0.03, top - 0.09)
-        off = (0, 0.018, 0)
-        v = [a, bb, c] + [tuple(x + o for x, o in zip(p, off)) for p in (a, bb, c)]
-        f = [(0, 1, 2), (5, 4, 3), (0, 3, 4, 1), (1, 4, 5, 2), (2, 5, 3, 0)]
-        if s < 0:
-            f = [t[::-1] for t in f]
-        b.add(v, f)
-    return attach(ob, b)
-
-
 def apply_mods(ob):
     bpy.ops.object.select_all(action='DESELECT')
     ob.select_set(True)
@@ -476,7 +436,7 @@ def finish_part(builder, name):
 def build(export=True):
     reset()
     body = runpy.run_path(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'chibi_body.py'))
-    obs = [build_head(), build_face(), build_hijab(), build_torso(), *build_hair(),
+    obs = [build_head(), build_face(), build_hijab(), *build_hair(),
            *body['build_body'](Builder, ellipsoid, finish_part)]
     mat = bpy.data.materials.get('KIT_Dasar') or bpy.data.materials.new('KIT_Dasar')
     for o in obs:

@@ -80,8 +80,8 @@ export const GEO = Object.freeze({
  * head = skala kepala (anak berkepala lebih besar, khas chibi).
  */
 export const BODY_BUILDS = Object.freeze({
-  slim: Object.freeze({ w: 0.88, d: 0.9, limb: 0.86, head: 1.06 }),
-  average: Object.freeze({ w: 1, d: 1, limb: 1, head: 1.08 }),
-  chubby: Object.freeze({ w: 1.2, d: 1.24, limb: 1.18, head: 1.08 }),
-  child: Object.freeze({ w: 1, d: 1, limb: 1.06, head: 1.25 }),
+  slim: Object.freeze({ w: 0.9, d: 0.92, limb: 0.9, head: 0.9 }),
+  average: Object.freeze({ w: 1, d: 1, limb: 1, head: 0.92 }),
+  chubby: Object.freeze({ w: 1.22, d: 1.26, limb: 1.2, head: 0.94 }),
+  child: Object.freeze({ w: 1, d: 1, limb: 1.05, head: 1.08 }),
 });
