@@ -13,6 +13,7 @@ Jalankan:
 """
 import math
 import os
+import runpy
 
 import bmesh
 import bpy
@@ -443,9 +444,40 @@ def reset():
         bpy.ops.object.mode_set(mode='OBJECT')
 
 
+def finish_part(builder, name):
+    """Objek bagian badan: normal keluar per pulau mesh (ujung terbuka rok/celana tetap benar), halus."""
+    ob = builder.to_object(name)
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    seen = set()
+    for f0 in bm.faces:
+        if f0.index in seen:
+            continue
+        island, stack = [], [f0]
+        seen.add(f0.index)
+        while stack:
+            f = stack.pop()
+            island.append(f)
+            for e in f.edges:
+                for g in e.link_faces:
+                    if g.index not in seen:
+                        seen.add(g.index)
+                        stack.append(g)
+        c = sum((f.calc_center_median() for f in island), Vector()) / len(island)
+        score = sum(f.normal.dot(Vector((fc.x - c.x, fc.y - c.y, 0))) for f in island for fc in [f.calc_center_median()])
+        if score < 0:
+            bmesh.ops.reverse_faces(bm, faces=island)
+    bm.to_mesh(ob.data)
+    bm.free()
+    return ob
+
+
 def build(export=True):
     reset()
-    obs = [build_head(), build_face(), build_hijab(), build_torso(), *build_hair()]
+    body = runpy.run_path(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'chibi_body.py'))
+    obs = [build_head(), build_face(), build_hijab(), build_torso(), *build_hair(),
+           *body['build_body'](Builder, ellipsoid, finish_part)]
     mat = bpy.data.materials.get('KIT_Dasar') or bpy.data.materials.new('KIT_Dasar')
     for o in obs:
         apply_mods(o)
