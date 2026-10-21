@@ -12,7 +12,7 @@ import * as THREE from 'three';
 export const HUMANOID_KIT_PATH = 'models/karakter/chibi-kit.glb';
 /** Nama node yang dikenali; hair_<gaya> menggantikan gaya rambut prosedural dengan nama sama. */
 export const KIT_PARTS = Object.freeze([
-  'head', 'face', 'torso', 'hijab',
+  'head', 'face', 'face_g', 'face_m', 'face_gm', 'torso', 'hijab',
   'hair_helmet', 'hair_bob', 'hair_long', 'hair_bun', 'hair_twintails', 'hair_buzz', 'hair_afro',
   'hair_cap', 'hair_hardhat',
   'arm_upper_short', 'arm_upper_long', 'arm_lower_skin', 'arm_lower_sleeve', 'hand',

@@ -22,8 +22,8 @@ export const NPC_TYPE_LABELS = Object.freeze({
   jogger: 'Jogger', mahasiswa: 'Mahasiswa', dosen: 'Dosen', pengunjung: 'Orang luar', anak: 'Anak-anak', satpam: 'Satpam',
 });
 
-/** Kemeja dosen: putih, biru muda, abu, dan warna dasar batik (coklat sogan, biru indigo, merah marun). */
-const LECTURER_SHIRTS = Object.freeze([0xf5f5f5, 0xbcd7ef, 0xb0b7bf, 0x8a5a2b, 0x2f3e74, 0x7b2d26]);
+/** Kemeja dosen: putih, biru muda, abu, dan warna dasar batik (hijau tua, biru indigo, merah marun; coklat sogan dibuang: sewarna kulit). */
+const LECTURER_SHIRTS = Object.freeze([0xf5f5f5, 0xbcd7ef, 0xb0b7bf, 0x3d5a4a, 0x2f3e74, 0x7b2d26]);
 const GREY_HAIR = 0x9e9e9e;
 const KID_SHIRTS = Object.freeze([0xff5a5f, 0xffc93c, 0x4cd964, 0x5ac8fa, 0xff8fd8, 0xaf7bff, 0xff9500]);
 const KID_HAIR = Object.freeze(['twintails', 'bob', 'helmet', 'bun', 'helmet']);

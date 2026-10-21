@@ -2,7 +2,7 @@
  * Studio karakter (DEV, tidak ikut build produksi): /karakter-studio.html — scene three.js terpisah untuk mencoba kit
  * chibi Blender + tipe NPC tanpa memuat dunia (detik, bukan menit). Parameter URL (juga diatur dari panel):
  *   tipe=all|jogger|mahasiswa|dosen|pengunjung|anak|satpam   n=2 (varian per tipe)   seed=1
- *   anim=idle|walk|run|diam|pose:<id>   cam=depan|samping|belakang|34|dekat   putar=1   hijab=1 (varian ke-2 berhijab)
+ *   anim=idle|walk|run|diam|pose:<id>   cam=depan|samping|belakang|34|dekat|profil   putar=1   hijab=1 (varian ke-2 berhijab)
  *   kit=0 (bentuk prosedural lama, pembanding)   bersih=1 (sembunyikan panel; dipakai skrip bidikan)
  * window.__studio = { ready, stats } untuk tools/shots/studio.mjs.
  */
@@ -35,7 +35,8 @@ const CAMS = Object.freeze({
   samping: { dir: [1, 0.12, 0], fit: 1 },
   belakang: { dir: [0, 0.15, -1], fit: 1 },
   34: { dir: [0.75, 0.3, 1], fit: 1 },
-  dekat: { dir: [0, 0.05, 1], fit: 0.32 },
+  dekat: { dir: [0, 0.05, 1], fit: 0.32, close: true },
+  profil: { dir: [0, 0.05, 1], fit: 0.32, close: true, turn: Math.PI / 2 }, // tiap orang diputar 90°: profil berjajar
 });
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -99,9 +100,10 @@ function rebuild() {
 function frame() {
   const c = CAMS[state.cam] ?? CAMS.depan;
   const width = Math.max(1.2, people.length * SPACING) * c.fit;
-  const target = new THREE.Vector3(0, state.cam === 'dekat' ? 1.25 : 0.85, 0);
+  for (const p of people) p.h.group.rotation.y = c.turn ?? 0;
+  const target = new THREE.Vector3(0, c.close ? 1.25 : 0.85, 0);
   const vfov = THREE.MathUtils.degToRad(camera.fov);
-  const dist = Math.max((width / 2) / Math.tan(vfov / 2) / camera.aspect, (state.cam === 'dekat' ? 0.9 : 2) / Math.tan(vfov / 2)) * 1.15;
+  const dist = Math.max((width / 2) / Math.tan(vfov / 2) / camera.aspect, (c.close ? 0.9 : 2) / Math.tan(vfov / 2)) * 1.15;
   const dir = new THREE.Vector3(...c.dir).normalize();
   camera.position.copy(target).addScaledVector(dir, dist);
   controls.target.copy(target);
