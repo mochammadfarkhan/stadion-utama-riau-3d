@@ -63,60 +63,70 @@ def mitten(b, ellipsoid, zc):
     ellipsoid(b, 0, -0.036, zc + 0.02, 0.019, 0.02, 0.032, seg=8, rings=6)
 
 
+# Panjang tulang = DIM di src/entities/Humanoid.dim.js (proporsi riset: torso ≈ tinggi kepala, kaki ≈ 40% tinggi).
+UPPER_ARM, LOWER_ARM = 0.22, 0.20
+THIGH, SHIN = 0.33, 0.31
+GROUND = -(0.66 - THIGH)          # tanah relatif lutut (hipY 0.66)
+TORSO_TOP = 0.47                  # bahu; leher di atasnya (pivot kepala 0.52)
+
+
 def build_body(Builder, ellipsoid, finish):
     """Kembalikan objek bagian badan; finish(builder, name) membuat objek di koleksi kit."""
     obs = []
-    # torso: bahu membulat, dada, pinggang ramping, pinggul sedikit melebar (atasan pas badan)
+    # torso "woman": bahu membulat, dada, pinggang ramping, pinggul sedikit melebar; tinggi ≈ tinggi kepala
+    t = TORSO_TOP
     b = Builder()
-    lathe(b, [(0.378, 0.06, 0.05), (0.372, 0.12, 0.08), (0.358, 0.152, 0.095), (0.33, 0.158, 0.1),
-              (0.27, 0.146, 0.098), (0.2, 0.118, 0.088), (0.14, 0.124, 0.09), (0.085, 0.14, 0.096)],
-          seg=20, n=2.6)
+    lathe(b, [(t, 0.06, 0.05), (t - 0.006, 0.12, 0.08), (t - 0.02, 0.152, 0.095), (t - 0.05, 0.158, 0.1),
+              (t - 0.12, 0.148, 0.098), (0.27, 0.118, 0.088), (0.19, 0.122, 0.09), (0.13, 0.134, 0.094),
+              (0.085, 0.14, 0.096)], seg=20, n=2.6)
     obs.append(finish(b, 'torso'))
     # lengan atas: lengan pendek pas (kaos) / lengan sweater longgar
     b = Builder()
-    lathe(b, tube(0.02, -0.11, 0.052, 0.05), seg=12, n=2.3)
+    lathe(b, tube(0.02, -0.12, 0.05, 0.048), seg=12, n=2.3)
     obs.append(finish(b, 'arm_upper_short'))
     b = Builder()
-    lathe(b, tube(0.02, -0.215, 0.058, 0.062), seg=12, n=2.2)
+    lathe(b, tube(0.02, -(UPPER_ARM + 0.015), 0.056, 0.06), seg=12, n=2.2)
     obs.append(finish(b, 'arm_upper_long'))
     # lengan bawah kulit + tangan (lengan pendek); mulai di atas siku, tersembunyi di lengan baju
+    wrist = -(LOWER_ARM - 0.03)
     b = Builder()
-    lathe(b, tube(0.1, -0.15, 0.04, 0.036), seg=10, n=2.2)
-    mitten(b, ellipsoid, -0.198)
+    lathe(b, tube(0.11, wrist, 0.038, 0.034), seg=10, n=2.2)
+    mitten(b, ellipsoid, wrist - 0.05)
     obs.append(finish(b, 'arm_lower_skin'))
     # lengan sweater bawah: menggembung lalu mengerut di pergelangan (gaya slouchy)
     b = Builder()
-    lathe(b, [(0.04, 0.062, 0.062), (-0.04, 0.07, 0.07), (-0.11, 0.072, 0.072), (-0.15, 0.06, 0.06),
-              (-0.165, 0.05, 0.05)], seg=12, n=2.2)
+    lathe(b, [(0.04, 0.06, 0.06), (-0.05, 0.068, 0.068), (wrist + 0.03, 0.07, 0.07), (wrist, 0.058, 0.058),
+              (wrist - 0.015, 0.048, 0.048)], seg=12, n=2.2)
     obs.append(finish(b, 'arm_lower_sleeve'))
     b = Builder()
-    lathe(b, tube(-0.13, -0.16, 0.034, 0.034, dome=0.3), seg=8)
-    mitten(b, ellipsoid, -0.198)
+    lathe(b, tube(wrist + 0.02, wrist - 0.01, 0.033, 0.033, dome=0.3), seg=8)
+    mitten(b, ellipsoid, wrist - 0.05)
     obs.append(finish(b, 'hand'))
     # kaki langsing (kulit / legging) dan kaki celana kargo lebar lurus
     b = Builder()
-    lathe(b, tube(0.04, -0.37, 0.07, 0.06), seg=12, n=2.3)
+    lathe(b, tube(0.04, -(THIGH + 0.01), 0.068, 0.058), seg=12, n=2.3)
     obs.append(finish(b, 'leg_thigh'))
     b = Builder()
-    lathe(b, tube(0.03, -0.3, 0.058, 0.048), seg=12, n=2.3)
+    lathe(b, tube(0.03, GROUND + 0.05, 0.056, 0.046), seg=12, n=2.3)
     obs.append(finish(b, 'leg_shin'))
     b = Builder()
-    lathe(b, tube(0.05, -0.37, 0.085, 0.082), seg=12, n=2.4)
+    lathe(b, tube(0.05, -(THIGH + 0.01), 0.083, 0.08), seg=12, n=2.4)
     obs.append(finish(b, 'leg_thigh_wide'))
     b = Builder()
-    lathe(b, [(0.03, 0.082, 0.082), (-0.15, 0.086, 0.086), (-0.27, 0.092, 0.09), (-0.305, 0.094, 0.092)],
+    lathe(b, [(0.03, 0.08, 0.08), (-0.14, 0.084, 0.084), (GROUND + 0.06, 0.09, 0.088), (GROUND + 0.035, 0.092, 0.09)],
           seg=12, n=2.4, cap_bottom=True)
     obs.append(finish(b, 'leg_shin_wide'))
-    # sneaker tebal bersol datar (alas di -0.352 dari lutut ≈ tanah)
+    # sneaker tebal bersol datar (alas tepat di tanah)
+    g = GROUND
     b = Builder()
-    lathe(b, [(-0.27, 0.05, 0.06), (-0.3, 0.07, 0.1), (-0.33, 0.075, 0.115), (-0.352, 0.074, 0.112)],
+    lathe(b, [(g + 0.082, 0.048, 0.058), (g + 0.052, 0.068, 0.098), (g + 0.022, 0.073, 0.112), (g, 0.072, 0.11)],
           seg=14, n=3.0, cy=-0.028)
     obs.append(finish(b, 'shoe'))
-    # bawahan: celana pendek pas, pinggang+sabuk celana panjang, rok mini A, rok panjang
+    # bawahan: celana pendek pas, pinggang celana panjang, rok mini A, rok panjang sampai mata kaki
     b = Builder()
     lathe(b, [(0.11, 0.142, 0.1), (0.04, 0.152, 0.104), (-0.04, 0.15, 0.1)], seg=16, n=2.6, cap_bottom=False)
     for s in (-1, 1):
-        lathe(b, [(0.0, 0.078, 0.078), (-0.1, 0.08, 0.08), (-0.15, 0.082, 0.082)], seg=12, cx=s * 0.07, cap_top=False)
+        lathe(b, [(0.0, 0.076, 0.076), (-0.1, 0.078, 0.078), (-0.14, 0.08, 0.08)], seg=12, cx=s * 0.07, cap_top=False)
     obs.append(finish(b, 'shorts'))
     b = Builder()
     lathe(b, [(0.115, 0.142, 0.1), (0.06, 0.15, 0.104), (0.0, 0.152, 0.104), (-0.05, 0.14, 0.096)], seg=16, n=2.6)
@@ -125,8 +135,9 @@ def build_body(Builder, ellipsoid, finish):
     lathe(b, [(0.11, 0.142, 0.1), (0.02, 0.17, 0.12), (-0.08, 0.2, 0.15), (-0.17, 0.23, 0.18)],
           seg=18, n=2.2, cap_bottom=False)
     obs.append(finish(b, 'skirt'))
+    hem = -(0.66 - 0.05)
     b = Builder()
-    lathe(b, [(0.11, 0.142, 0.1), (-0.05, 0.18, 0.14), (-0.3, 0.24, 0.2), (-0.55, 0.29, 0.25), (-0.67, 0.31, 0.27)],
+    lathe(b, [(0.11, 0.142, 0.1), (-0.05, 0.18, 0.14), (-0.28, 0.24, 0.2), (-0.5, 0.29, 0.25), (hem, 0.31, 0.27)],
           seg=18, n=2.2, cap_bottom=False)
     obs.append(finish(b, 'skirt_long'))
     return obs
