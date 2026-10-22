@@ -20,7 +20,7 @@ export const MANEKIN_KIT_PATH = 'models/karakter/manekin-kit.glb';
 export const HUMANOID_KIT_PATHS = Object.freeze([HUMANOID_KIT_PATH, MANEKIN_KIT_PATH]);
 export const MANEKIN_PART_NAMES = Object.freeze([
   'pelvis', 'torso', 'neck', 'head',
-  ...['l', 'r'].flatMap((s) => [`arm_upper_${s}`, `arm_lower_${s}`, `hand_${s}`, `leg_thigh_${s}`, `leg_shin_${s}`, `foot_${s}`]),
+  ...['l', 'r'].flatMap((s) => [`shoulder_cap_${s}`, `arm_upper_${s}`, `arm_lower_${s}`, `hand_${s}`, `leg_thigh_${s}`, `leg_shin_${s}`, `foot_${s}`]),
 ]);
 export const GENDERS = Object.freeze(['m', 'f']);
 /** Nama node yang dikenali; hair_<gaya> menggantikan gaya rambut prosedural dengan nama sama. */

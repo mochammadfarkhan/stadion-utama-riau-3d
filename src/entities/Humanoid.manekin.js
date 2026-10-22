@@ -108,19 +108,25 @@ function attach(parts, o, g, { pivot, name, sided, color, doubleSided }, castSha
   return out;
 }
 
-function buildHeadwear(parts, o, rig, hair) {
+/**
+ * Rambut/hijab/topi: geometri khusus kepala manekin (`{g}_hair_<gaya>`, `{g}_hijab`, `{g}_hat_pet`) bila ada di kit;
+ * selain itu geometri gaya chibi dipaskan ke kotak kepala (cadangan).
+ */
+function buildHeadwear(parts, o, g, rig, hair) {
   const c = new THREE.Vector3(...rig.headCenter);
   const h = new THREE.Vector3(...rig.headHalf);
   const target = new THREE.Box3(c.clone().sub(h), c.clone().add(h));
   if (hair.style != null) {
-    const hairMesh = createHair(hair.style, hair.color);
-    parts.headPivot.add(fitted(hairMesh, boxOf(kitGeometry('head') ?? GEO.head), target));
+    const own = kitGeometry(`${g}_${hair.style === 'hijab' ? 'hijab' : `hair_${hair.style}`}`);
+    const hairMesh = own ? mesh(own, hair.color, { doubleSided: true }) : createHair(hair.style, hair.color);
+    parts.headPivot.add(own ? hairMesh : fitted(hairMesh, boxOf(kitGeometry('head') ?? GEO.head), target));
     parts[hair.style === 'hijab' ? 'hijab' : 'hair'] = hairMesh;
     parts.hairStyle = hair.style;
   }
   if (o.hat != null && !HEADWEAR.has(hair.style)) {
-    parts.hat = createHat(o.hat);
-    parts.headPivot.add(fitted(parts.hat, boxOf(GEO.head), target));
+    const own = kitGeometry(`${g}_hat_pet`);
+    parts.hat = own ? mesh(own, o.hat, { doubleSided: true }) : createHat(o.hat);
+    parts.headPivot.add(own ? parts.hat : fitted(parts.hat, boxOf(GEO.head), target));
   }
 }
 
@@ -148,7 +154,7 @@ export function buildManekin(body, parts, o, g, rig, hair) {
   parts.head = parts.headPivot.children.find((m) => m.isMesh) ?? parts.headPivot;
   parts.bottom = worn.find((m) => m.parent === body) ?? body;
   parts.outfit = outfit;
-  buildHeadwear(parts, o, rig, hair);
+  buildHeadwear(parts, o, g, rig, hair);
   for (const [side] of SIDES) parts[`foot${side}`] = parts[`knee${side}`].children.find((m) => m.isMesh) ?? parts[`knee${side}`];
   // Ukuran kaki per orang untuk pose duduk & IK sepeda (Humanoid.poses / Humanoid.anim / Bicycle).
   Object.assign(body.userData, { gender: g, thigh: rig.thigh, shin: rig.shin, thighR: rig.thighR });

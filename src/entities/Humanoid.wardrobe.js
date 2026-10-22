@@ -16,7 +16,7 @@ export const ACCESSORIES = Object.freeze(['kacamata', 'ransel', 'lencana', 'kart
 /** Bagian badan manekin per pivot (nama kit tanpa awalan gender / akhiran sisi). */
 export const BODY_PARTS = Object.freeze({
   pelvis: 'body', torso: 'spine', neck: 'spine', head: 'headPivot',
-  arm_upper: 'shoulder', arm_lower: 'elbow', hand: 'elbow', leg_thigh: 'hip', leg_shin: 'knee', foot: 'knee',
+  shoulder_cap: 'shoulder', arm_upper: 'shoulder', arm_lower: 'elbow', hand: 'elbow', leg_thigh: 'hip', leg_shin: 'knee', foot: 'knee',
 });
 export const LEGGING_COLOR = 0x2b2b2b;
 const ACC_COLOR = Object.freeze({ kacamata: 0x222222, jam: 0x333333, kartu_id: 0xf5f5f5, ransel: 0x37474f, lencana: 0xf2c200 });
@@ -29,14 +29,14 @@ function topPieces(top, color) {
     return {
       pieces: [piece('spine', 'kaos_torso', color, { doubleSided: true }),
         piece('shoulder', 'kaos_sleeve', color, { sided: true, doubleSided: true })],
-      hide: ['torso'],
+      hide: ['torso', 'shoulder_cap'],
     };
   }
   return {
     pieces: [piece('spine', `${top}_torso`, color, { doubleSided: true }), piece('spine', `${top}_collar`, color),
       piece('shoulder', `${top}_sleeve_upper`, color, { sided: true, doubleSided: true }),
       piece('elbow', `${top}_sleeve_lower`, color, { sided: true, doubleSided: true })],
-    hide: ['torso', 'arm_upper', 'arm_lower'],
+    hide: ['torso', 'shoulder_cap', 'arm_upper', 'arm_lower'],
   };
 }
 
@@ -49,11 +49,17 @@ function bottomPieces(bottom, color, slim) {
   }
   // Rok/gamis = paruh kiri/kanan di pivot paha (+ lutut untuk gamis): ikut duduk/jalan. Pinggul tetap ada, diwarnai
   // sewarna rok agar tidak bolong saat paruh berputar ke depan.
-  if (bottom === 'skirt') return { pieces: [piece('hip', 'rok', color, { sided: true, doubleSided: true })], hide: [], pelvis: color };
+  // Panel depan/belakang ikut pinggul: menutup belahan antar-paruh saat jalan.
+  if (bottom === 'skirt') {
+    return {
+      pieces: [piece('hip', 'rok', color, { sided: true, doubleSided: true }), piece('body', 'rok_panel', color, { doubleSided: true })],
+      hide: [], pelvis: color,
+    };
+  }
   if (bottom === 'longskirt') {
     return {
       pieces: [piece('hip', 'gamis_atas', color, { sided: true, doubleSided: true }),
-        piece('knee', 'gamis_bawah', color, { sided: true, doubleSided: true })],
+        piece('knee', 'gamis_bawah', color, { sided: true, doubleSided: true }), piece('body', 'gamis_panel', color, { doubleSided: true })],
       hide: [], pelvis: color, legs: LEGGING_COLOR,
     };
   }

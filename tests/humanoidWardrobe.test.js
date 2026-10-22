@@ -10,7 +10,7 @@ describe('wardrobe manekin', () => {
     expect(w.top).toBe('kaos');
     expect(w.bottom).toBe('pants');
     expect(names(w)).toEqual(['kaos_torso', 'kaos_sleeve', 'celana_pelvis', 'celana_lebar_thigh', 'celana_lebar_shin', 'sepatu']);
-    expect([...w.hide].sort()).toEqual(['foot', 'leg_shin', 'leg_thigh', 'pelvis', 'torso']);
+    expect([...w.hide].sort()).toEqual(['foot', 'leg_shin', 'leg_thigh', 'pelvis', 'shoulder_cap', 'torso']);
     expect(w.pieces.find((p) => p.name === 'kaos_sleeve')).toMatchObject({ pivot: 'shoulder', sided: true, color: BASE.shirt });
   });
 
@@ -33,6 +33,7 @@ describe('wardrobe manekin', () => {
   it('rok & gamis: paruh di pivot paha/lutut, pinggul sewarna rok, gamis berlegging', () => {
     const rok = wardrobe({ ...BASE, bottom: 'skirt', pants: 0xff8fb1 });
     expect(rok.pieces.filter((p) => p.name === 'rok')).toEqual([expect.objectContaining({ pivot: 'hip', sided: true })]);
+    expect(rok.pieces.find((p) => p.name === 'rok_panel')).toMatchObject({ pivot: 'body', sided: false });
     expect(rok.hide.has('pelvis')).toBe(false);
     expect(rok.bodyColor.pelvis).toBe(0xff8fb1);
     expect(rok.bodyColor.leg_shin).toBe(BASE.skin);

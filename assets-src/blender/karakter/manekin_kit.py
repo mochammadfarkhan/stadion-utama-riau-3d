@@ -4,7 +4,7 @@ Humanoid (src/entities/Humanoid.kit.js). Proporsi realistis (≈ 7,6 kepala), ti
 
 Tiap gender g ∈ {m, f} → bagian `{g}_{nama}` dalam ruang pivot Humanoid (origin = pivot, Blender Z-up, menghadap -Y):
   pelvis (pivot body)      torso, neck (pivot spine = body)      head (pivot kepala = puncak leher)
-  arm_upper_{l,r} (bahu)   arm_lower_{l,r}, hand_{l,r} (siku)    leg_thigh_{l,r} (pinggul)   leg_shin_{l,r}, foot_{l,r} (lutut)
+  shoulder_cap_{l,r}, arm_upper_{l,r} (bahu)   arm_lower_{l,r}, hand_{l,r} (siku)    leg_thigh_{l,r} (pinggul)   leg_shin_{l,r}, foot_{l,r} (lutut)
 Lengan & kaki A-pose diluruskan ke bawah (rotasi segmen kaku di sekitar sendi), telapak kaki dikembalikan datar.
 Ukuran rig (koordinat three: x, y atas, z depan; meter) disimpan di node kosong `rig_{g}` (glTF extras → userData).
 
@@ -204,7 +204,8 @@ def build_gender(g):
     for x in SIDES:
         fingers = [o for k, o in segs.items() if k.startswith('finger_') and k.endswith(f'_{x}')]
         obs += [
-            part(f'{g}_arm_upper_{x}', [segs[f'shoulder_{x}'], segs[f'upper_arm_{x}']], j[x]['shoulder']),
+            part(f'{g}_shoulder_cap_{x}', [segs[f'shoulder_{x}']], j[x]['shoulder']),  # deltoid: disembunyikan atasan
+            part(f'{g}_arm_upper_{x}', [segs[f'upper_arm_{x}']], j[x]['shoulder']),
             part(f'{g}_arm_lower_{x}', [segs[f'elbow_{x}'], segs[f'lower_arm_{x}']], j[x]['elbow']),
             part(f'{g}_hand_{x}', [segs[f'hand_{x}'], *fingers], j[x]['elbow']),
             part(f'{g}_leg_thigh_{x}', [segs[f'upper_leg_{x}']], j[x]['hip']),
