@@ -9,6 +9,7 @@ import {
   CanvasTexture, DataTexture, LinearFilter, LinearMipmapLinearFilter, RepeatWrapping,
   RGBAFormat, SRGBColorSpace, NoColorSpace,
 } from 'three';
+import { captureProc, getBaked } from './procBake.js';
 
 export const MAP_SIZE = 512;
 export const NORMAL_SIZE = 256;
@@ -166,9 +167,44 @@ function dataTexture(data, w, h, srgb) {
   return finalize(new DataTexture(data, w, h, RGBAFormat), srgb);
 }
 
+const FINGERPRINT_SAMPLES = 48;
+const GOLDEN_U = 0.6180339887;
+const GOLDEN_V = 0.7548776662;
+
+/** Hash string 53-bit (cyrb53) → base36. */
+function hash53(str) {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i += 1) {
+    const c = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 2654435761);
+    h2 = Math.imul(h2 ^ c, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+
+/**
+ * Sidik jari isi tekstur: fn dievaluasi di titik sampel tetap (deret golden ratio) + ukuran + colorSpace.
+ * Warna/parameter generator berubah → keluaran sampel berubah → kunci berubah (berkas bake lama tidak dipakai).
+ */
+export function procKey(w, h, srgb, fn) {
+  const noise = (u, v, opts) => fbm(u, v, opts);
+  const parts = [w, h, srgb ? 's' : 'l'];
+  for (let i = 0; i < FINGERPRINT_SAMPLES; i += 1) {
+    const u = ((i + 1) * GOLDEN_U) % 1;
+    const v = ((i + 1) * GOLDEN_V) % 1;
+    const [r, g, b] = fn(u, v, noise);
+    parts.push(r.toPrecision(12), g.toPrecision(12), b.toPrecision(12));
+  }
+  return `${w}x${h}-${hash53(parts.join(','))}`;
+}
+
 /**
  * Tekstur w×h dari fn(u, v, noise) → [r, g, b] (u, v ∈ 0..1).
- * Browser: CanvasTexture via ImageData; Node: DataTexture FALLBACK_SIZE².
+ * Browser: bitmap hasil bake bila sidik jarinya cocok (procBake.js), selain itu CanvasTexture via ImageData;
+ * Node: DataTexture FALLBACK_SIZE².
  * @param {{srgb?:boolean}} opts srgb=true untuk peta warna (default), false untuk data
  */
 export function fillCanvas(w, h, fn, { srgb = true } = {}) {
@@ -181,8 +217,16 @@ export function fillCanvas(w, h, fn, { srgb = true } = {}) {
   canvas.height = h;
   const ctx = canvas.getContext('2d');
   if (!ctx) return dataTexture(fillPixels(w, h, fn), w, h, srgb);
+  const key = procKey(w, h, srgb, fn);
+  const bakedImage = getBaked(key);
+  if (bakedImage) {
+    ctx.drawImage(bakedImage, 0, 0);
+    return finalize(new CanvasTexture(canvas), srgb);
+  }
   const img = ctx.createImageData(w, h);
-  img.data.set(fillPixels(w, h, fn));
+  const data = fillPixels(w, h, fn);
+  captureProc(key, w, h, srgb, data);
+  img.data.set(data);
   ctx.putImageData(img, 0, 0);
   return finalize(new CanvasTexture(canvas), srgb);
 }

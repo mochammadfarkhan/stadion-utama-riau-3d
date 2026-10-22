@@ -45,6 +45,7 @@ import { session, setupMenu } from './app/session.js';
 import { handleKeys } from './app/keymap.js';
 import { setupShop, updatePrompt } from './app/shop.js';
 import { exposeDevTools, parsePlacementParam, parseFlagParam } from './app/devtools.js';
+import { preloadProcTextures, releaseBaked } from './world/textures/procBake.js';
 import { createDisposerStack } from './app/lifecycle.js';
 import { setPbrRenderer } from './world/textures/pbr.js';
 import { applyPlacement } from './app/mountRegion.js';
@@ -77,6 +78,14 @@ import { travelDestinations, createFastTravel, waitForRegion } from './app/fastT
 import { FastTravelMenu, createTravelScreen } from './ui/FastTravelMenu.js';
 
 const MODELS_TIMEOUT_MS = 8000;
+const START_SETTLE_TIMEOUT_MS = 12000; // batas tunggu streaming area awal sebelum render pertama
+
+/** Tunggu tile kota + distrik di sekitar titik awal termuat (dibatasi waktu: streaming lambat tidak menahan Mulai). */
+function settleStartArea({ city, unri, at }) {
+  const settled = Promise.all([city?.whenSettled(at.x, at.z), unri?.whenSettled(at.x, at.z)])
+    .catch((err) => console.error('Streaming area awal gagal ditunggu:', err));
+  return Promise.race([settled, new Promise((resolve) => setTimeout(resolve, START_SETTLE_TIMEOUT_MS))]);
+}
 
 /** Region hero di dalam distrik UNRI: distrik tidak menaruh vegetasi/props/rintangan di dalam mask-nya (M2 isReserved). M6 menambah region Rektorat. */
 const HERO_REGIONS = Object.freeze([unriLembagaRegion, unriRektoratRegion]);
@@ -94,6 +103,8 @@ async function main() {
   if (!hasWebGL()) return showFatal('Browser ini tidak mendukung WebGL. Coba Chrome/Edge terbaru.');
   const loading = createLoadingScreen();
   await loading.step(0.05, 'Menyiapkan mesin grafis…');
+  // Tekstur prosedural hasil bake di-decode paralel sejak awal; ?procbake (skrip bake) memaksa semua prosedural.
+  const procTextures = parseFlagParam(window.location.search, 'procbake') ? Promise.resolve(0) : preloadProcTextures(import.meta.env.BASE_URL);
   // Kit karakter (Blender) dimuat paralel: manekin tanpa wajah (default) + chibi (rambut/hijab; ?avatar=chibi = gaya
   // lama). Kit yang gagal dimuat dilewati; Humanoid jatuh ke chibi/prosedural.
   setAvatarStyle(new URLSearchParams(window.location.search).get('avatar'));
@@ -133,6 +144,7 @@ async function main() {
   window.addEventListener('pagehide', () => store.flush(), { signal: listeners.signal });
   document.addEventListener('visibilitychange', () => { if (document.hidden) store.flush(); }, { signal: listeners.signal });
 
+  await procTextures; // sebelum lighting/dunia: keduanya memanggil fillCanvas
   await loading.step(0.12, 'Menyiapkan langit, pencahayaan, waktu, dan cuaca…');
   const lighting = createLighting(app.scene, app.renderer);
   app.scene.add(lighting);
@@ -272,8 +284,11 @@ async function main() {
   lifecycle.add(() => styleMgr.dispose());
 
   const bikePos = new THREE.Vector3();
-  // Shader dikompilasi paralel sebelum frame pertama (tanpa ini render pertama membeku belasan detik). Gagal → lanjut.
-  await app.precompile().catch((err) => console.error('Prekompilasi shader gagal:', err));
+  // Render ditahan selama layar muat: sistem (streaming kota/distrik/region) tetap jalan, lalu shader area awal
+  // dikompilasi paralel sebelum frame pertama (render pertama yang mengompilasi sinkron membeku belasan detik).
+  app.holdRender = true;
+  const precompile = () => app.precompile().catch((err) => console.error('Prekompilasi shader gagal:', err));
+  const precompiled = precompile(); // mulai paralel sekarang; dunia yang sudah ada tidak menunggu streaming
   app.start((dt, t, rawDt) => {
     bikePos.set(ents.bike.state.x, ents.bike.groundY, ents.bike.state.z);
     // focus = titik pusat tampilan (sepeda, atau titik pandang saat POV); sepeda beku di POV tanpa kendali.
@@ -302,10 +317,17 @@ async function main() {
   // Base layer minimap per region aktif dibake sekarang (galat bake ditangani manager: latar polos);
   // region yang dipasang kemudian dibake setelah siap.
   regions.attachMinimap(minimap);
+  // Latar menu: kamera orbit sinematik mengelilingi stadion (sepeda dibekukan, cerita dijeda) sampai pemain menekan Mulai.
+  // Dipasang sebelum menunggu streaming agar area yang dimuat = area yang tampil di belakang menu.
+  rig.handlePovKey(POVS.find((p) => p.id === 'orbit').key);
+  await loading.step(0.98, 'Menyiapkan shader…');
+  await precompiled;
+  await settleStartArea({ city, unri, at: rig.focus });
+  await precompile(); // objek hasil streaming; program yang sudah ada diambil dari cache
+  app.holdRender = false;
+  releaseBaked(); // bitmap tekstur bake tidak dibutuhkan lagi (pemasangan ulang = prosedural)
   await loading.step(1, 'Siap!');
   loading.done();
-  // Latar menu: kamera orbit sinematik mengelilingi stadion (sepeda dibekukan, cerita dijeda) sampai pemain menekan Mulai.
-  rig.handlePovKey(POVS.find((p) => p.id === 'orbit').key);
   menu.ready({ hasProgress: hasStoryProgress(story.state), touch });
   if (import.meta.env.DEV) {
     exposeDevTools({

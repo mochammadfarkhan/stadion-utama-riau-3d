@@ -59,6 +59,8 @@ export class App {
     this.minimapVisible = true;
     this.elapsed = 0;
     this.frame = 0;
+    /** true: loop tetap menjalankan sistem (streaming memuat) tanpa render — dipakai saat layar muat. */
+    this.holdRender = false;
     this.lastCtx = null;              // ctx frame terakhir (dipakai renderFrame untuk screenshot)
     this.baseExposure = RENDER.exposure; // dari preset TimeOfDay (ditulis tiap frame)
     this.exposureScale = 1;           // pengali dari settings (sky.exposure / RENDER.exposure)
@@ -319,13 +321,15 @@ export class App {
    * Tanpa ini render pertama menunggu link ~90 program secara sinkron (belasan detik di ANGLE/D3D11).
    * Render target diarahkan ke buffer composer: kunci program memuat toneMapping/outputColorSpace target,
    * jadi kompilasi ke kanvas (target null) menghasilkan varian yang tidak pernah dipakai RenderPass.
+   * Bagian kompilasi compileAsync sinkron; target dikembalikan SEBELUM menunggu link (loop bisa render di sela).
+   * @returns {Promise<void>}
    */
-  async precompile() {
+  precompile() {
     const r = this.renderer;
     const prev = r.getRenderTarget();
     r.setRenderTarget(this.post.composer.readBuffer);
     try {
-      await r.compileAsync(this.view.scene, this.view.camera);
+      return r.compileAsync(this.view.scene, this.view.camera).then(() => {});
     } finally {
       r.setRenderTarget(prev);
     }
@@ -340,13 +344,13 @@ export class App {
       this.elapsed += dt;
       const ctx = makeContext(dt, this.elapsed, rawDt);
       ctx.shadowFrame = this.frame % SHADOW_INTERVAL === 0;
-      if (this.adaptiveOn) {
+      if (this.adaptiveOn && !this.holdRender) { // frame tanpa render terlalu cepat: jangan dijadikan sampel resolusi
         const next = this.adaptive?.sample(rawDt);
         if (next != null) this.#applyPixelRatio(next);
       }
       this.lastCtx = ctx;
       this.systems.update(dt, ctx);
-      this.render(ctx);
+      if (!this.holdRender) this.render(ctx);
       this.frame += 1;
     };
     this.renderer.setAnimationLoop(loop);
