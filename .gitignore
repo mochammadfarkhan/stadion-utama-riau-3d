@@ -11,3 +11,6 @@ coverage/
 
 # Cache data mentah citybake (OSM/Overture; dapat diunduh ulang)
 data-src/
+
+# Hasil render reels (tools/reels/render.mjs)
+renders/
