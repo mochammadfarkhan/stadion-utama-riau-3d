@@ -13,6 +13,7 @@ Jalankan:
 """
 import os
 import re
+import runpy
 
 import bpy
 from mathutils import Matrix, Quaternion, Vector
@@ -192,7 +193,9 @@ def build_gender(g):
         'headHalf': [round((head_hi.x - head_lo.x) / 2, 4), round((head_hi.z - head_lo.z) / 2, 4), round((head_hi.y - head_lo.y) / 2, 4)],
     }
 
-    obs = [
+    # Baju & aksesori dibuat dari segmen yang sudah lurus SEBELUM segmen digabung per bagian (manekin_baju.py).
+    baju = runpy.run_path(os.path.join(HERE, 'manekin_baju.py'))['build_clothes'](g, segs, j, pelvis, neck_top)
+    obs = baju + [
         part(f'{g}_pelvis', [segs['hips']], pelvis),
         part(f'{g}_torso', [segs[k] for k in ('stomach', 'chest', 'breast_l', 'breast_r') if k in segs], pelvis),
         part(f'{g}_neck', [segs['neck']], pelvis),

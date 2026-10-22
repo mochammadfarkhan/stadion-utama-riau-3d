@@ -75,6 +75,9 @@ export function setHumanoidKit(root) {
   return addHumanoidKit(root);
 }
 
+/** Bagian kit dikenali: daftar KIT_PARTS, atau segmen/baju/aksesori manekin `m_*` / `f_*` (Humanoid.wardrobe.js). */
+const isKitPart = (name) => KIT_PARTS.includes(name) || /^[mf]_[a-z0-9_]+$/.test(name ?? '');
+
 /** Validasi rig dari userData node rig_<g>: semua kunci wajib angka/array angka hingga. */
 function readRig(data) {
   const ok = RIG_KEYS.every((k) => {
@@ -103,8 +106,8 @@ export function addHumanoidKit(root) {
       }
       return;
     }
-    const name = o.isMesh ? (KIT_PARTS.includes(o.name) ? o.name : o.parent?.name) : null;
-    if (name && KIT_PARTS.includes(name) && !parts.has(name)) {
+    const name = o.isMesh ? (isKitPart(o.name) ? o.name : o.parent?.name) : null;
+    if (name && isKitPart(name) && !parts.has(name)) {
       parts.set(name, normalized(o));
       added.push(name);
     }

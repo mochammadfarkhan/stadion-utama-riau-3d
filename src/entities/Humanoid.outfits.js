@@ -112,6 +112,7 @@ export function randomAlmamaterOutfit(rng) {
   return {
     ...base,
     shirt: ALMAMATER_UNRI,
+    top: 'almamater',
     longSleeve: true,
     badge: ALMAMATER_BADGE,
     vest: null,
@@ -236,6 +237,7 @@ export function randomStudentOutfit(rng, { almamaterChance = 0.3, backpackChance
     vest: null,
     shirt: almamater ? ALMAMATER_COLOR : base.shirt,
     longSleeve: almamater,
+    top: almamater ? 'almamater' : undefined,
     badge: almamater ? ALMAMATER_BADGE : null,
     bottom: shorts ? 'pants' : base.bottom,
     pants: shorts ? pick(rng, PANTS_COLORS) : base.pants,
