@@ -49,6 +49,34 @@ export function activeAt(items, t, defaultFade = 0.25) {
     });
 }
 
+/** Nilai segmen terakhir yang sudah dimulai (list [{t, ...}] terurut naik); sebelum segmen pertama = segmen pertama. */
+export function segmentAt(list, t) {
+  let hit = list[0];
+  for (const s of list) if (s.t <= t) hit = s;
+  return hit;
+}
+
+const pair = (v) => (Array.isArray(v) && Array.isArray(v[0]) ? v : [v, v]);
+const pairNum = (v) => (Array.isArray(v) ? v : [v, v]);
+
+/**
+ * Daftar shot → keyframe kamera {pos, target, fov}. Tiap shot dimulai dengan potongan (cut) di `dari` lalu bergerak
+ * ke nilai akhir sampai `sampai`. pos/target: [x,y,z] (diam) atau [[awal],[akhir]]; fov: angka atau [awal, akhir].
+ * @param {{dari:number, sampai:number, pos:number[]|number[][], target:number[]|number[][], fov?:number|number[], ease?:string}[]} list
+ */
+export function shots(list) {
+  const out = { pos: [], target: [], fov: [] };
+  for (const s of [...list].sort((a, b) => a.dari - b.dari)) {
+    if (!(s.sampai > s.dari)) throw new RangeError(`shots: shot ${s.dari}s harus sampai > dari`);
+    const end = s.sampai - 1e-3;
+    const ease = s.ease ?? 'inOut';
+    for (const [key, [a, b]] of [['pos', pair(s.pos)], ['target', pair(s.target)], ['fov', pairNum(s.fov ?? 55)]]) {
+      out[key].push({ t: s.dari, v: a, ease: 'step' }, { t: end, v: b, ease });
+    }
+  }
+  return out;
+}
+
 /** Jumlah frame untuk durasi (detik) pada fps; frame terakhir < durasi. */
 export function frameCount(duration, fps) {
   if (!(duration > 0) || !(fps > 0)) throw new RangeError('frameCount: durasi & fps harus positif');

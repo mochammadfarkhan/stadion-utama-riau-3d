@@ -5,10 +5,12 @@
  *     [--dari 0] [--sampai <durasi>]   rentang detik (cepat untuk coba potongan)
  *     [--stills 1,8,15]                hanya ambil gambar diam pada detik itu (cek komposisi, tanpa ffmpeg)
  *     [--ffmpeg <path>]                bila ffmpeg tidak ada di PATH
+ *     [--naskah]                       hanya tulis <scene>.srt + <scene>.md (tanpa browser)
+ * Selalu menulis <out>/<scene>.srt (subtitle untuk CapCut) dan <scene>.md (naskah per adegan untuk rekam suara).
  */
 import { createRequire } from 'node:module';
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -26,8 +28,25 @@ const { values: opts } = parseArgs({
     scene: { type: 'string', default: 'sekre-duduk' }, out: { type: 'string', default: 'renders' },
     gpu: { type: 'string', default: 'd3d11' }, crf: { type: 'string', default: '18' },
     dari: { type: 'string' }, sampai: { type: 'string' }, stills: { type: 'string' }, ffmpeg: { type: 'string' },
+    naskah: { type: 'boolean', default: false },
   },
 });
+
+/** Subtitle + naskah dari data scene (modul scene murni, diimpor langsung di Node). */
+async function writeScript(outDir) {
+  const load = (p) => import(pathToFileURL(join(ROOT, p)).href);
+  const [{ REEL_SCENES }, { toSrt, toNaskahMd }, { NPCS }] = await Promise.all([
+    load('src/dev/reels/scenes/index.js'), load('src/dev/reels/naskah.js'), load('src/interiors/sekre/data.js'),
+  ]);
+  const scene = REEL_SCENES[opts.scene];
+  if (!scene) throw new Error(`Scene "${opts.scene}" tidak ada (${Object.keys(REEL_SCENES).join(', ')})`);
+  const nama = Object.fromEntries(NPCS.map((n) => [n.id, n.nama]));
+  for (const [ext, text] of [['srt', toSrt(scene.teks, nama)], ['md', toNaskahMd(scene, nama)]]) {
+    const file = join(outDir, `${opts.scene}.${ext}`);
+    writeFileSync(file, text, 'utf8');
+    console.log(file);
+  }
+}
 
 function loadPlaywright() {
   const require = createRequire(import.meta.url);
@@ -66,6 +85,8 @@ function startEncoder(ffmpeg, fps, file) {
 async function main() {
   const outDir = resolve(ROOT, opts.out);
   mkdirSync(outDir, { recursive: true });
+  await writeScript(outDir);
+  if (opts.naskah) return;
   const vite = await import(pathToFileURL(join(ROOT, 'node_modules', 'vite', 'dist', 'node', 'index.js')).href);
   const server = await vite.createServer({ root: ROOT, configFile: join(ROOT, 'vite.config.js'), server: { port: PORT, strictPort: true }, logLevel: 'error' });
   await server.listen();

@@ -9,15 +9,12 @@
 import '@fontsource-variable/inter';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { createHumanoid } from '../entities/Humanoid.js';
-import { applyPose, POSES } from '../entities/Humanoid.poses.js';
 import { HUMANOID_KIT_PATH, setHumanoidKit } from '../entities/Humanoid.kit.js';
 import { createResourceScope, withScope } from '../engine/ResourceScope.js';
 import { lightingPreset } from '../sim/dayCycle.js';
 import { createSekreInterior } from '../interiors/sekre/index.js';
-import { npcOutfit } from '../interiors/sekre/npcs.js';
-import { NPCS, SLOTS } from '../interiors/sekre/data.js';
 import { keyframes, activeAt, frameCount } from './reels/timeline.js';
+import { createActors, updateActor } from './reels/actors.js';
 import { REEL_SCENES } from './reels/scenes/index.js';
 
 const params = new URLSearchParams(window.location.search);
@@ -58,32 +55,29 @@ function layout(camera) {
   camera.updateProjectionMatrix();
 }
 
-/** Aktor scene: Humanoid dari roster sekre, diletakkan di slot (atau x/z/yaw sendiri). */
-function createActors(group, props) {
-  const slotById = new Map(SLOTS.map((s) => [s.id, s]));
-  return def.aktor.map((a, i) => {
-    const npc = NPCS.find((n) => n.id === a.npc);
-    if (!npc) throw new Error(`Reels: npc "${a.npc}" tidak ada di data sekre`);
-    const slot = slotById.get(a.slot) ?? { x: 0, z: 0, yaw: 0, poseId: 'standTalk' };
-    const poseId = a.pose ?? slot.poseId;
-    if (typeof poseId === 'string' && !POSES[poseId]) throw new Error(`Reels: pose "${poseId}" tidak dikenal`);
-    const h = createHumanoid(npcOutfit(npc));
-    h.group.position.set(a.x ?? slot.x, 0, a.z ?? slot.z);
-    h.group.rotation.y = a.yaw ?? slot.yaw;
-    h.group.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-    group.add(h.group);
-    if (poseId === 'guitarStrum') props.holdGuitar(h.parts.spine);
-    return { def: a, h, poseId, phase: i * 1.37 };
-  });
-}
-
-function drawText(t) {
+/**
+ * Teks layar. Isi berasal dari berkas scene lokal (dev), jadi HTML sederhana (<br>, <em>) sengaja diizinkan.
+ * gaya: judul (atas, besar) | sub (subtitle) | dialog (nama pembicara + ucapan; teriak:true = besar) | narasi (miring).
+ */
+function drawText(t, actorById) {
   const html = activeAt(def.teks, t).map(({ item, alpha }) => {
     const style = `opacity:${alpha.toFixed(3)};transform:translateY(${((1 - alpha) * 12).toFixed(1)}px)`;
     if (item.gaya === 'judul') return `<div class="judul" style="${style}"><b>${item.isi}</b>${item.kecil ? `<span>${item.kecil}</span>` : ''}</div>`;
-    return `<div class="sub" style="${style}"><span>${item.isi}</span></div>`;
+    if (item.gaya === 'dialog') {
+      const a = actorById.get(item.siapa);
+      const tag = `<i style="background:${a?.warna ?? '#fff'}">${a?.nama ?? item.siapa}</i>`;
+      return `<div class="sub dialog${item.teriak ? ' teriak' : ''}" style="${style}">${tag}<span>${item.isi}</span></div>`;
+    }
+    return `<div class="sub${item.gaya === 'narasi' ? ' narasi' : ''}" style="${style}"><span>${item.isi}</span></div>`;
   }).join('');
   if (teksEl.innerHTML !== html) teksEl.innerHTML = html;
+}
+
+/** Alpha dialog aktif per pembicara (gerak kepala saat bicara). */
+function speakingAt(t) {
+  const out = new Map();
+  for (const { item, alpha } of activeAt(def.teks, t)) if (item.gaya === 'dialog') out.set(item.siapa, alpha);
+  return out;
 }
 
 async function boot() {
@@ -101,8 +95,9 @@ async function boot() {
   const cast = new THREE.Group();
   cast.name = 'reels-aktor';
   scene.add(cast);
-  const actors = withScope(scope, () => createActors(cast, built.debug.furniture.props));
-  const activeSlots = new Set(def.aktor.map((a) => a.slot));
+  const actors = withScope(scope, () => createActors(cast, def.aktor, built.debug.furniture.props));
+  const actorById = new Map(actors.map((a) => [a.id, a]));
+  const activeSlots = new Set(def.aktor.map((a) => a.slot).filter(Boolean));
   npcs.isActive = (slotId) => activeSlots.has(slotId); // layar laptop menyala bila slot laptop dipakai aktor
   const systems = built.systems.filter((s) => !SKIP_SYSTEMS.has(s.id));
   const target = new THREE.Vector3();
@@ -112,11 +107,8 @@ async function boot() {
   /** Satu frame pada waktu t; dt = langkah sistem (cahaya, kipas, hujan). */
   function step(t, dt) {
     for (const s of systems) s.update(dt);
-    for (const a of actors) {
-      const poseId = typeof a.poseId === 'function' ? a.poseId(t) : a.poseId;
-      applyPose(a.h, poseId, t + a.phase);
-      a.def.gerak?.(t, a.h.parts);
-    }
+    const speaking = speakingAt(t);
+    for (const a of actors) updateActor(a, t, speaking.get(a.id) ?? 0);
     const sway = def.goyang ?? 0;
     const [px, py, pz] = cam.pos(t);
     camera.position.set(
@@ -129,7 +121,7 @@ async function boot() {
     camera.updateProjectionMatrix();
     scene.updateMatrixWorld();
     renderer.render(scene, camera);
-    drawText(t);
+    drawText(t, actorById);
   }
 
   await built.ready;
