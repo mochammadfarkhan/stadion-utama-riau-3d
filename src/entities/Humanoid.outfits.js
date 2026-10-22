@@ -16,11 +16,13 @@ export const SKIN_TONES = Object.freeze([0xf1c27d, 0xe0ac69, 0xc68642, 0xa9743f,
 export const HAIR_COLORS = Object.freeze([0xe03e3e, 0xff7eb6, 0x4cc96a, 0x9b5de5, 0x3d8bff, 0xffd23f, 0x8b5a2b, 0x222222]);
 export const HIJAB_COLORS = Object.freeze([0x222222, 0x8e44ad, 0x16a085, 0xc0392b, 0xf5f5f5, 0x2c3e50, 0xd4a017, 0xff8fb1]);
 export const SHIRT_COLORS = Object.freeze([
-  0xe74c3c, 0x3498db, 0x2ecc71, 0xf1c40f, 0x9b59b6, 0x1abc9c, 0xe67e22,
-  0xecf0f1, 0x34495e, 0xff6b81, 0x00a8ff, 0xfbc531, 0x4cd137, 0x273c75,
+  0xe74c3c, 0x3498db, 0x2ecc71, 0xf1c40f, 0x9b59b6, 0x1abc9c, 0x6f7fa8,
+  0xecf0f1, 0x34495e, 0xff6b81, 0x00a8ff, 0x4cd137, 0x273c75,
+  // palet "aesthetic" referensi tim: coklat tua, pink pastel, abu (oranye dibuang: sewarna kulit setelah grading)
+  0x5a3e2b, 0xf4a6c0, 0x8a8f99,
 ]);
 export const RUN_SHIRT_COLORS = Object.freeze([0xff3b30, 0x00c2ff, 0x39ff14, 0xffd60a, 0xff2d95, 0xffffff, 0x111111, 0xff8c00]);
-export const PANTS_COLORS = Object.freeze([0x1f2a44, 0x2b2b2b, 0x3d3d5c, 0x5d4037, 0x1b5e20, 0x263238, 0x8d6e63]);
+export const PANTS_COLORS = Object.freeze([0x1f2a44, 0x2b2b2b, 0x3d3d5c, 0x5d4037, 0x1b5e20, 0x263238, 0x8d6e63, 0xc8b89a, 0x9e9a92]);
 export const SHORTS_COLORS = Object.freeze([0x111111, 0x1e3a8a, 0x7f1d1d, 0x14532d, 0x4a148c]);
 export const SKIRT_COLORS = Object.freeze([0xff8fb1, 0x7c4dff, 0x26a69a, 0xffb74d, 0x5c6bc0]);
 export const HAT_COLORS = Object.freeze([0xffffff, 0x111111, 0xd32f2f, 0x1565c0, 0xf9a825]);
@@ -29,6 +31,31 @@ export const HARDHAT_COLOR = 0xffc107;
 export const VEST_COLOR = 0xff6f00;   // rompi satpam oranye
 const SHOE_COLORS = Object.freeze([0xffffff, 0xff5722, 0x03a9f4, 0x222222]);
 const VENDOR_SHIRTS = Object.freeze([0xffffff, 0x2e7d32, 0x1565c0, 0xef6c00]);
+
+/** Bobot tipe tubuh default (dewasa). */
+export const ADULT_BUILDS = Object.freeze({ slim: 28, average: 50, chubby: 22 });
+
+/** Pilih tipe tubuh dari bobot relatif (lihat BODY_BUILDS di Humanoid.dim.js). */
+export function randomBuild(rng, weights = ADULT_BUILDS) {
+  const entries = Object.entries(weights).filter(([, wt]) => wt > 0);
+  const total = entries.reduce((sum, [, wt]) => sum + wt, 0);
+  let r = rng() * total;
+  for (const [build, wt] of entries) {
+    r -= wt;
+    if (r < 0) return build;
+  }
+  return entries.length ? entries[entries.length - 1][0] : 'average';
+}
+
+/**
+ * Busana muslimah sopan untuk pemakai hijab (pola umum Pekanbaru [INFERENSI]): lengan panjang ±75%,
+ * rok diganti rok panjang/gamis, celana pendek diganti celana panjang.
+ */
+function modestFor(o, rng) {
+  if (o.hijab == null) return o;
+  const bottom = o.bottom === 'shorts' ? 'pants' : o.bottom === 'skirt' || rng() < 0.35 ? 'longskirt' : o.bottom;
+  return { ...o, longSleeve: o.longSleeve || rng() < 0.75, bottom };
+}
 
 /** Pilihan rambut/penutup kepala umum: hijab ~30%, sisanya gaya rambut acak. */
 function randomHead(rng, hijabChance = 0.3) {
@@ -52,7 +79,7 @@ export function randomCasualOutfit(rng) {
   const bottom = roll < 0.45 ? 'pants' : roll < 0.75 ? 'shorts' : 'skirt';
   const special = rng();
   const caping = !head.hijab && special >= 0.12 && special < 0.17;
-  return {
+  return modestFor({
     skin: pick(rng, SKIN_TONES),
     shirt: pick(rng, SHIRT_COLORS),
     pants: bottom === 'skirt' ? pick(rng, SKIRT_COLORS) : pick(rng, PANTS_COLORS),
@@ -65,8 +92,9 @@ export function randomCasualOutfit(rng) {
     bottom,
     height: range(rng, 1.55, 1.82),
     shoes: pick(rng, SHOE_COLORS),
+    build: randomBuild(rng),
     rng,
-  };
+  }, rng);
 }
 
 /**
@@ -84,6 +112,7 @@ export function randomAlmamaterOutfit(rng) {
   return {
     ...base,
     shirt: ALMAMATER_UNRI,
+    top: 'almamater',
     longSleeve: true,
     badge: ALMAMATER_BADGE,
     vest: null,
@@ -104,7 +133,11 @@ export function randomRunnerOutfit(rng, { forceHat = false, forceHijab = false }
     pants: pick(rng, SHORTS_COLORS),
     ...head,
     hat: forceHat && !head.hijab ? pick(rng, HAT_COLORS) : null,
-    bottom: 'shorts',
+    // Pelari berhijab: kaos olahraga lengan panjang + celana training panjang.
+    bottom: head.hijab ? 'pants' : 'shorts',
+    longSleeve: head.hijab != null,
+    pantsFit: 'slim',
+    build: randomBuild(rng, { slim: 55, average: 40, chubby: 5 }),
     height: range(rng, 1.58, 1.85),
     shoes: pick(rng, SHOE_COLORS),
     rng,
@@ -126,6 +159,8 @@ export function randomVendorOutfit(rng, kind = 'minuman') {
     hat: head.hijab || caping ? null : (kind === 'buah' ? 0xf9a825 : 0xffffff),
     apron: kind === 'buah' ? 0x66bb6a : 0x42a5f5,
     bottom: 'pants',
+    longSleeve: head.hijab != null,
+    build: randomBuild(rng, { slim: 15, average: 45, chubby: 40 }),
     height: range(rng, 1.6, 1.78),
     rng,
   };
@@ -145,6 +180,7 @@ export function randomGuardOutfit(rng) {
     vest: VEST_COLOR,
     bottom: 'pants',
     longSleeve: true,
+    build: randomBuild(rng, { average: 55, chubby: 45 }),
     height: range(rng, 1.62, 1.82),
     rng,
   };
@@ -170,6 +206,7 @@ export function footballKit(team, isKeeper, rng) {
     hairColor: pick(rng, HAIR_COLORS),
     hijab: null,
     bottom: 'shorts',
+    build: randomBuild(rng, { slim: 45, average: 55 }),
     height: range(rng, 1.65, 1.85),
     shoes: 0x111111,
     rng,
@@ -200,10 +237,12 @@ export function randomStudentOutfit(rng, { almamaterChance = 0.3, backpackChance
     vest: null,
     shirt: almamater ? ALMAMATER_COLOR : base.shirt,
     longSleeve: almamater,
+    top: almamater ? 'almamater' : undefined,
     badge: almamater ? ALMAMATER_BADGE : null,
     bottom: shorts ? 'pants' : base.bottom,
     pants: shorts ? pick(rng, PANTS_COLORS) : base.pants,
     backpack,
+    build: randomBuild(rng, { slim: 40, average: 48, chubby: 12 }),
     rng,
   };
 }
@@ -222,6 +261,7 @@ export function campusGuardOutfit(rng) {
     bottom: 'pants',
     longSleeve: false,
     shoes: 0x111111,
+    build: randomBuild(rng, { slim: 10, average: 50, chubby: 40 }),
     height: range(rng, 1.62, 1.8),
     rng,
   };

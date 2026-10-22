@@ -25,7 +25,7 @@ import { STORY_NPCS } from './story/chapters.js';
 import { resolvePoint, localizePoint } from './story/points.js';
 import { updateWind } from './world/shaders/windState.js';
 import { buildEntities } from './entities/index.js';
-import { HUMANOID_KIT_PATH, setHumanoidKit } from './entities/Humanoid.kit.js';
+import { HUMANOID_KIT_PATHS, addHumanoidKit, setAvatarStyle } from './entities/Humanoid.kit.js';
 import { loadModel } from './world/assets/models.js';
 import { HUD } from './ui/HUD.js';
 import { createWallet } from './sim/vendorSim.js';
@@ -105,10 +105,12 @@ async function main() {
   await loading.step(0.05, 'Menyiapkan mesin grafis…');
   // Tekstur prosedural hasil bake di-decode paralel sejak awal; ?procbake (skrip bake) memaksa semua prosedural.
   const procTextures = parseFlagParam(window.location.search, 'procbake') ? Promise.resolve(0) : preloadProcTextures(import.meta.env.BASE_URL);
-  // Kit karakter chibi (Blender) dimuat paralel; gagal = Humanoid tetap memakai bentuk prosedural.
-  const humanoidKit = loadModel(HUMANOID_KIT_PATH)
-    .then(setHumanoidKit)
-    .catch((err) => console.error('Kit karakter gagal dimuat; memakai bentuk prosedural:', err));
+  // Kit karakter (Blender) dimuat paralel: manekin tanpa wajah (default) + chibi (rambut/hijab; ?avatar=chibi = gaya
+  // lama). Kit yang gagal dimuat dilewati; Humanoid jatuh ke chibi/prosedural.
+  setAvatarStyle(new URLSearchParams(window.location.search).get('avatar'));
+  const humanoidKit = Promise.all(HUMANOID_KIT_PATHS.map((path) => loadModel(path)
+    .then(addHumanoidKit)
+    .catch((err) => console.error(`Kit karakter ${path} gagal dimuat; memakai bentuk cadangan:`, err))));
 
   // Pembongkaran berurutan terbalik (LIFO); dipakai __sim.teardown() di mode dev.
   const lifecycle = createDisposerStack();

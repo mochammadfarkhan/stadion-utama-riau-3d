@@ -13,19 +13,21 @@ export const BASE_HEIGHT = 1.7;
 
 /** Dimensi pivot untuk tinggi 1.7 m (semua relatif pinggul kecuali hipY). */
 export const DIM = Object.freeze({
-  hipY: 0.72,
+  // Proporsi avatar (riset: Roblox klasik + referensi tim): torso ≈ tinggi kepala, kaki ≈ 40% tinggi,
+  // lengan ≈ 1,3× torso. Bagian kit Blender (chibi_body.py) memakai panjang yang sama.
+  hipY: 0.66,
   hipHalfWidth: 0.09,
-  thigh: 0.36,
-  shin: 0.34,
-  torsoR: 0.17,      // setengah lebar torso (kompatibilitas)
-  torsoH: 0.30,
-  torsoD: 0.24,
-  torsoY: 0.24,      // pusat torso relatif pinggul
-  shoulderY: 0.36,
-  shoulderX: 0.22,
-  upperArm: 0.20,
-  lowerArm: 0.18,
-  neckY: 0.44,       // pivot kepala relatif pinggul
+  thigh: 0.33,
+  shin: 0.31,
+  torsoR: 0.16,      // setengah lebar torso (kompatibilitas)
+  torsoH: 0.38,
+  torsoD: 0.2,
+  torsoY: 0.28,      // pusat torso relatif pinggul
+  shoulderY: 0.44,
+  shoulderX: 0.2,
+  upperArm: 0.22,
+  lowerArm: 0.20,
+  neckY: 0.52,       // pivot kepala relatif pinggul
   headR: 0.30,
   headLift: 0.24,    // pusat kepala relatif pivot kepala
 });
@@ -72,4 +74,16 @@ export const GEO = Object.freeze({
   thigh: hanging(LIMB.thighR, DIM.thigh + LIMB.thighR * 0.5),
   shin: hanging(LIMB.shinR, DIM.shin),
   foot: shoe(),
+});
+
+/**
+ * Tipe tubuh (skala per bagian di atas proporsi dasar; geometri tetap bersama):
+ * w/d = lebar/tebal torso & bawahan (bahu & pinggul ikut melebar), limb = tebal lengan/kaki,
+ * head = skala kepala (anak berkepala lebih besar, khas chibi).
+ */
+export const BODY_BUILDS = Object.freeze({
+  slim: Object.freeze({ w: 0.9, d: 0.92, limb: 0.9, head: 0.97 }),
+  average: Object.freeze({ w: 1, d: 1, limb: 1, head: 1 }),
+  chubby: Object.freeze({ w: 1.22, d: 1.26, limb: 1.2, head: 1.04 }),
+  child: Object.freeze({ w: 1, d: 1, limb: 1.05, head: 1.22 }),
 });

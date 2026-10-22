@@ -13,6 +13,7 @@ Jalankan:
 """
 import math
 import os
+import runpy
 
 import bmesh
 import bpy
@@ -22,8 +23,13 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..',
 COLL = 'KIT_Chibi'
 
 # Ellipsoid kepala (sedikit lebih lebar dari tinggi; harus serasi dengan DIM.headR = 0.30 di Humanoid.dim.js)
-CY = 0.24
-HA, HB, HC = 0.31, 0.29, 0.30   # setengah lebar (x), dalam (y), tinggi (z)
+# Proporsi diukur dari referensi tim (avatar "aesthetic"): lebar kepala ≈ 0,9 × lebar torso (0,32 m),
+# tinggi ≈ 1,2 × lebar (oval tegak), bentuk telur terbalik (lebar di pelipis, meruncing ke dagu), leher kurus terlihat.
+CY = 0.2    # pusat kepala di atas pivot kepala; dagu ≈ z 0, bahu (atas torso) di z -0.06 → leher ±6 cm
+HA, HB, HC = 0.158, 0.15, 0.2   # setengah lebar (x), dalam (y), tinggi (z)
+HN = 2.3    # penampang mendatar hampir elips (avatar halus, bukan kotak)
+HM = 2.45   # profil tegak (ubun-ubun & dagu membulat penuh)
+JAW = 0.3   # penyempitan dari pelipis ke dagu (telur terbalik, dagu tetap membulat)
 
 # Palet wajah (sRGB hex)
 WHITE = 0xffffff
@@ -96,22 +102,80 @@ def ellipsoid(ob_builder, cx, cy, cz, rx, ry, rz, seg=16, rings=10, color=None):
     ob_builder.add(verts, faces, color)
 
 
-def head_point(u, v, lift):
-    """Titik di permukaan ellipsoid kepala untuk sudut wajah (u ke kanan-model, v ke atas), + lift sepanjang arah."""
-    d = (math.sin(u) * math.cos(v), -math.cos(u) * math.cos(v), math.sin(v))
-    t = 1 / math.sqrt((d[0] / HA) ** 2 + (d[1] / HB) ** 2 + (d[2] / HC) ** 2)
-    k = t + lift
+def head_f(x, y, z):
+    """Bentuk implisit kepala relatif pusat (<= 0 di dalam): superquadric kotak-membulat yang menyempit ke dagu."""
+    zn = z / HC
+    low = smooth((0.15 - zn) / 1.15) ** 1.6         # pipi tetap penuh, menyempit terutama di rahang bawah
+    a = HA * (1 - JAW * low)
+    b = HB * (1 - 0.18 * low)
+    h = (abs(x / a) ** HN + abs(y / b) ** HN) ** (HM / HN)
+    return h + abs(zn) ** HM - 1
+
+
+def head_r(d):
+    """Jarak pusat kepala ke permukaan sepanjang arah satuan d (bisection; bentuk berbintang dari pusat)."""
+    lo, hi = 0.0, 0.6
+    for _ in range(32):
+        mid = (lo + hi) / 2
+        if head_f(d[0] * mid, d[1] * mid, d[2] * mid) > 0:
+            hi = mid
+        else:
+            lo = mid
+    return lo
+
+
+def unit(x, y, z):
+    n = math.sqrt(x * x + y * y + z * z)
+    return (x / n, y / n, z / n)
+
+
+def dir_tp(theta, phi):
+    """Arah dari sudut polar theta (0 = ubun-ubun) & azimut phi (0 = depan -Y, positif ke +X)."""
+    return (math.sin(theta) * math.sin(phi), -math.sin(theta) * math.cos(phi), math.cos(theta))
+
+
+def on_surface(d, off=0.0):
+    """Titik di permukaan kepala (+ off sepanjang arah) untuk arah satuan d."""
+    k = head_r(d) + off
     return (d[0] * k, d[1] * k, CY + d[2] * k)
+
+
+def head_point(u, v, lift):
+    """Titik di permukaan kepala untuk sudut wajah (u ke kanan-model, v ke atas), + lift sepanjang arah."""
+    return on_surface(unit(math.sin(u) * math.cos(v), -math.cos(u) * math.cos(v), math.sin(v)), lift)
+
+
+def point_at_z(phi, z, off):
+    """Titik permukaan (+off) pada azimut phi dengan ketinggian z (cari theta lewat bisection)."""
+    lo, hi = 0.0, math.pi
+    for _ in range(30):
+        mid = (lo + hi) / 2
+        if on_surface(dir_tp(mid, phi), off)[2] > z:
+            lo = mid
+        else:
+            hi = mid
+    return on_surface(dir_tp(lo, phi), off)
 
 
 # ---------------------------------------------------------------- bagian
 
 def build_head():
     b = Builder()
-    ellipsoid(b, 0, 0, CY, HA, HB, HC, seg=24, rings=14)
-    for s in (-1, 1):  # telinga: elips pipih di samping, sedikit ke belakang
-        ellipsoid(b, s * (HA - 0.01), 0.02, CY - 0.03, 0.035, 0.05, 0.065, seg=10, rings=6)
-    return b.to_object('head')
+    seg, rings = 32, 20  # kepala avatar dari permukaan head_r (tanpa telinga)
+    verts = [on_surface((0.0, 0.0, 1.0))]
+    for r in range(1, rings):
+        for a in range(seg):
+            verts.append(on_surface(dir_tp(math.pi * r / rings, 2 * math.pi * a / seg)))
+    verts.append(on_surface((0.0, 0.0, -1.0)))
+    faces = [(0, 1 + (a + 1) % seg, 1 + a) for a in range(seg)]
+    for r in range(rings - 2):
+        o0, o1 = 1 + r * seg, 1 + (r + 1) * seg
+        faces += [(o0 + a, o0 + (a + 1) % seg, o1 + (a + 1) % seg, o1 + a) for a in range(seg)]
+    last, o0 = len(verts) - 1, 1 + (rings - 2) * seg
+    faces += [(o0 + a, o0 + (a + 1) % seg, last) for a in range(seg)]
+    b.add(verts, faces)
+    ellipsoid(b, 0, 0.01, -0.02, 0.048, 0.044, 0.11, seg=10, rings=6)  # leher kecil di antara bahu & kepala
+    return finish_part(b, 'head')  # normal keluar dihitung ulang (winding elipsoid tidak dijamin)
 
 
 def decal_ellipse(b, uc, vc, hu, hv, lift, color, seg=18, rot=0.0):
@@ -138,7 +202,12 @@ def decal_arc(b, uc, vc, hu, hv, a0, a1, thick_fn, lift, color, seg=16):
     b.add(verts, faces, color)
 
 
-def build_face():
+GLASSES = 0x2b2b2b
+MUSTACHE = 0x3a2a1a
+
+
+def build_face(name='face', glasses=False, mustache=False):
+    """Wajah (mata lama) + opsional kacamata bulat & kumis sebagai decal di permukaan kepala yang sama."""
     b = Builder()
     for s in (-1, 1):
         uc, vc = s * 0.36, -0.08
@@ -158,7 +227,14 @@ def build_face():
     # mulut kecil melengkung (senyum tipis)
     decal_arc(b, 0, -0.31, 0.06, 0.03, math.pi * 1.15, math.pi * 1.85,
               lambda t: 0.016 + 0.01 * math.sin(math.pi * t), 0.003, rgb(MOUTH), seg=10)
-    ob = b.to_object('face', smooth_shade=True, colored=True)
+    if glasses:
+        for s in (-1, 1):
+            decal_arc(b, s * 0.36, -0.08, 0.2, 0.235, 0.0, 2 * math.pi, lambda t: 0.028, 0.012, rgb(GLASSES), seg=28)
+        decal_ellipse(b, 0, -0.03, 0.05, 0.014, 0.012, rgb(GLASSES), seg=8)
+    if mustache:
+        for s in (-1, 1):
+            decal_ellipse(b, s * 0.055, -0.235, 0.07, 0.024, 0.006, rgb(MUSTACHE), seg=12, rot=-s * 0.25)
+    ob = b.to_object(name, smooth_shade=True, colored=True)
     outward_normals(ob)
     return ob
 
@@ -197,13 +273,12 @@ def shell(name, cut_fn, offset_fn=None, drape=False, flare_fn=None, keep_fn=None
                 continue
             o = offset_fn(phi, u)
             if not drape or u <= math.pi / 2:
-                th = min(u, math.pi * 0.95)
-                h, z = math.sin(th), CY + (HC + o) * math.cos(th)
-                x, y = (HA + o) * h * math.sin(phi), -(HB + o) * h * math.cos(phi)
+                x, y, z = on_surface(dir_tp(min(u, math.pi * 0.95), phi), o)
             else:
                 L = (u - math.pi / 2) * rc
                 f = flare_fn(phi, L)
-                x, y, z = (HA + o) * f * math.sin(phi), -(HB + o) * f * math.cos(phi), CY - L
+                ex, ey, _ = on_surface(dir_tp(math.pi / 2, phi), o)  # tirai turun lurus dari lingkar ekuator
+                x, y, z = ex * f, ey * f, CY - L
             idx[(r, a)] = len(verts)
             verts.append((x, y, z))
     faces = []
@@ -288,27 +363,27 @@ def build_hair():
                      lambda p, u: 0.06 + 0.06 * math.sin(min(u, 2.2) * 1.3) + 0.018 * math.sin(6 * p) * math.sin(5 * u),
                      n_az=36, n_rings=14))
     # pet (topi satpam/pengunjung): mahkota sampai dahi + lidah topi ke depan
-    pet = shell('hair_cap', lambda p: u_at(zcut_blend(p, 0.13, 0.06, 0.0)), lambda p, u: 0.035, n_az=28, n_rings=8)
+    pet = shell('hair_cap', lambda p: u_at(zcut_blend(p, 0.42 * HC, 0.15 * HC, -0.05 * HC)), lambda p, u: 0.03, n_az=28, n_rings=8)
     vb = Builder()
-    ellipsoid(vb, 0, -(HB + 0.07), CY + 0.135, 0.14, 0.12, 0.012, seg=16, rings=4)
+    ellipsoid(vb, 0, -(HB + 0.035), CY + 0.42 * HC, 0.1, 0.07, 0.016, seg=16, rings=4)  # lidah pet seukuran kepala
     obs.append(attach(pet, vb))
     # helm proyek: kubah + pinggiran
-    hat = shell('hair_hardhat', lambda p: u_at(0.12), lambda p, u: 0.045, n_az=28, n_rings=8)
+    hat = shell('hair_hardhat', lambda p: u_at(0.3 * HC), lambda p, u: 0.04, n_az=28, n_rings=8)
     hb = Builder()
-    ellipsoid(hb, 0, -0.02, CY + 0.115, HA + 0.1, HB + 0.11, 0.014, seg=24, rings=4)
+    ellipsoid(hb, 0, -0.01, CY + 0.3 * HC, HA + 0.06, HB + 0.07, 0.014, seg=24, rings=4)
     obs.append(attach(hat, hb))
     hl = shell('hair_bun', lambda p: u_at(zcut_blend(p, 0.08, 0.0, -0.1)) + front_w(p, 1.0) * tooth(p, 20, 0.12),
                lambda p, u: 0.026 + clumps(p, u, 11, 0.015))
     obs.append(hl)
     hb = Builder()
-    ellipsoid(hb, 0, 0.09, CY + HC + 0.02, 0.11, 0.11, 0.1, seg=14, rings=8)
+    ellipsoid(hb, 0, 0.6 * HB, CY + HC + 0.01, 0.075, 0.075, 0.068, seg=14, rings=8)  # cepol seukuran kepala
     obs.append(attach(hl, hb))
     ht = shell('hair_twintails', lambda p: u_at(zcut_blend(p, 0.08, 0.0, -0.12)) + front_w(p, 1.0) * tooth(p, 20, 0.12),
                lambda p, u: 0.026 + clumps(p, u, 11, 0.015))
     tb = Builder()
     for s in (-1, 1):
-        ellipsoid(tb, s * (HA + 0.06), 0.1, CY - 0.06, 0.08, 0.08, 0.2, seg=12, rings=8)
-        ellipsoid(tb, s * (HA + 0.02), 0.08, CY + 0.1, 0.05, 0.05, 0.05, seg=8, rings=5)
+        ellipsoid(tb, s * (HA + 0.045), 0.6 * HB, CY - 0.05, 0.055, 0.055, 0.15, seg=12, rings=8)
+        ellipsoid(tb, s * (HA + 0.015), 0.5 * HB, CY + 0.06, 0.035, 0.035, 0.035, seg=8, rings=5)
     obs.append(attach(ht, tb))
     return obs
 
@@ -331,11 +406,11 @@ def build_hijab():
     sudut theta_t), lalu menjuntai melebar menutup bahu & dada; ujung depan sedikit lancip.
     Jendela wajah = elips di ruang (phi, z) dengan tepi di-snap mulus.
     """
-    win_c, win_hz, win_hp = CY - 0.045, 0.22, 0.8
+    win_c, win_hz, win_hp = CY - 0.12 * HC, 0.8 * HC, 0.85   # jendela wajah relatif tinggi kepala
 
     def ell(p, z):
         p = math.atan2(math.sin(p), math.cos(p))  # bungkus ke -pi..pi (grid memakai 0..2pi)
-        return math.hypot(p / win_hp, (z - win_c) / win_hz)
+        return (abs(p / win_hp) ** 2.6 + abs((z - win_c) / win_hz) ** 2.6) ** (1 / 2.6)  # superelips: dagu membulat
 
     def theta_t(p):
         return 1.7 + 0.88 * front_w(p, 1.0)
@@ -344,13 +419,11 @@ def build_hijab():
         return 0.012 + 0.035 * smooth((ell(p, z) - 1.0) / 0.7)
 
     def on_head(p, th):
-        z0 = CY + HC * math.cos(th)
-        o = offset(p, z0)
-        h = math.sin(th)
-        return ((HA + o) * h * math.sin(p), -(HB + o) * h * math.cos(p), CY + (HC + o) * math.cos(th))
+        d = dir_tp(th, p)
+        return on_surface(d, offset(p, on_surface(d)[2]))
 
     def bottom_z(p):
-        return CY - 0.6 - 0.07 * front_w(p, 3.0)
+        return CY - 0.48 - 0.06 * front_w(p, 3.0)
 
     def cut(p):
         tt = theta_t(p)
@@ -362,10 +435,12 @@ def build_hijab():
             return on_head(p, u)
         x0, y0, z0 = on_head(p, tt)
         L = (u - tt) * HC
-        r0 = math.hypot(x0 / HA, y0 / HB)
-        r_sh = 1.05 + 0.4 * (1 - front_w(p, 1.0)) - 0.12 * max(0, -math.cos(p))
+        dh = dir_tp(math.pi / 2, p)
+        r0 = math.hypot(x0, y0)
+        # jubah menutup bahu (ukuran absolut: bahu ±0.27 m dari tengah), depan dada lebih rapat
+        r_sh = 0.2 + 0.12 * (1 - front_w(p, 1.0)) - 0.03 * max(0, -math.cos(p))
         r = r0 + (r_sh - r0) * smooth(L / 0.26)
-        return (HA * r * math.sin(p), -HB * r * math.cos(p), z0 - L)
+        return (dh[0] * r, dh[1] * r, z0 - L)
 
     def keep(p, z):
         return ell(p, z) > 1.0
@@ -374,51 +449,9 @@ def build_hijab():
         x, y, z = co
         p = math.atan2(x, -y)
         e = ell(p, z)
-        p2, z2 = p / e, win_c + (z - win_c) / e
-        th = math.acos(max(-1.0, min(1.0, (z2 - CY) / (HC + 0.012))))
-        o = 0.012
-        return ((HA + o) * math.sin(th) * math.sin(p2), -(HB + o) * math.sin(th) * math.cos(p2), z2)
+        return point_at_z(p / e, win_c + (z - win_c) / e, 0.012)
 
     return shell('hijab', cut, keep_fn=keep, point_fn=point, snap_fn=snap, n_az=44, n_rings=22)
-
-
-def build_torso():
-    b = Builder()
-    w, h, d, zc = 0.34, 0.30, 0.24, 0.24
-    bpy.ops.mesh.primitive_cube_add(size=1)
-    ob = bpy.context.active_object
-    ob.name = 'torso'
-    for c in ob.users_collection:
-        c.objects.unlink(ob)
-    bpy.data.collections[COLL].objects.link(ob)
-    ob.scale = (w, d, h)
-    ob.location = (0, 0, zc)
-    bpy.context.view_layer.objects.active = ob
-    bpy.ops.object.transform_apply(location=True, scale=True)
-    me = ob.data
-    for v in me.vertices:  # sedikit melebar ke bawah (kemeja kotak kartun)
-        if v.co.z < zc:
-            v.co.x *= 1.08
-            v.co.y *= 1.05
-    bev = ob.modifiers.new('Bulat', 'BEVEL')
-    bev.width = 0.07
-    bev.segments = 3
-    apply_mods(ob)
-    for p in ob.data.polygons:
-        p.use_smooth = True
-    # kerah kemeja: dua sayap segitiga tebal di leher depan
-    top, fy = zc + h / 2, -d / 2
-    for s in (-1, 1):
-        a = (s * 0.012, fy - 0.012, top - 0.015)
-        bb = (s * 0.11, fy + 0.03, top + 0.005)
-        c = (s * 0.035, fy - 0.03, top - 0.09)
-        off = (0, 0.018, 0)
-        v = [a, bb, c] + [tuple(x + o for x, o in zip(p, off)) for p in (a, bb, c)]
-        f = [(0, 1, 2), (5, 4, 3), (0, 3, 4, 1), (1, 4, 5, 2), (2, 5, 3, 0)]
-        if s < 0:
-            f = [t[::-1] for t in f]
-        b.add(v, f)
-    return attach(ob, b)
 
 
 def apply_mods(ob):
@@ -443,9 +476,41 @@ def reset():
         bpy.ops.object.mode_set(mode='OBJECT')
 
 
+def finish_part(builder, name):
+    """Objek bagian badan: normal keluar per pulau mesh (ujung terbuka rok/celana tetap benar), halus."""
+    ob = builder.to_object(name)
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    seen = set()
+    for f0 in bm.faces:
+        if f0.index in seen:
+            continue
+        island, stack = [], [f0]
+        seen.add(f0.index)
+        while stack:
+            f = stack.pop()
+            island.append(f)
+            for e in f.edges:
+                for g in e.link_faces:
+                    if g.index not in seen:
+                        seen.add(g.index)
+                        stack.append(g)
+        c = sum((f.calc_center_median() for f in island), Vector()) / len(island)
+        score = sum(f.normal.dot(Vector((fc.x - c.x, fc.y - c.y, 0))) for f in island for fc in [f.calc_center_median()])
+        if score < 0:
+            bmesh.ops.reverse_faces(bm, faces=island)
+    bm.to_mesh(ob.data)
+    bm.free()
+    return ob
+
+
 def build(export=True):
     reset()
-    obs = [build_head(), build_face(), build_hijab(), build_torso(), *build_hair()]
+    body = runpy.run_path(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'chibi_body.py'))
+    faces = [build_face(n, g, m) for n, g, m in (('face', 0, 0), ('face_g', 1, 0), ('face_m', 0, 1), ('face_gm', 1, 1))]
+    obs = [build_head(), *faces, build_hijab(), *build_hair(),
+           *body['build_body'](Builder, ellipsoid, finish_part)]
     mat = bpy.data.materials.get('KIT_Dasar') or bpy.data.materials.new('KIT_Dasar')
     for o in obs:
         apply_mods(o)

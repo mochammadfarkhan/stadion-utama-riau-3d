@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { NPC_TYPES, NPC_MIX, outfitForNpcType, pickNpcType, outfitFromMix } from '../src/entities/npcTypes.js';
 import { makeRng } from '../src/entities/util.js';
+import { BODY_BUILDS } from '../src/entities/Humanoid.dim.js';
+import { randomBuild } from '../src/entities/Humanoid.outfits.js';
 
 describe('npcTypes', () => {
   it('setiap tipe menghasilkan opsi humanoid yang sah', () => {
@@ -46,5 +48,25 @@ describe('npcTypes', () => {
     expect(pickNpcType({}, makeRng(1))).toBe('pengunjung');
     expect(pickNpcType({ dosen: -1, anak: Number.NaN }, makeRng(1))).toBe('pengunjung');
     expect(pickNpcType({ anak: 1 }, () => 0.999999)).toBe('anak');
+  });
+
+  it('tipe tubuh sah; hijab dewasa berbusana sopan; anak bertubuh child', () => {
+    for (const type of NPC_TYPES) {
+      for (let s = 1; s <= 60; s += 1) {
+        const o = outfitForNpcType(type, makeRng(s));
+        expect(Object.keys(BODY_BUILDS)).toContain(o.build ?? 'average');
+        if (o.hijab != null && type !== 'anak') expect(o.bottom).not.toBe('shorts');
+        if (type === 'anak') expect(o.build).toBe('child');
+      }
+    }
+  });
+
+  it('randomBuild mengikuti bobot', () => {
+    expect(randomBuild(makeRng(1), { chubby: 1 })).toBe('chubby');
+    expect(randomBuild(makeRng(1), {})).toBe('average');
+    const rng = makeRng(9);
+    const n = Array.from({ length: 2000 }, () => randomBuild(rng, { slim: 1, chubby: 3 })).filter((b) => b === 'chubby').length;
+    expect(n / 2000).toBeGreaterThan(0.68);
+    expect(n / 2000).toBeLessThan(0.82);
   });
 });

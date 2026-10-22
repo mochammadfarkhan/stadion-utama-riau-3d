@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studio karakter (dev)</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #b9b2a8; font: 13px system-ui, sans-serif; }
+      #panel { position: fixed; top: 8px; left: 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+        background: rgba(255, 255, 255, 0.85); padding: 6px 8px; border-radius: 8px; max-width: calc(100vw - 32px); }
+      #panel label { display: flex; gap: 4px; align-items: center; }
+      #stats { position: fixed; bottom: 8px; left: 8px; background: rgba(0, 0, 0, 0.55); color: #fff; padding: 4px 8px; border-radius: 6px; }
+      body.bersih #panel, body.bersih #stats { display: none; }
+    </style>
+  </head>
+  <body>
+    <div id="panel"></div>
+    <div id="stats"></div>
+    <script type="module" src="/src/dev/characterStudio.js"></script>
+  </body>
+</html>

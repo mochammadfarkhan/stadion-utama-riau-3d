@@ -76,8 +76,10 @@ function stripUv(geo) {
 
 /** Geometri wajah untuk kombinasi {glasses, mustache}; dibuat sekali per ResourceScope aktif. */
 export function faceGeometry({ glasses: hasGlasses = false, mustache: hasMustache = false } = {}) {
+  const variant = `face${hasGlasses || hasMustache ? '_' : ''}${hasGlasses ? 'g' : ''}${hasMustache ? 'm' : ''}`;
+  const kitVariant = kitGeometry(variant); // kacamata/kumis kit menempel di muka datar kepala avatar
+  if (kitVariant) return kitVariant;
   const kit = kitGeometry('face');
-  if (kit && !hasGlasses && !hasMustache) return kit;
   const key = `${kit ? 'k' : 'p'}${hasGlasses ? 'g' : '-'}${hasMustache ? 'm' : '-'}`;
   return currentScope().get(`humanoid:face:${key}`, () => {
     if (kit) {
