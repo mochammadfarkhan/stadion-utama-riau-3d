@@ -121,11 +121,25 @@ export const POSES = Object.freeze({
 
 export const POSE_IDS = Object.freeze(Object.keys(POSES));
 
+/**
+ * Sudut lengan pengganti untuk avatar manekin (lengan realistis ±1,6× lebih panjang dari chibi): sudut `base` chibi
+ * melempar tangan jauh ke depan ("lengan zombie"), jadi lengan atas lebih turun & siku lebih menekuk agar tangan tiba
+ * di lutut / papan ketik / gitar / dada. Hanya kanal yang tertulis di sini yang diganti; gerak idle tetap sama.
+ */
+export const MANEKIN_ARMS = Object.freeze({
+  sitCrossLegged: Object.freeze({ shL: -0.22, shR: -0.22, elL: -0.75, elR: -0.75 }),
+  sitChairTyping: Object.freeze({ shL: -0.3, shR: -0.3, elL: -1.3, elR: -1.3 }),
+  guitarStrum: Object.freeze({ shL: -0.6, shLz: 0.35, elL: -1.0, shR: -0.15, elR: -1.55 }),
+  standTalk: Object.freeze({ shR: -0.2, elR: -1.15 }),
+  drinkCup: Object.freeze({ shR: -0.2, elR: -1.95 }),
+});
+
 /** Tinggi pivot pinggul (m) per jenis duduk; skala tinggi badan memengaruhi tebal paha/torso. */
 function seatY(p, seat) {
   const s = p.body.userData.baseScale ?? 1;
-  if (seat === 'floor') return 0.03 + LIMB.thighR * s;
-  if (seat === 'chair') return CHAIR_SEAT + LIMB.thighR * s;
+  const thighR = p.body.userData.thighR ?? LIMB.thighR; // manekin: tebal paha dari rig
+  if (seat === 'floor') return 0.03 + thighR * s;
+  if (seat === 'chair') return CHAIR_SEAT + thighR * s;
   if (seat === 'lie') return 0.2 * s;
   return p.body.userData.baseY ?? DIM.hipY * s;
 }
@@ -161,6 +175,7 @@ export function applyPose(humanoid, poseId, t = 0) {
   if (!def) throw new Error(`Humanoid.poses: pose "${poseId}" tidak dikenal`);
   for (const k of CHANNELS) C[k] = 0;
   Object.assign(C, def.base);
+  if (humanoid.parts.body.userData.gender) Object.assign(C, MANEKIN_ARMS[poseId]); // avatar manekin
   def.idle(Number.isFinite(t) ? t : 0, C);
   write(humanoid.parts, def.seat);
 }

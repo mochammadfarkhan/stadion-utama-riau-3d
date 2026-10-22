@@ -17,7 +17,8 @@ import * as THREE from 'three';
 import { BASE_HEIGHT, BODY_BUILDS, DIM, GEO } from './Humanoid.dim.js';
 import { createFace } from './Humanoid.face.js';
 import { ALL_HAIR_STYLES, HAIR_STYLES, createHair, createHat, styleUnderHat } from './Humanoid.hair.js';
-import { kitGeometry } from './Humanoid.kit.js';
+import { kitGeometry, kitRig } from './Humanoid.kit.js';
+import { buildManekin, resolveGender } from './Humanoid.manekin.js';
 import { buildStaticLodMesh } from './Humanoid.lod.js';
 import { makeRng, matFor, pick } from './util.js';
 
@@ -84,23 +85,31 @@ export function createHumanoid(opts = {}) {
     ...opts,
   };
   o.fit = BODY_BUILDS[o.build] ?? BODY_BUILDS.average;
+  const hair = resolveHair(o);
+  const gender = resolveGender(o, hair.style);
+  // Manekin tanpa wajah (default bila kit manekin termuat); selain itu chibi kit/prosedural (gaya lama).
+  const rig = kitRig(gender);
   const group = new THREE.Group();
   const body = new THREE.Group();
   const scale = o.height / BASE_HEIGHT;
-  body.position.y = DIM.hipY * scale;
+  body.position.y = (rig?.hipY ?? DIM.hipY) * scale;
   body.scale.setScalar(scale);
   body.userData.baseY = body.position.y;   // dipakai animasi untuk bob naik-turun
   body.userData.baseScale = scale;         // dipakai animasi untuk squash-stretch
   group.add(body);
 
   const parts = { body };
-  buildSpine(body, parts, o);
-  buildHead(parts.spine, parts, o);
-  buildArm(parts.spine, parts, o, 'L', 1);
-  buildArm(parts.spine, parts, o, 'R', -1);
-  buildLeg(body, parts, o, 'L', 1);
-  buildLeg(body, parts, o, 'R', -1);
-  buildBottom(body, parts, o);
+  if (rig) {
+    buildManekin(body, parts, o, gender, rig, hair);
+  } else {
+    buildSpine(body, parts, o);
+    buildHead(parts.spine, parts, o, hair);
+    buildArm(parts.spine, parts, o, 'L', 1);
+    buildArm(parts.spine, parts, o, 'R', -1);
+    buildLeg(body, parts, o, 'L', 1);
+    buildLeg(body, parts, o, 'R', -1);
+    buildBottom(body, parts, o);
+  }
   // Mesh gabungan untuk jarak menengah (disembunyikan sampai pengelola LOD memilihnya).
   const lodMesh = buildStaticLodMesh(group, body);
   group.add(lodMesh);
@@ -125,7 +134,7 @@ function buildSpine(body, parts, o) {
 }
 
 /** Kepala: bola kulit + wajah + rambut/penutup kepala + topi pet legacy. */
-function buildHead(spine, parts, o) {
+function buildHead(spine, parts, o, hair) {
   const headPivot = new THREE.Group();
   headPivot.position.y = DIM.neckY;
   headPivot.userData.baseY = DIM.neckY;    // dipakai animasi untuk bob kepala
@@ -136,7 +145,6 @@ function buildHead(spine, parts, o) {
   const face = createFace({ glasses: o.glasses, mustache: o.mustache });
   headPivot.add(face);
   Object.assign(parts, { headPivot, head, face });
-  const hair = resolveHair(o);
   if (hair.style != null) {
     const hairMesh = createHair(hair.style, hair.color);
     headPivot.add(hairMesh);

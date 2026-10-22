@@ -13,7 +13,7 @@
 import * as THREE from 'three';
 import { BIKE } from '../config/constants.js';
 import { createBikeState, stepBike } from '../sim/bikePhysics.js';
-import { createHumanoid, animateCycling, DIM } from './Humanoid.js';
+import { createHumanoid, animateCycling } from './Humanoid.js';
 import { BIKE_GEO, createBicycleMesh } from './Bicycle.mesh.js';
 import { createBell } from './Bicycle.bell.js';
 import { clamp } from './util.js';
@@ -82,7 +82,7 @@ export class Bicycle {
       skin: 0xc68642, shirt: 0x1abc9c, pants: 0x2b2b44, hair: 0x1a1210,
       height: 1.7, hat: 0xffffff, ...riderOpts,
     });
-    rider.group.position.set(0, RIDER_SEAT_LIFT - DIM.hipY, 0);
+    rider.group.position.set(0, RIDER_SEAT_LIFT - rider.parts.body.userData.baseY, 0); // tinggi pinggul per avatar
     this.#parts.saddleMount.add(rider.group);
     return rider;
   }

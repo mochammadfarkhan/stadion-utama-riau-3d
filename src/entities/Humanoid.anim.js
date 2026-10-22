@@ -138,14 +138,15 @@ export function animateCycling(h, pedalAngle, geo = {}) {
   p.spine = 0.5; p.head = -0.45;
   p.shL = -1.05; p.shR = -1.05; p.shLz = 0.15; p.shRz = -0.15;
   p.elL = -0.35; p.elR = -0.35;
-  solveLegIK(bbY - crankR * Math.cos(pedalAngle), bbZ - crankR * Math.sin(pedalAngle), 'L');
-  solveLegIK(bbY + crankR * Math.cos(pedalAngle), bbZ + crankR * Math.sin(pedalAngle), 'R');
+  const legs = h.parts.body.userData; // manekin menyimpan panjang paha/betis sendiri; chibi memakai DIM
+  const l1 = legs.thigh ?? DIM.thigh, l2 = legs.shin ?? DIM.shin;
+  solveLegIK(bbY - crankR * Math.cos(pedalAngle), bbZ - crankR * Math.sin(pedalAngle), 'L', l1, l2);
+  solveLegIK(bbY + crankR * Math.cos(pedalAngle), bbZ + crankR * Math.sin(pedalAngle), 'R', l1, l2);
   applyPose(h.parts);
 }
 
-/** IK 2-tulang: target (dy, dz) relatif pinggul → tulis hip/knee sisi `side` ke P. */
-function solveLegIK(dy, dz, side) {
-  const l1 = DIM.thigh, l2 = DIM.shin;
+/** IK 2-tulang (paha l1, betis l2): target (dy, dz) relatif pinggul → tulis hip/knee sisi `side` ke P. */
+function solveLegIK(dy, dz, side, l1, l2) {
   const d = clamp(Math.hypot(dy, dz), Math.abs(l1 - l2) + 1e-3, l1 + l2 - 1e-3);
   const toTarget = Math.atan2(dz, -dy);                                   // sudut dari arah lurus ke bawah
   const a = Math.acos(clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1));

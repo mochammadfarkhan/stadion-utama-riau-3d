@@ -4,12 +4,13 @@
  * teks dikendalikan berkas scene di src/dev/reels/scenes/. Waktu = nomor frame / fps (deterministik), jadi render
  * frame-demi-frame (tools/reels/render.mjs) menghasilkan video mulus walau tiap frame lambat.
  * Parameter URL: scene=<id>  t=<detik awal pratinjau>  render=1 (tanpa panel/loop; dikendalikan skrip)  aman=1 (zona aman)
+ *   avatar=chibi (gaya avatar lama; default manekin tanpa wajah)
  * window.__reel = { ready, error, fps, frames, durasi, frame(i) } untuk skrip render.
  */
 import '@fontsource-variable/inter';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { HUMANOID_KIT_PATH, setHumanoidKit } from '../entities/Humanoid.kit.js';
+import { loadHumanoidKits, setAvatarStyle } from '../entities/Humanoid.kit.js';
 import { createResourceScope, withScope } from '../engine/ResourceScope.js';
 import { lightingPreset } from '../sim/dayCycle.js';
 import { createSekreInterior } from '../interiors/sekre/index.js';
@@ -83,9 +84,9 @@ function speakingAt(t) {
 async function boot() {
   const scope = createResourceScope('reels');
   const time = { hour: def.jam, preset: lightingPreset(def.jam) };
-  const kit = await new GLTFLoader().loadAsync(`${import.meta.env?.BASE_URL ?? '/'}${HUMANOID_KIT_PATH}`)
-    .catch((err) => { console.warn('Kit karakter gagal dimuat; bentuk prosedural:', err); return null; });
-  if (kit) setHumanoidKit(kit.scene);
+  setAvatarStyle(params.get('avatar')); // ?avatar=chibi = gaya lama
+  const loader = new GLTFLoader();
+  await loadHumanoidKits((path) => loader.loadAsync(`${import.meta.env?.BASE_URL ?? '/'}${path}`).then((g) => g.scene));
   const built = await createSekreInterior({ exitTo: { region: 'reels', x: 0, z: 0, yaw: 0 } }).build({
     scope, renderer, time, fov: 55, setExposure: (v) => { renderer.toneMappingExposure = v * 0.92; },
   });

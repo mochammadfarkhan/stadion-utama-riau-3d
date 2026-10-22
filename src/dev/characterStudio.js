@@ -3,7 +3,7 @@
  * chibi Blender + tipe NPC tanpa memuat dunia (detik, bukan menit). Parameter URL (juga diatur dari panel):
  *   tipe=all|jogger|mahasiswa|dosen|pengunjung|anak|satpam   n=2 (varian per tipe)   seed=1
  *   anim=idle|walk|run|diam|pose:<id>   cam=depan|samping|belakang|34|dekat|profil   putar=1   hijab=1 (varian ke-2 berhijab)
- *   kit=0 (bentuk prosedural lama, pembanding)   bersih=1 (sembunyikan panel; dipakai skrip bidikan)
+ *   kit=0 (bentuk prosedural lama, pembanding)   gaya=manekin|chibi   bersih=1 (sembunyikan panel; dipakai skrip bidikan)
  * window.__studio = { ready, stats } untuk tools/shots/studio.mjs.
  */
 import * as THREE from 'three';
@@ -11,7 +11,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createHumanoid, animateIdle, animateWalk, animateRun } from '../entities/Humanoid.js';
 import { applyPose, POSES } from '../entities/Humanoid.poses.js';
-import { HUMANOID_KIT_PATH, setHumanoidKit, clearHumanoidKit } from '../entities/Humanoid.kit.js';
+import { loadHumanoidKits, clearHumanoidKit, setAvatarStyle } from '../entities/Humanoid.kit.js';
 import { NPC_TYPES, NPC_TYPE_LABELS, outfitForNpcType } from '../entities/npcTypes.js';
 import { makeRng } from '../entities/util.js';
 
@@ -25,6 +25,7 @@ const state = {
   putar: params.get('putar') === '1',
   hijab: params.get('hijab') !== '0',
   kit: params.get('kit') !== '0',
+  gaya: params.get('gaya') === 'chibi' ? 'chibi' : 'manekin',
 };
 if (params.get('bersih') === '1') document.body.classList.add('bersih');
 
@@ -156,6 +157,7 @@ function buildPanel() {
   select('anim', 'Animasi', [['idle', 'Diam napas'], ['walk', 'Jalan'], ['run', 'Lari'], ['diam', 'Kaku'],
     ...Object.keys(POSES).map((id) => [`pose:${id}`, `Pose ${id}`])]);
   select('cam', 'Kamera', Object.keys(CAMS).map((k) => [k, k]));
+  select('gaya', 'Gaya', [['manekin', 'Manekin'], ['chibi', 'Chibi (lama)']]);
   toggle('hijab', 'Varian hijab');
   toggle('putar', 'Putar');
   toggle('kit', 'Kit Blender');
@@ -165,16 +167,17 @@ async function apply(key) {
   const url = new URL(window.location.href);
   url.searchParams.set(key, typeof state[key] === 'boolean' ? (state[key] ? '1' : '0') : state[key]);
   window.history.replaceState(null, '', url);
-  if (key === 'kit') await loadKit();
+  if (key === 'kit' || key === 'gaya') await loadKit();
   if (key === 'cam') frame();
   else if (key !== 'anim' && key !== 'putar') rebuild();
 }
 
 async function loadKit() {
+  setAvatarStyle(state.gaya);
   if (!state.kit) { clearHumanoidKit(); return; }
   const base = import.meta.env?.BASE_URL ?? '/';
-  const gltf = await new GLTFLoader().loadAsync(`${base}${HUMANOID_KIT_PATH}`);
-  setHumanoidKit(gltf.scene);
+  const loader = new GLTFLoader();
+  await loadHumanoidKits((path) => loader.loadAsync(`${base}${path}`).then((gltf) => gltf.scene));
 }
 
 window.__studio = { ready: false, stats: null };
