@@ -34,6 +34,8 @@ import { createUkmRoadsideBuilder, ukmLampHeads } from './ukmRoadside.js';
 import { treeInstances, upgradeUkmTrees } from './ukmTrees.js';
 import { registerContactSource } from '../../engine/contactShadows.js';
 
+import { createHeroLodSystem } from '../heroLod.js';
+
 const CONTACT_RADIUS = 32; // m: pohon sekitar pemain yang diberi contact shadow
 import { UKM_FRAME } from './sekreUkm.data.js';
 import { buildLembagaProxy } from './proxy.js';
@@ -149,7 +151,7 @@ function buildLembaga(ctx) {
     group,
     colliders: lembagaColliders,
     minimapLayer: () => {}, // peta dasar region di-bake dari layer minimap (atap, rumput, lintasan)
-    systems: [{
+    systems: [createHeroLodSystem({ id: UNRI_LEMBAGA_ID, root: content }), {
       id: 'unri-lembaga.pohon-lod', phase: 'world',
       update: (dt, ctx) => {
         const f = ctx.focus ?? ctx.bikePos;

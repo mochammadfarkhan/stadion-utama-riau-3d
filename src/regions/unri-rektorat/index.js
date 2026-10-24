@@ -26,6 +26,7 @@ import { buildPorosTaman } from './porosTaman.js';
 import { buildDanau } from './danau.js';
 import { buildBundaran } from './bundaran.js';
 import { createRektoratProxy } from './proxy.js';
+import { createHeroLodSystem } from '../heroLod.js';
 
 export { REKTORAT_ID, REKTORAT_PLACEMENT };
 /** Budget draw call region hero aktif (spec §9.1). */
@@ -151,7 +152,7 @@ function buildRektoratRegion(ctx) {
     group: root,
     colliders: rektoratColliders,
     minimapLayer: () => {}, // peta dasar region di-bake per region oleh M0 (Minimap2D.setBaseLayer)
-    systems: [],
+    systems: [createHeroLodSystem({ id: 'unri-rektorat', root: content })],
     nightLights: rektoratNightLights(),
     lateRoot: content,
     lateRootWet: true, // overlay paving/rumput/trotoar datang bertahap → registry basah setelah ready (Task 15)
