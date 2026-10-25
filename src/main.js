@@ -65,6 +65,7 @@ import { createHeroOrnamentLayer } from './app/heroOrnaments.js';
 import { createInteriorPortal } from './app/interiorPortal.js';
 import { createSekreInterior, SEKRE_ID } from './interiors/sekre/index.js';
 import { createPortalTrigger } from './app/portalTrigger.js';
+import { setupFarm } from './app/farm.js';
 import { createFadeOverlay } from './ui/FadeOverlay.js';
 import { sekreExitTo } from './regions/unri-lembaga/portalDoors.js';
 import { SEKRE_PEMAIN } from './regions/unri-lembaga/sekreUkm.data.js';
@@ -267,8 +268,14 @@ async function main() {
   const portalKit = setupPortal({
     app, input, hud, rig, ents, regions, colliders, time, weather, store, audioBus, travel, story, minimap, look, panelRef, lifecycle,
   }); // sebelum addFrameSystems: 'portal.trigger' lebih dulu dari 'keymap'
+  const farm = setupFarm({ // kebun dekat sekre ERC; juga sebelum 'keymap' (E kebun lebih dulu dari cerita/toko)
+    app, input, hud, ents, terrain, time, store,
+    isBlocked: () => hud.shopOpen || rig.freezesBike || portalKit.portal.state !== 'outside',
+  });
+  lifecycle.add(() => farm.dispose());
   addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel, portal: portalKit.portal });
   portalKit.trigger.installPrompt(); // sesudah sistem 'hud'
+  farm.installPrompt();
 
   // Binding store -> scene (satu sumber kebenaran). Dipasang setelah semua objek ada.
   lifecycle.add(bindAll(store, {
@@ -378,6 +385,7 @@ function addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, stor
     id: 'cameraRig',
     phase: 'camera',
     update: (dt, ctx) => {
+      rig.distanceScale = ents.bike.mode === 'traktor' ? 1.4 : 1; // traktor lebih besar: kamera mundur
       rig.update(ents.bike.state, dt, ctx.time);
       ents.bike.setRiderVisible(!rig.firstPersonView);
       // POV beku: sepeda berhenti seketika (bukan meluncur karena momentum)

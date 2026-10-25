@@ -1,5 +1,8 @@
 /**
- * Sepeda pemain: mesh prosedural + pengendara Humanoid + binding ke sim/bikePhysics.
+ * Kendaraan pemain: mesh prosedural sepeda + pengendara Humanoid + binding ke sim/bikePhysics. Punya MODE (tombol F):
+ * 'sepeda' (bawaan), 'jalan' (sepeda disembunyikan, pemain berdiri & berjalan, sim/farm stepOnFoot), 'traktor'
+ * (model GLB dari setTractorModel, sim sepeda dengan konfigurasi TRACTOR). State {x,z,yaw,v} sama untuk semua mode,
+ * jadi kamera, cerita, collider, dan perjalanan cepat tetap membaca `ents.bike.state`.
  *
  * Kontrol (ctx.input: core/Input.js): W/ArrowUp kayuh, S/ArrowDown rem/mundur,
  * A/ArrowLeft & D/ArrowRight belok, ShiftLeft/Right sprint, Space bel.
@@ -13,7 +16,9 @@
 import * as THREE from 'three';
 import { BIKE } from '../config/constants.js';
 import { createBikeState, stepBike } from '../sim/bikePhysics.js';
-import { createHumanoid, animateCycling } from './Humanoid.js';
+import { createHumanoid, animateCycling, animateWalk, animateIdle } from './Humanoid.js';
+import { stepOnFoot } from '../sim/farm.js';
+import { PLAYER_MODES, WALK, TRACTOR } from '../config/kebun.js';
 import { BIKE_GEO, createBicycleMesh } from './Bicycle.mesh.js';
 import { createBell } from './Bicycle.bell.js';
 import { clamp } from './util.js';
@@ -53,6 +58,10 @@ export class Bicycle {
   #terrain = null;
   #groundY = 0;
   #pitch = 0;
+  #mode = 'sepeda';
+  #tractor = null; // {group, seat:THREE.Vector3, spin(angle)}
+  #walkPhase = 0; // detik-langkah (animateWalk: 1 siklus/detik pada ±1,4 m/s)
+  #idleT = 0;
 
   /**
    * @param {{x?:number, z?:number, yaw?:number, frameColor?:number, withBasket?:boolean,
@@ -74,6 +83,51 @@ export class Bicycle {
       bbZ: BIKE_GEO.bb.z - BIKE_GEO.saddle.z,
     };
     this.#applyVisual();
+  }
+
+  get mode() { return this.#mode; }
+
+  /** Model traktor (GLB): {group, seat:Vector3 (titik duduk lokal), spin(angle)}. Dipasang tersembunyi. */
+  setTractorModel(model) {
+    if (this.#tractor) this.group.remove(this.#tractor.group);
+    this.#tractor = model ?? null;
+    if (model) this.group.add(model.group);
+    this.#applyMode();
+  }
+
+  /** Ganti mode (berhenti dulu). Traktor hanya bila modelnya sudah dimuat. Kembalikan mode aktif. */
+  setMode(mode) {
+    if (!PLAYER_MODES.includes(mode) || (mode === 'traktor' && !this.#tractor)) return this.#mode;
+    this.#mode = mode;
+    this.state = { ...this.state, v: 0, steer: 0, lean: 0 };
+    this.#applyMode();
+    this.#applyVisual();
+    return mode;
+  }
+
+  /** Mode berikutnya dalam urutan PLAYER_MODES (lewati traktor bila belum dimuat). */
+  cycleMode() {
+    const order = PLAYER_MODES.filter((m) => m !== 'traktor' || this.#tractor);
+    return this.setMode(order[(order.indexOf(this.#mode) + 1) % order.length]);
+  }
+
+  /** Pindahkan pengendara ke sadel / tanah / kursi traktor sesuai mode; tampilkan mesh yang sesuai. */
+  #applyMode() {
+    const r = this.#rider;
+    if (!r) return;
+    const hip = r.parts.body.userData.baseY;
+    this.#parts.frame.visible = this.#mode === 'sepeda';
+    if (this.#tractor) this.#tractor.group.visible = this.#mode === 'traktor';
+    if (this.#mode === 'sepeda') {
+      this.#parts.saddleMount.add(r.group);
+      r.group.position.set(0, RIDER_SEAT_LIFT - hip, 0);
+    } else if (this.#mode === 'traktor') {
+      this.#tractor.group.add(r.group);
+      r.group.position.set(this.#tractor.seat.x, this.#tractor.seat.y + RIDER_SEAT_LIFT - hip, this.#tractor.seat.z);
+    } else {
+      this.group.add(r.group);
+      r.group.position.set(0, 0, 0);
+    }
   }
 
   /** Pasang Humanoid di sadel (pinggul tepat di atas sadel). */
@@ -132,9 +186,13 @@ export class Bicycle {
     if (ctx.input?.consumePress?.('Space')) this.ring();
     const t = this.#terrain;
     const grade = t ? t.gradeAlong(this.state.x, this.state.z, this.state.yaw) : 0;
-    const next = stepBike(this.state, cmd, step, { grade, cfg: this.#cfg });
+    const next = this.#mode === 'jalan'
+      ? stepOnFoot(this.state, cmd, step, WALK)
+      : stepBike(this.state, cmd, step, { grade, cfg: this.#mode === 'traktor' ? TRACTOR : this.#cfg });
     this.state = isStateFinite(next) ? this.#resolveCollision(next) : this.state;
     this.#updateGround(step);
+    this.#walkPhase += step * (this.state.v ?? 0) / 1.4;
+    this.#idleT += step;
     this.#applyVisual();
   }
 
@@ -153,7 +211,7 @@ export class Bicycle {
     if (!t) return;
     const s = this.state;
     this.#groundY = t.heightAt(s.x, s.z);
-    const target = -Math.atan(t.gradeAlong(s.x, s.z, s.yaw));
+    const target = this.#mode === 'jalan' ? 0 : -Math.atan(t.gradeAlong(s.x, s.z, s.yaw)); // pejalan tetap tegak
     this.#pitch += (target - this.#pitch) * Math.min(1, PITCH_SMOOTHING * dt);
   }
 
@@ -164,6 +222,7 @@ export class Bicycle {
     this.group.position.set(s.x, this.#groundY, s.z);
     this.group.rotation.y = s.yaw;
     this.group.rotation.x = this.#pitch;
+    if (this.#mode !== 'sepeda') return this.#applyOtherMode(s);
     p.frame.rotation.z = s.lean ?? 0;           // sim: lean negatif saat belok kiri (+X)
     p.steer.rotation.y = clamp(s.steer ?? 0, -STEER_VISUAL_RAD, STEER_VISUAL_RAD); // steer sudah radian
     p.wheelF.rotation.x = s.wheelSpin ?? 0;
@@ -171,6 +230,17 @@ export class Bicycle {
     p.crankL.rotation.x = s.pedalAngle ?? 0;
     p.crankR.rotation.x = (s.pedalAngle ?? 0) + Math.PI;
     animateCycling(this.#rider, s.pedalAngle ?? 0, this.#riderGeo);
+  }
+
+  /** Pose jalan/diam atau duduk di traktor + putaran roda traktor. */
+  #applyOtherMode(s) {
+    if (this.#mode === 'traktor') {
+      this.#tractor?.spin(s.wheelSpin ?? 0);
+      animateCycling(this.#rider, 0, this.#riderGeo);
+      return;
+    }
+    if (Math.abs(s.v ?? 0) < 0.15) animateIdle(this.#rider, this.#idleT);
+    else animateWalk(this.#rider, this.#walkPhase);
   }
 
   dispose() { this.#bell.dispose(); }

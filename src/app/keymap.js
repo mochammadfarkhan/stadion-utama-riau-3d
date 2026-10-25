@@ -7,6 +7,7 @@ import { routeEscape } from '../core/escapeRoute.js';
 import { nextPresetAfter, PRESET_HOURS } from '../sim/dayCycle.js';
 import { handleShopKey } from './shop.js';
 import { ANGLED } from '../core/cameraAngled.js';
+import { MODE_LABEL } from '../config/kebun.js';
 
 const HOURS = 24;
 
@@ -24,6 +25,7 @@ export function handleKeys(input, { rig, hud, ents, shop, time, store, story, tr
   if (input.consumePress('KeyO')) toggle('graphics.ao'); // matikan AO bila FPS rendah
   handleTimeWeatherKeys(input, hud, time, store);
   if (input.consumePress('KeyJ')) story.toggleJournal();
+  if (input.consumePress('KeyF') && !rig.freezesBike) hud.toast(`Mode: ${MODE_LABEL[ents.bike.cycleMode()]}`, true); // jalan → sepeda → traktor
   if (travelMenu) handleTravelKeys(input, travelMenu); // perjalanan cepat (Stadion / Masjid Raya An-Nur)
   const escTarget = input.consumePress('Escape')
     ? routeEscape({ journalOpen: story.journal.open, shopOpen: hud.shopOpen, travelOpen: Boolean(travelMenu?.open) })

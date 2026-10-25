@@ -7,10 +7,11 @@
  * Kamera hanya terhalang gedung (benda rendah tidak).
  */
 import { pointInPolygon, distanceToRing, distanceToSegment } from '../../geo/polygon.js';
-import { FOOTPRINTS, toSekre } from './placement.js';
+import { FOOTPRINTS, toSekre, toRegion } from './placement.js';
 import { SEKRE_DIM, LEMBAGA_LAYOUT } from './layout.js';
 import { UKM_LAYOUT } from './ukmLayout.js';
 import { ROAD_LAYOUT } from './ukmRoads.data.js';
+import { houseRing } from '../../config/kebun.js';
 
 const BIKE_PAD = 0.55;     // jarak bebas sepeda dari dinding (m)
 const CAMERA_PAD = 0.3;
@@ -42,7 +43,7 @@ export function defaultShapes(layout = LEMBAGA_LAYOUT, ukm = UKM_LAYOUT) {
   const rows = [...layout.lots.stadionMini.rows, ...layout.lots.rusunawa.rows];
   const sekreMotors = layout.teras.motors.map((m) => ({ x: m.x, z: m.z, r: 1.0 }));
   return {
-    rings: SOLID_BUILDINGS.map((k) => FOOTPRINTS[k]),
+    rings: [...SOLID_BUILDINGS.map((k) => FOOTPRINTS[k]), houseRing().map(([x, z]) => toRegion(x, z))], // + rumah kebun
     walls: [{ ring: ukm.walls, extra: UKM_WALL_EXTRA }],
     segments: [...rows, ...layout.teras.fenceSegments, ...layout.fh.fences],
     circles: [

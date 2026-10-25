@@ -6,7 +6,7 @@
  * bila gagal, dipakai gerobak fallback lokal.
  */
 import * as THREE from 'three';
-import { VENDOR_CATALOG, createVendor, stepVendor, createWallet, buy, consumeItem, credit, restoreWallet } from '../sim/vendorSim.js';
+import { VENDOR_CATALOG, createVendor, stepVendor, createWallet, buy, consumeItem, credit, debit, restoreWallet } from '../sim/vendorSim.js';
 import { createHumanoid, animateWalk, animateSellIdle } from './Humanoid.js';
 import { randomVendorOutfit } from './Humanoid.outfits.js';
 import { createFallbackCart } from './Vendor.cart.js';
@@ -217,6 +217,13 @@ export class VendorGroup {
 
   /** Tambah saldo dompet (hadiah misi). */
   credit(amount) { this.#wallet = credit(this.#wallet, amount); }
+
+  /** Bayar `amount` dari dompet; kembalikan true bila berhasil. */
+  debit(amount) {
+    const r = debit(this.#wallet, amount);
+    if (r.ok) this.#wallet = r.wallet;
+    return r.ok;
+  }
 
   /** Ganti dompet (mis. dari save cerita); data disanitasi. */
   setWallet(wallet) { this.#wallet = restoreWallet(wallet); }

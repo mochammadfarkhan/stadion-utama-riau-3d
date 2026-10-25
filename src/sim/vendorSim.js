@@ -115,6 +115,14 @@ export function consumeItem(wallet, itemId) {
   return { ok: true, wallet: { balance: w.balance, items: [...w.items.slice(0, idx), ...w.items.slice(idx + 1)] } };
 }
 
+/** Kurangi saldo (mis. benih kebun); gagal bila saldo kurang atau jumlah tidak valid. */
+export function debit(wallet, amount) {
+  const w = safeWallet(wallet);
+  if (!(Number.isFinite(amount) && amount >= 0)) return { ok: false, wallet: w, error: 'Jumlah tidak valid' };
+  if (w.balance < amount) return { ok: false, wallet: w, error: 'Uang tidak cukup' };
+  return { ok: true, wallet: { balance: w.balance - amount, items: w.items } };
+}
+
 /** Tambah saldo (hadiah misi); jumlah negatif/NaN diabaikan. */
 export function credit(wallet, amount) {
   const w = safeWallet(wallet);

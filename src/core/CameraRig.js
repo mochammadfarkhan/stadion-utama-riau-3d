@@ -35,6 +35,7 @@ export class CameraRig {
     this.locked = false;
     this.sensitivity = 1;                    // pengali MOUSE_SENSITIVITY (settings camera.sensitivity)
     this.followSmoothing = FOLLOW_SMOOTHING; // 1/s (settings camera.followSmoothing)
+    this.distanceScale = 1; // pengali jarak orang ketiga (mis. traktor lebih besar dari sepeda)
     this.userFov = camera.fov;               // FOV pengaturan; mode angled memakai ANGLED.fov
     this.angledDistance = ANGLED.defaultDistance; // jarak kamera 3/4 (m), diminta pemain/pengaturan
     this.angledLockYaw = false;              // true: yaw hanya berubah lewat input pemain (settings camera.angledLockYaw)
@@ -282,7 +283,8 @@ export class CameraRig {
     // Terhalang dinding: geser sudut orbit ke posisi bebas terdekat; bila semua terhalang, tarik mendekat.
     const safe = (this.obstacleTest && sweepOffset(outTarget, yaw, this.pitch, this.obstacleTest))
       || this.#pullIn(outTarget, thirdPersonOffset(yaw, this.pitch));
-    outPos.set(outTarget.x + safe.x, outTarget.y + safe.y, outTarget.z + safe.z);
+    const k = this.distanceScale;
+    outPos.set(outTarget.x + safe.x * k, outTarget.y + safe.y * k, outTarget.z + safe.z * k);
   }
 
   /** Pose 3/4 ideal (tanpa smoothing): titik pandang = pemain, kamera di belakang yaw tampil. Tanpa pull-in dinding. */
