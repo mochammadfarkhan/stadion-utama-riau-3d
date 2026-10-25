@@ -11,7 +11,7 @@ import { FOOTPRINTS, toSekre, toRegion } from './placement.js';
 import { SEKRE_DIM, LEMBAGA_LAYOUT } from './layout.js';
 import { UKM_LAYOUT } from './ukmLayout.js';
 import { ROAD_LAYOUT } from './ukmRoads.data.js';
-import { houseRing } from '../../config/kebun.js';
+import { houseRing, KEBUN } from '../../config/kebun.js';
 
 const BIKE_PAD = 0.55;     // jarak bebas sepeda dari dinding (m)
 const CAMERA_PAD = 0.3;
@@ -56,6 +56,7 @@ export function defaultShapes(layout = LEMBAGA_LAYOUT, ukm = UKM_LAYOUT) {
       ...layout.fh.mounds.map((m) => ({ x: m.x, z: m.z, r: m.r })),
       ...ukm.obstacles, // tiang net, tiang ring, tiang gubuk panahan, tiang lampu & tong halaman UKM
       ...ROAD_LAYOUT.obstacles, // tiang listrik dan PJU tepi Jl. Prof. Aras Mulyadi
+      ...[KEBUN.seedBox, KEBUN.shipBox].map((b) => { const [x, z] = toRegion(b.x, b.z); return { x, z, r: 0.6 }; }), // peti kebun
     ],
   };
 }

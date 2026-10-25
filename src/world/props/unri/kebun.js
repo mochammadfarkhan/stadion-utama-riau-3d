@@ -5,7 +5,9 @@
  * bila semua jenis & tahap ada; semua sumber dibagikan dari cache loadModel (jangan dispose di sini).
  */
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { KEBUN, tileCenter } from '../../../config/kebun.js';
+import { boxAt, paint } from './geom.js';
 
 export const KEBUN_MODELS = Object.freeze({
   traktor: 'models/unri/f01-traktor.glb',
@@ -59,6 +61,21 @@ export function buildTractorModel(source) {
   };
 }
 
+/** Peti kayu + papan warna (hijau = benih, merah = kiriman), satu geometri vertexColors per peti [INFERENSI]. */
+function crateGeometry(signColor) {
+  const parts = [
+    paint(boxAt(0.9, 0.62, 0.7), 0xa8743f),
+    paint(boxAt(0.96, 0.08, 0.76, 0, 0.62), 0x7a4e2d),
+    paint(boxAt(0.92, 0.06, 0.04, 0, 0.18, 0.36), 0x7a4e2d),
+    paint(boxAt(0.92, 0.06, 0.04, 0, 0.44, 0.36), 0x7a4e2d),
+    paint(boxAt(0.06, 0.9, 0.06, -0.3, 0.62), 0x5a3a20),
+    paint(boxAt(0.62, 0.34, 0.04, -0.3, 1.1), signColor),
+  ];
+  const geo = mergeGeometries(parts, false);
+  parts.forEach((g) => g.dispose());
+  return geo;
+}
+
 const SOIL_COLOR = Object.freeze({ rumput: 0x6f8c45, cangkul: 0x8a5a35, basah: 0x5b3a24 });
 const SOIL_H = Object.freeze({ rumput: 0.02, cangkul: 0.1, basah: 0.1 });
 
@@ -97,6 +114,19 @@ export function createFarmView({ houseSource, sproutSource, plantSources, height
   house.position.set(k.house.x, 0, k.house.z);
   house.rotation.y = k.house.yaw;
   group.add(house);
+
+  const crateMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
+  crateMat.name = 'kebun:peti';
+  const crates = [[k.seedBox, 0x4e9a3a], [k.shipBox, 0xc0392b]].map(([p, color]) => {
+    const mesh = new THREE.Mesh(crateGeometry(color), crateMat);
+    mesh.name = color === 0x4e9a3a ? 'kebun:kotak-benih' : 'kebun:kotak-kiriman';
+    mesh.position.set(p.x, 0, p.z);
+    mesh.rotation.y = k.house.yaw; // papan menghadap jalan (timur), sama dengan rumah
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+    return mesh;
+  });
 
   const soilGeo = new THREE.BoxGeometry(k.tile * 0.9, 1, k.tile * 0.9).translate(0, 0.5, 0);
   const soilMat = new THREE.MeshStandardMaterial({ roughness: 1, color: 0xffffff });
@@ -157,6 +187,10 @@ export function createFarmView({ houseSource, sproutSource, plantSources, height
     });
     house.position.y = heightAt(k.house.x, k.house.z);
     house.updateMatrixWorld(true);
+    for (const c of crates) {
+      c.position.y = heightAt(c.position.x, c.position.z);
+      c.updateMatrixWorld(true);
+    }
     update(farm);
     return true;
   }
@@ -170,6 +204,8 @@ export function createFarmView({ houseSource, sproutSource, plantSources, height
       group.removeFromParent();
       soilGeo.dispose();
       soilMat.dispose();
+      crates.forEach((c) => c.geometry.dispose());
+      crateMat.dispose();
       soil.dispose();
       for (const layer of layers.values()) for (const im of layer.children) im.dispose();
     },

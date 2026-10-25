@@ -66,6 +66,7 @@ import { createInteriorPortal } from './app/interiorPortal.js';
 import { createSekreInterior, SEKRE_ID } from './interiors/sekre/index.js';
 import { createPortalTrigger } from './app/portalTrigger.js';
 import { setupFarm } from './app/farm.js';
+import { setupInventory } from './app/inventory.js';
 import { createFadeOverlay } from './ui/FadeOverlay.js';
 import { sekreExitTo } from './regions/unri-lembaga/portalDoors.js';
 import { SEKRE_PEMAIN } from './regions/unri-lembaga/sekreUkm.data.js';
@@ -90,6 +91,8 @@ function settleStartArea({ city, unri, at }) {
 
 /** Region hero di dalam distrik UNRI: distrik tidak menaruh vegetasi/props/rintangan di dalam mask-nya (M2 isReserved). M6 menambah region Rektorat. */
 const HERO_REGIONS = Object.freeze([unriLembagaRegion, unriRektoratRegion]);
+/** Tas pemain (setupInventory): dibaca sistem frame & portal untuk membekukan input saat panel tas terbuka. */
+let inventory = null;
 
 function showFatal(msg) {
   const panel = document.querySelector('#overlay .panel');
@@ -268,9 +271,13 @@ async function main() {
   const portalKit = setupPortal({
     app, input, hud, rig, ents, regions, colliders, time, weather, store, audioBus, travel, story, minimap, look, panelRef, lifecycle,
   }); // sebelum addFrameSystems: 'portal.trigger' lebih dulu dari 'keymap'
+  inventory = setupInventory({ // tas + hotbar gaya Minecraft; sebelum 'keymap' (I, Esc, 1–9 lebih dulu dari POV)
+    app, input, rig, ents, isActive: () => session.started && portalKit.portal.state === 'outside',
+  });
+  lifecycle.add(() => inventory.dispose());
   const farm = setupFarm({ // kebun dekat sekre ERC; juga sebelum 'keymap' (E kebun lebih dulu dari cerita/toko)
-    app, input, hud, ents, terrain, time, store,
-    isBlocked: () => hud.shopOpen || rig.freezesBike || portalKit.portal.state !== 'outside',
+    app, input, hud, ents, inventory, terrain, time, store,
+    isBlocked: () => hud.shopOpen || inventory.open || rig.freezesBike || portalKit.portal.state !== 'outside',
   });
   lifecycle.add(() => farm.dispose());
   addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel, portal: portalKit.portal });
@@ -302,7 +309,7 @@ async function main() {
     // heightAt/terrain (M1): tanah dunia untuk entitas, lampu, cuaca (ctx region-lokal membungkus heightAt).
     return {
       dt, rawDt, time: t, bikePos, focus: rig.focus, heightAt: terrain.heightAt, terrain,
-      input: hud.shopOpen || rig.freezesBike || travel.blocksInput || portalKit.portal.busy || portalKit.portal.inside ? null : input,
+      input: hud.shopOpen || inventory?.open || rig.freezesBike || travel.blocksInput || portalKit.portal.busy || portalKit.portal.inside ? null : input,
     };
   });
   // LIFO: loop berhenti lebih dulu, sebelum sistem kehilangan sumber dayanya (App.dispose mengulanginya, idempoten).
@@ -370,7 +377,7 @@ function addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, stor
   app.addSystem({
     id: 'keymap',
     phase: 'input',
-    update: (dt) => { if (session.started) handleKeys(input, { rig, hud, ents, shop, time, store, story, travelMenu: travel.menu, portal, dt }); }, // menu terbuka: tombol game diabaikan
+    update: (dt) => { if (session.started && !inventory?.open) handleKeys(input, { rig, hud, ents, shop, time, store, story, travelMenu: travel.menu, portal, dt }); }, // menu terbuka: tombol game diabaikan
   });
   app.addSystem({
     id: 'story',
@@ -459,7 +466,7 @@ function setupPortal({
     ctx: { ormawa: SEKRE_PEMAIN }, // interiors tidak boleh mengimpor regions: data ormawa pemain (ERC) diteruskan lewat ctx build
     bike: { get state() { return ents.bike.state; }, teleport },
     onInteracted: (interiorId, itemId) => story.onInteract(`${interiorId}:${itemId}`), // M5 → objective interact (M7)
-    isUiBlocking: () => Boolean(hud.shopOpen || story.journal.open || travel.menu.open
+    isUiBlocking: () => Boolean(hud.shopOpen || inventory?.open || story.journal.open || travel.menu.open
       || panelRef.current?.isOpen || panelRef.current?.isHelpOpen),
     beforeEnter: () => {
       rig.exitPov({ instant: true });

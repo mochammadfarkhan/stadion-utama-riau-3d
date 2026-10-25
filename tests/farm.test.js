@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { createFarm, actOn, plow, growFarm, nextAction, farmToJson, farmFromJson, stepOnFoot } from '../src/sim/farm.js';
+import { createFarm, actOn, planAction, plow, growFarm, nextAction, farmToJson, farmFromJson, stepOnFoot } from '../src/sim/farm.js';
+import { ITEMS } from '../src/config/items.js';
 import { KEBUN, CROPS, CROP_ORDER, tileIndexAt, tileCenter, houseRing, WALK } from '../src/config/kebun.js';
 
-const opts = (seed, balance = 100000) => ({ balance, seed, crops: CROPS });
+const opts = (seed) => ({ seed, crops: CROPS });
 const sleep = (f) => growFarm(f, KEBUN.sleepHours, CROPS);
 
 /** Tanam `seed` di petak 0 lalu siram + tidur sampai bisa dipanen; kembalikan {farm, nights}. */
@@ -19,14 +20,14 @@ function growToHarvest(f0, seed) {
 }
 
 describe('farm: siklus cangkul → tanam → siram → tumbuh → panen', () => {
-  it('urutan aksi E, uang, dan petak lain tidak tersentuh', () => {
+  it('urutan aksi E, hasil panen, dan petak lain tidak tersentuh', () => {
     let f = createFarm(4);
     const seq = [];
-    let money = 0;
+    const harvests = [];
     const act = () => {
       const r = actOn(f, 1, opts('cabai'));
       seq.push(r.action);
-      money += r.earn - r.cost;
+      if (r.harvest) harvests.push(r.harvest);
       f = r.farm;
     };
     act(); act(); act(); // cangkul, tanam, siram
@@ -37,14 +38,13 @@ describe('farm: siklus cangkul → tanam → siram → tumbuh → panen', () => 
     expect(nextAction(f.tiles[1])).toBe('panen');
     act();
     expect(seq).toEqual(['cangkul', 'tanam', 'siram', 'siram', 'panen']);
-    expect(money).toBe(CROPS.cabai.price - CROPS.cabai.seed);
+    expect(harvests).toEqual(['cabai']);
     expect(f.tiles[1]).toMatchObject({ tilled: true, crop: null });
     expect(f.tiles[0]).toMatchObject({ tilled: false, crop: null });
   });
 
-  it('tanpa siram tidak tumbuh; uang kurang / jenis asing menolak tanam; immutable', () => {
+  it('tanpa siram tidak tumbuh; jenis asing menolak tanam; immutable', () => {
     const f0 = plow(createFarm(1), 0);
-    expect(actOn(f0, 0, opts('cabai', 500)).error).toBeTruthy();
     expect(actOn(f0, 0, opts('kentang')).error).toBeTruthy();
     const f1 = actOn(f0, 0, opts('cabai')).farm;
     expect(growFarm(f1, 10, CROPS)).toBe(f1);
@@ -62,10 +62,10 @@ describe('farm: jenis tanaman berbeda', () => {
 
   it('terong tumbuh lagi ke tahap 2 setelah dipanen; jagung harus tanam ulang', () => {
     const t = actOn(growToHarvest(createFarm(1), 'terong').farm, 0, opts('terong'));
-    expect(t.earn).toBe(CROPS.terong.price);
+    expect(t.harvest).toBe('terong');
     expect(t.farm.tiles[0].crop).toMatchObject({ type: 'terong', stage: 2 });
     const j = actOn(growToHarvest(createFarm(1), 'jagung').farm, 0, opts('jagung'));
-    expect(j.earn).toBe(CROPS.jagung.price);
+    expect(j.harvest).toBe('jagung');
     expect(nextAction(j.farm.tiles[0])).toBe('tanam');
   });
 
@@ -73,6 +73,23 @@ describe('farm: jenis tanaman berbeda', () => {
     let f = actOn(plow(createFarm(1), 0), 0, opts('terong')).farm;
     f = actOn(f, 0, opts('terong')).farm;
     expect(growFarm(f, 100, CROPS).tiles[0].crop.stage).toBe(2);
+  });
+});
+
+describe('farm: item di tangan (planAction)', () => {
+  it('cangkul/benih/gembor harus dipegang; panen boleh tangan kosong', () => {
+    const rumput = createFarm(1).tiles[0];
+    expect(planAction(rumput, ITEMS.cangkul)).toEqual({ action: 'cangkul' });
+    expect(planAction(rumput, ITEMS.gembor)).toEqual({ action: null, need: 'cangkul' });
+    const garap = plow(createFarm(1), 0);
+    expect(planAction(garap.tiles[0], ITEMS['benih-jagung'])).toEqual({ action: 'tanam', seed: 'jagung' });
+    expect(planAction(garap.tiles[0], null)).toEqual({ action: null, need: 'benih' });
+    const tanam = actOn(garap, 0, opts('jagung')).farm;
+    expect(planAction(tanam.tiles[0], ITEMS.cangkul)).toEqual({ action: null, need: 'gembor' });
+    expect(planAction(tanam.tiles[0], ITEMS.gembor)).toEqual({ action: 'siram' });
+    const siap = growToHarvest(createFarm(1), 'cabai').farm;
+    expect(planAction(siap.tiles[0], null)).toEqual({ action: 'panen' });
+    expect(planAction(actOn(tanam, 0, opts('jagung')).farm.tiles[0], ITEMS.gembor)).toEqual({ action: null }); // tersiram: tunggu
   });
 });
 

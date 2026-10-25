@@ -12,6 +12,10 @@ export const KEBUN = Object.freeze({
   rows: 5,
   tile: 2,
   house: Object.freeze({ x: -162, z: 988, yaw: Math.PI / 2, w: 6, d: 5, porch: 1.5 }),
+  /** peti di depan sudut teras (dunia): kotak benih (beli benih) & kotak kiriman (jual hasil, dibayar saat tidur) */
+  seedBox: Object.freeze({ x: -157.2, z: 984.4 }),
+  shipBox: Object.freeze({ x: -157.2, z: 991.6 }),
+  boxRadius: 1.6,     // m: jangkauan E ke peti
   visibleRadius: 260, // m: di luar ini grup kebun disembunyikan (0 draw call)
   reach: 1.6,         // m: jangkauan aksi E di depan pemain
   sleepHours: 6,      // jam pertumbuhan yang didapat tanaman tersiram saat pemain tidur

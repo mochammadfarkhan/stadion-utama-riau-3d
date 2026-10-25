@@ -1,8 +1,9 @@
 /**
  * Logika kebun ala Harvest Moon (MURNI, immutable): petak rumput → dicangkul (atau dibajak traktor) → ditanam benih
  * jenis tertentu → disiram → tumbuh satu tahap per `growHours` jenisnya selama tersiram (lalu kering lagi) → tahap 3
- * dipanen (jenis `regrow` kembali ke tahap 2). Tabel jenis (`crops`: type → {seed, price, growHours, regrow}) diberikan
- * pemanggil (config/kebun.js CROPS). Aksi E memakai `actOn`; simpanan localStorage memakai `farmToJson`/`farmFromJson`.
+ * dipanen (jenis `regrow` kembali ke tahap 2). Tabel jenis (`crops`: type → {growHours, regrow}) diberikan pemanggil
+ * (config/kebun.js CROPS). Aksi E: `planAction` mencocokkan item di tangan (cangkul / benih / gembor) dengan petak, lalu
+ * `actOn` mengubah petak; uang & tas diurus pemanggil. Simpanan localStorage memakai `farmToJson`/`farmFromJson`.
  */
 
 export const MAX_STAGE = 3;
@@ -31,30 +32,44 @@ export function nextAction(tile) {
 const crop = (type, stage, growth = 0) => Object.freeze({ type, stage, growth });
 
 /**
- * Lakukan aksi kontekstual di petak i.
+ * Cocokkan item di tangan dengan aksi petak. Panen boleh dengan item apa pun (tangan kosong juga); cangkul butuh
+ * alat cangkul, tanam butuh benih (jenis dari benih), siram butuh gembor.
+ * @param {object|undefined} tile
+ * @param {{kind?:string, tool?:string, crop?:string}|null} held definisi item di tangan (null = kosong)
+ * @returns {{action:string|null, seed?:string, need?:'cangkul'|'benih'|'gembor'}} action null + need = item kurang
+ */
+export function planAction(tile, held) {
+  const next = nextAction(tile);
+  switch (next) {
+    case 'panen': return { action: 'panen' };
+    case 'cangkul': return held?.tool === 'cangkul' ? { action: 'cangkul' } : { action: null, need: 'cangkul' };
+    case 'tanam': return held?.kind === 'seed' ? { action: 'tanam', seed: held.crop } : { action: null, need: 'benih' };
+    case 'siram': return held?.tool === 'gembor' ? { action: 'siram' } : { action: null, need: 'gembor' };
+    default: return { action: null };
+  }
+}
+
+/**
+ * Lakukan aksi petak i sesuai `nextAction` (pemanggil sudah memastikan item di tangan cocok lewat planAction).
  * @param {{tiles:ReadonlyArray<object>}} farm
  * @param {number} i
- * @param {{balance?:number, seed?:string, crops:Record<string, {seed:number, price:number, growHours:number, regrow?:boolean}>}} opts
- *   seed = jenis benih yang dipegang (dipakai saat menanam)
- * @returns {{farm:object, action:string|null, type:string|null, cost:number, earn:number, error?:string}}
+ * @param {{seed?:string, crops:Record<string, {growHours:number, regrow?:boolean}>}} opts seed = jenis yang ditanam
+ * @returns {{farm:object, action:string|null, type:string|null, harvest:string|null, error?:string}}
+ *   harvest = jenis hasil panen (masuk tas pemanggil)
  */
-export function actOn(farm, i, { balance = Infinity, seed, crops }) {
+export function actOn(farm, i, { seed, crops }) {
   const tile = farm.tiles[i];
   const action = nextAction(tile);
-  const none = { farm, action, type: tile?.crop?.type ?? null, cost: 0, earn: 0 };
+  const none = { farm, action, type: tile?.crop?.type ?? null, harvest: null };
   switch (action) {
     case 'cangkul': return { ...none, farm: withTile(farm, i, { tilled: true }) };
-    case 'tanam': {
-      const kind = crops[seed];
-      if (!kind) return { ...none, error: 'Jenis benih tidak dikenal' };
-      if (balance < kind.seed) return { ...none, error: 'Uang tidak cukup untuk benih' };
-      return { ...none, type: seed, cost: kind.seed, farm: withTile(farm, i, { crop: crop(seed, 1), watered: false }) };
-    }
+    case 'tanam':
+      if (!crops[seed]) return { ...none, error: 'Jenis benih tidak dikenal' };
+      return { ...none, type: seed, farm: withTile(farm, i, { crop: crop(seed, 1), watered: false }) };
     case 'siram': return { ...none, farm: withTile(farm, i, { watered: true }) };
     case 'panen': {
-      const kind = crops[tile.crop.type];
-      const next = kind?.regrow ? crop(tile.crop.type, 2) : null;
-      return { ...none, earn: kind?.price ?? 0, farm: withTile(farm, i, { crop: next, watered: false }) };
+      const next = crops[tile.crop.type]?.regrow ? crop(tile.crop.type, 2) : null;
+      return { ...none, harvest: tile.crop.type, farm: withTile(farm, i, { crop: next, watered: false }) };
     }
     default: return none;
   }
