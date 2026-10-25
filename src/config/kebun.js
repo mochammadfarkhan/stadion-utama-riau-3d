@@ -14,10 +14,21 @@ export const KEBUN = Object.freeze({
   house: Object.freeze({ x: -162, z: 988, yaw: Math.PI / 2, w: 6, d: 5, porch: 1.5 }),
   visibleRadius: 260, // m: di luar ini grup kebun disembunyikan (0 draw call)
   reach: 1.6,         // m: jangkauan aksi E di depan pemain
-  price: 6000,        // Rp per panen cabai
-  seedPrice: 1000,    // Rp per benih
-  growHours: 3,       // jam dunia per tahap tumbuh (hanya saat tersiram)
+  sleepHours: 6,      // jam pertumbuhan yang didapat tanaman tersiram saat pemain tidur
 });
+
+/**
+ * Jenis tanaman (keseimbangan game [INFERENSI], bukan harga pasar): seed = harga benih, price = hasil panen (Rp),
+ * growHours = jam tumbuh per tahap selama tersiram (tidur = KEBUN.sleepHours, maks satu tahap per malam),
+ * regrow = setelah dipanen kembali ke tahap 2 (tidak perlu tanam ulang).
+ */
+export const CROPS = Object.freeze({
+  terong: Object.freeze({ label: 'Terong', seed: 800, price: 3000, growHours: 2, regrow: true }),
+  cabai: Object.freeze({ label: 'Cabai', seed: 1000, price: 6000, growHours: 3, regrow: false }),
+  jagung: Object.freeze({ label: 'Jagung', seed: 1500, price: 12000, growHours: 8, regrow: false }),
+});
+/** Urutan tombol B (dan indeks simpanan JSON — hanya boleh DITAMBAH di belakang). */
+export const CROP_ORDER = Object.freeze(['cabai', 'jagung', 'terong']);
 
 /** Pusat petak [col,row] (dunia). */
 export function tileCenter(col, row, k = KEBUN) {

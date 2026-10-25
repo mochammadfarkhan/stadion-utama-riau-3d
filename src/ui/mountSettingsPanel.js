@@ -39,6 +39,7 @@ const SIM_HELP_ITEMS = Object.freeze([
   { keys: ['O'], text: 'Ambient occlusion' },
   { group: 'Kebun (barat Jl. Prof. Aras Mulyadi, dekat sekre)' },
   { keys: ['E'], text: 'Jalan kaki di depan petak: cangkul / tanam / siram / panen · di depan rumah: tidur sampai pagi' },
+  { keys: ['B'], text: 'Ganti benih: cabai / jagung / terong' },
   { keys: ['F'], text: 'Traktor: lewati petak rumput untuk membajak' },
   { group: 'Sekre (interior)' },
   { keys: ['E'], text: 'Di depan pintu sekre: masuk · di dalam: pakai barang yang dilihat' },

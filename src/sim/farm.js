@@ -1,7 +1,8 @@
 /**
  * Logika kebun ala Harvest Moon (MURNI, immutable): petak rumput → dicangkul (atau dibajak traktor) → ditanam benih
- * → disiram → tumbuh satu tahap per `growHours` jam dunia selama tersiram (lalu kering lagi) → tahap 3 dipanen.
- * Aksi E kontekstual memakai `actOn`; serialisasi untuk localStorage memakai `farmToJson`/`farmFromJson`.
+ * jenis tertentu → disiram → tumbuh satu tahap per `growHours` jenisnya selama tersiram (lalu kering lagi) → tahap 3
+ * dipanen (jenis `regrow` kembali ke tahap 2). Tabel jenis (`crops`: type → {seed, price, growHours, regrow}) diberikan
+ * pemanggil (config/kebun.js CROPS). Aksi E memakai `actOn`; simpanan localStorage memakai `farmToJson`/`farmFromJson`.
  */
 
 export const MAX_STAGE = 3;
@@ -27,24 +28,34 @@ export function nextAction(tile) {
   return tile.tilled ? 'tanam' : 'cangkul';
 }
 
+const crop = (type, stage, growth = 0) => Object.freeze({ type, stage, growth });
+
 /**
  * Lakukan aksi kontekstual di petak i.
  * @param {{tiles:ReadonlyArray<object>}} farm
  * @param {number} i
- * @param {{balance?:number, seedPrice?:number, price?:number}} [opts]
- * @returns {{farm:object, action:string|null, cost:number, earn:number, error?:string}}
+ * @param {{balance?:number, seed?:string, crops:Record<string, {seed:number, price:number, growHours:number, regrow?:boolean}>}} opts
+ *   seed = jenis benih yang dipegang (dipakai saat menanam)
+ * @returns {{farm:object, action:string|null, type:string|null, cost:number, earn:number, error?:string}}
  */
-export function actOn(farm, i, { balance = Infinity, seedPrice = 0, price = 0 } = {}) {
+export function actOn(farm, i, { balance = Infinity, seed, crops }) {
   const tile = farm.tiles[i];
   const action = nextAction(tile);
-  const none = { farm, action, cost: 0, earn: 0 };
+  const none = { farm, action, type: tile?.crop?.type ?? null, cost: 0, earn: 0 };
   switch (action) {
     case 'cangkul': return { ...none, farm: withTile(farm, i, { tilled: true }) };
-    case 'tanam':
-      if (balance < seedPrice) return { ...none, error: 'Uang tidak cukup untuk benih' };
-      return { ...none, cost: seedPrice, farm: withTile(farm, i, { crop: Object.freeze({ stage: 1, growth: 0 }), watered: false }) };
+    case 'tanam': {
+      const kind = crops[seed];
+      if (!kind) return { ...none, error: 'Jenis benih tidak dikenal' };
+      if (balance < kind.seed) return { ...none, error: 'Uang tidak cukup untuk benih' };
+      return { ...none, type: seed, cost: kind.seed, farm: withTile(farm, i, { crop: crop(seed, 1), watered: false }) };
+    }
     case 'siram': return { ...none, farm: withTile(farm, i, { watered: true }) };
-    case 'panen': return { ...none, earn: price, farm: withTile(farm, i, { crop: null, watered: false }) };
+    case 'panen': {
+      const kind = crops[tile.crop.type];
+      const next = kind?.regrow ? crop(tile.crop.type, 2) : null;
+      return { ...none, earn: kind?.price ?? 0, farm: withTile(farm, i, { crop: next, watered: false }) };
+    }
     default: return none;
   }
 }
@@ -57,36 +68,43 @@ export function plow(farm, i) {
 }
 
 /**
- * Majukan waktu `hours` jam dunia: tanaman tersiram bertambah growth; tiap `growHours` naik satu tahap lalu kering.
- * Kembalikan farm yang sama bila tidak ada perubahan (hemat render ulang).
+ * Majukan waktu `hours` jam dunia: tanaman tersiram bertambah growth; mencapai `growHours` jenisnya → naik SATU tahap
+ * (sisa jam dibuang) lalu kering. Kembalikan farm yang sama bila tidak ada perubahan (hemat render ulang).
  */
-export function growFarm(farm, hours, growHours) {
+export function growFarm(farm, hours, crops) {
   if (!(hours > 0)) return farm;
   let changed = false;
   const tiles = farm.tiles.map((t) => {
     if (!t.crop || !t.watered || t.crop.stage >= MAX_STAGE) return t;
     changed = true;
     const growth = t.crop.growth + hours;
-    if (growth < growHours) return Object.freeze({ ...t, crop: Object.freeze({ ...t.crop, growth }) });
-    return Object.freeze({ ...t, watered: false, crop: Object.freeze({ stage: t.crop.stage + 1, growth: 0 }) });
+    if (growth < (crops[t.crop.type]?.growHours ?? Infinity)) return Object.freeze({ ...t, crop: crop(t.crop.type, t.crop.stage, growth) });
+    return Object.freeze({ ...t, watered: false, crop: crop(t.crop.type, t.crop.stage + 1) });
   });
   return changed ? Object.freeze({ ...farm, tiles: Object.freeze(tiles) }) : farm;
 }
 
-export function farmToJson(farm) {
-  return JSON.stringify(farm.tiles.map((t) => [t.tilled ? 1 : 0, t.watered ? 1 : 0, t.crop ? t.crop.stage : 0, t.crop ? t.crop.growth : 0]));
+/** @param {ReadonlyArray<string>} order urutan jenis (indeks disimpan) */
+export function farmToJson(farm, order) {
+  return JSON.stringify(farm.tiles.map((t) => [
+    t.tilled ? 1 : 0, t.watered ? 1 : 0, t.crop ? t.crop.stage : 0, t.crop ? t.crop.growth : 0, t.crop ? Math.max(0, order.indexOf(t.crop.type)) : 0,
+  ]));
 }
 
-/** Pulihkan dari JSON (tidak percaya data: salah bentuk/ukuran → kebun baru). */
-export function farmFromJson(text, count) {
+/**
+ * Pulihkan dari JSON (tidak percaya data: salah bentuk/ukuran → kebun baru; indeks jenis tak dikenal → order[0]).
+ * Simpanan lama 4 kolom (sebelum ada jenis) dibaca sebagai order[0].
+ */
+export function farmFromJson(text, count, order) {
   try {
     const rows = JSON.parse(text);
     if (!Array.isArray(rows) || rows.length !== count) return createFarm(count);
     const tiles = rows.map((r) => {
-      const [tilled, watered, stage, growth] = Array.isArray(r) ? r : [];
+      const [tilled, watered, stage, growth, typeIdx] = Array.isArray(r) ? r : [];
       const st = Number.isInteger(stage) && stage >= 1 && stage <= MAX_STAGE ? stage : 0;
       const g = Number.isFinite(growth) && growth >= 0 ? growth : 0;
-      return Object.freeze({ tilled: tilled === 1 || st > 0, watered: watered === 1 && st > 0, crop: st ? Object.freeze({ stage: st, growth: g }) : null });
+      const type = order[Number.isInteger(typeIdx) ? typeIdx : 0] ?? order[0];
+      return Object.freeze({ tilled: tilled === 1 || st > 0, watered: watered === 1 && st > 0, crop: st ? crop(type, st, g) : null });
     });
     return Object.freeze({ tiles: Object.freeze(tiles) });
   } catch {

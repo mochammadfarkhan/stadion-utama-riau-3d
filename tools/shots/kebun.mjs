@@ -20,11 +20,16 @@ try {
   const toMode = (m) => page.evaluate((mode) => window.__sim.ents.bike.setMode(mode), m);
   await toMode('jalan');
   console.log('setelah F', await info());
-  for (const [x, z] of [[-153.5, 969], [-153.5, 971], [-153.5, 973], [-153.5, 975]]) {
-    await tp(x, z, -Math.PI / 2); // menghadap barat: petak di depan
+  // tiga jenis berjajar: cabai, jagung, terong (B ganti benih; sistem kebun tidak menunggu menu Mulai)
+  const rows = [[969, 0], [971, 0], [973, 1], [975, 1], [977, 2]];
+  let held = 0;
+  for (const [z, want] of rows) {
+    while (held !== want) { await key('KeyB'); held = (held + 1) % 3; }
+    await tp(-153.5, z, -Math.PI / 2); // menghadap barat: petak di depan
     await page.waitForTimeout(300);
-    console.log('petak', x, z, await info());
-    await key('KeyE', 3); // cangkul, tanam, siram
+    await key('KeyE', 2); // cangkul, tanam
+    console.log('petak', z, await info());
+    await key('KeyE'); // siram
   }
   await tp(-150, 975, -Math.PI / 2);
   await page.waitForTimeout(800);
@@ -32,8 +37,18 @@ try {
   await tp(-155.5, 988, Math.PI / 2 + Math.PI); // depan tangga rumah, menghadap rumah (barat)
   await page.waitForTimeout(400);
   console.log('pintu', await info());
-  await key('KeyE'); // tidur
+  for (let malam = 0; malam < 2; malam += 1) {
+    await key('KeyE'); // tidur
+    await page.waitForTimeout(800);
+    for (const [z] of rows) { await tp(-153.5, z, -Math.PI / 2); await page.waitForTimeout(200); await key('KeyE'); } // siram lagi
+    await tp(-155.5, 988, -Math.PI / 2);
+    await page.waitForTimeout(300);
+  }
+  await key('KeyE'); // tidur malam ke-3: cabai & terong siap panen, jagung baru tahap 2
+  await page.waitForTimeout(800);
+  await tp(-149, 973, -Math.PI / 2 - 0.15);
   await page.waitForTimeout(1500);
+  await shot('4-jenis');
   await tp(-150, 973, -Math.PI / 2);
   await toMode('traktor');
   console.log('traktor', await info());

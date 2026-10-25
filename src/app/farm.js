@@ -1,12 +1,13 @@
 /**
  * Mini game kebun dekat sekre ERC (ala Harvest Moon). Memuat GLB kebun (traktor pemain, rumah, tanaman), lalu:
  * - 'kebun.trigger' (fase input, didaftarkan SEBELUM keymap agar E dikonsumsi lebih dulu): jalan kaki di depan petak
- *   → E = cangkul/tanam/siram/panen; di depan pintu rumah → E = tidur (pagi 06.00, tanaman tersiram naik satu tahap);
- *   naik traktor di atas petak rumput → dibajak otomatis.
+ *   → E = cangkul/tanam/siram/panen; B = ganti benih yang dipegang (cabai/jagung/terong); di depan pintu rumah →
+ *   E = tidur (pagi 06.00, tanaman tersiram mendapat KEBUN.sleepHours jam tumbuh); naik traktor di atas petak rumput →
+ *   dibajak otomatis.
  * - 'kebun.grow' (world): tanaman tersiram tumbuh mengikuti jam dunia bila waktu berjalan (tombol T).
  * - 'kebun.prompt' (ui, SESUDAH hud): "Tekan E — …". Status kebun disimpan di localStorage (data dicek ulang saat dimuat).
  */
-import { KEBUN, tileIndexAt, MODE_LABEL } from '../config/kebun.js';
+import { KEBUN, CROPS, CROP_ORDER, tileIndexAt, MODE_LABEL } from '../config/kebun.js';
 import { createFarm, actOn, plow, growFarm, nextAction, farmToJson, farmFromJson } from '../sim/farm.js';
 import { loadModel } from '../world/assets/models.js';
 import { KEBUN_MODELS, buildTractorModel, createFarmView } from '../world/props/unri/kebun.js';
@@ -14,19 +15,30 @@ import { KEBUN_MODELS, buildTractorModel, createFarmView } from '../world/props/
 const STORAGE_KEY = 'stadion.kebun.v1';
 const TILE_COUNT = KEBUN.cols * KEBUN.rows;
 const DOOR_RADIUS = 2;
-const LABEL = Object.freeze({ cangkul: 'Cangkul tanah', tanam: `Tanam benih cabai (Rp ${KEBUN.seedPrice.toLocaleString('id-ID')})`, siram: 'Siram tanaman', panen: 'Panen cabai', tunggu: null });
+const rp = (n) => `Rp ${n.toLocaleString('id-ID')}`;
+/** Teks prompt aksi petak; null = tidak ada aksi (tanaman tersiram, menunggu tumbuh). */
+function actionLabel(action, tile, seed) {
+  const kind = CROPS[tile?.crop?.type];
+  switch (action) {
+    case 'cangkul': return 'Cangkul tanah';
+    case 'tanam': return `Tanam ${CROPS[seed].label.toLowerCase()} (${rp(CROPS[seed].seed)}) · B ganti benih`;
+    case 'siram': return `Siram ${kind?.label.toLowerCase() ?? 'tanaman'}`;
+    case 'panen': return `Panen ${kind?.label.toLowerCase() ?? ''} (${rp(kind?.price ?? 0)})`;
+    default: return null;
+  }
+}
 
 function loadFarm() {
   try {
     const text = localStorage.getItem(STORAGE_KEY);
-    return text ? farmFromJson(text, TILE_COUNT) : createFarm(TILE_COUNT);
+    return text ? farmFromJson(text, TILE_COUNT, CROP_ORDER) : createFarm(TILE_COUNT);
   } catch {
     return createFarm(TILE_COUNT);
   }
 }
 
 function saveFarm(farm) {
-  try { localStorage.setItem(STORAGE_KEY, farmToJson(farm)); } catch { /* penyimpanan diblokir: tetap main tanpa simpan */ }
+  try { localStorage.setItem(STORAGE_KEY, farmToJson(farm, CROP_ORDER)); } catch { /* penyimpanan diblokir: tetap main tanpa simpan */ }
 }
 
 /** Titik di depan tangga rumah (dunia). */
@@ -49,13 +61,19 @@ export function setupFarm({ app, input, hud, ents, terrain, time, store, isBlock
   let disposed = false;
   let near = null; // {kind:'petak', index, action} | {kind:'tidur'} | {kind:'turun'}
   let lastHour = time.hour;
+  let seed = CROP_ORDER[0]; // benih yang dipegang (tombol B)
   const door = doorPoint();
+  const plantTypes = Object.keys(KEBUN_MODELS.tanaman);
 
-  Promise.all([loadModel(KEBUN_MODELS.traktor), loadModel(KEBUN_MODELS.rumah), ...KEBUN_MODELS.tanaman.map((p) => loadModel(p))])
-    .then(([traktor, rumah, ...tanaman]) => {
+  Promise.all([
+    loadModel(KEBUN_MODELS.traktor), loadModel(KEBUN_MODELS.rumah), loadModel(KEBUN_MODELS.tunas),
+    ...plantTypes.flatMap((t) => KEBUN_MODELS.tanaman[t].map((p) => loadModel(p))),
+  ])
+    .then(([traktor, rumah, tunas, ...stages]) => {
       if (disposed) return;
       ents.bike.setTractorModel(buildTractorModel(traktor));
-      view = createFarmView({ houseSource: rumah, plantSources: tanaman, heightAt: (x, z) => terrain.heightAt(x, z) });
+      const plantSources = Object.fromEntries(plantTypes.map((t, i) => [t, stages.slice(i * 2, i * 2 + 2)]));
+      view = createFarmView({ houseSource: rumah, sproutSource: tunas, plantSources, heightAt: (x, z) => terrain.heightAt(x, z) });
       view.relayout(farm);
       app.scene.add(view.group);
     })
@@ -79,11 +97,11 @@ export function setupFarm({ app, input, hud, ents, terrain, time, store, isBlock
     if (target.kind === 'tidur') {
       store.set('sky.hour', 6);
       lastHour = 6;
-      commit(growFarm(farm, KEBUN.growHours, KEBUN.growHours));
+      commit(growFarm(farm, KEBUN.sleepHours, CROPS));
       hud.toast('Selamat pagi! Tanaman yang disiram tumbuh.', true);
       return;
     }
-    const r = actOn(farm, target.index, { balance: ents.vendors.wallet.balance, seedPrice: KEBUN.seedPrice, price: KEBUN.price });
+    const r = actOn(farm, target.index, { balance: ents.vendors.wallet.balance, seed, crops: CROPS });
     if (r.error) {
       hud.toast(r.error, false);
       return;
@@ -94,7 +112,7 @@ export function setupFarm({ app, input, hud, ents, terrain, time, store, isBlock
     }
     if (r.earn) ents.vendors.credit(r.earn);
     if (r.cost || r.earn) hud.setWallet(ents.vendors.wallet);
-    if (r.earn) hud.toast(`Panen! +Rp ${r.earn.toLocaleString('id-ID')}`, true);
+    if (r.earn) hud.toast(`Panen ${CROPS[r.type]?.label.toLowerCase() ?? ''}! +${rp(r.earn)}${CROPS[r.type]?.regrow ? ' (tumbuh lagi)' : ''}`, true);
     commit(r.farm);
   }
 
@@ -110,7 +128,7 @@ export function setupFarm({ app, input, hud, ents, terrain, time, store, isBlock
     const i = tileIndexAt(b.x + Math.sin(b.yaw) * KEBUN.reach, b.z + Math.cos(b.yaw) * KEBUN.reach);
     if (i < 0) return null;
     const action = nextAction(farm.tiles[i]);
-    return LABEL[action] ? { kind: 'petak', index: i, action } : null;
+    return actionLabel(action, farm.tiles[i], seed) ? { kind: 'petak', index: i, action } : null;
   }
 
   app.addSystem({
@@ -124,6 +142,11 @@ export function setupFarm({ app, input, hud, ents, terrain, time, store, isBlock
       if (!view.group.visible) return;
       view.relayout(farm); // terrain ter-stream belakangan: tata ulang tinggi bila tanah di pusat lahan berubah
       if (isBlocked()) return;
+      if (input.consumePress('KeyB')) {
+        seed = CROP_ORDER[(CROP_ORDER.indexOf(seed) + 1) % CROP_ORDER.length];
+        const c = CROPS[seed];
+        hud.toast(`Benih: ${c.label} (${rp(c.seed)} → panen ${rp(c.price)}${c.regrow ? ', tumbuh lagi' : ''})`, true);
+      }
       near = findTarget(b, ents.bike.mode);
       if (near && input.consumePress('KeyE')) act(near);
     },
@@ -135,17 +158,18 @@ export function setupFarm({ app, input, hud, ents, terrain, time, store, isBlock
       const h = time.hour;
       const dh = (h - lastHour + 24) % 24;
       lastHour = h;
-      if (dh > 0 && dh < 6) commit(growFarm(farm, dh, KEBUN.growHours)); // lompatan besar (atur jam manual) diabaikan
+      if (dh > 0 && dh < 6) commit(growFarm(farm, dh, CROPS)); // lompatan besar (atur jam manual) diabaikan
     },
   });
 
   const promptOf = (t) => {
     if (t.kind === 'tidur') return 'Tekan E — Tidur sampai pagi';
     if (t.kind === 'turun') return 'Tekan E — Turun & jalan kaki (F ganti kendaraan)';
-    return `Tekan E — ${LABEL[t.action]}`;
+    return `Tekan E — ${actionLabel(t.action, farm.tiles[t.index], seed)}`;
   };
   return {
     get farm() { return farm; },
+    get seed() { return seed; },
     /** Panggil SETELAH sistem 'hud' terdaftar. */
     installPrompt() {
       app.addSystem({ id: 'kebun.prompt', phase: 'ui', update: () => { if (near) hud.setPrompt(promptOf(near)); } });
