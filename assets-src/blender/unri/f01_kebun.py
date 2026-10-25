@@ -10,7 +10,8 @@ Gaya: mainan/kartun (bentuk tebal, warna cerah, tanpa tekstur) agar selaras gaya
 - f01-traktor.glb: traktor kecil ±3,0 m; roda belakang/depan bermaterial sendiri (diputar di three.js pada poros
   AXLE_*), kursi pengemudi di SEAT.
 - f02-rumah-kebun.glb: rumah kayu panggung rendah 6 x 5 m, atap seng pelana, teras + tangga depan.
-- f03-tanaman-{1,2,3}.glb: tanaman cabai tahap tunas, tumbuh, berbuah (satu petak 1 m).
+- f03-tanaman-{1,2,3}.glb: tanaman cabai tahap tunas, tumbuh, berbuah (satu petak 1 m); tunas dipakai semua jenis.
+- f04-jagung-{2,3}.glb: jagung tumbuh / berbuah (tongkol + malai); f05-terong-{2,3}.glb: terong tumbuh / berbuah.
 """
 import math
 import os
@@ -47,6 +48,12 @@ PALETTE = {
     "kebun:daun-muda": ("#8CC63F", 0.8, 0.0),
     "kebun:batang": ("#5E7D2E", 0.8, 0.0),
     "kebun:cabai": ("#D7261E", 0.4, 0.0),
+    "kebun:daun-jagung": ("#6FAE3A", 0.8, 0.0),
+    "kebun:tongkol": ("#E9C33A", 0.6, 0.0),
+    "kebun:kelobot": ("#B7C76A", 0.8, 0.0),
+    "kebun:malai": ("#C9A55A", 0.9, 0.0),
+    "kebun:terong": ("#5B2A6E", 0.3, 0.0),
+    "kebun:kelopak": ("#3F7A2A", 0.8, 0.0),
 }
 
 
@@ -204,6 +211,51 @@ def _tanaman(stage):
     return b
 
 
+def _jagung(stage):
+    b = {}
+    h = 0.9 if stage == 2 else 1.6
+    _cyl(b, "kebun:batang", (0, 0, h / 2), 0.03, 0.018, h, seg=6)
+    n = 7 if stage == 2 else 10
+    for i in range(n):  # daun pita panjang melengkung keluar (kotak tipis miring)
+        a = i * 2.4
+        z = h * (0.2 + 0.7 * i / n)
+        L = 0.45 if stage == 2 else 0.6
+        c = (math.cos(a) * L * 0.45, math.sin(a) * L * 0.45, z + 0.08)
+        _box(b, "kebun:daun-jagung", c, (L, 0.12, 0.012), rx=0.0, rz=a)
+        bm = b["kebun:daun-jagung"]
+        bm.verts.ensure_lookup_table()
+        for v in bm.verts[-8:]:  # lengkungkan ujung daun ke bawah
+            d = (v.co.x * math.cos(a) + v.co.y * math.sin(a))
+            if d > L * 0.5:
+                v.co.z -= (d - L * 0.5) * 0.6
+    if stage == 3:
+        for i, a in enumerate((0.6, 3.4)):
+            z = h * (0.45 + 0.12 * i)
+            c = (math.cos(a) * 0.07, math.sin(a) * 0.07, z)
+            _ball(b, "kebun:kelobot", c, 0.075, sz=2.4)
+            _ball(b, "kebun:tongkol", (c[0] * 1.3, c[1] * 1.3, z + 0.1), 0.035, sz=1.6)
+        for a in (0, 2.1, 4.2):  # malai di pucuk
+            _box(b, "kebun:malai", (math.cos(a) * 0.06, math.sin(a) * 0.06, h + 0.12), (0.015, 0.015, 0.28), rx=0.35 * math.cos(a), rz=a)
+    return b
+
+
+def _terong(stage):
+    b = {}
+    h = 0.35 if stage == 2 else 0.55
+    _cyl(b, "kebun:batang", (0, 0, h / 2), 0.022, 0.014, h, seg=6)
+    for i in range(6 if stage == 2 else 8):  # daun lebar
+        a = i * 2.4
+        r = 0.12 + 0.04 * (i % 2)
+        _ball(b, "kebun:daun", (r * math.cos(a), r * math.sin(a), h * (0.5 + 0.08 * (i % 4))), 0.13 if stage == 2 else 0.16, sx=1.3, sz=0.35)
+    if stage == 3:
+        for i in range(4):
+            a = i * 1.7 + 0.3
+            c = (0.24 * math.cos(a), 0.24 * math.sin(a), h * 0.3)
+            _ball(b, "kebun:terong", c, 0.06, sx=0.9, sy=0.9, sz=2.4)
+            _ball(b, "kebun:kelopak", (c[0], c[1], c[2] + 0.11), 0.03, sz=0.6)
+    return b
+
+
 def _export(coll_name, bms, glb_name):
     for name in (coll_name, f"{coll_name}_Ekspor"):
         c = bpy.data.collections.get(name)
@@ -231,5 +283,8 @@ def build():
     ]
     for s in (1, 2, 3):
         out.append(_export(f"KBN_Tanaman{s}", _tanaman(s), f"f03-tanaman-{s}.glb"))
+    for s in (2, 3):
+        out.append(_export(f"KBN_Jagung{s}", _jagung(s), f"f04-jagung-{s}.glb"))
+        out.append(_export(f"KBN_Terong{s}", _terong(s), f"f05-terong-{s}.glb"))
     bpy.ops.wm.save_as_mainfile(filepath=OUT_BLEND, copy=True)
     return out
