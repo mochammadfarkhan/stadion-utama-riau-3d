@@ -16,7 +16,8 @@ const sim = await openSim({
 const { page } = sim;
 const WEST = -Math.PI / 2;
 const shot = (n) => page.screenshot({ path: `${out}/kebun-${n}.png` });
-const key = async (k, n = 1) => { for (let i = 0; i < n; i += 1) { await page.keyboard.press(k); await page.waitForTimeout(250); } };
+// E di petak memutar animasi pakai item (efek saat ayunan kena, E diabaikan selama animasi): beri jeda lebih panjang
+const key = async (k, n = 1) => { for (let i = 0; i < n; i += 1) { await page.keyboard.press(k); await page.waitForTimeout(k === 'KeyE' ? 1100 : 250); } };
 const tp = async (x, z, yaw = WEST) => { await page.evaluate((p) => window.__sim.teleport(p.x, p.z, p.yaw), { x, z, yaw }); await page.waitForTimeout(300); };
 const info = () => page.evaluate(() => ({
   mode: window.__sim.ents?.bike?.mode ?? null,

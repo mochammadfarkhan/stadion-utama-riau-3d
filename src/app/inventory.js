@@ -6,7 +6,7 @@
  */
 import { ITEMS, INVENTORY, INVENTORY_SIZE, STARTER_KIT } from '../config/items.js';
 import {
-  createInventory, putInSlot, addItem, takeFromSlot, moveSlot, shipInto, shipValue, inventoryToJson, inventoryFromJson,
+  createInventory, putInSlot, addItem, takeFromSlot, removeItem, moveSlot, shipInto, shipValue, inventoryToJson, inventoryFromJson,
 } from '../sim/inventory.js';
 import { createInventoryUI } from '../ui/InventoryUI.js';
 
@@ -34,10 +34,21 @@ function load() {
 export function setupInventory({ app, input, rig, ents, isActive }) {
   let { inv, box } = load();
   let selected = 0;
+  let lastHeld; // undefined: pendengar baru selalu dipanggil sekali
+  const heldListeners = new Set();
+  const notifyHeld = () => {
+    const id = inv.slots[selected]?.id ?? null;
+    if (id === lastHeld) return;
+    lastHeld = id;
+    for (const fn of heldListeners) fn(id, id ? ITEMS[id] : null);
+  };
   const save = () => {
     try { localStorage.setItem(STORAGE_KEY, inventoryToJson(inv, box)); } catch { /* tanpa simpan */ }
   };
-  const render = () => ui.render(inv, selected, ITEMS);
+  const render = () => {
+    ui.render(inv, selected, ITEMS);
+    notifyHeld();
+  };
   const setInv = (next) => {
     if (next === inv) return;
     inv = next;
@@ -92,8 +103,19 @@ export function setupInventory({ app, input, rig, ents, isActive }) {
     get held() { const s = inv.slots[selected]; return s ? ITEMS[s.id] : null; },
     get heldId() { return inv.slots[selected]?.id ?? null; },
     get box() { return box; },
-    /** Kurangi item di tangan sebanyak n. */
-    takeHeld(n = 1) { setInv(takeFromSlot(inv, selected, n)); },
+    /** Dengarkan pergantian item di tangan: fn(id|null, def|null); langsung dipanggil sekali. Kembalikan pelepas. */
+    subscribeHeld(fn) {
+      heldListeners.add(fn);
+      const id = inv.slots[selected]?.id ?? null;
+      fn(id, id ? ITEMS[id] : null);
+      return () => heldListeners.delete(fn);
+    },
+    /** Ambil n item `id` (slot di tangan lebih dulu); false bila jumlahnya kurang (tas tidak diubah). */
+    remove(id, n = 1) {
+      const next = removeItem(inv, id, n, selected);
+      if (next) setInv(next);
+      return next !== null;
+    },
     /** Tambah item; kembalikan sisa yang tidak muat (0 = semua masuk). */
     add(id, n = 1) {
       const r = addItem(inv, id, n, ITEMS);
@@ -119,6 +141,7 @@ export function setupInventory({ app, input, rig, ents, isActive }) {
     },
     dispose() {
       dom.removeEventListener('wheel', onWheel);
+      heldListeners.clear();
       app.removeSystem('inventory.input');
       ui.dispose();
     },

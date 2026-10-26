@@ -202,6 +202,48 @@ export function animateSkate(h, t) {
   applyPose(h.parts);
 }
 
+const lerp = (a, b, t) => a + (b - a) * clamp(t, 0, 1);
+const easeOut = (t) => 1 - (1 - clamp(t, 0, 1)) ** 2;
+
+/**
+ * Pakai item kebun (item di handR); phase 0..1. style:
+ *  - 'cangkul': dua tangan mengangkat (0–0.45) lalu menghantam ke depan-bawah (0.45–0.65), badan membungkuk saat kena.
+ *  - 'gembor': lengan kanan menjulur ke depan; kemiringan gembor diatur pemanggil (lihat useItemTilt).
+ *  - 'raih': membungkuk & meraih ke depan-bawah (menabur benih / memetik hasil).
+ */
+export function animateUseItem(h, phase, style) {
+  const ph = clamp(phase, 0, 1);
+  const p = resetPose();
+  p.shLz = 0.1; p.shRz = -0.1;
+  if (style === 'cangkul') {
+    const arm = ph < 0.45 ? lerp(-0.5, -2.7, easeOut(ph / 0.45))
+      : ph < 0.65 ? lerp(-2.7, -0.3, (ph - 0.45) / 0.2) : lerp(-0.3, -0.5, (ph - 0.65) / 0.35);
+    const strike = ph < 0.45 ? 0 : ph < 0.65 ? (ph - 0.45) / 0.2 : 1 - (ph - 0.65) / 0.35;
+    p.shR = arm; p.shL = arm; p.elR = -0.25; p.elL = -0.25; p.shLz = -0.15; p.shRz = 0.15; // dua tangan di gagang
+    p.spine = 0.08 + 0.35 * strike; p.head = -0.2 * strike;
+    p.hipL = -0.25 * strike; p.hipR = -0.25 * strike; p.kneeL = 0.45 * strike; p.kneeR = 0.45 * strike;
+    p.bob = -0.04 * strike; p.squash = -0.02 * strike;
+  } else if (style === 'gembor') {
+    const k = Math.sin(ph * Math.PI);
+    p.shR = -0.5 - 0.5 * k; p.elR = -0.45; p.shL = 0.05; p.elL = -0.2;
+    p.spine = 0.1 + 0.12 * k; p.head = 0.15 * k;
+  } else {
+    const k = Math.sin(ph * Math.PI);
+    p.spine = 0.6 * k; p.head = -0.35 * k;
+    p.shR = -0.25 - 1.0 * k; p.elR = -0.2; p.shL = -0.1 * k; p.elL = -0.3;
+    p.hipL = -0.45 * k; p.hipR = -0.45 * k; p.kneeL = 0.8 * k; p.kneeR = 0.8 * k; p.bob = -0.12 * k;
+  }
+  applyPose(h.parts);
+}
+
+/**
+ * Kemiringan item di tangan (rad, rotation.x relatif tangan; positif = ujung depan turun) untuk animateUseItem.
+ * Gembor: lengan menjulur memutar tangan ±1,45 rad ke atas, jadi 2,0 rad menghasilkan cerat ±0,55 rad ke bawah.
+ */
+export function useItemTilt(phase, style) {
+  return style === 'gembor' ? 2.0 * Math.sin(clamp(phase, 0, 1) * Math.PI) : 0;
+}
+
 /**
  * Ayunan raket badminton; phase 0..1 (0.5 = kontak). side = 'L' | 'R'.
  */

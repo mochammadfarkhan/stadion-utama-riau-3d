@@ -56,6 +56,25 @@ export function takeFromSlot(inv, slot, n = 1) {
   return Object.freeze({ ...inv, slots: freezeSlots(slots) });
 }
 
+/**
+ * Ambil `n` item `id` dari slot mana saja (slot `prefer` lebih dulu, lalu urut indeks). Kembalikan inventory baru,
+ * atau null bila jumlahnya kurang (tidak ada yang diambil).
+ */
+export function removeItem(inv, id, n, prefer = 0) {
+  if (!(n > 0) || countItem(inv, id) < n) return null;
+  const slots = inv.slots.slice();
+  let left = n;
+  for (const i of [prefer, ...slots.keys()]) {
+    const s = slots[i];
+    if (left === 0) break;
+    if (s?.id !== id) continue;
+    const take = Math.min(s.n, left);
+    slots[i] = s.n > take ? { id, n: s.n - take } : null;
+    left -= take;
+  }
+  return Object.freeze({ ...inv, slots: freezeSlots(slots) });
+}
+
 /** Jumlah total item `id` di semua slot. */
 export function countItem(inv, id) {
   return inv.slots.reduce((t, s) => t + (s?.id === id ? s.n : 0), 0);

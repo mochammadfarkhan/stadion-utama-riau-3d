@@ -14,11 +14,15 @@ import { ITEMS } from '../config/items.js';
 import { createFarm, actOn, planAction, plow, growFarm, farmToJson, farmFromJson } from '../sim/farm.js';
 import { loadModel } from '../world/assets/models.js';
 import { KEBUN_MODELS, buildTractorModel, createFarmView } from '../world/props/unri/kebun.js';
+import { HELD_MODELS, createHeldItemFactory } from '../world/props/unri/heldItems.js';
 
 const STORAGE_KEY = 'stadion.kebun.v1';
 const TILE_COUNT = KEBUN.cols * KEBUN.rows;
 const DOOR_RADIUS = 2;
 const NEED_LABEL = Object.freeze({ cangkul: 'cangkul', benih: 'benih', gembor: 'gembor' });
+/** Animasi pakai item (Bicycle.useItem) per aksi petak. */
+const USE_STYLE = Object.freeze({ cangkul: 'cangkul', siram: 'gembor', tanam: 'raih', panen: 'raih' });
+const HELD_KEYS = Object.keys(HELD_MODELS);
 const rp = (n) => `Rp ${n.toLocaleString('id-ID')}`;
 const lower = (type) => CROPS[type]?.label.toLowerCase() ?? '';
 
@@ -55,6 +59,8 @@ const near = (b, p, r) => Math.hypot(b.x - p.x, b.z - p.z) < r;
 export function setupFarm({ app, input, hud, ents, inventory, terrain, time, store, isBlocked = () => false, logger = console }) {
   let farm = loadFarm();
   let view = null;
+  let held = null; // pabrik model item di tangan
+  let unsubscribeHeld = () => {};
   let disposed = false;
   let target = null; // {kind:'petak', index, action, seed?} | {kind:'perlu', need} | 'beli' | 'kirim' | 'tidur' | 'turun'
   let lastHour = time.hour;
@@ -64,11 +70,16 @@ export function setupFarm({ app, input, hud, ents, inventory, terrain, time, sto
 
   Promise.all([
     loadModel(KEBUN_MODELS.traktor), loadModel(KEBUN_MODELS.rumah), loadModel(KEBUN_MODELS.tunas),
+    ...HELD_KEYS.map((key) => loadModel(HELD_MODELS[key])),
     ...plantTypes.flatMap((t) => KEBUN_MODELS.tanaman[t].map((p) => loadModel(p))),
   ])
-    .then(([traktor, rumah, tunas, ...stages]) => {
+    .then(([traktor, rumah, tunas, ...rest]) => {
       if (disposed) return;
+      const heldSources = Object.fromEntries(HELD_KEYS.map((key, i) => [key, rest[i]]));
+      const stages = rest.slice(HELD_KEYS.length);
       ents.bike.setTractorModel(buildTractorModel(traktor));
+      held = createHeldItemFactory(heldSources);
+      unsubscribeHeld = inventory.subscribeHeld((id, def) => ents.bike.setHeldItem(held.get(id, def)));
       const plantSources = Object.fromEntries(plantTypes.map((t, i) => [t, stages.slice(i * 2, i * 2 + 2)]));
       view = createFarmView({ houseSource: rumah, sproutSource: tunas, plantSources, heightAt: (x, z) => terrain.heightAt(x, z) });
       view.relayout(farm);
@@ -116,15 +127,19 @@ export function setupFarm({ app, input, hud, ents, inventory, terrain, time, sto
     hud.toast(`Selamat pagi! Tanaman yang disiram tumbuh.${pay > 0 ? ` Hasil kiriman +${rp(pay)}` : ''}`, true);
   }
 
-  function workTile(t) {
+  /** Efek aksi petak saat ayunan kena: dihitung ulang dari keadaan kebun & tas SAAT ITU (bisa berubah selama ayunan). */
+  function applyWork(t) {
     const r = actOn(farm, t.index, { seed: t.seed, crops: CROPS });
     if (r.error) return hud.toast(r.error, false);
+    if (r.action !== t.action) return null; // petak berubah (mis. tumbuh) selama ayunan: batalkan diam-diam
+    if (r.action === 'tanam' && !inventory.remove(`benih-${t.seed}`, 1)) return hud.toast('Benih habis', false);
     if (r.harvest && inventory.add(r.harvest, 1) > 0) return hud.toast('Tas penuh: kosongkan slot dulu (I)', false);
-    if (r.action === 'tanam') inventory.takeHeld(1);
     commit(r.farm);
     if (r.harvest) hud.toast(`+1 ${CROPS[r.harvest].label}${CROPS[r.harvest].regrow ? ' (tumbuh lagi)' : ''}`, true);
     return null;
   }
+
+  const workTile = (t) => ents.bike.useItem(USE_STYLE[t.action] ?? 'raih', () => applyWork(t));
 
   function act(t) {
     if (t === 'turun') return hud.toast(`Mode: ${MODE_LABEL[ents.bike.setMode('jalan')]}`, true);
@@ -168,7 +183,7 @@ export function setupFarm({ app, input, hud, ents, inventory, terrain, time, sto
       if (target === 'beli' && input.consumePress('KeyB')) {
         buyType = CROP_ORDER[(CROP_ORDER.indexOf(buyType) + 1) % CROP_ORDER.length];
       }
-      if (target && input.consumePress('KeyE')) act(target);
+      if (target && input.consumePress('KeyE') && !ents.bike.busy) act(target); // E tetap dikonsumsi selama animasi
     },
   });
   app.addSystem({
@@ -219,6 +234,9 @@ export function setupFarm({ app, input, hud, ents, inventory, terrain, time, sto
       app.removeSystem('kebun.trigger');
       app.removeSystem('kebun.grow');
       app.removeSystem('kebun.prompt');
+      unsubscribeHeld();
+      ents.bike.setHeldItem(null);
+      held?.dispose();
       view?.dispose();
     },
   };

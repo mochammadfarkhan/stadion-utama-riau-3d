@@ -2,7 +2,8 @@
  * Kendaraan pemain: mesh prosedural sepeda + pengendara Humanoid + binding ke sim/bikePhysics. Punya MODE (tombol F):
  * 'sepeda' (bawaan), 'jalan' (sepeda disembunyikan, pemain berdiri & berjalan, sim/farm stepOnFoot), 'traktor'
  * (model GLB dari setTractorModel, sim sepeda dengan konfigurasi TRACTOR). State {x,z,yaw,v} sama untuk semua mode,
- * jadi kamera, cerita, collider, dan perjalanan cepat tetap membaca `ents.bike.state`.
+ * jadi kamera, cerita, collider, dan perjalanan cepat tetap membaca `ents.bike.state`. Saat jalan kaki, item hotbar
+ * tampil di tangan kanan (setHeldItem) dan useItem(style) memutar animasi pakai (pemain diam selama animasi).
  *
  * Kontrol (ctx.input: core/Input.js): W/ArrowUp kayuh, S/ArrowDown rem/mundur,
  * A/ArrowLeft & D/ArrowRight belok, ShiftLeft/Right sprint, Space bel.
@@ -16,7 +17,7 @@
 import * as THREE from 'three';
 import { BIKE } from '../config/constants.js';
 import { createBikeState, stepBike } from '../sim/bikePhysics.js';
-import { createHumanoid, animateCycling, animateWalk, animateIdle } from './Humanoid.js';
+import { createHumanoid, animateCycling, animateWalk, animateIdle, animateUseItem, useItemTilt } from './Humanoid.js';
 import { stepOnFoot } from '../sim/farm.js';
 import { PLAYER_MODES, WALK, TRACTOR } from '../config/kebun.js';
 import { BIKE_GEO, createBicycleMesh } from './Bicycle.mesh.js';
@@ -28,6 +29,8 @@ const RIDER_SEAT_LIFT = 0.03;    // pinggul sedikit di atas sadel
 const COLLISION_DAMPING = 0.5;   // laju dikurangi saat collider menggeser posisi
 const MAX_DT = 0.05;
 const PITCH_SMOOTHING = 8;       // 1/s, pitch rangka mengikuti lereng
+const USE_DURATION = Object.freeze({ cangkul: 0.65, gembor: 0.9, raih: 0.55 }); // detik animasi pakai item
+const USE_HIT = Object.freeze({ cangkul: 0.62, gembor: 0.45, raih: 0.5 });        // fraksi durasi saat efek terjadi
 
 /** Baca keyboard menjadi perintah sim {pedal, steer, sprint}. */
 function readCommand(input) {
@@ -60,6 +63,8 @@ export class Bicycle {
   #pitch = 0;
   #mode = 'sepeda';
   #tractor = null; // {group, seat:THREE.Vector3, spin(angle)}
+  #held = null; // {object, carry, work, shoulder} item di tangan kanan (hanya tampil saat jalan kaki)
+  #use = null;  // {style, t, dur, onHit} animasi pakai item yang sedang berjalan; onHit dipanggil saat "kena"
   #walkPhase = 0; // detik-langkah (animateWalk: 1 siklus/detik pada ±1,4 m/s)
   #idleT = 0;
 
@@ -111,12 +116,53 @@ export class Bicycle {
     return this.setMode(order[(order.indexOf(this.#mode) + 1) % order.length]);
   }
 
+  /** Pasang item di tangan kanan (null = tangan kosong). Objek dipakai ulang; yang lama dilepas dari tangan. */
+  setHeldItem(item) {
+    if (this.#held?.object === item?.object) return;
+    this.#held?.object.removeFromParent();
+    this.#held = item ?? null;
+    if (item) {
+      this.#rider.parts.handR.add(item.object);
+      item.object.rotation.set(item.carry, 0, 0);
+      item.object.visible = this.#mode === 'jalan';
+    }
+  }
+
+  /** Sedang memutar animasi pakai item (aksi berikutnya ditahan). */
+  get busy() { return this.#use !== null; }
+
+  /**
+   * Putar animasi pakai item: 'cangkul' | 'gembor' | 'raih'. Hanya saat jalan kaki; pemain diam selama animasi.
+   * onHit dipanggil sekali saat ayunan kena (USE_HIT), atau langsung bila animasi tidak bisa diputar / dibatalkan.
+   */
+  useItem(style, onHit = null) {
+    if (this.#mode !== 'jalan' || this.#use) {
+      onHit?.();
+      return false;
+    }
+    this.#use = { style, t: 0, dur: USE_DURATION[style] ?? 0.5, onHit };
+    this.state = { ...this.state, v: 0 };
+    return true;
+  }
+
+  /** Jalankan efek aksi yang tertunda (sekali). */
+  #fireHit() {
+    const fn = this.#use?.onHit;
+    if (this.#use) this.#use.onHit = null;
+    fn?.();
+  }
+
   /** Pindahkan pengendara ke sadel / tanah / kursi traktor sesuai mode; tampilkan mesh yang sesuai. */
   #applyMode() {
     const r = this.#rider;
     if (!r) return;
     const hip = r.parts.body.userData.baseY;
     this.#parts.frame.visible = this.#mode === 'sepeda';
+    if (this.#held) this.#held.object.visible = this.#mode === 'jalan';
+    if (this.#mode !== 'jalan' && this.#use) { // ganti kendaraan di tengah ayunan: efek tetap terjadi
+      this.#fireHit();
+      this.#use = null;
+    }
     if (this.#tractor) this.#tractor.group.visible = this.#mode === 'traktor';
     if (this.#mode === 'sepeda') {
       this.#parts.saddleMount.add(r.group);
@@ -182,7 +228,7 @@ export class Bicycle {
    */
   update(dt, ctx = {}) {
     const step = clamp(dt, 0, MAX_DT);
-    const cmd = readCommand(ctx.input);
+    const cmd = this.#use ? { pedal: 0, steer: 0, sprint: false } : readCommand(ctx.input); // diam saat pakai item
     if (ctx.input?.consumePress?.('Space')) this.ring();
     const t = this.#terrain;
     const grade = t ? t.gradeAlong(this.state.x, this.state.z, this.state.yaw) : 0;
@@ -193,6 +239,12 @@ export class Bicycle {
     this.#updateGround(step);
     this.#walkPhase += step * (this.state.v ?? 0) / 1.4;
     this.#idleT += step;
+    if (this.#use) {
+      const u = this.#use;
+      u.t += step;
+      if (u.t >= u.dur * (USE_HIT[u.style] ?? 0.5)) this.#fireHit();
+      if (u.t >= u.dur) this.#use = null;
+    }
     this.#applyVisual();
   }
 
@@ -239,8 +291,19 @@ export class Bicycle {
       animateCycling(this.#rider, 0, this.#riderGeo);
       return;
     }
-    if (Math.abs(s.v ?? 0) < 0.15) animateIdle(this.#rider, this.#idleT);
+    const use = this.#use;
+    if (use) animateUseItem(this.#rider, use.t / use.dur, use.style);
+    else if (Math.abs(s.v ?? 0) < 0.15) animateIdle(this.#rider, this.#idleT);
     else animateWalk(this.#rider, this.#walkPhase);
+    const held = this.#held;
+    if (!held) return;
+    if (held.shoulder && !use) { // dipanggul: lengan kanan ditekuk ke pundak, menimpa ayunan lengan jalan/diam
+      this.#rider.parts.shoulderR.rotation.set(-0.25, 0, -0.12);
+      this.#rider.parts.elbowR.rotation.x = -1.9;
+    }
+    const ph = use ? use.t / use.dur : 0;
+    const k = !use ? 0 : ph < 0.15 ? ph / 0.15 : ph > 0.85 ? (1 - ph) / 0.15 : 1; // bawa → posisi kerja → bawa
+    held.object.rotation.x = held.carry + (held.work - held.carry) * k + (use ? useItemTilt(ph, use.style) : 0);
   }
 
   dispose() { this.#bell.dispose(); }

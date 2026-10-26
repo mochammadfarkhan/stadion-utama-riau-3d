@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
-  createInventory, putInSlot, addItem, takeFromSlot, countItem, moveSlot, shipInto, shipValue, inventoryToJson, inventoryFromJson,
+  createInventory, putInSlot, addItem, takeFromSlot, removeItem, countItem, moveSlot, shipInto, shipValue, inventoryToJson, inventoryFromJson,
 } from '../src/sim/inventory.js';
 import { ITEMS, INVENTORY, INVENTORY_SIZE, STARTER_KIT } from '../src/config/items.js';
 import { CROPS, CROP_ORDER } from '../src/config/kebun.js';
+import { HELD_MODELS, heldModelKey } from '../src/world/props/unri/heldItems.js';
 
 const fresh = () => createInventory(INVENTORY_SIZE);
 
@@ -35,6 +36,20 @@ describe('inventory: tumpukan', () => {
     expect(takeFromSlot(one, 0).slots[0]).toBeNull();
     expect(inv.slots[0].n).toBe(2);
     expect(() => { inv.slots[0].n = 9; }).toThrow();
+  });
+});
+
+describe('inventory: ambil per jenis', () => {
+  it('slot pilihan lebih dulu, lalu urut indeks; kurang = null tanpa perubahan', () => {
+    const inv = putInSlot(putInSlot(fresh(), 1, 'benih-cabai', 2, ITEMS), 5, 'benih-cabai', 3, ITEMS);
+    const a = removeItem(inv, 'benih-cabai', 1, 5);
+    expect(a.slots[5]).toEqual({ id: 'benih-cabai', n: 2 });
+    expect(a.slots[1]).toEqual({ id: 'benih-cabai', n: 2 });
+    const b = removeItem(inv, 'benih-cabai', 4, 5);
+    expect(b.slots[5]).toBeNull();
+    expect(b.slots[1]).toEqual({ id: 'benih-cabai', n: 1 });
+    expect(removeItem(inv, 'benih-cabai', 6)).toBeNull();
+    expect(countItem(inv, 'benih-cabai')).toBe(5);
   });
 });
 
@@ -84,5 +99,12 @@ describe('items: data', () => {
       expect(ITEMS[id]).toBeTruthy();
       expect(slot).toBeLessThan(INVENTORY.hotbar);
     }
+  });
+});
+
+describe('item di tangan', () => {
+  it('setiap item punya model tangan; tangan kosong = null', () => {
+    for (const [id, def] of Object.entries(ITEMS)) expect(HELD_MODELS[heldModelKey(def)], id).toBeTruthy();
+    expect(heldModelKey(null)).toBeNull();
   });
 });
