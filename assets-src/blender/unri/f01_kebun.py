@@ -12,6 +12,9 @@ Gaya: mainan/kartun (bentuk tebal, warna cerah, tanpa tekstur) agar selaras gaya
 - f02-rumah-kebun.glb: rumah kayu panggung rendah 6 x 5 m, atap seng pelana, teras + tangga depan.
 - f03-tanaman-{1,2,3}.glb: tanaman cabai tahap tunas, tumbuh, berbuah (satu petak 1 m); tunas dipakai semua jenis.
 - f04-jagung-{2,3}.glb: jagung tumbuh / berbuah (tongkol + malai); f05-terong-{2,3}.glb: terong tumbuh / berbuah.
+- Item di tangan (origin = titik genggam handR, depan = -Y Blender, bawah = -Z): f06-cangkul.glb (gagang 1 m, mata lebar
+  khas cangkul), f07-gembor.glb (gembor seng, pegangan atas), f08-benih.glb (kantong kertas; material kebun:label
+  diwarnai per jenis di three.js), f09-hasil-{cabai,jagung,terong}.glb (hasil panen dalam genggaman).
 """
 import math
 import os
@@ -54,6 +57,11 @@ PALETTE = {
     "kebun:malai": ("#C9A55A", 0.9, 0.0),
     "kebun:terong": ("#5B2A6E", 0.3, 0.0),
     "kebun:kelopak": ("#3F7A2A", 0.8, 0.0),
+    "kebun:gagang": ("#9C6B3C", 0.8, 0.0),
+    "kebun:besi": ("#5E6670", 0.45, 0.7),
+    "kebun:seng": ("#7FA7B8", 0.4, 0.6),
+    "kebun:kertas": ("#D9B77E", 0.9, 0.0),
+    "kebun:label": ("#FFFFFF", 0.8, 0.0),
 }
 
 
@@ -256,6 +264,50 @@ def _terong(stage):
     return b
 
 
+def _cangkul():
+    b = {}
+    _cyl(b, "kebun:gagang", (0, -0.22, 0), 0.018, 0.018, 1.0, seg=8, axis="Y")       # gagang: 0,28 m di belakang genggam
+    _box(b, "kebun:besi", (0, -0.72, -0.02), (0.06, 0.06, 0.07))                     # leher pengikat
+    _box(b, "kebun:besi", (0, -0.69, -0.15), (0.2, 0.015, 0.22), rx=math.radians(18))  # mata lebar menghadap pemakai
+    return b
+
+
+def _gembor():
+    b = {}
+    _cyl(b, "kebun:seng", (0, 0, -0.17), 0.09, 0.1, 0.2, seg=14)                     # badan di bawah genggaman
+    _cyl(b, "kebun:seng", (0, 0, -0.065), 0.04, 0.04, 0.02, seg=10)                  # mulut atas
+    _box(b, "kebun:seng", (0, 0, 0.0), (0.02, 0.16, 0.02))                           # pegangan atas (digenggam)
+    for y in (-0.07, 0.07):
+        _box(b, "kebun:seng", (0, y, -0.035), (0.02, 0.02, 0.07))
+    _cyl(b, "kebun:seng", (0, -0.17, -0.13), 0.014, 0.022, 0.24, seg=8, rx=math.radians(55))  # cerat ke depan-atas
+    _cyl(b, "kebun:besi", (0, -0.27, -0.06), 0.035, 0.02, 0.03, seg=10, rx=math.radians(55))   # kepala pancuran
+    return b
+
+
+def _benih():
+    b = {}
+    _box(b, "kebun:kertas", (0, -0.03, -0.06), (0.1, 0.025, 0.14))
+    _box(b, "kebun:kertas", (0, -0.03, 0.015), (0.1, 0.012, 0.02))                   # lipatan atas
+    _box(b, "kebun:label", (0, -0.044, -0.07), (0.075, 0.004, 0.07))                 # label (diwarnai per jenis)
+    return b
+
+
+def _hasil(jenis):
+    b = {}
+    if jenis == "cabai":
+        for i, a in enumerate((-0.35, 0.0, 0.35)):
+            _ball(b, "kebun:cabai", (0.025 * math.sin(a), -0.05, -0.05 - 0.01 * i), 0.018, sx=0.8, sy=0.8, sz=3.2)
+        _box(b, "kebun:batang", (0, -0.05, 0.01), (0.03, 0.008, 0.02))
+    elif jenis == "jagung":
+        _ball(b, "kebun:tongkol", (0, -0.06, -0.06), 0.035, sz=2.6)
+        for a in (0.0, 2.1, 4.2):
+            _ball(b, "kebun:kelobot", (0.025 * math.cos(a), -0.06 + 0.025 * math.sin(a), -0.03), 0.02, sz=3.0)
+    else:
+        _ball(b, "kebun:terong", (0, -0.05, -0.07), 0.04, sz=2.4)
+        _ball(b, "kebun:kelopak", (0, -0.05, 0.015), 0.025, sz=0.6)
+    return b
+
+
 def _export(coll_name, bms, glb_name):
     for name in (coll_name, f"{coll_name}_Ekspor"):
         c = bpy.data.collections.get(name)
@@ -286,5 +338,10 @@ def build():
     for s in (2, 3):
         out.append(_export(f"KBN_Jagung{s}", _jagung(s), f"f04-jagung-{s}.glb"))
         out.append(_export(f"KBN_Terong{s}", _terong(s), f"f05-terong-{s}.glb"))
+    out.append(_export("KBN_Cangkul", _cangkul(), "f06-cangkul.glb"))
+    out.append(_export("KBN_Gembor", _gembor(), "f07-gembor.glb"))
+    out.append(_export("KBN_Benih", _benih(), "f08-benih.glb"))
+    for jenis in ("cabai", "jagung", "terong"):
+        out.append(_export(f"KBN_Hasil_{jenis}", _hasil(jenis), f"f09-hasil-{jenis}.glb"))
     bpy.ops.wm.save_as_mainfile(filepath=OUT_BLEND, copy=True)
     return out
