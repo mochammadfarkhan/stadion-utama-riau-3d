@@ -67,6 +67,7 @@ import { createSekreInterior, SEKRE_ID } from './interiors/sekre/index.js';
 import { createPortalTrigger } from './app/portalTrigger.js';
 import { setupFarm } from './app/farm.js';
 import { setupInventory } from './app/inventory.js';
+import { setupQuality } from './app/quality.js';
 import { createFadeOverlay } from './ui/FadeOverlay.js';
 import { sekreExitTo } from './regions/unri-lembaga/portalDoors.js';
 import { SEKRE_PEMAIN } from './regions/unri-lembaga/sekreUkm.data.js';
@@ -288,6 +289,9 @@ async function main() {
   lifecycle.add(bindAll(store, {
     app, time, lighting, weather, rig, hud, audioBus, crowd: ents.crowd, vendors: ents.vendors,
   }));
+  // Preset kualitas (Otomatis: tebak GPU + uji 5 detik) SESUDAH bindAll: preset menulis ke setelan yang binding-nya terpasang.
+  const quality = setupQuality({ app, store, hud, touch });
+  lifecycle.add(() => quality.dispose());
 
   // Gaya grafis (L) + penghematan 3/4: SETELAH bindAll (menimpa AO/vignette/kepadatan) dan sistem timeOfDay/weather (atmosfer ditumpuk).
   const styleMgr = createStyleManager({

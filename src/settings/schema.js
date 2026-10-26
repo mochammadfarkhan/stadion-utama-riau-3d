@@ -58,6 +58,12 @@ export const SETTINGS_SCHEMA = Object.freeze({
       quality: Object.freeze({
         title: 'Kualitas',
         fields: Object.freeze({
+          preset: select('Preset kualitas', 'otomatis', ['otomatis', 'rendah', 'sedang', 'tinggi', 'kustom'], {
+            labels: {
+              otomatis: 'Otomatis (deteksi perangkat)', rendah: 'Rendah (laptop tanpa kartu grafis)', sedang: 'Sedang', tinggi: 'Tinggi',
+              kustom: 'Kustom (setelan sendiri)',
+            },
+          }),
           shadowQuality: select('Kualitas bayangan', 'sedang', ['mati', 'rendah', 'sedang', 'tinggi']),
           pixelRatio: range('Resolusi render', 1.25, 0.5, 2, 0.05, { unit: '×' }),
           adaptiveResolution: toggle('Resolusi adaptif (jaga FPS)', true),
@@ -119,6 +125,7 @@ export const SETTINGS_SCHEMA = Object.freeze({
       stats: Object.freeze({
         title: 'Statistik',
         fields: Object.freeze({
+          fpsCap: select('Batas FPS (hemat panas & baterai)', '60', ['30', '60', 'tanpa batas']),
           showStats: toggle('Tampilkan FPS & draw call', true),
           minimap: toggle('Minimap', true),
           labels: toggle('Label pedagang', true),

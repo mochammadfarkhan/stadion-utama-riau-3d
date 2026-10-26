@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createAdaptiveResolution } from './adaptiveResolution.js';
+import { frameInterval, shouldRenderFrame } from '../engine/frameCap.js';
 import { flipRowsInPlace } from '../shared/minimapMath.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -38,6 +39,7 @@ export class App {
   #legacy = new Map(); // updatable lama -> id sistem adaptor
   #legacySeq = 0;
   #disposed = false;
+  #frameGate = { next: 0 }; // jadwal frame berikutnya untuk batas FPS (engine/frameCap)
   #onResize = () => this.resize();
   #aoWanted = RENDER.ao;
   #aoLoading = false;
@@ -61,6 +63,8 @@ export class App {
     this.frame = 0;
     /** true: loop tetap menjalankan sistem (streaming memuat) tanpa render — dipakai saat layar muat. */
     this.holdRender = false;
+    this.frameIntervalMs = 0; // batas FPS (setFrameCap); 0 = ikut refresh layar
+    this.adaptiveTargetMs = ADAPTIVE_TARGET_MS;
     this.lastCtx = null;              // ctx frame terakhir (dipakai renderFrame untuk screenshot)
     this.baseExposure = RENDER.exposure; // dari preset TimeOfDay (ditulis tiap frame)
     this.exposureScale = 1;           // pengali dari settings (sky.exposure / RENDER.exposure)
@@ -263,15 +267,28 @@ export class App {
     const r = Math.min(wanted, this.pixelCap ?? Infinity);
     // Nilai dari pengaturan = batas atas; kontroler adaptif mulai ulang dari sini.
     this.pixelCeiling = r;
-    this.adaptive = createAdaptiveResolution({ ceiling: r, floor: ADAPTIVE_MIN_RATIO, targetMs: ADAPTIVE_TARGET_MS });
+    this.adaptive = createAdaptiveResolution({ ceiling: r, floor: ADAPTIVE_MIN_RATIO, targetMs: this.adaptiveTargetMs });
     this.#applyPixelRatio(r);
+  }
+
+  /**
+   * Batas FPS (0 = tanpa batas): loop melewati vsync sampai jadwal frame berikutnya (engine/frameCap). Target resolusi
+   * adaptif dilonggarkan ke interval batas, agar frame 33 ms di batas 30 tidak dianggap "lambat" dan menurunkan resolusi.
+   */
+  setFrameCap(fps) {
+    this.frameIntervalMs = frameInterval(fps);
+    this.#frameGate.next = 0;
+    this.adaptiveTargetMs = Math.max(ADAPTIVE_TARGET_MS, this.frameIntervalMs * 1.05);
+    if (this.pixelCeiling) {
+      this.adaptive = createAdaptiveResolution({ ceiling: this.pixelCeiling, floor: ADAPTIVE_MIN_RATIO, targetMs: this.adaptiveTargetMs });
+    }
   }
 
   /** Aktifkan/nonaktifkan resolusi adaptif; saat nonaktif kembali ke batas atas dari pengaturan. */
   setAdaptiveResolution(on) {
     this.adaptiveOn = Boolean(on);
     if (!this.adaptiveOn && this.pixelCeiling && this.pixelRatio !== this.pixelCeiling) {
-      this.adaptive = createAdaptiveResolution({ ceiling: this.pixelCeiling, floor: ADAPTIVE_MIN_RATIO, targetMs: ADAPTIVE_TARGET_MS });
+      this.adaptive = createAdaptiveResolution({ ceiling: this.pixelCeiling, floor: ADAPTIVE_MIN_RATIO, targetMs: this.adaptiveTargetMs });
       this.#applyPixelRatio(this.pixelCeiling);
     }
   }
@@ -338,6 +355,7 @@ export class App {
   /** Mulai loop. makeContext(dt) mengembalikan ctx untuk semua updatable. */
   start(makeContext) {
     const loop = () => {
+      if (!shouldRenderFrame(this.#frameGate, performance.now(), this.frameIntervalMs)) return; // batas FPS
       this.timer.update();
       const rawDt = this.timer.getDelta();
       const dt = Math.min(rawDt, MAX_DT);
