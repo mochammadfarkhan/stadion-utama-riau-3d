@@ -7,14 +7,17 @@
  *   yang dipegang; di depan pintu rumah → E tidur (pagi 06.00, tanaman tersiram mendapat KEBUN.sleepHours jam tumbuh,
  *   isi kotak kiriman dibayar). Naik traktor di atas petak rumput → dibajak otomatis.
  * - 'kebun.grow' (world): tanaman tersiram tumbuh mengikuti jam dunia bila waktu berjalan (tombol T).
+ * - 'kebun.fx' (world): pancuran air dari cerat gembor selama fase tuang + semburan tanah saat cangkul kena / tanam / panen.
  * - 'kebun.prompt' (ui, SESUDAH hud). Status kebun disimpan di localStorage (data dicek ulang saat dimuat).
  */
-import { KEBUN, CROPS, CROP_ORDER, tileIndexAt, MODE_LABEL } from '../config/kebun.js';
+import * as THREE from 'three';
+import { KEBUN, CROPS, CROP_ORDER, tileIndexAt, tileCenter, MODE_LABEL } from '../config/kebun.js';
 import { ITEMS } from '../config/items.js';
 import { createFarm, actOn, planAction, plow, growFarm, farmToJson, farmFromJson } from '../sim/farm.js';
 import { loadModel } from '../world/assets/models.js';
 import { KEBUN_MODELS, buildTractorModel, createFarmView } from '../world/props/unri/kebun.js';
 import { HELD_MODELS, createHeldItemFactory } from '../world/props/unri/heldItems.js';
+import { createFarmFx } from '../world/props/unri/kebunFx.js';
 
 const STORAGE_KEY = 'stadion.kebun.v1';
 const TILE_COUNT = KEBUN.cols * KEBUN.rows;
@@ -23,6 +26,8 @@ const NEED_LABEL = Object.freeze({ cangkul: 'cangkul', benih: 'benih', gembor: '
 /** Animasi pakai item (Bicycle.useItem) per aksi petak. */
 const USE_STYLE = Object.freeze({ cangkul: 'cangkul', siram: 'gembor', tanam: 'raih', panen: 'raih' });
 const HELD_KEYS = Object.keys(HELD_MODELS);
+const POUR = Object.freeze({ from: 0.3, to: 0.85 }); // fase animasi gembor saat air mengalir
+const BURST = Object.freeze({ cangkul: 20, tanam: 6, panen: 8 }); // gumpal tanah per aksi
 const rp = (n) => `Rp ${n.toLocaleString('id-ID')}`;
 const lower = (type) => CROPS[type]?.label.toLowerCase() ?? '';
 
@@ -60,6 +65,11 @@ export function setupFarm({ app, input, hud, ents, inventory, terrain, time, sto
   let farm = loadFarm();
   let view = null;
   let held = null; // pabrik model item di tangan
+  let heldItem = null; // item di tangan saat ini ({object, points}) untuk titik efek
+  const fx = createFarmFx({ heightAt: (x, z) => terrain.heightAt(x, z) });
+  app.scene.add(fx.group);
+  const tmpPos = new THREE.Vector3();
+  const tmpDir = new THREE.Vector3();
   let unsubscribeHeld = () => {};
   let disposed = false;
   let target = null; // {kind:'petak', index, action, seed?} | {kind:'perlu', need} | 'beli' | 'kirim' | 'tidur' | 'turun'
@@ -79,7 +89,10 @@ export function setupFarm({ app, input, hud, ents, inventory, terrain, time, sto
       const stages = rest.slice(HELD_KEYS.length);
       ents.bike.setTractorModel(buildTractorModel(traktor));
       held = createHeldItemFactory(heldSources);
-      unsubscribeHeld = inventory.subscribeHeld((id, def) => ents.bike.setHeldItem(held.get(id, def)));
+      unsubscribeHeld = inventory.subscribeHeld((id, def) => {
+        heldItem = held.get(id, def);
+        ents.bike.setHeldItem(heldItem);
+      });
       const plantSources = Object.fromEntries(plantTypes.map((t, i) => [t, stages.slice(i * 2, i * 2 + 2)]));
       view = createFarmView({ houseSource: rumah, sproutSource: tunas, plantSources, heightAt: (x, z) => terrain.heightAt(x, z) });
       view.relayout(farm);
@@ -128,6 +141,22 @@ export function setupFarm({ app, input, hud, ents, inventory, terrain, time, sto
   }
 
   /** Efek aksi petak saat ayunan kena: dihitung ulang dari keadaan kebun & tas SAAT ITU (bisa berubah selama ayunan). */
+  /** Titik efek item di tangan dalam koordinat dunia (null bila item tidak punya titik itu). */
+  function heldPoint(name, out) {
+    const local = heldItem?.points?.[name];
+    if (!local || !heldItem.object.parent) return null;
+    heldItem.object.updateWorldMatrix(true, false);
+    return heldItem.object.localToWorld(out.fromArray(local));
+  }
+
+  /** Semburan tanah di mata cangkul (bila ada) atau di pusat petak. */
+  function soilBurst(t, action) {
+    const c = tileCenter(t.index % KEBUN.cols, Math.floor(t.index / KEBUN.cols));
+    const blade = action === 'cangkul' ? heldPoint('blade', tmpPos) : null;
+    const p = blade ?? { x: c.x, z: c.z };
+    fx.burst({ x: p.x, y: terrain.heightAt(p.x, p.z), z: p.z }, BURST[action]);
+  }
+
   function applyWork(t) {
     const r = actOn(farm, t.index, { seed: t.seed, crops: CROPS });
     if (r.error) return hud.toast(r.error, false);
@@ -135,6 +164,7 @@ export function setupFarm({ app, input, hud, ents, inventory, terrain, time, sto
     if (r.action === 'tanam' && !inventory.remove(`benih-${t.seed}`, 1)) return hud.toast('Benih habis', false);
     if (r.harvest && inventory.add(r.harvest, 1) > 0) return hud.toast('Tas penuh: kosongkan slot dulu (I)', false);
     commit(r.farm);
+    if (BURST[r.action]) soilBurst(t, r.action);
     if (r.harvest) hud.toast(`+1 ${CROPS[r.harvest].label}${CROPS[r.harvest].regrow ? ' (tumbuh lagi)' : ''}`, true);
     return null;
   }
@@ -184,6 +214,18 @@ export function setupFarm({ app, input, hud, ents, inventory, terrain, time, sto
         buyType = CROP_ORDER[(CROP_ORDER.indexOf(buyType) + 1) % CROP_ORDER.length];
       }
       if (target && input.consumePress('KeyE') && !ents.bike.busy) act(target); // E tetap dikonsumsi selama animasi
+    },
+  });
+  app.addSystem({
+    id: 'kebun.fx',
+    phase: 'world',
+    update: (dt) => {
+      const ph = ents.bike.usePhase;
+      if (ents.bike.useStyle === 'gembor' && ph > POUR.from && ph < POUR.to && heldPoint('spout', tmpPos)) {
+        tmpDir.fromArray(heldItem.points.spoutDir).transformDirection(heldItem.object.matrixWorld);
+        fx.pour(tmpPos, tmpDir, dt);
+      }
+      fx.update(dt);
     },
   });
   app.addSystem({
@@ -238,6 +280,8 @@ export function setupFarm({ app, input, hud, ents, inventory, terrain, time, sto
       ents.bike.setHeldItem(null);
       held?.dispose();
       view?.dispose();
+      app.removeSystem('kebun.fx');
+      fx.dispose();
     },
   };
 }

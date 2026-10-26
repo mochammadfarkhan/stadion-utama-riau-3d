@@ -131,6 +131,10 @@ export class Bicycle {
   /** Sedang memutar animasi pakai item (aksi berikutnya ditahan). */
   get busy() { return this.#use !== null; }
 
+  /** Gaya animasi pakai yang sedang berjalan (null = tidak ada) dan fasenya 0..1 (untuk efek partikel). */
+  get useStyle() { return this.#use?.style ?? null; }
+  get usePhase() { return this.#use ? this.#use.t / this.#use.dur : 0; }
+
   /**
    * Putar animasi pakai item: 'cangkul' | 'gembor' | 'raih'. Hanya saat jalan kaki; pemain diam selama animasi.
    * onHit dipanggil sekali saat ayunan kena (USE_HIT), atau langsung bila animasi tidak bisa diputar / dibatalkan.

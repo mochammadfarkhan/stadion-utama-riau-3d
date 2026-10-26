@@ -1,5 +1,6 @@
 /**
- * Bidikan item di tangan + animasi pakai (cangkul dipanggul lalu diayun, benih diraih, gembor dituang), kamera samping.
+ * Bidikan item di tangan + animasi pakai (cangkul dipanggul lalu diayun + semburan tanah, benih diraih, gembor dituang +
+ * pancuran air), kamera samping.
  * Selama ayunan, update pemain diperlambat 10× (hanya di skrip ini) agar fase animasi tertangkap screenshot.
  *   node tools/shots/itemTangan.mjs <folder-keluaran>
  */
@@ -33,19 +34,19 @@ try {
   await page.evaluate(async () => { (await import('/src/app/session.js')).session.started = true; });
   await page.evaluate(() => { window.__sim.ents.bike.setMode('jalan'); window.__sim.teleport(-153.5, 969, -Math.PI / 2); });
   await page.waitForTimeout(2500);
-  const plan = [['Digit1', 'cangkul', 0.65, [0.3, 0.66]], ['Digit3', 'benih', 0.55, [0.5]], ['Digit2', 'gembor', 0.9, [0.5]]];
-  for (const [slot, name, dur, phases] of plan) {
+  const plan = [['Digit1', 'cangkul', [0.3, 0.62]], ['Digit3', 'benih', [0.5]], ['Digit2', 'gembor', [0.5, 0.7]]];
+  for (const [slot, name, phases] of plan) {
     await page.keyboard.press(slot);
     await page.waitForTimeout(700);
     await shot(`${name}-bawa`);
     await slow(true);
     await page.keyboard.press('KeyE');
-    const t0 = Date.now();
-    for (const ph of phases) {
-      await page.waitForTimeout(Math.max(0, ph * dur * SLOW * 1000 - (Date.now() - t0)));
+    for (const ph of phases) { // tunggu fase animasi (bukan jam dinding: dt diklamp saat FPS headless rendah)
+      await page.waitForFunction((p) => !window.__sim.ents.bike.busy || window.__sim.ents.bike.usePhase >= p, ph, { timeout: 60000 });
+      if (ph === 0.62) await page.waitForTimeout(150); // efek partikel berjalan waktu nyata: tangkap gumpal di udara
       await shot(`${name}-${Math.round(ph * 100)}`);
     }
-    await page.waitForTimeout(Math.max(0, dur * SLOW * 1000 - (Date.now() - t0)) + 300);
+    await page.waitForFunction(() => !window.__sim.ents.bike.busy, null, { timeout: 60000 });
     await slow(false);
   }
   console.log('kebun', await page.evaluate(() => localStorage.getItem('stadion.kebun.v1')?.slice(0, 100)));

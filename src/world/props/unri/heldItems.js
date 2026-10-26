@@ -2,7 +2,8 @@
  * Model item di tangan pemain (GLB f06–f09 dari assets-src/blender/unri/f01_kebun.py; origin = titik genggam handR,
  * depan +Z, bawah −Y). Pabrik memetakan definisi item (config/items.js) → {object, carry, work, shoulder}: carry =
  * kemiringan rotation.x saat dibawa, work = saat dipakai (mata cangkul sampai ke tanah), shoulder = dipanggul (lengan
- * kanan ditekuk ke pundak, gagang menjulur ke belakang seperti petani membawa cangkul).
+ * kanan ditekuk ke pundak, gagang menjulur ke belakang seperti petani membawa cangkul), points = titik efek lokal-item
+ * (three.js; Blender (x, y, z) → (x, z, −y)): `blade` tepi bawah mata cangkul, `spout` ujung cerat + `spoutDir` arahnya.
  * Label kantong benih diwarnai per jenis (material dikloning sekali per jenis). Klon dibuat sekali per item lalu dipakai ulang.
  */
 export const HELD_MODELS = Object.freeze({
@@ -17,6 +18,11 @@ export const HELD_MODELS = Object.freeze({
 const LABEL_COLOR = Object.freeze({ cabai: 0xd7261e, jagung: 0xe9c33a, terong: 0x6b2f80 });
 const TILT = Object.freeze({ cangkul: Object.freeze({ carry: -0.7, work: 1.1, shoulder: true }) });
 const NO_TILT = Object.freeze({ carry: 0, work: 0, shoulder: false });
+/** Titik efek lokal-item, selaras _cangkul/_gembor di f01_kebun.py (cerat dirotasi 55° → arah (0, sin35°, cos35°)). */
+const POINTS = Object.freeze({
+  cangkul: Object.freeze({ blade: Object.freeze([0, -0.25, 0.69]) }),
+  gembor: Object.freeze({ spout: Object.freeze([0, -0.06, 0.28]), spoutDir: Object.freeze([0, 0.57, 0.82]) }),
+});
 
 /** Kunci model untuk definisi item; null = tidak ada model (tangan kosong). */
 export function heldModelKey(def) {
@@ -29,7 +35,8 @@ export function heldModelKey(def) {
 
 /**
  * @param {Record<string, import('three').Object3D>} sources kunci HELD_MODELS → scene GLB (cache loadModel, jangan dispose)
- * @returns {{get(id:string, def:object|null): ({object:import('three').Object3D, carry:number, work:number, shoulder:boolean}|null),
+ * @returns {{get(id:string, def:object|null): ({object:import('three').Object3D, carry:number, work:number, shoulder:boolean,
+ *   points:{blade?:number[], spout?:number[], spoutDir?:number[]}}|null),
  *   dispose():void}}
  */
 export function createHeldItemFactory(sources) {
@@ -55,7 +62,7 @@ export function createHeldItemFactory(sources) {
       object.name = `dipegang:${id}`;
       object.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; } });
       if (def.kind === 'seed') tintLabel(object, def.crop);
-      const item = { object, ...(TILT[key] ?? NO_TILT) };
+      const item = { object, ...(TILT[key] ?? NO_TILT), points: POINTS[key] ?? {} };
       cache.set(id, item);
       return item;
     },
