@@ -6,6 +6,7 @@
  */
 import { CanvasTexture, MeshStandardMaterial, SRGBColorSpace } from 'three';
 import { facePoint } from './planGeom.js';
+import { fitFontSize } from '../util/fitText.js';
 
 export const SIGN_ATLAS = Object.freeze({ width: 1024, cellW: 512, cellH: 64, pad: 8 });
 const FONT = "'Inter Variable', 'Arial Narrow', Arial, sans-serif";
@@ -20,12 +21,9 @@ function defaultCanvas(w, h) {
 
 /** Ukuran font terbesar yang muat lebar maksimum. */
 function fitFont(ctx, text, maxW, maxPx) {
-  let px = maxPx;
-  ctx.font = `700 ${px}px ${FONT}`;
-  while (px > 10 && ctx.measureText(text).width > maxW) {
-    px -= 2;
-    ctx.font = `700 ${px}px ${FONT}`;
-  }
+  const font = (p) => `700 ${p}px ${FONT}`;
+  const px = fitFontSize((p) => { ctx.font = font(p); return ctx.measureText(text).width; }, maxPx, 10, 2, maxW);
+  ctx.font = font(px);
   return px;
 }
 

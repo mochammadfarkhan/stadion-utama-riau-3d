@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { currentScope } from '../../engine/ResourceScope.js';
+import { fitFontSize } from '../util/fitText.js';
 
 /**
  * CanvasTexture berisi teks — hanya jika `document` tersedia (browser).
@@ -21,11 +22,11 @@ export function hasDocument() {
 /** Kecilkan font sampai teks muat dalam lebar maksimum. */
 function fitText(ctx, text, maxWidth) {
   const match = ctx.font.match(/(\d+)px/);
-  let size = parseInt(match ? match[1] : '100', 10);
-  while (ctx.measureText(text).width > maxWidth && size > 12) {
-    size -= 4;
-    ctx.font = ctx.font.replace(/\d+px/, size + 'px');
-  }
+  const base = ctx.font;
+  const font = (px) => base.replace(/\d+px/, `${px}px`);
+  const size = fitFontSize((px) => { ctx.font = font(px); return ctx.measureText(text).width; },
+    parseInt(match ? match[1] : '100', 10), 12, 4, maxWidth);
+  ctx.font = font(size);
 }
 
 export function makeTextTexture(text, opts = {}) {

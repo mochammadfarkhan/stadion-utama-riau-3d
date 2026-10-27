@@ -4,6 +4,7 @@
  * bersama → banyak placeholder tergabung menjadi satu draw call). Tanpa berkas gambar berlisensi.
  */
 import * as THREE from 'three';
+import { fitFontSize } from '../../world/util/fitText.js';
 
 export const FONT = '"Inter Variable", "Segoe UI", Arial, sans-serif';
 export const HAND = '"Segoe Print", "Bradley Hand", "Comic Sans MS", cursive';
@@ -30,12 +31,10 @@ export function canvasTexture(canvas, renderer, { repeat = false } = {}) {
 
 /** Set c.font dengan ukuran terbesar ≤ size yang membuat teks muat maxWidth; kembalikan ukurannya. */
 export function fitFont(c, text, maxWidth, { weight = 700, size = 32, family = FONT, min = 8 } = {}) {
-  let s = size;
-  c.font = `${weight} ${s}px ${family}`;
-  while (s > min && c.measureText(String(text)).width > maxWidth) {
-    s -= 1;
-    c.font = `${weight} ${s}px ${family}`;
-  }
+  const font = (s) => `${weight} ${s}px ${family}`;
+  const str = String(text);
+  const s = fitFontSize((px) => { c.font = font(px); return c.measureText(str).width; }, size, min, 1, maxWidth);
+  c.font = font(s);
   return s;
 }
 

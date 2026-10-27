@@ -4,6 +4,7 @@
  */
 import * as THREE from 'three';
 import { hasDocument } from '../canvasText.js';
+import { fitFontSize } from '../../util/fitText.js';
 
 /**
  * Kemas sel ke rak (shelf packing), sel tertinggi dulu. Koordinat piksel kanvas (y ke bawah).
@@ -40,12 +41,9 @@ export function rectToUv(r, width, height) {
 
 /** Kecilkan huruf sampai teks muat `maxW` piksel; kembalikan ukuran px akhir. */
 export function fitFont(ctx, text, maxW, px, weight = 'bold') {
-  let size = Math.round(px);
-  ctx.font = `${weight} ${size}px sans-serif`;
-  while (size > 6 && ctx.measureText(text).width > maxW) {
-    size -= 1;
-    ctx.font = `${weight} ${size}px sans-serif`;
-  }
+  const font = (s) => `${weight} ${s}px sans-serif`;
+  const size = fitFontSize((s) => { ctx.font = font(s); return ctx.measureText(text).width; }, Math.round(px), 6, 1, maxW);
+  ctx.font = font(size);
   return size;
 }
 
