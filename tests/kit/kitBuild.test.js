@@ -36,7 +36,7 @@ describe('buildBuilding (kit lengkap, Node tanpa canvas)', () => {
       expect(Object.keys(p.geometry.attributes).sort()).toEqual(['color', 'normal', 'position', 'uv']);
       expect([mats.opak, mats.potong]).toContain(p.material);
       expect(p.matrix).toBeNull();
-      for (const v of p.geometry.attributes.position.array) expect(Number.isFinite(v)).toBe(true);
+      expect(p.geometry.attributes.position.array.every(Number.isFinite)).toBe(true); // satu expect (bukan per angka: lambat)
     }
   });
 
