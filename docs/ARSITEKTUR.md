@@ -76,7 +76,9 @@ Aturan praktis untuk sistem baru:
    Arah: pindahkan perakitan per fitur ke `app/<fitur>.js` (pola `setupShop`, `setupInventory` sudah benar).
 2. **GPU terintegrasi masih berat** — di laptop user (AMD Radeon terintegrasi) titik kebun: preset Rendah 27 FPS,
    Tinggi 2 FPS. Penyebab spesifik di kebun belum diprofil. Lihat `plans/2026-10-26-performa-open-world.md` Fase 2–4.
-3. **Semua di thread utama** — parsing tile/GLB belum di Web Worker → lag sesaat saat streaming.
+3. **Lag sesaat saat streaming** — terukur (Fase 2) penyebab utamanya kompilasi shader, bukan parsing (< 0,7 s);
+   sudah ditangani dengan warm-up shader. Web Worker sengaja **belum** dibuat; buka lagi hanya bila `tools/shots/stutter.mjs`
+   menunjukkan parsing jadi dominan.
 4. **Distrik UNRI dipasang penuh saat boot**, bukan streaming seperti region → waktu muat awal.
 5. **Belum ada satu tempat untuk keputusan desain** — tersebar di 18 plan + 6 spec. Pakai log di bawah.
 
