@@ -96,6 +96,7 @@ export class App {
     this.minimapVisible = true;
     this.elapsed = 0;
     this.frame = 0;
+    this.cpuMs = NaN; // waktu thread utama frame terakhir (sistem + render), dibaca laporan ?perf
     /** true: loop tetap menjalankan sistem (streaming memuat) tanpa render — dipakai saat layar muat. */
     this.holdRender = false;
     this.frameIntervalMs = 0; // batas FPS (setFrameCap); 0 = ikut refresh layar
@@ -541,7 +542,8 @@ export class App {
   /** Mulai loop. makeContext(dt) mengembalikan ctx untuk semua updatable. */
   start(makeContext) {
     const loop = () => {
-      if (!shouldRenderFrame(this.#frameGate, performance.now(), this.frameIntervalMs)) return; // batas FPS
+      const t0 = performance.now();
+      if (!shouldRenderFrame(this.#frameGate, t0, this.frameIntervalMs)) return; // batas FPS
       this.timer.update();
       const rawDt = this.timer.getDelta();
       const dt = Math.min(rawDt, MAX_DT);
@@ -555,6 +557,7 @@ export class App {
       this.lastCtx = ctx;
       this.systems.update(dt, ctx);
       if (!this.holdRender) this.render(ctx);
+      this.cpuMs = performance.now() - t0;
       this.frame += 1;
     };
     this.renderer.setAnimationLoop(loop);

@@ -36,9 +36,13 @@ export function guessTierFromGpu(renderer, { mobile = false } = {}) {
 
 /** Persentil p (0..1) dari sampel (tidak mengubah array masukan); kosong → NaN. */
 export function percentile(samples, p) {
-  const xs = samples.filter(Number.isFinite).sort((a, b) => a - b);
-  if (!xs.length) return NaN;
-  return xs[Math.min(xs.length - 1, Math.max(0, Math.ceil(p * xs.length) - 1))];
+  return pickSorted(samples.filter(Number.isFinite).sort((a, b) => a - b), p);
+}
+
+/** Persentil p (0..1) dari array yang SUDAH terurut naik (tanpa salin/urut ulang); kosong → NaN. */
+export function pickSorted(sorted, p) {
+  if (!sorted.length) return NaN;
+  return sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(p * sorted.length) - 1))];
 }
 
 /**
