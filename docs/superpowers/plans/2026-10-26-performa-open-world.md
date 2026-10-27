@@ -76,6 +76,25 @@ Penyebab umum di WebGL, diperiksa satu-satu dengan laporan long task dari Fase 0
 - **Selesai bila:** tidak ada long task > 100 ms saat berjalan/berkendara melintasi kota & kampus, dan tidak ada > 50 ms saat
   memakai item/masuk interior (diukur `?perf`).
 
+**Status Fase 2 (2026-10-27):** diukur dulu (`tools/shots/stutter.mjs`: long task, jeda frame, shader baru, dan SUMBER stall
+shader per momen; CPU profile) → **±90 % waktu long task saat masuk area baru = kompilasi shader di frame pertama**
+(`getProgramInfoLog` menunggu link D3D11/ANGLE ±0,4 s/program di iGPU). Parsing GLB/noise/drape < 0,7 s, jadi Worker &
+audit alokasi ditunda. Dikerjakan:
+- `App.warmup/needsWarmup/materialReadyFor`: kompilasi varian PERSIS objek (compile sinkron = mulai link paralel) lalu tunggu
+  SEMUA program siap; termasuk **varian depth pass bayangan** (proxy berjenis sama, material depth meniru
+  `WebGLShadowMap.getDepthMaterial` — salin map/alphaMap/alphaTest, sisi VSM, penerima VSM ikut, dikompilasi tanpa lampu).
+- Region ber-proxy disembunyikan sampai `ready` + hangat (proxy tetap tampil); chunk distrik lewat `watchWarmup`
+  (`childadded`, hanya objek yang shader-nya belum siap); kebun/traktor/item/partikel dihangatkan sebelum tampil; interior &
+  perjalanan cepat `precompile()` saat layar tertutup; `precompile()` muat ikut varian depth seluruh scene.
+- `styleManager` menunda pbrSwap sampai shader material PBR tujuan siap.
+- Bake minimap region asinkron (`readRenderTargetPixelsAsync` + `createImageBitmap flipY`).
+- Hasil A/B (`?nowarm`, preset Sedang dipasang sebelum muat, iGPU): long task terlama di skenario 1.735 → 754 ms (−57 %),
+  total long task 13,4 → 8,7 s (−35 %); masjid 1.735 → 217 ms, buka tas 156 → 0 ms; `tanahKota` depth 1,2 s → 0.
+- **Sisa:** stall 150–400 ms dari material yang diubah SESUDAH dihangatkan (registri basah/emisif, pertukaran gaya),
+  dan long task non-shader (perakitan region, tekstur prosedural `noise.js`, `updateMatrixWorld` ±0,3 s/2,5 s) →
+  langkah berikut: hangatkan ulang saat registri mengubah material, Worker untuk tekstur prosedural/parsing, bekukan
+  matriks objek statis yang belum.
+
 ## Fase 3 — Muat lebih cepat (M)
 
 - [ ] Ukur fase muat (Fase 0), lalu **muat malas** konten yang tidak dibutuhkan di awal: interior sekre, studio reels, kebun &

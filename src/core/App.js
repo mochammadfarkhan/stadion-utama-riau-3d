@@ -20,6 +20,37 @@ const MAX_PIXEL_RATIO = RENDER.pixelRatio;
 const SHADOW_INTERVAL = 2;         // peta bayangan dirender ulang tiap N frame (pass shadow ±25% biaya frame)
 const ADAPTIVE_MIN_RATIO = 0.6;   // resolusi adaptif tidak turun di bawah ini
 const ADAPTIVE_TARGET_MS = 20;    // target waktu frame (50 fps)
+const WARMUP_POLL_MS = 16;        // jeda cek program selesai di-link (warmup)
+/** Jenis objek yang memengaruhi kunci program (instancing/warna instans/batching). */
+const proxyKind = (o) => (o.isBatchedMesh ? (o._colorsTexture ? 'batchC' : 'batch')
+  : o.isInstancedMesh ? (o.instanceColor ? 'instC' : 'inst') : 'mesh');
+
+/** Mesh tiruan berjenis sama dengan `o` (geometri dibagikan) memakai `material` — hanya untuk kompilasi program. */
+function proxyOf(o, material) {
+  if (o.isBatchedMesh) {
+    // Kunci program memuat atribut geometri yang ADA (normal → vertexNormals, dst.): tiru daftar atribut batch asli
+    // pada satu segitiga; warna per instans = varian 'batchingColor'.
+    const p = new THREE.BatchedMesh(1, 3, 3, material);
+    const g = new THREE.BufferGeometry();
+    for (const [name, a] of Object.entries(o.geometry.attributes)) {
+      g.setAttribute(name, new THREE.BufferAttribute(new Float32Array(3 * a.itemSize), a.itemSize, a.normalized));
+    }
+    if (o.geometry.index) g.setIndex([0, 1, 2]);
+    const inst = p.addInstance(p.addGeometry(g));
+    if (o._colorsTexture) p.setColorAt(inst, new THREE.Color());
+    g.dispose();
+    return p;
+  }
+  if (o.isInstancedMesh) {
+    const p = new THREE.InstancedMesh(o.geometry, material, 1);
+    if (o.instanceColor) p.setColorAt(0, new THREE.Color());
+    return p;
+  }
+  return new THREE.Mesh(o.geometry, material);
+}
+
+/** Sisi depth pass bayangan non-VSM (WebGLShadowMap): Front→Back, Back→Front, Double→Double. */
+const SHADOW_SIDE_FLIP = Object.freeze({ [THREE.FrontSide]: THREE.BackSide, [THREE.BackSide]: THREE.FrontSide, [THREE.DoubleSide]: THREE.DoubleSide });
 const AO_SAMPLES = 12;            // sampel GTAO per piksel (default 16; lebih ringan)
 const AO_DISTANCE_FALLOFF = 1.0;
 const MINIMAP_BAKE_PX = 1536;      // resolusi peta dasar (±0,6 m/piksel untuk area region ±461 m)
@@ -40,6 +71,9 @@ export class App {
   #legacySeq = 0;
   #disposed = false;
   #frameGate = { next: 0 }; // jadwal frame berikutnya untuk batas FPS (engine/frameCap)
+  #depthVariants = new Map(); // material depth tiruan pass bayangan (warmup)
+  #readyKeys = new Set();     // material + jenis objek yang programnya sudah siap (materialReadyFor)
+  #shadowScene = new THREE.Scene(); // scene kosong: kompilasi proxy depth tanpa lampu (= pass bayangan)
   #onResize = () => this.resize();
   #aoWanted = RENDER.ao;
   #aoLoading = false;
@@ -64,6 +98,8 @@ export class App {
     /** true: loop tetap menjalankan sistem (streaming memuat) tanpa render — dipakai saat layar muat. */
     this.holdRender = false;
     this.frameIntervalMs = 0; // batas FPS (setFrameCap); 0 = ikut refresh layar
+    // `?nowarm`: matikan pemanasan shader (warmup/proxy bayangan/penundaan pbrSwap) — pembanding ukur performa
+    this.warmEnabled = typeof location === 'undefined' || !new URLSearchParams(location.search).has('nowarm');
     this.adaptiveTargetMs = ADAPTIVE_TARGET_MS;
     this.lastCtx = null;              // ctx frame terakhir (dipakai renderFrame untuk screenshot)
     this.baseExposure = RENDER.exposure; // dari preset TimeOfDay (ditulis tiap frame)
@@ -345,11 +381,133 @@ export class App {
     const r = this.renderer;
     const prev = r.getRenderTarget();
     r.setRenderTarget(this.post.composer.readBuffer);
+    const proxies = this.warmEnabled ? this.#shadowProxies(this.view.scene) : new THREE.Group(); // varian depth bayangan
     try {
-      return r.compileAsync(this.view.scene, this.view.camera).then(() => {});
+      return Promise.all([
+        r.compileAsync(this.view.scene, this.view.camera),
+        proxies.children.length ? r.compileAsync(proxies, this.view.camera, this.#shadowScene) : null,
+      ]).then(() => {}).finally(() => proxies.children.forEach((o) => o.isBatchedMesh && o.dispose()));
     } finally {
       r.setRenderTarget(prev);
     }
+  }
+
+  /**
+   * Hangatkan shader sebuah subpohon SEBELUM ditampilkan (rencana performa Fase 2): #prepare memulai kompilasi varian
+   * PERSIS milik objek-objeknya (termasuk varian depth pass bayangan) secara paralel (KHR_parallel_shader_compile), lalu
+   * menunggu sampai semua program selesai di-link — frame pertama yang menggambarnya tidak membeku menunggu kompilasi.
+   * @param {THREE.Object3D} root boleh belum ada di scene / tersembunyi (compile menelusuri semua mesh)
+   * @returns {Promise<void>}
+   */
+  warmup(root) {
+    if (!this.warmEnabled) return Promise.resolve();
+    const pending = this.#prepare(root).filter((p) => !p.isReady());
+    if (!pending.length) return Promise.resolve();
+    return new Promise((resolve) => {
+      const poll = () => {
+        for (let i = pending.length - 1; i >= 0; i -= 1) if (pending[i].isReady()) pending.splice(i, 1);
+        if (pending.length) setTimeout(poll, WARMUP_POLL_MS);
+        else resolve();
+      };
+      poll();
+    });
+  }
+
+  /**
+   * true bila subpohon akan membeku saat pertama digambar: ada program (utama atau bayangan) untuk variannya yang belum
+   * selesai di-link. Sekaligus MEMULAI kompilasinya, jadi warmup() sesudahnya tinggal menunggu.
+   * @param {THREE.Object3D} root
+   */
+  needsWarmup(root) {
+    if (!this.warmEnabled) return false;
+    return this.#prepare(root).some((p) => !p.isReady());
+  }
+
+  /**
+   * true bila program `material` untuk varian objek `object` (biasa/instanced/batched, termasuk depth bayangan bila
+   * memancarkan bayangan) sudah siap; bila belum, kompilasinya DIMULAI (non-blok). Dipakai styleManager untuk menunda
+   * penukaran material (pbrSwap) sampai shader barunya siap. Hasil siap di-cache per material + jenis objek.
+   */
+  materialReadyFor(object, material) {
+    if (!this.warmEnabled) return true;
+    const inShadow = object.castShadow || (this.renderer.shadowMap.type === THREE.VSMShadowMap && object.receiveShadow);
+    const key = `${material.uuid}|${proxyKind(object)}|${inShadow ? 's' : ''}`;
+    if (this.#readyKeys.has(key)) return true;
+    const root = new THREE.Group();
+    root.add(proxyOf(object, material));
+    const ready = this.#prepare(root, inShadow ? [object] : []).every((p) => p.isReady());
+    for (const o of root.children) if (o.isBatchedMesh) o.dispose();
+    if (ready) this.#readyKeys.add(key);
+    return ready;
+  }
+
+  /** Kompilasi (non-blok) varian program utama + depth bayangan subpohon; kembalikan program-programnya. */
+  #prepare(root, shadowCasters = null) {
+    const r = this.renderer;
+    const { scene, camera } = this.view;
+    const prev = r.getRenderTarget();
+    r.setRenderTarget(this.post.composer.readBuffer); // varian target composer (linear, tanpa tone mapping) = pass utama
+    const proxies = this.#shadowProxies(root, shadowCasters);
+    try {
+      const mats = [...r.compile(root, camera, scene)];
+      // pass bayangan three.js menyusun program depth TANPA lampu → kompilasi proxy terhadap scene kosong
+      if (proxies.children.length) mats.push(...r.compile(proxies, camera, this.#shadowScene));
+      // SEMUA program material (satu material bisa punya varian biasa/instanced/batched; currentProgram = varian terakhir)
+      return mats.flatMap((m) => [...(r.properties.get(m).programs?.values() ?? [])]).filter((p) => p?.isReady);
+    } finally {
+      r.setRenderTarget(prev);
+      for (const o of proxies.children) if (o.isBatchedMesh) o.dispose();
+    }
+  }
+
+  /**
+   * Mesh tiruan berjenis sama (biasa/instanced/batched) dengan material depth yang dipakai pass bayangan untuk tiap
+   * objek yang digambar pass bayangan di subpohon (pemancar; pada VSM juga penerima) (meniru WebGLShadowMap.getDepthMaterial: custom depth, varian alpha/map/displacement,
+   * sisi VSM = shadowSide ?? side, selain VSM dibalik). compileAsync three.js tidak menyentuh varian ini.
+   */
+  #shadowProxies(root, casters = null) {
+    const group = new THREE.Group();
+    const r = this.renderer;
+    if (!r.shadowMap.enabled) return group;
+    const vsm = r.shadowMap.type === THREE.VSMShadowMap;
+    const seen = new Set(); // satu proxy per (jenis objek, material depth): ribuan pemancar → beberapa proxy
+    const visit = (o, material = null) => {
+      // pass bayangan menggambar pemancar, dan pada VSM juga PENERIMA (WebGLShadowMap.renderObject)
+      if (!(o.castShadow || (vsm && o.receiveShadow)) || !o.isMesh || o.isSkinnedMesh) return;
+      const src = material ?? (Array.isArray(o.material) ? o.material[0] : o.material);
+      if (!src) return;
+      const side = src.shadowSide ?? (vsm ? src.side : SHADOW_SIDE_FLIP[src.side]);
+      const depth = o.customDepthMaterial ?? this.#depthVariant(src, side);
+      const key = `${proxyKind(o)}|${depth.uuid}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      group.add(proxyOf(o, depth));
+    };
+    if (casters) for (const o of casters) visit(o, root.children[0]?.material);
+    else root.traverse((o) => visit(o));
+    return group;
+  }
+
+  /**
+   * Material depth per kombinasi yang memengaruhi kunci program, meniru WebGLShadowMap.getDepthMaterial: material depth
+   * bersama SELALU menyalin map/alphaMap/alphaTest/displacement dari material sumber (bukan hanya kasus klon unik).
+   * Program-nya tetap hidup di cache selama material tiruan ini hidup.
+   */
+  #depthVariant(src, side) {
+    const alphaTest = src.alphaToCoverage === true ? 0.5 : src.alphaTest;
+    const disp = src.displacementMap && src.displacementScale !== 0 ? src.displacementMap : null;
+    const key = [side, alphaTest > 0 ? 1 : 0, src.map ? `m${src.map.channel}` : '', src.alphaMap ? `a${src.alphaMap.channel}` : '',
+      disp ? `d${disp.channel}` : ''].join('|');
+    let m = this.#depthVariants.get(key);
+    if (!m) {
+      m = new THREE.MeshDepthMaterial({ side, alphaTest, map: src.map, alphaMap: src.alphaMap });
+      if (disp) {
+        m.displacementMap = disp;
+        m.displacementScale = src.displacementScale;
+      }
+      this.#depthVariants.set(key, m);
+    }
+    return m;
   }
 
   /** Mulai loop. makeContext(dt) mengembalikan ctx untuk semua updatable. */
@@ -420,6 +578,40 @@ export class App {
    * @returns {HTMLCanvasElement}
    */
   bakeMinimap(worldHalf, center = { x: 0, z: 0 }) {
+    const { target, px } = this.#renderMinimap(worldHalf, center);
+    try {
+      const buf = new Uint8ClampedArray(px * px * 4);
+      this.renderer.readRenderTargetPixels(target, 0, 0, px, px, buf);
+      flipRowsInPlace(buf, px, px);
+      const canvas = document.createElement('canvas');
+      canvas.width = px;
+      canvas.height = px;
+      canvas.getContext('2d').putImageData(new ImageData(buf, px, px), 0, 0);
+      return canvas;
+    } finally {
+      target.dispose();
+    }
+  }
+
+  /**
+   * Seperti bakeMinimap, tetapi tanpa membekukan thread (rencana performa Fase 2): piksel dibaca asinkron (PBO + fence
+   * WebGL2, readRenderTargetPixelsAsync) dan dibalik + diubah menjadi ImageBitmap oleh browser (createImageBitmap flipY),
+   * bukan readPixels sinkron + loop JS + putImageData 9 MB di thread utama.
+   * @returns {Promise<ImageBitmap>}
+   */
+  async bakeMinimapAsync(worldHalf, center = { x: 0, z: 0 }) {
+    const { target, px } = this.#renderMinimap(worldHalf, center);
+    try {
+      const buf = new Uint8ClampedArray(px * px * 4);
+      await this.renderer.readRenderTargetPixelsAsync(target, 0, 0, px, px, buf);
+      return await createImageBitmap(new ImageData(buf, px, px), { imageOrientation: 'flipY' });
+    } finally {
+      target.dispose();
+    }
+  }
+
+  /** Render tampak atas layer minimap ke target baru; keadaan scene dipulihkan SEBELUM kembali. Pemanggil membuang target. */
+  #renderMinimap(worldHalf, center) {
     const r = this.renderer;
     const px = MINIMAP_BAKE_PX;
     const cam = new THREE.OrthographicCamera(-worldHalf, worldHalf, worldHalf, -worldHalf, 1, MINIMAP_BAKE_HEIGHT * 2);
@@ -445,14 +637,10 @@ export class App {
       r.setClearColor(0x000000, 0);
       r.clear();
       r.render(this.scene, cam);
-      const buf = new Uint8ClampedArray(px * px * 4);
-      r.readRenderTargetPixels(target, 0, 0, px, px, buf);
-      flipRowsInPlace(buf, px, px);
-      const canvas = document.createElement('canvas');
-      canvas.width = px;
-      canvas.height = px;
-      canvas.getContext('2d').putImageData(new ImageData(buf, px, px), 0, 0);
-      return canvas;
+      return { target, px };
+    } catch (err) {
+      target.dispose();
+      throw err;
     } finally {
       r.setRenderTarget(null);
       r.setClearColor(clear, clearAlpha);
@@ -460,7 +648,6 @@ export class App {
       this.scene.environment = keep.env;
       this.scene.fog = keep.fog;
       this.scene.background = keep.bg;
-      target.dispose();
     }
   }
 }

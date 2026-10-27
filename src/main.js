@@ -267,7 +267,7 @@ async function main() {
   const heroOrnaments = createHeroOrnamentLayer({ scene: app.scene, terrain });
   lifecycle.add(() => heroOrnaments.dispose());
   app.addSystem({ id: 'heroOrnaments', phase: 'world', update: (dt, ctx) => heroOrnaments.update(ctx.focus) });
-  const travel = setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, spawn: region.layout.spawn, touch, unri, regions });
+  const travel = setupFastTravel({ app, lifecycle, hud, rig, ents, colliders, city, frame, spawn: region.layout.spawn, touch, unri, regions });
   const panelRef = { current: null }; // SettingsPanel (diisi saat panel selesai dipasang)
   const portalKit = setupPortal({
     app, input, hud, rig, ents, regions, colliders, time, weather, store, audioBus, travel, story, minimap, look, panelRef, lifecycle,
@@ -422,13 +422,15 @@ function addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, stor
  * Perjalanan cepat (G / tombol HUD): Stadion, Masjid Raya An-Nur, Kampus UNRI (Sekretariat Lembaga, Rektorat); teleport menunggu tile tujuan
  * dimuat streamer sebelum layar perjalanan ditutup. Tanpa kota: hanya Stadion.
  */
-function setupFastTravel({ lifecycle, hud, rig, ents, colliders, city, frame, spawn, touch, unri, regions }) {
+function setupFastTravel({ app, lifecycle, hud, rig, ents, colliders, city, frame, spawn, touch, unri, regions }) {
   const screen = createTravelScreen(document.body);
   lifecycle.add(() => screen.dispose());
   const travel = createFastTravel({
     destinations: travelDestinations({ manifest: city?.manifest ?? null, frame, spawn, campus: Boolean(unri) }), bike: ents.bike, colliders, city, screen,
     settle: async (x, z) => { // distrik (terrain/ground/gedung) + region hero yang menaungi tujuan harus siap
       const [districtOk, regionOk] = await Promise.all([unri ? unri.whenSettled(x, z) : true, waitForRegion(regions, HERO_REGIONS, x, z)]);
+      // Layar perjalanan masih menutupi: kompilasi shader semua konten yang baru dimuat (chunk distrik, tile, region)
+      await app.precompile().catch((err) => console.error('Prekompilasi shader tujuan gagal:', err));
       return districtOk !== false && regionOk;
     },
     isCameraClear: colliders.isCameraClear, rig, // POV ditutup dulu (menu & devtools); muncul dengan ruang kamera

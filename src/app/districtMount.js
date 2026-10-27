@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { createResourceScope } from '../engine/ResourceScope.js';
 import { validateDistrictBuild } from '../districts/District.js';
 import { createChunkStreamer } from '../city/ChunkStreamer.js';
+import { watchWarmup } from './warmGate.js';
 import { fetchJson as defaultFetchJson } from '../city/TileLoader.js';
 import { fetchArrayBuffer as defaultFetchArrayBuffer } from '../districts/terrainChunks.js';
 import { createDistrictRegistries } from './districtRegistries.js';
@@ -107,6 +108,8 @@ export async function mountDistrict(app, def, {
     undo.push(() => district.dispose());
     app.scene.add(district.group);
     undo.push(() => district.group.removeFromParent());
+    // Chunk/klaster yang di-stream: tampil setelah shader-nya hangat (rencana performa Fase 2)
+    if (typeof app.warmup === 'function' && typeof app.needsWarmup === 'function') undo.push(watchWarmup(district.group, app, { logger }));
     if (weather) undo.push(weather.registerWet(district.group));
     for (const system of district.systems) {
       app.addSystem(system);

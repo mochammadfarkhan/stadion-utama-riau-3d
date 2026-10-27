@@ -5,7 +5,7 @@ import {
 import { createAutoQuality, effectsAtLevel, leafCardsAtLevel, stepAutoQuality } from './autoQuality.js';
 import { createContactShadows } from './contactShadows.js';
 import { updateOcclusionFade } from './occlusionFade.js';
-import { applyStyleSwap } from './pbrSwap.js';
+import { applyStyleSwap, pickSwapMaterial } from './pbrSwap.js';
 import { gradingParams } from './gradingParams.js';
 import { encodeFogFar, installFogScatter } from './fogScatter.js';
 import { lightByHour } from './lightByHour.js';
@@ -80,8 +80,15 @@ export function createStyleManager({ store, app, scene, lighting, rig, time = nu
     const swapKey = `${style}:${styleState.terrainQuality}`;
     scene.traverse((o) => {
       if (o.userData?.pbrSwap && appliedSwap.get(o) !== swapKey) { // material per gaya/kualitas tanah (kartun/facet = PBR)
-        applyStyleSwap(o, style, styleState.terrainQuality);
-        appliedSwap.set(o, swapKey);
+        // Tunda penukaran sampai shader material tujuan siap (kompilasi dimulai di latar); objek tetap memakai
+        // material lama sementara itu → tidak ada frame yang membeku menunggu kompilasi (rencana performa Fase 2).
+        const next = pickSwapMaterial(o.userData.pbrSwap, style, styleState.terrainQuality);
+        if (next !== o.material && app?.materialReadyFor && !app.materialReadyFor(o, next)) {
+          needScan = true;
+        } else {
+          applyStyleSwap(o, style, styleState.terrainQuality);
+          appliedSwap.set(o, swapKey);
+        }
       }
       const m = o.material;
       if (!m) return;

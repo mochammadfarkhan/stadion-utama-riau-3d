@@ -81,13 +81,21 @@ export function createRegionManager({
   const bake = (id) => {
     const e = entries.get(id);
     if (!minimapRef || !e || typeof app.bakeMinimap !== 'function') return;
+    // Minimap hanya pelengkap: GPU yang gagal mengalokasikan target/readPixels tidak boleh menggagalkan game.
+    const fail = (err) => logger.error(`Minimap dasar region "${id}" gagal dibuat, minimap memakai latar polos:`, err);
     try {
       const half = Math.ceil(maskHalfExtent(e.def.mask)) + MINIMAP_BAKE_MARGIN;
       const p = e.def.placement;
-      minimapRef.setBaseLayer(id, app.bakeMinimap(half, p), { center: { x: p.x, z: p.z }, half, yaw: 0 });
+      const handle = e.handle;
+      const place = (image) => {
+        if (entries.get(id)?.handle !== handle) return; // region dilepas/dipasang ulang selama bake asinkron
+        minimapRef?.setBaseLayer(id, image, { center: { x: p.x, z: p.z }, half, yaw: 0 });
+      };
+      // Asinkron bila ada (readback tanpa membekukan thread); cadangan sinkron untuk App lama/tes
+      if (typeof app.bakeMinimapAsync === 'function') app.bakeMinimapAsync(half, p).then(place, fail);
+      else place(app.bakeMinimap(half, p));
     } catch (err) {
-      // Minimap hanya pelengkap: GPU yang gagal mengalokasikan target/readPixels tidak boleh menggagalkan game.
-      logger.error(`Minimap dasar region "${id}" gagal dibuat, minimap memakai latar polos:`, err);
+      fail(err);
     }
   };
 
@@ -131,7 +139,12 @@ export function createRegionManager({
     order = [...order, id];
     refreshActive();
     const e = entries.get(id);
-    if (e.proxy) e.proxy.group.visible = false;
+    if (e.proxy) { // proxy tetap tampil sampai region tampil (shader hangat), lalu disembunyikan
+      Promise.resolve(handle.shown).catch(() => null).then(() => {
+        const cur = entries.get(id);
+        if (cur?.handle === handle && handle.mounted && cur.proxy) cur.proxy.group.visible = false;
+      });
+    }
     emit('mount', recordOf(e));
     if (minimapRef) {
       handle.ready.catch(() => null).then(() => {

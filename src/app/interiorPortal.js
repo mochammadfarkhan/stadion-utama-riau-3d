@@ -200,6 +200,8 @@ export function createInteriorPortal({
       result = await def.build(buildCtx(scope, door));
       validateInteriorBuild(result, id);
       current = mount(def, result, scope, door);
+      // Layar masih hitam: hangatkan shader interior sebelum memudar masuk (frame pertama tanpa jeda kompilasi).
+      await Promise.resolve(app.precompile?.()).catch((err) => logger.error('Interior: pemanasan shader gagal:', err));
     } catch (err) {
       logger.error(`Interior "${id}" gagal dibuka:`, err);
       current = null;

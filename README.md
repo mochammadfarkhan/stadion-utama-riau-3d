@@ -146,7 +146,9 @@ lalu menguji 5 detik setelah dunia tampil dan turun tier bila berat (hasil disim
 mengatur resolusi render, bayangan, bloom, garis tepi, kartu daun, kualitas tanah, kepadatan penonton, jarak kabut, dan batas
 FPS; mengubah salah satunya secara manual = Kustom. **Batas FPS** (Pengaturan › Performa: 30 / 60 / tanpa batas, default 60)
 mencegah laptop merender di atas yang perlu (layar 144 Hz) — hemat panas & baterai. Rencana lengkap:
-`docs/superpowers/plans/2026-10-26-performa-open-world.md`. Laptop dengan dua GPU: pastikan browser memakai GPU
+`docs/superpowers/plans/2026-10-26-performa-open-world.md`. **Anti-lag sesaat:** konten yang muncul belakangan (region,
+chunk kampus, kebun, interior) baru ditampilkan setelah shader-nya selesai dikompilasi di latar (termasuk varian bayangan);
+`?nowarm` mematikannya sebagai pembanding, `node tools/shots/stutter.mjs` mengukur long task & sumber stall per momen. Laptop dengan dua GPU: pastikan browser memakai GPU
 "Performa tinggi" (Windows: Pengaturan › Sistem › Layar › Grafis).
 
 Diukur di Chromium headless (GPU D3D11, 1600×900, kamera 3/4, jam 11) dengan `tools/shots/infoPoints.mjs`: sekre ERC ±150 draw call / 0,31 juta segitiga / 16,6 ms; pusat Lembaga 169 / 0,41 juta / 17 ms; Rektorat 134 / 0,52 juta / 20,4 ms; Masjid 197 / 0,72 juta / 19,6 ms; GGM 178 / 0,61 juta / 19 ms. Teknik: detail stadion > 650 m dan penonton tribun disembunyikan (layer 0 / `visible`), frustum bayangan 130 m, tekstur KTX2, instancing, LOD klaster gedung (150/900 m), LOD humanoid/pohon, bayangan kontak (pemain, NPC, tiang), fade dither pohon yang menutup pemain, tema UI perkamen. Efek maket (tilt-shift) tetap opsional (default mati).

@@ -83,19 +83,28 @@ export function setupFarm({ app, input, hud, ents, inventory, terrain, time, sto
     ...HELD_KEYS.map((key) => loadModel(HELD_MODELS[key])),
     ...plantTypes.flatMap((t) => KEBUN_MODELS.tanaman[t].map((p) => loadModel(p))),
   ])
-    .then(([traktor, rumah, tunas, ...rest]) => {
+    .then(async ([traktor, rumah, tunas, ...rest]) => {
       if (disposed) return;
       const heldSources = Object.fromEntries(HELD_KEYS.map((key, i) => [key, rest[i]]));
       const stages = rest.slice(HELD_KEYS.length);
-      ents.bike.setTractorModel(buildTractorModel(traktor));
+      const plantSources = Object.fromEntries(plantTypes.map((t, i) => [t, stages.slice(i * 2, i * 2 + 2)]));
+      const tractor = buildTractorModel(traktor);
+      const v = createFarmView({ houseSource: rumah, sproutSource: tunas, plantSources, heightAt: (x, z) => terrain.heightAt(x, z) });
+      v.relayout(farm); // warna instans petak dibuat SEBELUM warmup (instanceColor mengubah varian shader)
+      // Hangatkan shader SEMUA konten kebun dulu (traktor, item tangan, partikel, rumah/tanaman) agar F/E pertama
+      // dan kebun yang muncul tidak membeku menunggu kompilasi (rencana performa Fase 2).
+      await Promise.all([v.group, tractor.group, fx.group, ...Object.values(heldSources)].map((root) => app.warmup?.(root)));
+      if (disposed) {
+        v.dispose();
+        return;
+      }
+      ents.bike.setTractorModel(tractor);
       held = createHeldItemFactory(heldSources);
       unsubscribeHeld = inventory.subscribeHeld((id, def) => {
         heldItem = held.get(id, def);
         ents.bike.setHeldItem(heldItem);
       });
-      const plantSources = Object.fromEntries(plantTypes.map((t, i) => [t, stages.slice(i * 2, i * 2 + 2)]));
-      view = createFarmView({ houseSource: rumah, sproutSource: tunas, plantSources, heightAt: (x, z) => terrain.heightAt(x, z) });
-      view.relayout(farm);
+      view = v;
       app.scene.add(view.group);
     })
     .catch((err) => {
