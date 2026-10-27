@@ -106,6 +106,8 @@ async function main() {
     return;
   }
   if (!hasWebGL()) return showFatal('Browser ini tidak mendukung WebGL. Coba Chrome/Edge terbaru.');
+  // `?perf`: laporan kinerja (overlay + Salin laporan); dimulai sekarang agar long task saat muat ikut tercatat.
+  const perfProbe = parseFlagParam(window.location.search, 'perf') ? (await import('./app/perfProbe.js')).startPerfProbe() : null;
   const loading = createLoadingScreen();
   await loading.step(0.05, 'Menyiapkan mesin grafis…');
   // Tekstur prosedural hasil bake di-decode paralel sejak awal; ?procbake (skrip bake) memaksa semua prosedural.
@@ -347,6 +349,16 @@ async function main() {
   await loading.step(1, 'Siap!');
   loading.done();
   menu.ready({ hasProgress: hasStoryProgress(story.state), touch });
+  if (perfProbe) {
+    perfProbe.attach({
+      app, store, quality,
+      where: () => {
+        const { x, z } = ents.bike.state;
+        return { x: Math.round(x), z: Math.round(z), region: regionIdAt(x, z) };
+      },
+    });
+    lifecycle.add(() => perfProbe.dispose());
+  }
   if (import.meta.env.DEV) {
     exposeDevTools({
       app, ents, rig, time, weather, store, audioBus, story, colliders, city, remountRegion, regions, scheduler, terrain, district: unri,

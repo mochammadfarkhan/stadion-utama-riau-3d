@@ -149,7 +149,10 @@ mencegah laptop merender di atas yang perlu (layar 144 Hz) — hemat panas & bat
 `docs/superpowers/plans/2026-10-26-performa-open-world.md`. **Anti-lag sesaat:** konten yang muncul belakangan (region,
 chunk kampus, kebun, interior) baru ditampilkan setelah shader-nya selesai dikompilasi di latar (termasuk varian bayangan);
 `?nowarm` mematikannya sebagai pembanding, `node tools/shots/stutter.mjs` mengukur long task & sumber stall per momen. Laptop dengan dua GPU: pastikan browser memakai GPU
-"Performa tinggi" (Windows: Pengaturan › Sistem › Layar › Grafis).
+"Performa tinggi" (Windows: Pengaturan › Sistem › Layar › Grafis). **Laporan kinerja:** buka dengan `?perf` (mis.
+`…/stadion-utama-riau-3d/?perf`), main/diam ±30 detik di tempat yang terasa berat, lalu tekan **Salin laporan** (Esc dulu bila
+kursor terkunci) → JSON berisi GPU, fps & p95/p99 waktu frame 30 detik terakhir, dugaan beban (CPU/GPU/tersendat), draw call,
+long task saat muat/main, dan durasi tiap tahap layar muat; tempel ke chat untuk dianalisis.
 
 Diukur di Chromium headless (GPU D3D11, 1600×900, kamera 3/4, jam 11) dengan `tools/shots/infoPoints.mjs`: sekre ERC ±150 draw call / 0,31 juta segitiga / 16,6 ms; pusat Lembaga 169 / 0,41 juta / 17 ms; Rektorat 134 / 0,52 juta / 20,4 ms; Masjid 197 / 0,72 juta / 19,6 ms; GGM 178 / 0,61 juta / 19 ms. Teknik: detail stadion > 650 m dan penonton tribun disembunyikan (layer 0 / `visible`), frustum bayangan 130 m, tekstur KTX2, instancing, LOD klaster gedung (150/900 m), LOD humanoid/pohon, bayangan kontak (pemain, NPC, tiang), fade dither pohon yang menutup pemain, tema UI perkamen. Efek maket (tilt-shift) tetap opsional (default mati).
 

@@ -30,13 +30,20 @@ Unity *Quality tiers*, pedoman WebGL/three.js) dan diurutkan dari **untung terbe
 
 ## Fase 0 — Alat ukur yang bisa dibawa ke laptop teman (S, ±1 sesi)
 
-- [ ] `?perf` di URL: lapisan kecil + tombol **"Salin laporan"** → JSON: nama GPU (`WEBGL_debug_renderer_info`), resolusi & pixel
+- [x] `?perf` di URL: lapisan kecil + tombol **"Salin laporan"** → JSON: nama GPU (`WEBGL_debug_renderer_info`), resolusi & pixel
       ratio, rata-rata/p50/p95/p99 waktu frame 30 detik, draw call, segitiga, jumlah tekstur/geometri, memori JS (bila ada), jumlah
       long task + yang terlama (`PerformanceObserver('longtask')`), waktu muat per fase (HTML → mesin siap → area awal siap → bisa main).
 - [ ] Skrip `tools/shots/perfSuite.mjs`: 8 titik standar (sekre, lembaga, rektorat, masjid, GGM, stadion dekat, stadion 700 m,
       pusat kota) × mode kamera (orang ketiga, 3/4) → `docs/perf/<tanggal>.json` + tabel ringkas.
 - [ ] Baseline: jalankan di laptop 3050 + minta teman membuka Pages dengan `?perf` dan mengirim laporannya.
 - **Selesai bila:** ada angka p95 & long task dari **dua** laptop, dan tahu bottleneck teman itu GPU (fill rate) atau CPU (draw call/JS).
+
+**Status (2026-10-27):** overlay `?perf` jadi (`src/app/perfProbe.js`, logika murni + tes `src/engine/perfStats.js`, bidikan
+`tools/shots/perfOverlay.mjs`). Jendela frame 30 detik; waktu CPU per frame = sistem + render di thread utama
+(`App.cpuMs`); **dugaan** dari frame median: dekat sasaran → lancar / tersendat (≥ 10% frame > 1,5× selang sasaran), selain
+itu porsi CPU ≥ 75% → CPU, ≤ 50% → GPU. Tahap muat dari `performance.mark` tiap langkah layar muat. Contoh iGPU AMD
+(preset Otomatis → Rendah, batas 30): 29,8 fps, p95 40 ms, CPU p50 11 ms → lancar; layar muat 19 s (dev server) dengan tahap
+terlama "Menyiapkan shader…" 4,3 s; long task saat muat 17 (maks ±1,3 s). Belum: `perfSuite.mjs` dan laporan dari laptop teman.
 
 ## Fase 1 — Untung cepat untuk laptop lemah & panas (M, ±1–2 sesi)
 
