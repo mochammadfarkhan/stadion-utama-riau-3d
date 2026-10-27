@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { procKey } from '../src/world/textures/noise.js';
-import { captureProc, getBaked, preloadProcTextures, registerBaked, releaseBaked } from '../src/world/textures/procBake.js';
+import {
+  captureProc, getBaked, preloadProcTextures, registerBaked, releaseBaked, bakedFileUrl, loadBakedImage,
+} from '../src/world/textures/procBake.js';
 
 const gray = (k) => (u, v, n) => {
   const g = n(u, v, { freq: 8, octaves: 3, seed: 2 }) * k;
@@ -62,6 +64,23 @@ describe('preloadProcTextures', () => {
     expect(getBaked('ok')).toEqual({ decoded: 'blob-ok' });
     expect(getBaked('rusak')).toBeNull();
     releaseBaked();
+  });
+
+  it('sesudah releaseBaked bitmap dilepas tetapi berkas tetap bisa dimuat ulang (tekstur kampus sesudah muat)', async () => {
+    let fetched = 0;
+    const fetchImpl = async (url) => {
+      if (url.endsWith('manifest.json')) return { ok: true, json: async () => ({ entries: [{ key: 'k', file: 'k.webp' }] }) };
+      fetched += 1;
+      return { ok: true, blob: async () => `blob:${url}` };
+    };
+    await preloadProcTextures('/b/', { fetchImpl, decode: async (b) => ({ decoded: b }), warn: () => {} });
+    releaseBaked();
+    expect(getBaked('k')).toBeNull();
+    expect(bakedFileUrl('k')).toBe('/b/textures/proc/k.webp');
+    expect(await loadBakedImage('k')).toEqual({ decoded: 'blob:/b/textures/proc/k.webp' });
+    expect(fetched).toBe(2);
+    expect(bakedFileUrl('tidak-ada')).toBeNull();
+    await expect(loadBakedImage('tidak-ada')).rejects.toThrow();
   });
 
   it('manifest tidak ada: 0 tekstur, tidak melempar', async () => {

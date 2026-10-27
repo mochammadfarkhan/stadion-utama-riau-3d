@@ -95,6 +95,23 @@ audit alokasi ditunda. Dikerjakan:
   langkah berikut: hangatkan ulang saat registri mengubah material, Worker untuk tekstur prosedural/parsing, bekukan
   matriks objek statis yang belum.
 
+**Lanjutan Fase 2 (2026-10-27):**
+- Registri basah/emisif ternyata hanya mengubah uniform (bukan sebab stall). Sebab sebenarnya: isi region yang dibangun
+  SESUDAH tampil (LOD pohon dekat, benda halaman) → region kini juga diawasi `watchWarmup` sesudah tampil.
+- `needsWarmup/warmup` punya jalur cepat (kunci varian material+versi+jenis objek yang sudah terbukti siap) → biaya
+  `compile()` warm-up sendiri hilang dari chunk berikutnya.
+- Long task non-shader diprofil (`tools/shots/cpuSegmen.mjs`): **atlas kanvas sekretariat** — `fitFont` turun 1 px per
+  langkah (measureText + set font berulang, ±330 ms sinkron di build region) → `fitFontSize` pencarian biner (hasil
+  identik, ≤ 8 ukur) di 4 tempat; **bake minimap** 1536 → 1024 px (salinan GPU→CPU 258 → 39 ms, data 9,4 → 4,2 MB).
+- **Worker tidak dibuat:** tekstur prosedural (`noise.js`) tidak konsisten muncul dan konten kampus tidak memakai
+  `fillCanvas` (bake ulang dengan kunjungan kampus tetap 19 tekstur); resepnya berupa closure sehingga tidak bisa dikirim
+  ke Worker. Sebagai gantinya manifest bake disimpan sesudah `releaseBaked()` → tekstur yang diminta lagi dimuat ulang
+  asinkron dari berkas (bukan dihitung per piksel).
+- Koreksi: `OutlinePass.js:30` di profil = `DepthRenderPass` (render scene utama), bukan biaya garis tepi.
+- Hasil (preset Sedang, iGPU): total long task skenario `stutter.mjs` 8,7 → ±3,8 s (vs 13,4 s tanpa warm-up), long task
+  terlama ±524 ms; teleport rektorat 641 → 240 ms. Sisa: stall shader bervariasi antar run (urutan streaming), perakitan
+  geometri distrik (drape/waterEdge/kit) < 100 ms per potong.
+
 ## Fase 3 — Muat lebih cepat (M)
 
 - [ ] Ukur fase muat (Fase 0), lalu **muat malas** konten yang tidak dibutuhkan di awal: interior sekre, studio reels, kebun &

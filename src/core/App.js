@@ -53,7 +53,8 @@ function proxyOf(o, material) {
 const SHADOW_SIDE_FLIP = Object.freeze({ [THREE.FrontSide]: THREE.BackSide, [THREE.BackSide]: THREE.FrontSide, [THREE.DoubleSide]: THREE.DoubleSide });
 const AO_SAMPLES = 12;            // sampel GTAO per piksel (default 16; lebih ringan)
 const AO_DISTANCE_FALLOFF = 1.0;
-const MINIMAP_BAKE_PX = 1536;      // resolusi peta dasar (±0,6 m/piksel untuk area region ±461 m)
+const MINIMAP_BAKE_PX = 1024;      // resolusi peta dasar (±1 m/piksel untuk area region ±461 m ≈ resolusi minimap 200 px/320 m pada DPR 2;
+                                   // 1536 → 1024: salinan GPU→CPU + GC bake region 9,4 → 4,2 MB)
 const MINIMAP_BAKE_HEIGHT = 400;
 const MINIMAP_BAKE_AMBIENT = 3;    // ambient ≈ albedo ×0,95 (tanpa IBL/kabut/matahari)
 
@@ -401,13 +402,22 @@ export class App {
    */
   warmup(root) {
     if (!this.warmEnabled) return Promise.resolve();
+    const keys = this.#variantKeys(root);
+    if (keys.every((k) => this.#readyKeys.has(k))) return Promise.resolve(); // jalur cepat: varian sudah terbukti siap
     const pending = this.#prepare(root).filter((p) => !p.isReady());
-    if (!pending.length) return Promise.resolve();
+    const done = () => { for (const k of keys) this.#readyKeys.add(k); };
+    if (!pending.length) {
+      done();
+      return Promise.resolve();
+    }
     return new Promise((resolve) => {
       const poll = () => {
         for (let i = pending.length - 1; i >= 0; i -= 1) if (pending[i].isReady()) pending.splice(i, 1);
         if (pending.length) setTimeout(poll, WARMUP_POLL_MS);
-        else resolve();
+        else {
+          done();
+          resolve();
+        }
       };
       poll();
     });
@@ -420,7 +430,25 @@ export class App {
    */
   needsWarmup(root) {
     if (!this.warmEnabled) return false;
-    return this.#prepare(root).some((p) => !p.isReady());
+    const keys = this.#variantKeys(root);
+    if (keys.every((k) => this.#readyKeys.has(k))) return false; // jalur cepat: tanpa compile()
+    const need = this.#prepare(root).some((p) => !p.isReady());
+    if (!need) for (const k of keys) this.#readyKeys.add(k);
+    return need;
+  }
+
+  /** Kunci varian per (material + versinya, jenis objek, ikut pass bayangan) di subpohon — untuk jalur cepat. */
+  #variantKeys(root) {
+    const vsm = this.renderer.shadowMap.type === THREE.VSMShadowMap;
+    const keys = new Set();
+    root.traverse((o) => {
+      if (!(o.isMesh || o.isPoints || o.isLine || o.isSprite)) return;
+      const shadow = o.castShadow || (vsm && o.receiveShadow) ? 's' : '';
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+        if (m) keys.add(`${m.uuid}|${m.version}|${proxyKind(o)}|${shadow}`);
+      }
+    });
+    return [...keys];
   }
 
   /**
@@ -431,7 +459,7 @@ export class App {
   materialReadyFor(object, material) {
     if (!this.warmEnabled) return true;
     const inShadow = object.castShadow || (this.renderer.shadowMap.type === THREE.VSMShadowMap && object.receiveShadow);
-    const key = `${material.uuid}|${proxyKind(object)}|${inShadow ? 's' : ''}`;
+    const key = `${material.uuid}|${material.version}|${proxyKind(object)}|${inShadow ? 's' : ''}`;
     if (this.#readyKeys.has(key)) return true;
     const root = new THREE.Group();
     root.add(proxyOf(object, material));

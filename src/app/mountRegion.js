@@ -7,13 +7,15 @@
  * kegagalan setelah build menggulung balik pemasangan. `ready` selesai setelah konten belakangan (GLB) DAN
  * antrean scheduler region habis. Region ber-proxy (hero yang di-stream) disembunyikan sampai `ready` + shader
  * dihangatkan (App.warmup) agar frame pertamanya tidak membeku menunggu kompilasi (rencana performa Fase 2); proxy
- * tetap tampil sampai `shown` selesai. Batas SHOW_TIMEOUT_MS: region selalu tampil walau konten belakangan macet.
+ * tetap tampil sampai `shown` selesai; sesudahnya isi yang dibangun belakangan diawasi watchWarmup. Batas SHOW_TIMEOUT_MS:
+ * region selalu tampil walau konten belakangan macet.
  */
 import { createResourceScope } from '../engine/ResourceScope.js';
 import { runTaskNow } from '../engine/scheduler.js';
 import { freezeStatic } from '../world/util/freezeStatic.js';
 import { toWorld } from '../geo/regionTransform.js';
 import { FLAT_TERRAIN } from './terrainService.js';
+import { watchWarmup } from './warmGate.js';
 
 const SHOW_TIMEOUT_MS = 20000;
 
@@ -119,7 +121,10 @@ export async function mountRegion(app, def, {
     new Promise((resolve) => { showTimer = setTimeout(resolve, SHOW_TIMEOUT_MS); }),
   ]).then(() => {
     clearTimeout(showTimer);
-    if (mounted) region.group.visible = true;
+    if (!mounted) return;
+    region.group.visible = true;
+    // isi yang dibangun SESUDAH tampil (LOD pohon dekat, benda halaman) juga baru tampil setelah shader-nya hangat
+    undo.push(watchWarmup(region.group, app, { logger }));
   });
   return {
     def,

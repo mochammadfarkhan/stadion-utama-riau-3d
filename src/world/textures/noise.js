@@ -9,7 +9,7 @@ import {
   CanvasTexture, DataTexture, LinearFilter, LinearMipmapLinearFilter, RepeatWrapping,
   RGBAFormat, SRGBColorSpace, NoColorSpace,
 } from 'three';
-import { captureProc, getBaked } from './procBake.js';
+import { captureProc, getBaked, bakedFileUrl, loadBakedImage } from './procBake.js';
 
 export const MAP_SIZE = 512;
 export const NORMAL_SIZE = 256;
@@ -223,12 +223,44 @@ export function fillCanvas(w, h, fn, { srgb = true } = {}) {
     ctx.drawImage(bakedImage, 0, 0);
     return finalize(new CanvasTexture(canvas), srgb);
   }
+  if (bakedFileUrl(key)) return lateBaked(canvas, ctx, key, w, h, fn, srgb);
   const img = ctx.createImageData(w, h);
   const data = fillPixels(w, h, fn);
   captureProc(key, w, h, srgb, data);
   img.data.set(data);
   ctx.putImageData(img, 0, 0);
   return finalize(new CanvasTexture(canvas), srgb);
+}
+
+const PLACEHOLDER_SAMPLES = 9;
+
+/**
+ * Bitmap bake sudah dilepas (sesudah muat): kembalikan tekstur berwarna rata-rata sekarang, lalu isi dari berkas bake
+ * secara asinkron (cache HTTP + decode di luar thread utama) — bukan menghitung w×h piksel fbm di thread utama.
+ * Gagal memuat → prosedural seperti dulu.
+ */
+function lateBaked(canvas, ctx, key, w, h, fn, srgb) {
+  const noise = (u, v, opts) => fbm(u, v, opts);
+  const avg = [0, 0, 0];
+  for (let i = 0; i < PLACEHOLDER_SAMPLES; i += 1) {
+    const c = fn(((i + 0.5) * GOLDEN_U) % 1, ((i + 0.5) * GOLDEN_V) % 1, noise);
+    for (let k = 0; k < 3; k += 1) avg[k] += c[k] / PLACEHOLDER_SAMPLES;
+  }
+  ctx.fillStyle = `rgb(${avg.map((c) => clamp255(c)).join(',')})`;
+  ctx.fillRect(0, 0, w, h);
+  const tex = finalize(new CanvasTexture(canvas), srgb);
+  loadBakedImage(key)
+    .then((img) => {
+      ctx.drawImage(img, 0, 0);
+      img.close?.();
+    })
+    .catch(() => {
+      const img = ctx.createImageData(w, h);
+      img.data.set(fillPixels(w, h, fn));
+      ctx.putImageData(img, 0, 0);
+    })
+    .finally(() => { tex.needsUpdate = true; });
+  return tex;
 }
 
 /**
