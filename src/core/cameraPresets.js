@@ -8,7 +8,7 @@ import { STADIUM } from '../config/constants.js';
 
 /** Pratinjau kota isometrik: elevasi 35,264° (isometrik sejati), azimut 45°, lensa sempit (≈ ortografik), jarak dasar & batas geser (m). */
 export const CITY = Object.freeze({
-  fov: 20, elevation: Math.atan(1 / Math.SQRT2), azimuth: Math.PI / 4, radius: 1300, panLimit: 3500, panRate: 0.3, yawRate: 1.1, id: 'kota',
+  fov: 20, elevation: Math.atan(1 / Math.SQRT2), azimuth: Math.PI / 4, radius: 1300, panLimit: 10000, panRate: 0.3, yawRate: 1.1, id: 'kota',
 });
 
 export const POV_KINDS =Object.freeze({ FIXED: 'fixed', FOLLOW: 'follow', ORBIT: 'orbit' });
@@ -29,7 +29,7 @@ export const POVS = Object.freeze([
   // M0 multi-region: POV milik region aktif (Region.povs, pose dunia); tekan lagi = POV region berikutnya.
   { id: 'region', label: 'POV region', key: 'Digit8', kind: 'region', fov: 55, controlsBike: false, cycle: true, minElev: -0.2, maxElev: 1.4, zoomMin: 0.4, zoomMax: 2.0 },
   // Pratinjau kota (K): helikopter isometrik. Elevasi dikunci (minElev = maxElev), lensa sempit meniru ortografik; WASD/seret = geser, Q/Z = putar, roda = zoom.
-  { id: 'kota', label: 'Kota isometrik', key: 'KeyK', kind: 'follow', fov: CITY.fov, controlsBike: false, follow: 8, minElev: CITY.elevation, maxElev: CITY.elevation, zoomMin: 0.25, zoomMax: 1.8 },
+  { id: 'kota', label: 'Kota isometrik', key: 'KeyK', kind: 'follow', fov: CITY.fov, controlsBike: false, follow: 8, minElev: CITY.elevation, maxElev: CITY.elevation, zoomMin: 0.25, zoomMax: 14 },
 ].map(Object.freeze));
 
 export const POV_BY_ID = Object.freeze(Object.fromEntries(POVS.map((p) => [p.id, p])));

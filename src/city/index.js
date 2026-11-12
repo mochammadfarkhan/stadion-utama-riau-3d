@@ -17,6 +17,7 @@ import { applyGroundHole } from './groundHole.js';
 /** Tanah dasar kota: persegi besar di bawah landuse (y −0,05), dipindah per 50 m mengikuti fokus. */
 export const CITY_GROUND = Object.freeze({ size: 2 * STREAM.unloadRadius + 400, y: -0.05, snap: 50 });
 export const SETTLE_TIMEOUT_MS = 20000;
+const PREVIEW_GROUND_SCALE = 12; // tanah dasar 3 km → 36 km: menutupi pusat kota (±8 km) + kampus saat pratinjau
 
 function createCityGround(material) {
   const geo = new THREE.PlaneGeometry(CITY_GROUND.size, CITY_GROUND.size).rotateX(-Math.PI / 2);
@@ -119,6 +120,11 @@ export async function createCity({
       });
     },
     stats: () => ({ ...streamer.stats(), ...loader.stats() }),
+    /** Pratinjau kota: muat semua tile (LOD0) dan perluas tanah dasar agar menutupi seluruh peta; false = normal. */
+    setPreview(value) {
+      streamer.setPreview(value);
+      ground.scale.setScalar(value ? PREVIEW_GROUND_SCALE : 1);
+    },
     /**
      * Lubang tanah dasar kota di sel yang ditutup terrain distrik (null = tanpa lubang).
      * @param {{texture: THREE.Texture, rect: {minX:number, minZ:number, maxX:number, maxZ:number}}|null} hole

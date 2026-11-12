@@ -6,6 +6,7 @@
  * (renderOrder −4, y = −0,05) mengisi celah landuse. Tekstur jendela tidak dibuat: tile v1 tanpa UV.
  */
 import * as THREE from 'three';
+import { applyFacade } from './facade.js';
 
 export const CITY_LAYERS = Object.freeze({
   ground: Object.freeze({ renderOrder: -4, flat: true }),
@@ -34,8 +35,8 @@ export function createCityMaterials() {
     landuse: flat('landuse', THREE.MeshLambertMaterial),
     water: flat('water', THREE.MeshStandardMaterial, { roughness: 0.35, metalness: 0 }),
     roads: flat('roads', THREE.MeshLambertMaterial),
-    buildings_walls: solid('buildings_walls'),
-    buildings_roofs: solid('buildings_roofs'),
+    buildings_walls: applyFacade(solid('buildings_walls'), 'wall'), // jendela, lantai, kios (shader; lihat facade.js)
+    buildings_roofs: applyFacade(solid('buildings_roofs'), 'roof'), // garis genteng / petak seng
   };
   const ground = new THREE.MeshLambertMaterial({ color: CITY_GROUND_COLOR, depthWrite: true });
   ground.name = 'kota:ground';

@@ -13,6 +13,7 @@
 import { styleState } from '../engine/styleState.js';
 import { tileBounds, TILE_SIZE } from '../geo/tiles.js';
 
+const PREVIEW_PARALLEL = 4; // muatan paralel saat pratinjau (semua tile)
 export const STREAM = Object.freeze({ loadRadius: 1000, unloadRadius: 1300, lod0Radius: 600, lodHysteresis: 50, maxParallel: 2 });
 
 /** Jarak titik ke persegi tile (0 bila di dalam). */
@@ -37,13 +38,15 @@ export function createChunkStreamer({ tiles, tileSize = TILE_SIZE, config = STRE
     byKey.set(t.key, t);
   }
   let seq = 0;
-  const loadR = () => config.loadRadius * styleState.tileLoad;     // gaya hemat: tile lebih dekat
-  const unloadR = () => config.unloadRadius * styleState.tileLoad;
+  let preview = false; // pratinjau kota: semua tile dimuat pada LOD0 (data total ≈ 285 rb segitiga), tanpa pelepasan
+  const loadR = () => (preview ? Infinity : config.loadRadius * styleState.tileLoad);     // gaya hemat: tile lebih dekat
+  const unloadR = () => (preview ? Infinity : config.unloadRadius * styleState.tileLoad);
   const lod0R = () => config.lod0Radius * styleState.tileLod0;
 
   const inFlight = () => list.reduce((n, t) => n + (t.pending ? 1 : 0), 0);
   /** LOD yang diinginkan pada jarak t.dist bila LOD `from` sedang tampil (histeresis di sekitar lod0Radius). */
   const wantLod = (t, from = t.lod) => {
+    if (preview) return 0;
     const near = lod0R();
     if (from === 0) return t.dist <= near + config.lodHysteresis ? 0 : 1;
     return t.dist < near ? 0 : 1;
@@ -66,6 +69,8 @@ export function createChunkStreamer({ tiles, tileSize = TILE_SIZE, config = STRE
   };
 
   return {
+    /** Pratinjau kota: true = semua tile manifest dimuat (LOD0) dan tak dilepas; false = kembali menurut jarak. */
+    setPreview(value) { preview = Boolean(value); },
     /** @param {{x:number, z:number}} focus @returns {Array<object>} aksi berurutan */
     update(focus) {
       const out = [];
@@ -88,7 +93,7 @@ export function createChunkStreamer({ tiles, tileSize = TILE_SIZE, config = STRE
         .filter((t) => t.dist <= loadR() && !t.pending
           && (t.status === 'idle' || (t.status === 'loaded' && !t.noSwap && wantLod(t) !== t.lod)))
         .sort((a, b) => a.dist - b.dist || (a.key < b.key ? -1 : 1));
-      let slots = config.maxParallel - inFlight();
+      let slots = (preview ? PREVIEW_PARALLEL : config.maxParallel) - inFlight();
       for (const t of candidates) {
         if (slots <= 0) break;
         seq += 1;
