@@ -99,7 +99,7 @@ function addPovFolder(tabs, rig, hud) {
     else if (code !== EXIT_KEY) hud?.toast?.('POV belum tersedia', false);
   };
   for (const def of POVS) {
-    folder.addButton({ label: `${def.key.replace('Digit', '')} · ${def.label}`, icon: 'viewfinder', onClick: () => go(def.key) });
+    folder.addButton({ label: `${def.key.replace(/^(Digit|Key)/, '')} · ${def.label}`, icon: 'viewfinder', onClick: () => go(def.key) });
   }
   folder.addButton({ label: '0 · Kembali ke sepeda', icon: 'reset', onClick: () => go(EXIT_KEY) });
 }

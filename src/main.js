@@ -50,6 +50,7 @@ import { createDisposerStack } from './app/lifecycle.js';
 import { setPbrRenderer } from './world/textures/pbr.js';
 import { applyPlacement } from './app/mountRegion.js';
 import { createRegionManager } from './app/regionManager.js';
+import { createCityPreview } from './app/cityPreview.js';
 import { createTerrainService } from './app/terrainService.js';
 import { mountDistrict } from './app/districtMount.js';
 import { unriDistrict } from './districts/unri/index.js';
@@ -284,6 +285,11 @@ async function main() {
   });
   lifecycle.add(() => farm.dispose());
   addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel, portal: portalKit.portal });
+  // K: pratinjau kota isometrik; isi berat (stadion, region, penonton) diganti bentuk dasar selama aktif.
+  const cityPreview = createCityPreview({
+    app, rig, regions, time, store, hud, stadionId: STADION_ID, stadionPlacement: frame.placement, hide: [ents.group, anchor],
+  });
+  lifecycle.add(() => cityPreview.dispose());
   portalKit.trigger.installPrompt(); // sesudah sistem 'hud'
   farm.installPrompt();
 

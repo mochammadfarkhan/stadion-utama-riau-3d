@@ -55,6 +55,7 @@ export function createRegionManager({
   let lastMountAt = -Infinity;
   let minimapRef = minimap;
   let disposed = false;
+  let hold = false; // pratinjau kota: region streaming dilepas & tidak dipasang (proxy murah saja)
 
   const patch = (id, fields) => {
     const e = entries.get(id);
@@ -217,7 +218,7 @@ export function createRegionManager({
       for (const e of entries.values()) {
         const act = e.def.activation;
         if (act.persistent) continue;
-        const d = Math.hypot(focus.x - act.center.x, focus.z - act.center.z);
+        const d = hold ? Infinity : Math.hypot(focus.x - act.center.x, focus.z - act.center.z); // tahan: semua tampil sebagai proxy
         if (e.status === 'mounted' && d > act.unmountRadius) {
           far = far ?? [];
           far.push(e.def.id);
@@ -234,6 +235,9 @@ export function createRegionManager({
         mountEntry(best.id);
       }
     },
+
+    /** Pratinjau kota: true = region streaming dilepas dan tak dipasang (hanya proxy); false = kembali menurut jarak. */
+    setHold(value) { hold = Boolean(value); },
 
     /** @returns {ReadonlyArray<ActiveRegion>} region terpasang, urut pemasangan */
     active: () => active,
