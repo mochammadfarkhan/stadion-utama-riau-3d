@@ -1,11 +1,12 @@
 /**
  * Render reels → MP4 vertikal 1080×1920 (reels.html, frame-demi-frame, deterministik). Frame JPEG dialirkan langsung
  * ke stdin ffmpeg (tanpa ribuan berkas sementara). Tanpa audio: suara/voice-over ditambah di editor (CapCut dsb).
- *   node tools/reels/render.mjs [--scene sekre-duduk] [--out renders] [--gpu d3d11|swiftshader] [--crf 18]
+ *   node tools/reels/render.mjs [--page reels|skala] [--scene sekre-duduk] [--out renders] [--gpu d3d11|swiftshader] [--crf 18]
  *     [--dari 0] [--sampai <durasi>]   rentang detik (cepat untuk coba potongan)
  *     [--stills 1,8,15]                hanya ambil gambar diam pada detik itu (cek komposisi, tanpa ffmpeg)
  *     [--ffmpeg <path>]                bila ffmpeg tidak ada di PATH
  *     [--naskah]                       hanya tulis <scene>.srt + <scene>.md (tanpa browser)
+ *   --page skala = studio Skala Nusantara (skala.html; --scene = id episode, default episode pertama).
  * Selalu menulis <out>/<scene>.srt (subtitle untuk CapCut) dan <scene>.md (naskah per adegan untuk rekam suara).
  */
 import { createRequire } from 'node:module';
@@ -25,7 +26,7 @@ const GPU_ARGS = Object.freeze({
 });
 const { values: opts } = parseArgs({
   options: {
-    scene: { type: 'string', default: 'sekre-duduk' }, out: { type: 'string', default: 'renders' },
+    page: { type: 'string', default: 'reels' }, scene: { type: 'string' }, out: { type: 'string', default: 'renders' },
     gpu: { type: 'string', default: 'd3d11' }, crf: { type: 'string', default: '18' },
     dari: { type: 'string' }, sampai: { type: 'string' }, stills: { type: 'string' }, ffmpeg: { type: 'string' },
     naskah: { type: 'boolean', default: false },
@@ -33,11 +34,20 @@ const { values: opts } = parseArgs({
 });
 
 /** Subtitle + naskah dari data scene (modul scene murni, diimpor langsung di Node). */
+const PAGES = Object.freeze({
+  reels: { html: 'reels.html', registry: 'src/dev/reels/scenes/index.js', key: 'REEL_SCENES', defaultScene: 'sekre-duduk' },
+  skala: { html: 'skala.html', registry: 'src/dev/skala/episodes/index.js', key: 'SKALA_EPISODES', defaultScene: 'kapal-voc-pinisi' },
+});
+const PAGE = PAGES[opts.page];
+if (!PAGE) throw new Error(`--page "${opts.page}" tidak dikenal (${Object.keys(PAGES).join(', ')})`);
+opts.scene ??= PAGE.defaultScene;
+
 async function writeScript(outDir) {
   const load = (p) => import(pathToFileURL(join(ROOT, p)).href);
-  const [{ REEL_SCENES }, { toSrt, toNaskahMd }, { NPCS }] = await Promise.all([
-    load('src/dev/reels/scenes/index.js'), load('src/dev/reels/naskah.js'), load('src/interiors/sekre/data.js'),
+  const [registry, { toSrt, toNaskahMd }, { NPCS }] = await Promise.all([
+    load(PAGE.registry), load('src/dev/reels/naskah.js'), load('src/interiors/sekre/data.js'),
   ]);
+  const REEL_SCENES = registry[PAGE.key];
   const scene = REEL_SCENES[opts.scene];
   if (!scene) throw new Error(`Scene "${opts.scene}" tidak ada (${Object.keys(REEL_SCENES).join(', ')})`);
   const nama = Object.fromEntries(NPCS.map((n) => [n.id, n.nama]));
@@ -97,7 +107,7 @@ async function main() {
     const page = await browser.newPage({ viewport: { width: SIZE.width, height: SIZE.height }, deviceScaleFactor: SIZE.scale });
     page.on('pageerror', (e) => errors.push(String(e)));
     page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-    await page.goto(`http://localhost:${PORT}/reels.html?render=1&scene=${encodeURIComponent(opts.scene)}`, { waitUntil: 'load', timeout: 120000 });
+    await page.goto(`http://localhost:${PORT}/${PAGE.html}?render=1&scene=${encodeURIComponent(opts.scene)}`, { waitUntil: 'load', timeout: 120000 });
     await page.waitForFunction(() => window.__reel?.ready || window.__reel?.error, null, { timeout: 120000 });
     const info = await page.evaluate(() => ({ ...window.__reel, frame: undefined }));
     if (info.error) throw new Error(`Scene gagal: ${info.error}`);
