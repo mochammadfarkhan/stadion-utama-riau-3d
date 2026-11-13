@@ -64,6 +64,7 @@ Lihat [ganti-model](ganti-model/README.md).
 | 2026-11-13 | Kota jauh v1 (bangunan kotak sejajar sumbu, jalan kelas ≤5, peta tanah) | 380 rb bangunan, 4,7 MB |
 | 2026-11-13 | Kota jauh v2 (rotasi, atap pelana, pohon, jalan semua kelas, peta pekat) | 7 MB, 185 rb pohon, 742 berkas |
 | 2026-11-13 | Bar kendali Kota: slider jam, Putar waktu (1,2 jam/dtk), Tur (rute tetangga-terdekat, 5,5 dtk/perhentian) | 5 tes murni (`cityTour`); dicek di browser uji, belum di GPU asli |
+| 2026-11-13 | Kontak-AO dasar bangunan jauh (×0,72 di y=0) + pohon jauh bergoyang (`treeSway.js`) | 3 tes murni; shader terkompilasi di browser uji, efek halus (belum dibandingkan sebelum/sesudah) |
 | 2026-11-13 | Intro terbang + tombol Foto di bar Kota | dicek di browser uji (intro ya; unduhan PNG tidak terlihat dari sana) |
 | 2026-11-13 | Mobil berjalan, lampu jalan nyata, bayangan awan | ≤ 4000 mobil + ≤ 5000 lampu instans; 5 tes murni (`farLife`) |
 | 2026-11-13 | Cincin menengah: 4 strip (`tools/citybake --area cincin`) | +92 tile, 157 tile, 22,7 MB; bake 36 menit (Overpass 502, strip timur 5 percobaan; Overture ±5 mnt/area) |

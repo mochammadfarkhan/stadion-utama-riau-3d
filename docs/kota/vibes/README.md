@@ -30,13 +30,13 @@ Dari "peta 3D yang benar" ke **"pemandangan yang bikin betah"**: hangat, hidup, 
 - ⬜ Vignette ringan & warna lebih jenuh (grading dioverride styleManager; butuh hook) ★ S
 - ✅ ~~Kabut berwarna jarak jauh~~ — dicek 2026-11-13: warna kabut = latar langit (`fogColor`) dan cakrawala tak pernah masuk bingkai di sudut 35°, tepi atas memudar mulus; tak perlu kode. (rencana lama: warna kabut = warna langit dekat cakrawala (matahari rendah → oranye-jingga), `FOG_PER_DISTANCE` dicocokkan agar cakrawala menyatu dengan langit, bukan tepi peta.)
 - ✅ ~~Tepi peta halus~~ → digantikan alas diorama (gaya maket memang ingin tepi tegas).
-- ⬜ **Bayangan panjang**: elevasi matahari preview ≈ 25° (sore) + bayangan sampai 700 m (sudah dinamis); kontak-AO murah pada dasar bangunan jauh (gradien vertex warna gelap di dasar). ★★ M
+- ⬜ **Bayangan panjang**: elevasi matahari preview ≈ 25° (sore) + bayangan sampai 700 m (sudah dinamis); kontak-AO murah pada dasar bangunan jauh ✅ (`farCity.js::baseShade`, ×0,72 di dasar; gradasi linear sampai puncak, jadi gedung tinggi ikut sedikit gelap [INFERENSI: perlu dilihat di GPU asli]). ★★ M
 
 ### B. Kehidupan (M)
 - ✅ **Lalu lintas jauh** (2026-11-13, `src/city/farLife.js`): ≤ 4000 mobil kotak (10 segitiga) bergerak sepanjang polyline jalan ≤ tertiary dalam radius R dari fokus (R = 0,9 × jarak kamera, 450–3600 m); posisi = fungsi waktu murni (tanpa state), lajur kiri, kecepatan/kerapatan menurut jam (`trafficDensity`: puncak 07–09 & 16–19, malam 0,2), pendar hangat malam. Mobil ×1,8 dari ukuran asli agar terbaca dari udara (gaya maket). ⬜ lampu depan putih/belakang merah terpisah.
 - ⬜ **Perahu di Sungai Siak** + riak/kilau matahari (shader air jauh memakai `waterToon`). ★★ M
 - ✅ **Bayangan awan bergerak** (`groundDetail.js`, uniform `GROUND_UNIFORMS.uCloudT/uCloudAmt`): bercak ±1,4 km bergeser searah angin, gelap 20%, hilang malam & jauh > 9 km. Berlaku di tanah tile + kota jauh.
-- ⬜ **Pohon/bendera bergoyang** (pakai `windState` yang ada; vertex shader pada tajuk instans). ★ S
+- ✅ **Pohon jauh bergoyang** (`city/treeSway.js`, vertex shader instans, fase dari posisi; waktu dari sistem `city.stream`). ⬜ pohon di tile terperinci, bendera, `windState` nyata.
 - ⬜ **Burung/layang-layang** kawanan kecil melintas (sprite instans), muncul sore. ★ S
 
 ### C. Malam (M)
