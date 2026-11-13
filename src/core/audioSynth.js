@@ -5,6 +5,7 @@
  * - fanHumBuffer: dengung motor 100 Hz (listrik 50 Hz) + desis angin bilah termodulasi.
  * - rainOnTinBuffer: desis hujan + ketukan "tik" logam acak (atap seng).
  * - murmurBuffer: gumaman obrolan teredam dinding (derau ber-formant dengan amplop suku kata).
+ * - cityHumBuffer / windBuffer: dengung kota jauh (lalu lintas, listrik) dan angin ketinggian, untuk pratinjau Kota; amplop periodik (loop mulus).
  * Buffer loop dibuat sedikit lebih panjang lalu ujungnya di-crossfade ke awal (makeLoopable).
  */
 const TAU = Math.PI * 2;
@@ -189,4 +190,48 @@ export function murmurBuffer(sampleRate, { seconds = 8, seed = 7, voices = 4 } =
     out[i] = lp;
   }
   return normalizePeak(makeLoopable(out, fade), 0.8);
+}
+
+/**
+ * Dengung kota dari jauh, loop 10 s: derau cokelat (rumble lalu lintas) + desis tipis + gelombang lambat (kendaraan lewat)
+ * + dengung listrik 50 Hz samar. Amplop berperiode bulat per `seconds` agar sambungan loop mulus.
+ */
+export function cityHumBuffer(sampleRate, { seconds = 10, seed = 11 } = {}) {
+  const sr = sr8(sampleRate);
+  const fade = Math.round(sr * LOOP_FADE_S);
+  const total = Math.round(sr * seconds) + fade;
+  const rnd = mulberry(seed);
+  const out = new Float32Array(total);
+  let brown = 0;
+  let hiss = 0;
+  for (let i = 0; i < total; i += 1) {
+    const t = i / sr;
+    const white = rnd() * 2 - 1;
+    brown = (brown + 0.02 * white) / 1.02; // integrator bocor = derau cokelat
+    hiss += (white - hiss) * 0.18;
+    const swell = 0.7 + 0.2 * Math.sin((TAU * 1 * t) / seconds + 1.3) + 0.1 * Math.sin((TAU * 3 * t) / seconds);
+    const mains = 0.03 * Math.sin(TAU * 50 * t);
+    out[i] = (brown * 7 * swell) + hiss * 0.03 * swell + mains;
+  }
+  return normalizePeak(makeLoopable(out, fade), 0.7);
+}
+
+/** Angin ketinggian, loop 12 s: derau berlowpass dua tahap dengan embusan periodik (tiga komponen lambat). */
+export function windBuffer(sampleRate, { seconds = 12, seed = 13 } = {}) {
+  const sr = sr8(sampleRate);
+  const fade = Math.round(sr * LOOP_FADE_S);
+  const total = Math.round(sr * seconds) + fade;
+  const rnd = mulberry(seed);
+  const out = new Float32Array(total);
+  let lp1 = 0;
+  let lp2 = 0;
+  for (let i = 0; i < total; i += 1) {
+    const t = i / sr;
+    const white = rnd() * 2 - 1;
+    lp1 += (white - lp1) * 0.05;
+    lp2 += (lp1 - lp2) * 0.05;
+    const gust = 0.55 + 0.25 * Math.sin((TAU * 2 * t) / seconds) + 0.12 * Math.sin((TAU * 5 * t) / seconds + 0.7) + 0.08 * Math.sin((TAU * 11 * t) / seconds + 2.1);
+    out[i] = (lp1 - 0.6 * lp2) * gust;
+  }
+  return normalizePeak(makeLoopable(out, fade), 0.7);
 }
