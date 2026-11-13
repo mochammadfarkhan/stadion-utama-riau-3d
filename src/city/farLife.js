@@ -8,6 +8,7 @@
  * Bagian murni (createLane, pointAt, trafficDensity, selectLanes, lampSpots) diuji tanpa WebGL.
  */
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { nightFactor } from './facade.js';
 import { applyNightGlow } from './nightGlow.js';
 import { hash01 } from './tileDetail.js';
@@ -109,6 +110,23 @@ function carGeometry() {
   return b;
 }
 
+/** Lampu mobil satuan (ruang kotak mobil): dua lampu depan putih-kuning (+z) dan dua lampu belakang merah (−z). Warna per titik. */
+export function carLightsGeometry() {
+  const parts = [];
+  const add = (x, z, color) => {
+    const b = new THREE.BoxGeometry(0.22, 0.16, 0.06).translate(x, 0.38, z).toNonIndexed();
+    b.deleteAttribute('uv');
+    const c = new THREE.Color(color);
+    const n = b.attributes.position.count;
+    b.setAttribute('color', new THREE.BufferAttribute(Float32Array.from({ length: n * 3 }, (_, i) => [c.r, c.g, c.b][i % 3]), 3));
+    parts.push(b);
+  };
+  for (const x of [-0.32, 0.32]) { add(x, 0.505, '#fff2c0'); add(x, -0.505, '#ff2a1a'); }
+  const merged = mergeGeometries(parts, false);
+  parts.forEach((p) => p.dispose());
+  return merged;
+}
+
 /**
  * @param {{parent: THREE.Object3D, halfWidths?: number[]}} opts
  * @returns {{addRoads(ox:number, oz:number, roads: Array<{cls:number, pts:Array<[number,number]>}>): void,
@@ -139,7 +157,14 @@ export function createFarLife({ parent }) {
   lamps.frustumCulled = false;
   lamps.count = 0;
   lamps.visible = false;
-  parent.add(cars, lamps);
+  const lightMat = own(new THREE.MeshBasicMaterial({ vertexColors: true }));
+  lightMat.name = 'kotaJauh:lampuMobil';
+  const carLights = new THREE.InstancedMesh(own(carLightsGeometry()), lightMat, LIFE.maxCars);
+  carLights.name = 'lampuMobilJauh';
+  carLights.frustumCulled = false;
+  carLights.count = 0;
+  carLights.visible = false;
+  parent.add(cars, lamps, carLights);
 
   let pool = []; // { lane, n, speed }
   let lampPoints = [];
@@ -190,7 +215,7 @@ export function createFarLife({ parent }) {
       }
       poolKey = { x: Infinity, z: Infinity, R: 0 }; // sel baru: pool ditinjau ulang
     },
-    setVisible(on) { cars.visible = Boolean(on); if (!on) lamps.visible = false; },
+    setVisible(on) { cars.visible = Boolean(on); if (!on) { lamps.visible = false; carLights.visible = false; } },
     update({ time, focus, distance, hour }) {
       if (!cars.visible || lanes.length === 0) return;
       const R = Math.min(LIFE.maxRadius, Math.max(LIFE.minRadius, distance * LIFE.radiusPerDistance));
@@ -213,20 +238,26 @@ export function createFarLife({ parent }) {
           q.setFromAxisAngle(UP, Math.atan2(hx, hz));
           m4.compose(pos.set(tmp.x + hz * off, 0.4, tmp.z - hx * off), q, scl.set(2.0 * LIFE.carScale, 1.5 * LIFE.carScale, 4.4 * LIFE.carScale));
           cars.setMatrixAt(count, m4);
+          carLights.setMatrixAt(count, m4);
           count += 1;
         }
       }
       cars.count = count;
+      carLights.count = count;
       cars.instanceMatrix.needsUpdate = true;
+      carLights.instanceMatrix.needsUpdate = true;
       const night = nightFactor(hour);
+      carLights.visible = night > 0.05;
+      lightMat.color.setScalar(Math.min(1, night) * 2.2);
       lamps.visible = night > 0.02;
       lampMat.color.copy(warmOff).lerp(warmOn, night);
     },
     stats: () => ({ lanes: lanes.length, cars: cars.count, lamps: lamps.count }),
     dispose() {
-      parent.remove(cars, lamps);
+      parent.remove(cars, lamps, carLights);
       cars.dispose();
       lamps.dispose();
+      carLights.dispose();
       for (const r of owned) r.dispose?.();
     },
   };
