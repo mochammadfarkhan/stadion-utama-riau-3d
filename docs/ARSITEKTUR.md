@@ -92,6 +92,7 @@ Aturan praktis untuk sistem baru:
 
 | Tanggal | Keputusan | Alasan / rujukan |
 |---|---|---|
+| 2026-11-13 | Arah game: dunia terbuka bebas ("GTA pada akhirnya"), **sekre ERC pusatnya**; Kota dan mode jalan dikerjakan seimbang; arah seni dikunci di preset Rendah; judul akan diganti; penguji = teman ERC | keputusan user D1–D6, `docs/KRITIK.md` bagian Arah |
 | 2026-11-13 | Pratinjau kota memuat seluruh Pekanbaru lewat lapisan "jauh" instans (bukan tile bake penuh) | 380 rb bangunan = 3 MB biner (8 B/bangunan) vs ±130 MB bila di-bake sebagai tile GLB; peta tanah WebP karena hanya dilihat dari jauh |
 | 2026-10-27 | Dokumen ini jadi titik masuk; plan/spec lama tetap arsip | konteks proyek terlalu besar untuk dibaca ulang tiap sesi |
 | 2026-10-26 | Batas FPS default 60 + preset kualitas Otomatis | laptop panas & GPU terintegrasi; `engine/frameCap.js`, `config/quality.js` |

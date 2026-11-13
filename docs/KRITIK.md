@@ -26,27 +26,34 @@ Putaran 1. Ini bukan soal kualitas kerja, ini soal ke mana jam kerja diarahkan.
 Kekuatan yang tidak dimiliki game lain: **tempatnya asli**. Koordinat nyata, terrain SRTM, jejak bangunan OSM/Overture, sekre
 ERC diukur dari Street View, fakta diberi tanda sumber. Catatan keputusan user sejak awal: "autentik, bukan kaleng".
 
-Usul kalimat inti: **"Bersepeda santai menjelajahi Pekanbaru yang sungguhan, dari stadion sampai sekre sendiri."**
+**Keputusan user (D1, 2026-11-13): "ini GTA pada akhirnya, bebas; sekre pusatnya."** Jadi genre = dunia terbuka bebas
+(sandbox), dan sekre ERC = rumah/pusat dunia, bukan sekadar tujuan akhir.
+
+Kalimat inti: **"Pekanbaru yang sungguhan sebagai dunia terbuka: bebas ke mana saja, naik apa saja, pulang ke sekre."**
 
 | Pilar | Artinya | Uji sederhana |
 |---|---|---|
 | P-1 **Tempat yang dikenali** | Orang Pekanbaru/UNRI melihat layar dan berkata "itu di sana!" | Tunjukkan bidikan tanpa label ke teman; mereka menyebut lokasinya |
-| P-2 **Sepeda yang enak** | Mengayuh tanpa tujuan pun menyenangkan (gerak, suara, kamera) | Orang baru masih bersepeda setelah 3 menit tanpa disuruh |
-| P-3 **Selalu ada yang dituju** | Tiap 1–2 menit ada tujuan kecil berikutnya (antar, cap, foto, orang) | Pemain tidak pernah bertanya "terus ngapain?" |
-| P-4 **Hangat dan milik sendiri** | Nada perkamen, jajanan, sekre ERC, nama-nama orang; tidak ada kekerasan/hukuman | Tidak ada layar "kalah"; yang ada "coba lagi" |
+| P-2 **Bergerak itu enak** | Sepeda, jalan kaki, dan kendaraan lain (ganti bebas, keputusan 2026-10-26) menyenangkan walau tanpa tujuan | Orang baru masih berkeliling setelah 3 menit tanpa disuruh |
+| P-3 **Bebas, tapi selalu ada yang bisa dikerjakan** | Tidak ada jalur wajib; di mana pun berhenti ada kegiatan dekat (antar, cap, foto, orang, acara) | Pemain tidak pernah bertanya "terus ngapain?", dan tidak pernah dipaksa |
+| P-4 **Sekre adalah rumah** | Semua berpusat di sekre ERC: mulai, simpan, upgrade, pajang hasil, awal dan akhir misi | Pemain kembali ke sekre atas kemauan sendiri |
+
+[INFERENSI, belum ditanyakan] "Bebas ala GTA" saya artikan sebagai kebebasan menjelajah dan berkendara, **tanpa** kekerasan
+atau kejar-kejaran polisi, karena nada game sejauh ini hangat (perkamen, jajanan, kampus). Koreksi bila maksudnya lain.
 
 **Aturan potong:** fitur yang tidak menguatkan minimal satu pilar tidak dikerjakan, walau menarik secara teknis.
 
 ### Posisi tiap sub-game terhadap pilar (D2)
 | Sub-game | Peran yang diusulkan | Konsekuensi |
 |---|---|---|
-| Sepeda + kurir + cerita | **Inti** (P-2, P-3) | Semua tonggak awal ke sini |
-| Kampus + sekre ERC | **Jantung emosional** (P-1, P-4) | Rumah pemain: titik simpan, tempat upgrade, tujuan akhir bab |
+| Sekre ERC | **Pusat dunia** (P-4, keputusan D1) | Titik mulai (ganti S1: mulai di sekre, bukan di depan stadion), simpan, upgrade, papan pesanan, pajangan |
+| Jelajah bebas + kendaraan + kurir | **Inti** (P-2, P-3) | Kegiatan tersebar di dunia, tidak berurutan wajib |
+| Kampus | **Lingkungan rumah** (P-1) | Kawasan paling padat detail dan NPC |
 | Stadion | **Ikon dan panggung acara** (P-1) | Hari pertandingan (S6), bukan simulator tersendiri |
-| Maket kota (K) | **Peta dan hadiah**, bukan mode utama | Jadi layar perjalanan (S7) + paspor (S5) + foto; berhenti menambah lapisan sampai mode jalan menyusul |
-| Kebun | **Sampingan opsional** | Dibekukan apa adanya; hanya disambung ke pedagang (S4). Tidak ditambah jenis tanaman/mekanik |
+| Maket kota (K) | **Dikerjakan seimbang dengan mode jalan** (keputusan D2) | Selang-seling 1 PR mode jalan : 1 PR Kota. Kota juga jadi layar perjalanan (S7) + paspor (S5) |
+| Kebun | **Sampingan opsional** [usul, belum diputuskan] | Disambung ke pedagang (S4); tidak ditambah mekanik dulu |
 
-### Rendah adalah gaya utama (D3)
+### Rendah adalah gaya utama (D3 — disetujui user 2026-11-13)
 Perangkat sasaran nyata = laptop user (iGPU): Rendah 27–30 fps, Tinggi 2 fps (`ARSITEKTUR.md`). Selama ini Rendah diperlakukan
 sebagai "versi dikurangi" dari Tinggi, sehingga yang dilihat user sehari-hari adalah versi terjelek game.
 Usul: **arah seni dikunci pada Rendah.** Artinya: warna datar yang tegas, bayangan kontak (G1), garis tepi murah, FXAA (G2),
@@ -63,7 +70,10 @@ Tiap tonggak punya satu kalimat janji, kriteria selesai yang bisa dicek, dan **y
 | **T3 Kota punya wajah** | "Itu masjidnya! Itu jembatannya!" | P5, P6, P10, P12 (paspor + perjalanan dari peta) | Uji P-1 lulus untuk ≥ 5 landmark tanpa label; zoom penuh ≤ 600 draw call | Cincin kedua tile (±6 km) sampai P10 lulus |
 | **T4 Poles dan cerita** | "Ini dibuat dengan sayang" | P11 (hero Blender, kit manusia), bab cerita baru, isi sekre ERC asli (butuh data user, Tahap 5 rencana lama) | Galeri 8 titik + satu bab yang berakhir di sekre ERC | — |
 
-Urutan T1 → T2 → T3 → T4. Kota (T3) sengaja di belakang T2: maket yang indah tanpa alasan bermain tetap tontonan.
+**Irama (keputusan D2):** selang-seling, 1 PR mode jalan (T1 lalu T2) : 1 PR Kota (T3). T3 berjalan sejajar, tidak menunggu.
+Urutan Kota: K4 → K1 → K2 + K3 → P10 kinerja → K6 → K5. T4 setelah T1 dan T2 selesai.
+**Akibat D1 pada T1:** titik mulai pindah ke sekre ERC, dan "sepuluh menit pertama" = keluar dari sekre, keliling kampus,
+sampai stadion. **Akibat D5:** M1/M2/M4/M5 menunggu contoh rujukan dari user; M3 (`LOD_NEAR`) dan M6 tetap bisa jalan.
 
 ### Di luar rencana sekarang ("beyond") — dicatat, tidak dijadwalkan
 Hanya dibuka setelah T2 selesai; masing-masing harus lulus aturan potong.
@@ -73,17 +83,21 @@ Hanya dibuka setelah T2 selesai; masing-masing harus lulus aturan potong.
 - **Sekre sebagai rumah**: dekorasi dari upgrade (S2), piagam dari gelar, papan proker; isi asli dari user.
 - **Suara tempat**: ambience per kawasan (stadion, kampus, tepi sungai, jalan arteri) sebagai penguat P-1 yang murah.
 - **Bahasa/dialek**: sapaan NPC bernuansa Melayu Riau; **wajib dicek penutur asli** (jangan mengarang).
-- **Sengaja TIDAK**: multiplayer, mobil yang dikendarai, pertarungan, ekonomi mendalam, kota 100% tile terperinci. Semuanya melanggar pilar atau anggaran.
+- **Kendaraan lain yang enak dikendarai** (motor, mobil): sejalan dengan D1 dan sudah ada ganti bebas; yang kurang adalah rasa tiap kendaraan dan lalu lintas yang bereaksi. Masuk Putaran 2 (rasa kendali).
+- **Sengaja TIDAK** [usul]: multiplayer, pertarungan/kekerasan, ekonomi mendalam, kota 100% tile terperinci.
 
-### Keputusan yang saya butuhkan dari user
-| # | Pertanyaan | Saran saya |
+### Keputusan user (dijawab 2026-11-13)
+| # | Pertanyaan | Jawaban user |
 |---|---|---|
-| D1 | Setuju kalimat inti + 4 pilar? | Ya; ubah kata-katanya sesukamu, yang penting ada |
-| D2 | Maket kota jadi "peta dan hadiah", kebun dibekukan? | Ya |
-| D3 | Arah seni dikunci di preset Rendah? | Ya |
-| D4 | Judul tetap "Simulator Stadion Utama Riau"? Isinya sudah jauh lebih luas dari stadion | Pertimbangkan judul yang menyebut Pekanbaru/bersepeda; stadion jadi ikon sampul |
-| D5 | Avatar manekin tanpa wajah atau diberi wajah minimal (M1)? | Wajah minimal |
-| D6 | Siapa 3 penguji T1? | Teman ERC yang belum pernah melihat proyek ini |
+| D1 | Kalimat inti + pilar | "Ini GTA pada akhirnya, bebas; sekre pusatnya" → dunia terbuka bebas, sekre ERC pusat |
+| D2 | Posisi Kota vs mode jalan | Dua-duanya seimbang (selang-seling) |
+| D3 | Arah seni dikunci di preset Rendah | Ya |
+| D4 | Judul | Ganti; pilih dari usul di bawah (belum dipilih) |
+| D5 | Wajah/avatar | User akan mengirim contoh rujukan; pekerjaan model manusia menunggu itu |
+| D6 | Penguji T1 | 3 teman ERC yang belum pernah melihat proyek |
+
+**Usul judul (D4, belum dipilih):** "Pulang ke Sekre" · "Pekanbaru Bebas" · "Kayuh Pekanbaru" · "Anak Bertuah" (gelar
+yang sudah ada di `story/chapters.js`) · "Dari Sekre ke Kota". Stadion tetap ikon sampul.
 
 ### Cara menilai sendiri tiap tonggak (tanpa telemetri)
 - **Uji 10 menit:** satu orang baru, tanpa penjelasan, direkam layarnya. Catat: detik pertama ia bergerak, tiap kali ia berhenti > 5 detik, dan kalimat pertama yang ia ucapkan.
