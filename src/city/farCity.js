@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { applyGroundDetail } from './groundDetail.js';
 import { applyFacade } from './facade.js';
+import { applyTreeSway } from './treeSway.js';
 import { applyNightGlow } from './nightGlow.js';
 import { createFarLife } from './farLife.js';
 
@@ -83,6 +84,17 @@ const paintAll = (g, color) => {
   return g;
 };
 
+/** Kontak-AO murah: titik dasar dinding (y=0) digelapkan, gradasi sampai puncak. */
+export const WALL_BASE_SHADE = 0.72;
+function baseShade(g) {
+  const pos = g.attributes.position;
+  const col = g.attributes.color;
+  for (let i = 0; i < pos.count; i += 1) {
+    if (pos.getY(i) < 0.001) col.setXYZ(i, col.getX(i) * WALL_BASE_SHADE, col.getY(i) * WALL_BASE_SHADE, col.getZ(i) * WALL_BASE_SHADE);
+  }
+  return g;
+}
+
 /** Dinding kotak satuan (alas y=0, tinggi 1) tanpa atap & alas: 4 sisi (8 segitiga). */
 function wallsGeometry(color) {
   const b = new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0);
@@ -91,7 +103,7 @@ function wallsGeometry(color) {
   const g = b.toNonIndexed();
   b.dispose();
   g.deleteAttribute('uv');
-  return paintAll(g, color);
+  return baseShade(paintAll(g, color));
 }
 
 /** Atap datar: bidang atas di y=1. */
@@ -242,7 +254,7 @@ export async function createFarCity({
   const buildingMat = own(new THREE.MeshLambertMaterial({ vertexColors: true }));
   buildingMat.name = 'kotaJauh:bangunan';
   applyFacade(buildingMat, 'wall'); // jendela & kios pada dinding dari dekat; memudar > 900 m (atap tak terkena: normal.y >= 0,5)
-  const treeMat = own(new THREE.MeshLambertMaterial({ vertexColors: true }));
+  const treeMat = own(applyTreeSway(new THREE.MeshLambertMaterial({ vertexColors: true })));
   treeMat.name = 'kotaJauh:pohon';
   const roadMat = own(applyNightGlow(new THREE.MeshLambertMaterial({ vertexColors: true, depthWrite: false }), { strength: 0.3 })); // lampu jalan malam
   roadMat.name = 'kotaJauh:jalan';

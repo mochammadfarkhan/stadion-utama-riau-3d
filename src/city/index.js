@@ -17,6 +17,7 @@ import { FACADE_UNIFORMS, nightFactor } from './facade.js';
 import { addTileDetail } from './tileDetail.js';
 import { createFarCity } from './farCity.js';
 import { GROUND_UNIFORMS } from './groundDetail.js';
+import { SWAY_UNIFORMS } from './treeSway.js';
 
 /** Tanah dasar kota: persegi besar di bawah landuse (y −0,05), dipindah per 50 m mengikuti fokus. */
 export const CITY_GROUND = Object.freeze({ size: 2 * STREAM.unloadRadius + 400, y: -0.05, snap: 50 });
@@ -105,6 +106,7 @@ export async function createCity({
       if (time && Number.isFinite(time.hour)) {
         FACADE_UNIFORMS.uNight.value = nightFactor(time.hour); // jendela menyala malam
         GROUND_UNIFORMS.uCloudT.value = ctx.time ?? 0; // bayangan awan bergerak
+        SWAY_UNIFORMS.uSwayT.value = ctx.time ?? 0;
         GROUND_UNIFORMS.uCloudAmt.value = 1 - FACADE_UNIFORMS.uNight.value; // tak ada bayangan awan malam
       }
       const focus = ctx.focus ?? ctx.bikePos;
