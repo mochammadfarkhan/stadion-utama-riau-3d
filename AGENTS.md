@@ -17,6 +17,7 @@ Proyek hobi: **cepat dan sederhana mengalahkan lengkap**. Bahasa: Indonesia.
 - Anggaran: draw call region ≤ 250, tekstur GPU ≤ 70 MB, konten berulang lewat generator + instancing.
 
 ## Teknis singkat
+- **Rencana Kota: `docs/kota/PLAN.md`** (+ README per fitur di `docs/kota/*/`) — perbarui di akhir tiap sesi yang menyentuh Kota; resep ganti model di `docs/kota/ganti-model/`.
 - **Peta arsitektur: `docs/ARSITEKTUR.md`** — baca dulu sebelum menjelajah; perbarui (termasuk log keputusan) bila menambah lapisan/sistem/region.
 - Koordinat dunia: +X timur, +Z selatan (meter). Lapisan ESLint tidak boleh saling impor lintas (lihat `eslint.config.js`).
 - Blender: `"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --python-expr "import runpy;print(runpy.run_path(r'<skrip>')['build']())"` (atau Blender MCP); skrip di `assets-src/blender/`.

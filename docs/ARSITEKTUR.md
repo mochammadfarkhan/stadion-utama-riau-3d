@@ -54,6 +54,8 @@ Aturan praktis untuk sistem baru:
 - Kerja berat yang tidak perlu tiap frame → `scheduler` (dicicil), bukan di `update`.
 - Pasang/lepas harus simetris: semua yang dibuat saat mount punya `dispose` (lihat `engine/disposeTree.js`).
 
+> Fitur Kota (pratinjau K, tile terperinci, kota jauh, proxy stadion, resep ganti model): **`docs/kota/README.md`** + rencana hidup `docs/kota/PLAN.md` (perbarui tiap sesi).
+
 ## Dunia: siapa dipasang kapan
 
 | Bagian | Cara aktif | LOD/penghematan |
