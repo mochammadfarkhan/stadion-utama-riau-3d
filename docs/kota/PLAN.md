@@ -40,7 +40,7 @@ Keputusan selera sudah dijawab (maket / 16:45 / suara otomatis); lihat vibes/REA
 3. ⬜ **Garis tengah & tepi jalan jauh** untuk kelas ≤ tertiary (strip putih tipis, fade jarak). [kota-jauh]
 4. ⬜ **Variasi pohon**: 3 jenis (tajuk bulat, palem, pohon peneduh) + batang; ganti geometri di `farCity.js`/`tileDetail.js`. [ganti-model]
 5. ⬜ **Peta tanah 4096 dipecah per sel + KTX2 (Basis)** agar tajam saat zoom menengah tanpa melewati anggaran 70 MB; muat per sel terdekat. [kota-jauh]
-6. ⬜ **Air**: shader air untuk Sungai Siak (riak + pantulan langit) di peta tanah/bidang air. [kota-jauh]
+6. 🔄 **Air**: perahu ✅ (rivers.bin + farLife); ⬜ shader air (riak + pantulan langit). [kota-jauh]
 
 ## Landmark (model Blender ringan, ganti lewat resep)
 Syarat: lokasi & nama dari OSM/Overture (jangan mengarang), model < 2 rb segitiga, 1 draw call per jenis.
@@ -64,6 +64,7 @@ Lihat [ganti-model](ganti-model/README.md).
 | 2026-11-13 | Kota jauh v1 (bangunan kotak sejajar sumbu, jalan kelas ≤5, peta tanah) | 380 rb bangunan, 4,7 MB |
 | 2026-11-13 | Kota jauh v2 (rotasi, atap pelana, pohon, jalan semua kelas, peta pekat) | 7 MB, 185 rb pohon, 742 berkas |
 | 2026-11-13 | Bar kendali Kota: slider jam, Putar waktu (1,2 jam/dtk), Tur (rute tetangga-terdekat, 5,5 dtk/perhentian) | 5 tes murni (`cityTour`); dicek di browser uji, belum di GPU asli |
+| 2026-11-13 | Perahu di sungai/kanal (`rivers.bin` 66 KB, 631 jalur; ≤ 300 perahu) | 4 tes murni; satu perahu terlihat di kanal timur laut di browser uji, tanpa galat |
 | 2026-11-13 | Lampu jalan tile terperinci (tiang+kepala instans, ≤ 170/tile) | 3 tes murni; dicek malam di browser uji, tanpa galat; draw call +2 per tile berjalan |
 | 2026-11-13 | Lampu depan putih/belakang merah mobil jauh (malam) | 1 tes murni; render tanpa galat, warna belum terbedakan di bidikan uji |
 | 2026-11-13 | Kontak-AO dasar bangunan jauh (×0,72 di y=0) + pohon jauh bergoyang (`treeSway.js`) | 3 tes murni; shader terkompilasi di browser uji, efek halus (belum dibandingkan sebelum/sesudah) |

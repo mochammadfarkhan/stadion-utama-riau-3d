@@ -14,7 +14,7 @@ import { applyGroundDetail } from './groundDetail.js';
 import { applyFacade } from './facade.js';
 import { applyTreeSway } from './treeSway.js';
 import { applyNightGlow } from './nightGlow.js';
-import { createFarLife } from './farLife.js';
+import { createFarLife, parseRivers } from './farLife.js';
 
 const GROUND_Y = -0.4;
 const ROAD_Y = 0.08;
@@ -369,6 +369,9 @@ export async function createFarCity({
       await addGround();
     } catch (err) {
       logger.error('Peta tanah kota jauh gagal dimuat:', err);
+    }
+    if (manifest.rivers?.file) { // jalur perahu (opsional; gagal = tanpa perahu)
+      try { life.addRivers(parseRivers(await fetchBuffer(`${baseUrl}far/${manifest.rivers.file}`))); } catch (err) { logger.error('Jalur sungai gagal dimuat (tanpa perahu):', err); }
     }
     const queue = [...manifest.cells].sort((a, b) => Math.hypot(a.ix - 3, a.iz) - Math.hypot(b.ix - 3, b.iz)); // dekat stadion dulu
     const worker = async () => {

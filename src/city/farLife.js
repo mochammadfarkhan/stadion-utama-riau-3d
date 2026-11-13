@@ -100,6 +100,28 @@ export function lampSpots(lane, halfWidth = 6) {
   return out;
 }
 
+/** Jalur perahu dari `rivers.bin` (u32 n; per garis u16 np, np×(f32 x, f32 z)) → [[x, z], …][]; data terpotong dibuang. */
+export function parseRivers(buffer) {
+  const v = new DataView(buffer);
+  const out = [];
+  if (v.byteLength < 4) return out;
+  const n = v.getUint32(0, true);
+  let o = 4;
+  for (let i = 0; i < n && o + 2 <= v.byteLength; i += 1) {
+    const np = v.getUint16(o, true);
+    o += 2;
+    if (o + np * 8 > v.byteLength) break;
+    const pts = [];
+    for (let k = 0; k < np; k += 1, o += 8) pts.push([v.getFloat32(o, true), v.getFloat32(o + 4, true)]);
+    out.push(pts);
+  }
+  return out;
+}
+
+export const BOATS = Object.freeze({ max: 300, perLaneSpacing: 380, maxPerLane: 5, speed: 2.6, scale: 2.2, minLaneLength: 120 });
+/** Banyak perahu pada lajur sungai (menurut panjang), dibatasi. */
+export const boatsOnLane = (lane) => Math.min(BOATS.maxPerLane, Math.floor(lane.len / BOATS.perLaneSpacing));
+
 const UP = new THREE.Vector3(0, 1, 0);
 
 /** Kotak mobil satuan (lebar 1, tinggi 1, panjang 1; alas y=0; tanpa alas) — 10 segitiga. */
@@ -164,7 +186,17 @@ export function createFarLife({ parent }) {
   carLights.frustumCulled = false;
   carLights.count = 0;
   carLights.visible = false;
-  parent.add(cars, lamps, carLights);
+  const boatMat = own(new THREE.MeshLambertMaterial({ color: 0xffffff }));
+  boatMat.name = 'kotaJauh:perahu';
+  const boats = new THREE.InstancedMesh(own(carGeometry()), boatMat, BOATS.max);
+  boats.name = 'perahuJauh';
+  boats.frustumCulled = false;
+  boats.count = 0;
+  const boatPalette = ['#c9552f', '#e8e4d8', '#2f6fa8', '#e0b43c'].map((c) => new THREE.Color(c));
+  for (let i = 0; i < BOATS.max; i += 1) boats.setColorAt(i, boatPalette[Math.floor(hash01(i, 55) * boatPalette.length)]);
+  boats.instanceColor.needsUpdate = true;
+  const boatLanes = [];
+  parent.add(cars, lamps, carLights, boats);
 
   let pool = []; // { lane, n, speed }
   let lampPoints = [];
@@ -215,9 +247,18 @@ export function createFarLife({ parent }) {
       }
       poolKey = { x: Infinity, z: Infinity, R: 0 }; // sel baru: pool ditinjau ulang
     },
-    setVisible(on) { cars.visible = Boolean(on); if (!on) { lamps.visible = false; carLights.visible = false; } },
+    /** Daftarkan jalur sungai/kanal (koordinat dunia). */
+    addRivers(lines) {
+      let id = 100000;
+      for (const pts of lines) {
+        const lane = createLane(id, 0, pts, BOATS.minLaneLength);
+        id += 1;
+        if (lane) boatLanes.push(lane);
+      }
+    },
+    setVisible(on) { boats.visible = Boolean(on); cars.visible = Boolean(on); if (!on) { lamps.visible = false; carLights.visible = false; } },
     update({ time, focus, distance, hour }) {
-      if (!cars.visible || lanes.length === 0) return;
+      if (!cars.visible) return;
       const R = Math.min(LIFE.maxRadius, Math.max(LIFE.minRadius, distance * LIFE.radiusPerDistance));
       const moved = Math.hypot(focus.x - poolKey.x, focus.z - poolKey.z);
       if (moved > R * LIFE.repoolDistance || Math.abs(R - poolKey.R) > poolKey.R * 0.25) repool(focus.x, focus.z, R);
@@ -246,15 +287,31 @@ export function createFarLife({ parent }) {
       carLights.count = count;
       cars.instanceMatrix.needsUpdate = true;
       carLights.instanceMatrix.needsUpdate = true;
+      let nb = 0;
+      const nearBoats = selectLanes(boatLanes, focus.x, focus.z, R * 1.3);
+      for (const lane of nearBoats) {
+        const n = boatsOnLane(lane);
+        for (let i = 0; i < n && nb < BOATS.max; i += 1) {
+          const dir = hash01(lane.id, i, 3) < 0.5 ? 1 : -1;
+          const along = (((hash01(lane.id, i, 1) * lane.len + BOATS.speed * (0.7 + 0.6 * hash01(lane.id, i, 9)) * time) % lane.len) + lane.len) % lane.len;
+          pointAt(lane, dir > 0 ? along : lane.len - along, tmp);
+          q.setFromAxisAngle(UP, Math.atan2(tmp.ux * dir, tmp.uz * dir));
+          boats.setMatrixAt(nb, m4.compose(pos.set(tmp.x, 0.3, tmp.z), q, scl.set(1.6 * BOATS.scale, 1.1 * BOATS.scale, 5.5 * BOATS.scale)));
+          nb += 1;
+        }
+      }
+      boats.count = nb;
+      boats.instanceMatrix.needsUpdate = true;
       const night = nightFactor(hour);
       carLights.visible = night > 0.05;
       lightMat.color.setScalar(Math.min(1, night) * 2.2);
       lamps.visible = night > 0.02;
       lampMat.color.copy(warmOff).lerp(warmOn, night);
     },
-    stats: () => ({ lanes: lanes.length, cars: cars.count, lamps: lamps.count }),
+    stats: () => ({ lanes: lanes.length, cars: cars.count, lamps: lamps.count, boatLanes: boatLanes.length, boats: boats.count }),
     dispose() {
-      parent.remove(cars, lamps, carLights);
+      parent.remove(cars, lamps, carLights, boats);
+      boats.dispose();
       cars.dispose();
       lamps.dispose();
       carLights.dispose();
