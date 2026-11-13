@@ -90,6 +90,7 @@ Aturan praktis untuk sistem baru:
 
 | Tanggal | Keputusan | Alasan / rujukan |
 |---|---|---|
+| 2026-11-14 | Karakter jadi dibangun dari kode di A-pose rujukan, vertex dicocokkan ke siluet lembar rujukan user per baris 1 cm, lalu **gambar rujukan diproyeksikan jadi tekstur** (depan/samping/belakang per normal) dan lengan diputar ke pose game; skor IoU siluet `skor_rujukan.py` (kardigan 0,84, pirang 0,80) | user minta model "persis rujukan" (alur plane 2D + maju-mundur vertex); `assets-src/blender/karakter/karakter_preset.py` |
 | 2026-11-14 | Karakter jadi kiriman user (3 model, `entities/Humanoid.preset.js`): di-rig di Blender (`assets-src/blender/karakter/rig_preset.py`, 13 tulang = nama pivot Humanoid), tulang = pivot sehingga anim/pose lama langsung jalan; dipasang ke NPC sekre Mala & Fitri via `createHumanoid({preset})` | model user datang (memori: "model manusia tunggu rujukan user"); 1 SkinnedMesh/orang |
 | 2026-11-13 | Pratinjau kota memuat seluruh Pekanbaru lewat lapisan "jauh" instans (bukan tile bake penuh) | 380 rb bangunan = 3 MB biner (8 B/bangunan) vs ±130 MB bila di-bake sebagai tile GLB; peta tanah WebP karena hanya dilihat dari jauh |
 | 2026-10-27 | Dokumen ini jadi titik masuk; plan/spec lama tetap arsip | konteks proyek terlalu besar untuk dibaca ulang tiap sesi |

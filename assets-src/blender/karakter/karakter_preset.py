@@ -3,11 +3,14 @@ Karakter jadi DIBANGUN DARI KODE mengikuti gambar rujukan user (sumber/preset/re
 (E:/laragon/www/golden-temple/.claude/skills/procedural-3d-object): satuan meter dari satu SPEC, bagian = loft irisan
 penampang, render berdampingan dengan rujukan → perbaiki → ulangi.
 
-Langsung dalam pose game (lengan menggantung, miring REST_TILT), satu mesh low-poly faset per karakter, warna per
-face (atribut warna linear) × atlas 512² (wajah dilukis, motif batik, sisanya putih). Bobot 13 tulang (nama = pivot
-Humanoid) dihitung saat membangun: tiap bagian tahu tulangnya.
+Mode rujukan (alur user "plane 2D → maju-mundurkan vertex"): karakter_ref.py menganalisis lembar rujukan
+(kalibrasi tiap tampak, sudut lengan A-pose, profil siluet). Model dibangun dalam A-pose yang SAMA, vertex
+didorong-tarik ke profil siluet, lalu UV tiap face diproyeksikan dari tampak yang menghadapnya (depan/belakang/
+samping) sehingga warna, wajah, batik, dan lipatan persis gambar konsep. Terakhir lengan diputar ke pose game
+(REST_TILT); UV ikut vertex. Bagian tanpa rujukan (hijab pada varian kargo) memakai warna vertex + strip putih.
 
-Keluaran: public/models/karakter/preset-<id>.glb (+ sumber/preset/<id>-rig.blend, atlas <id>-atlas.png).
+Bobot 13 tulang (nama = pivot Humanoid) dihitung saat membangun: tiap bagian tahu tulangnya.
+Keluaran: public/models/karakter/preset-<id>.glb (+ sumber/preset/<id>-rig.blend dengan plane rujukan).
 Jalankan: blender -b --python-expr "import runpy;print(runpy.run_path(r'<skrip>')['build']())"
 Koordinat Blender: +X kiri karakter, -Y depan, +Z atas.
 """
@@ -37,10 +40,12 @@ HIP_Z = 0.86           # body/spine + sendi pinggul
 HIP_X = 0.085
 KNEE_Z = 0.46
 SHOULDER = (0.145, 1.32)
-REST_TILT = math.radians(7)
-UPPER_ARM = 0.26
-FOREARM = 0.235
-GRIP = 0.07            # titik pegang = pergelangan + GRIP
+REST_TILT = math.radians(7)   # pose game
+ARM_TILT = REST_TILT          # kemiringan lengan saat MEMBANGUN (mode rujukan: sudut A-pose rujukan)
+UPPER_ARM = 0.225       # diukur dari rujukan: ujung jari A-pose di z ≈ 0,81–0,84
+FOREARM = 0.205
+GRIP = 0.06
+ARM_K = (UPPER_ARM + FOREARM) / 0.495  # posisi lengan baju/gelang ditulis untuk pergelangan 0,495            # titik pegang = pergelangan + GRIP
 BONES = ('body', 'spine', 'headPivot', 'shoulderL', 'elbowL', 'handL', 'shoulderR', 'elbowR', 'handR',
          'hipL', 'kneeL', 'hipR', 'kneeR')
 PARENT = {'spine': 'body', 'headPivot': 'spine', 'shoulderL': 'spine', 'elbowL': 'shoulderL', 'handL': 'elbowL',
@@ -84,10 +89,11 @@ def lerp(a, b, t):
 
 
 # ---------------------------------------------------------------- bobot (tiap bagian memilih fungsinya)
-def arm_axis(sx):
+def arm_axis(sx, tilt=None):
+    tilt = ARM_TILT if tilt is None else tilt
     s = Vector((sx * SHOULDER[0], 0.0, SHOULDER[1]))
-    d = Vector((sx * math.sin(REST_TILT), 0.0, -math.cos(REST_TILT)))
-    u = Vector((math.cos(REST_TILT), 0.0, sx * math.sin(REST_TILT)))
+    d = Vector((sx * math.sin(tilt), 0.0, -math.cos(tilt)))
+    u = Vector((math.cos(tilt), 0.0, sx * math.sin(tilt)))
     return s, d, u
 
 
@@ -149,6 +155,8 @@ class Mesh:
         self.v = []
         self.w = []
         self.f = []  # (indeks, warna, region|None)
+        self.ft = []  # tag bagian per face ('hijab', 'rambut', …)
+        self.tag = 'badan'
 
     def vert(self, p, weigh):
         self.v.append(Vector(p))
@@ -163,6 +171,7 @@ class Mesh:
         col = color(c, n) if callable(color) else color
         reg = region(c, n) if callable(region) else region
         self.f.append((tuple(idx), col, reg))
+        self.ft.append(self.tag)
 
     def loft(self, rings, color, weigh, closed=True, cap0=False, cap1=False, region=None):
         """Sambung cincin-cincin (jumlah titik sama) jadi tabung; cap = kipas ke titik tengah."""
@@ -280,7 +289,7 @@ def build_hand(m, sx, skin, wrist_t=UPPER_ARM + FOREARM):
     s, d, u = arm_axis(sx)
     v = Vector((0, 1, 0))
     w = w_arm(sx)
-    secs = ((0.0, 0.021, 0.026), (0.03, 0.022, 0.040), (0.075, 0.019, 0.042), (0.12, 0.015, 0.034), (0.15, 0.010, 0.020), (0.165, 0.005, 0.008))
+    secs = ((0.0, 0.024, 0.024), (0.027, 0.032, 0.030), (0.065, 0.034, 0.024), (0.105, 0.030, 0.018), (0.13, 0.020, 0.012), (0.145, 0.008, 0.006))
     m.loft([ring_axis(s + d * (wrist_t + t), u, v, ru, rv, 8) for t, ru, rv in secs], skin, w, cap0=True, cap1=True)
     # Ibu jari: ke depan-bawah dari sisi dalam telapak.
     base = s + d * (wrist_t + 0.03) + v * -0.03
@@ -292,7 +301,7 @@ def build_sleeve(m, sx, color, secs, w=None):
     """secs = [(t, ru, rv)] sepanjang sumbu lengan."""
     s, d, u = arm_axis(sx)
     v = Vector((0, 1, 0))
-    m.loft([ring_axis(s + d * t, u, v, ru, rv, 10) for t, ru, rv in secs], color, w or w_arm(sx), cap0=True, cap1=True)
+    m.loft([ring_axis(s + d * (t * ARM_K), u, v, ru, rv, 10) for t, ru, rv in secs], color, w or w_arm(sx), cap0=True, cap1=True)
 
 
 def build_legs(m, color, secs, cap1=True):
@@ -301,9 +310,9 @@ def build_legs(m, color, secs, cap1=True):
                cap0=True, cap1=cap1)
 
 
-def build_foot(m, sx, color, sole, h=0.10, length=0.25, w=0.048, shaft=None):
+def build_foot(m, sx, color, sole, h=0.10, length=0.25, w=0.048, shaft=None, x=None):
     """Sepatu: loft sepanjang -Y (tumit → ujung); sole = warna untuk face terbawah."""
-    x = sx * (HIP_X + 0.005)
+    x = sx * (HIP_X + 0.005) if x is None else x
     col = lambda c, n: sole if c.z < 0.024 or n.z < -0.7 else color  # noqa: E731
     secs = ((0.055, 0.75, 0.85), (0.02, 1.0, 1.0), (-0.07, 0.86, 1.04), (-0.14, 0.74, 1.0), (-0.185, 0.6, 0.88), (-0.205, 0.32, 0.6))
     rings = []
@@ -370,13 +379,13 @@ def build_tactical(m, hijab):
         build_hand(m, sx, skin)
         s, d, u = arm_axis(sx)
         for k in (0.0, 0.012):  # gelang emas
-            m.torus(s + d * (0.475 + k), u, Vector((0, 1, 0)), 0.029, 0.0035, gold, w_arm(sx), n=10, m=3)
+            m.torus(s + d * ((0.475 + k) * ARM_K), u, Vector((0, 1, 0)), 0.029, 0.0035, gold, w_arm(sx), n=10, m=3)
     # Celana kargo + saku.
     m.loft([ring_z(z, rx, ryf, ryb, n=16) for z, rx, ryf, ryb in
             ((0.995, 0.124, 0.088, 0.088), (0.93, 0.150, 0.100, 0.110), (0.85, 0.162, 0.100, 0.116), (0.78, 0.150, 0.094, 0.100))],
            olive, w_legs, cap0=True, cap1=True)
     build_legs(m, olive, ((0.86, 0.086, 0.088, 0.0), (0.70, 0.080, 0.084, 0.004), (0.50, 0.066, 0.068, 0.006),
-                          (0.44, 0.064, 0.066, 0.006), (0.30, 0.062, 0.064, 0.006), (0.19, 0.060, 0.062, 0.006)))
+                          (0.44, 0.064, 0.066, 0.006), (0.32, 0.062, 0.064, 0.006), (0.23, 0.060, 0.062, 0.006)))
     for sx in (1, -1):
         x = sx * (HIP_X + 0.082)
         m.box((x, 0.0, 0.565), (0.012, 0, 0), (0, 0.048, 0), (0, 0, 0.068), olive_dk, w_legs)
@@ -389,9 +398,9 @@ def build_tactical(m, hijab):
     # Sepatu bot.
     boot, sole = hexlin(0x5B3A28), hexlin(0x2A1E17)
     for sx in (1, -1):
-        build_foot(m, sx, boot, sole, h=0.09, length=0.26, w=0.05, shaft=(0.05, 0.215, 0.06))
+        build_foot(m, sx, boot, sole, h=0.10, length=0.27, w=0.052, shaft=(0.05, 0.25, 0.062))
     if hijab:
-        build_hijab(m, hexlin(0xE2CBA2), hexlin(0x9A8268), tail=False)
+        build_hijab(m, hexlin(0xD9BE93), hexlin(0x8E7458), tail=False, drape=0.86)
         build_sunglasses(m, CHIN_Z + HEAD_H + 0.030, -0.040, hexlin(0x1C1C1E))
     else:
         build_blonde_hair(m, hexlin(0xEDCD78), hexlin(0x2A2A2C))
@@ -415,15 +424,23 @@ def build_blonde_hair(m, hair, tie):
                        (0.016, 0.018, 0.006))):
         m.loft(tube(path, rad, up=(0, 1, 0), n=6, flat=0.35), hair, w_head, cap0=True, cap1=True)
     # Kuncir kuda tinggi.
-    path = [(0, 0.070, CHIN_Z + 0.205), (0, 0.108, CHIN_Z + 0.228), (0, 0.150, CHIN_Z + 0.200), (0.004, 0.172, CHIN_Z + 0.120),
-            (0.010, 0.168, CHIN_Z + 0.020), (0.016, 0.150, CHIN_Z - 0.080), (0.018, 0.130, CHIN_Z - 0.150)]
-    m.loft(tube(path, (0.030, 0.040, 0.050, 0.050, 0.043, 0.030, 0.006), up=(1, 0, 0), n=10, flat=0.8), hair, w_head,
+    path = [(0, 0.060, 1.640), (0, 0.120, 1.662), (0, 0.180, 1.615), (0.005, 0.205, 1.530), (0.010, 0.190, 1.420),
+            (0.015, 0.165, 1.320), (0.018, 0.140, 1.240)]  # diukur dari profil samping rujukan (puncak, lengkung, ujung)
+    m.loft(tube(path, (0.035, 0.050, 0.060, 0.060, 0.052, 0.036, 0.008), up=(1, 0, 0), n=10, flat=0.8), hair, w_head,
            cap0=True, cap1=True)
     m.torus((0, 0.090, CHIN_Z + 0.222), (1, 0, 0), (0, 0.5, -0.86), 0.028, 0.006, tie, w_head, n=10, m=3)
 
 
-def build_hijab(m, cloth, under, tail=True):
+def build_hijab(m, cloth, under, tail=True, drape=1.0):
     """Kerudung: tudung (bukaan wajah, ciput gelap di tepi dahi), kain menutup leher & bahu, ekor di punggung."""
+    prev, m.tag = m.tag, 'hijab'
+    try:
+        _build_hijab(m, cloth, under, tail, drape)
+    finally:
+        m.tag = prev
+
+
+def _build_hijab(m, cloth, under, tail, drape_k=1.0):
     def window(h):
         return math.radians(60) if 0.004 < h < 0.165 else 0.0
 
@@ -435,11 +452,13 @@ def build_hijab(m, cloth, under, tail=True):
     m.loft(rings, col, w_hood, closed=False, cap1=True)
     # Kain jatuh menutup bahu & dada (ujung depan lebih panjang).
     def drape(z, rx, ryf, ryb, drop=0.0):
+        if z < CHIN_Z - 0.04:  # cincin bawah kain bahu ikut skala (varian kargo: kain lebih ramping)
+            rx, ryf, ryb, drop = rx * drape_k, ryf * (0.5 + 0.5 * drape_k), ryb * (0.5 + 0.5 * drape_k), drop * drape_k
         r = ring_z(z, rx, ryf, ryb, n=18)
         return [Vector((p.x, p.y, p.z - drop * max(0.0, -p.y / max(ryf, 1e-6)) ** 1.5)) for p in r]
     m.loft([drape(CHIN_Z - 0.030, 0.068, 0.070, 0.074), drape(1.39, 0.120, 0.100, 0.098, 0.01),
-            drape(1.355, 0.168, 0.118, 0.108, 0.04), drape(1.32, 0.188, 0.126, 0.116, 0.10),
-            drape(1.295, 0.192, 0.130, 0.118, 0.15)],
+            drape(1.355, 0.160, 0.118, 0.108, 0.04), drape(1.32, 0.172, 0.126, 0.116, 0.10),
+            drape(1.295, 0.176, 0.130, 0.118, 0.15)],
            cloth, w_torso)
     if tail:
         path = [(0.02, 0.095, 1.40), (0.035, 0.130, 1.28), (0.045, 0.140, 1.14), (0.05, 0.138, 1.02)]
@@ -460,32 +479,34 @@ def build_cardigan(m):
     def gap(z):
         return math.radians(lerp(30, 20, ramp(z, 1.0, 1.36)))
     secs = ((1.375, 0.150, 0.080, 0.078), (1.33, 0.170, 0.100, 0.092), (1.22, 0.152, 0.130, 0.098), (1.10, 0.142, 0.115, 0.097),
-            (1.00, 0.152, 0.116, 0.104), (0.88, 0.180, 0.128, 0.122), (0.72, 0.196, 0.134, 0.132), (0.58, 0.204, 0.138, 0.138))
+            (1.00, 0.152, 0.116, 0.104), (0.88, 0.180, 0.128, 0.122), (0.76, 0.192, 0.134, 0.132), (0.65, 0.200, 0.138, 0.138))
     m.loft([ring_z(z, rx, ryf, ryb, n=20, a0=gap(z), a1=TAU - gap(z)) for z, rx, ryf, ryb in secs], maroon, w_coat, closed=False)
     for sx in (1, -1):  # lengan balon bermanset
-        build_sleeve(m, sx, maroon, ((-0.02, 0.022, 0.026), (0.015, 0.046, 0.050), (0.06, 0.056, 0.058), (0.18, 0.060, 0.060), (0.29, 0.064, 0.064),
-                                     (0.38, 0.068, 0.068), (0.445, 0.048, 0.048), (0.452, 0.040, 0.040), (0.475, 0.038, 0.038)))
+        # Lengan balon: ramping di lengan atas, menggembung di lengan bawah, manset di pergelangan (rujukan).
+        build_sleeve(m, sx, maroon, ((-0.02, 0.020, 0.024), (0.015, 0.040, 0.044), (0.06, 0.046, 0.048), (0.18, 0.048, 0.050),
+                                     (0.29, 0.058, 0.058), (0.38, 0.064, 0.064), (0.445, 0.046, 0.046), (0.452, 0.040, 0.040),
+                                     (0.475, 0.038, 0.038)))
         build_sleeve(m, sx, skin, ((0.46, 0.024, 0.027), (0.50, 0.021, 0.025)))
         build_hand(m, sx, skin)
     s, d, u = arm_axis(1)  # jam tangan di kiri
-    m.torus(s + d * 0.485, u, Vector((0, 1, 0)), 0.026, 0.004, hexlin(0x6B4426), w_arm(1), n=10, m=3)
-    m.box(s + d * 0.485 + Vector((0, -0.03, 0)), (0.008, 0, 0), (0, 0.003, 0), (0, 0, 0.008), hexlin(0xD8D8DC), w_arm(1))
+    m.torus(s + d * (0.485 * ARM_K), u, Vector((0, 1, 0)), 0.026, 0.004, hexlin(0x6B4426), w_arm(1), n=10, m=3)
+    m.box(s + d * (0.485 * ARM_K) + Vector((0, -0.03, 0)), (0.008, 0, 0), (0, 0.003, 0), (0, 0, 0.008), hexlin(0xD8D8DC), w_arm(1))
     s, d, u = arm_axis(-1)  # gelang manik emas di kanan
     for k in (0.0, 0.013):
         for i in range(9):
             a = TAU * i / 9
-            p = s + d * (0.482 + k) + u * math.cos(a) * 0.029 + Vector((0, 1, 0)) * math.sin(a) * 0.031
+            p = s + d * ((0.482 + k) * ARM_K) + u * math.cos(a) * 0.029 + Vector((0, 1, 0)) * math.sin(a) * 0.031
             m.blob(p, 0.0055, 0.0055, 0.0055, hexlin(GOLD), w_arm(-1), n=5, m=3)
     # Kulot lebar + pergelangan kaki + loafer.
     m.loft([ring_z(z, rx, ryf, ryb, n=16) for z, rx, ryf, ryb in
             ((1.02, 0.120, 0.086, 0.086), (0.95, 0.150, 0.100, 0.108), (0.85, 0.166, 0.106, 0.116), (0.77, 0.158, 0.100, 0.104))],
            taupe, w_legs, cap0=True, cap1=True)
-    build_legs(m, taupe, ((0.86, 0.090, 0.092, 0.0), (0.60, 0.100, 0.100, 0.010), (0.32, 0.112, 0.112, 0.016),
-                          (0.115, 0.122, 0.122, 0.020)), cap1=True)
+    build_legs(m, taupe, ((0.86, 0.090, 0.092, 0.0), (0.60, 0.100, 0.100, 0.010), (0.34, 0.112, 0.112, 0.016),
+                          (0.165, 0.122, 0.122, 0.020)), cap1=True)
     for sx in (1, -1):
-        m.loft([ring_z(z, 0.028, 0.030, 0.030, n=8, cx=sx * (HIP_X + 0.005), cy=0.01) for z in (0.03, 0.14)], skin, w_legs)
-        build_foot(m, sx, hexlin(0x3E2A20), hexlin(0x241812), h=0.075, length=0.23, w=0.045)
-        m.box((sx * (HIP_X + 0.005), 0.045, 0.018), (0.03, 0, 0), (0, 0.022, 0), (0, 0, 0.018), hexlin(0x241812), w_legs)
+        m.loft([ring_z(z, 0.030, 0.032, 0.032, n=8, cx=sx * 0.115, cy=0.01) for z in (0.03, 0.19)], skin, w_legs)
+        build_foot(m, sx, hexlin(0x3E2A20), hexlin(0x241812), h=0.08, length=0.25, w=0.05, x=sx * 0.115)
+        m.box((sx * 0.115, 0.05, 0.02), (0.032, 0, 0), (0, 0.024, 0), (0, 0, 0.02), hexlin(0x241812), w_legs)
     # Tas selempang di pinggul kiri + tali dari bahu kiri.
     bag = hexlin(0x7B4B2B)
     m.box((0.215, 0.0, 0.84), (0.026, 0, 0), (0, 0.072, 0), (0, 0, 0.058), bag, w_spine)
@@ -508,7 +529,71 @@ def paint_atlas(path, brow_hex):
     return _sys
 
 
+REF = None  # data karakter_ref.py untuk build yang sedang berjalan
+
+
+INSET = 0.93     # proyeksi badan dijepit ke 93% rentang siluet baris itu (tepi rujukan berbayang gelap)
+ARM_INSET = 0.65  # lengan: ke 65% setengah lebar run lengan
+
+
+def _row(z):
+    return REF['_rows'].get(round(z / 0.01))
+
+
+def inset(view, p, arm_side=None):
+    """Salinan p yang dijepit ke dalam siluet rujukan pada barisnya (lihat INSET)."""
+    e = _row(p.z)
+    if not e:
+        return p
+    q = p.copy()
+    if view in ('front', 'back') and arm_side:
+        a = e.get('arm', {}).get(arm_side)
+        if a:
+            sx = 1 if arm_side == 'L' else -1
+            out = min(max(sx * q.x, a[0] - ARM_INSET * a[1]), a[0] + ARM_INSET * a[1])
+            q.x = sx * out
+            return q
+        # di atas ketiak lengan menyatu dengan badan di siluet rujukan: jepit seperti badan
+    if view == 'front' and e['front']:
+        lim = e['front'][0] if q.x < 0 else e['front'][1]   # kiri gambar = kanan karakter (−X)
+        q.x = max(-INSET * lim, min(INSET * lim, q.x))
+    elif view == 'back' and e['back']:
+        lim = e['back'][1] if q.x < 0 else e['back'][0]     # tampak belakang: kiri gambar = kiri karakter (+X)
+        q.x = max(-INSET * lim, min(INSET * lim, q.x))
+    elif view == 'side' and e['side']:
+        q.y = max(-INSET * e['side'][1], min(INSET * e['side'][0], q.y))
+    return q
+
+
+def proj_uv(view, p, arm_side=None):
+    """UV proyeksi ortografik titik p (meter, Blender) ke lembar rujukan tampak `view`."""
+    p = inset(view, p, arm_side)
+    v = REF['views'][{'front': 0, 'side': 1, 'back': 2}[view]]
+    if view == 'front':      # kanan karakter (−X) di kiri gambar
+        col = v['x0'] + v['c'] + p.x / v['s']
+    elif view == 'back':
+        col = v['x0'] + v['c'] - p.x / v['s']
+    else:                    # samping: depan (−Y) di kanan gambar
+        col = v['x0'] + v['c'] - p.y / v['s']
+    col = min(max(col, v['x0'] + 1), v['x0'] + v['w'] - 2)
+    row = v['bot'] - p.z / v['s']
+    im = REF['image']
+    u = col / im['w']
+    vv = 1 - (row / im['h'] * im['tex_h']) / (im['tex_h'] + im['strip'])
+    return (u, vv)
+
+
+def white_uv():
+    im = REF['image']
+    return (0.5, 0.5 * im['strip'] / (im['tex_h'] + im['strip']))
+
+
 def region_uv(reg, p):
+    if isinstance(reg, str) and reg.startswith('proj:'):
+        parts = reg.split(':')
+        return proj_uv(parts[1], p, parts[2] if len(parts) > 2 else None)
+    if reg == 'putih':
+        return white_uv()
     if reg == 'face':
         u = (p.x + FACE_W / 2) / FACE_W
         v = (p.z - CHIN_Z) / HEAD_H
@@ -522,7 +607,7 @@ def region_uv(reg, p):
 def joint_heads():
     h = {'body': (0, 0, HIP_Z), 'spine': (0, 0, HIP_Z), 'headPivot': (0, 0.004, NECK_Z)}
     for side, sx in (('L', 1), ('R', -1)):
-        s, d, _u = arm_axis(sx)
+        s, d, _u = arm_axis(sx, REST_TILT)
         h[f'shoulder{side}'] = tuple(s)
         h[f'elbow{side}'] = tuple(s + d * UPPER_ARM)
         h[f'hand{side}'] = tuple(s + d * (UPPER_ARM + FOREARM + GRIP))
@@ -536,11 +621,12 @@ def to_object(m, pid, atlas_path):
     me.from_pydata([tuple(v) for v in m.v], [], [f[0] for f in m.f])
     col = me.color_attributes.new('Col', 'FLOAT_COLOR', 'CORNER')
     uv = me.uv_layers.new(name='UVMap')
-    for poly, (_idx, c, reg) in zip(me.polygons, m.f):
-        for li in poly.loop_indices:
+    frozen = getattr(m, 'uvs', None)  # UV dibekukan di pose rujukan (sebelum lengan diluruskan)
+    for fi, (poly, (_idx, c, reg)) in enumerate(zip(me.polygons, m.f)):
+        for k, li in enumerate(poly.loop_indices):
             vi = me.loops[li].vertex_index
-            col.data[li].color = (1.0, 1.0, 1.0, 1.0) if reg else (*c, 1.0)
-            uv.data[li].uv = region_uv(reg, m.v[vi])
+            col.data[li].color = (*c, 1.0) if reg in (None, 'putih') else (1.0, 1.0, 1.0, 1.0)
+            uv.data[li].uv = frozen[fi][k] if frozen else region_uv(reg, m.v[vi])
         poly.use_smooth = False
     me.color_attributes.active_color = col
     obj = bpy.data.objects.new(me.name, me)
@@ -580,22 +666,280 @@ def preview_material(obj):
     nt.links.new(mix.outputs[2], bsdf.inputs['Base Color'])
 
 
-def build_one(pid, export=True):
+def analyse_ref(pid, height):
+    """Jalankan karakter_ref.py (Python sistem) → data kalibrasi + tekstur lembar rujukan."""
+    import json
+    import subprocess
+    ref = os.path.join(SRC, REFS[pid][0])
+    script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'karakter_ref.py')
+    r = subprocess.run([os.environ.get('PYTHON_SISTEM', 'python'), script, ref, f'{height:.4f}'], capture_output=True, text=True)
+    if r.returncode != 0:
+        raise RuntimeError(f'analisis rujukan gagal: {r.stderr}')
+    base = ref.rsplit('.', 1)[0]
+    with open(base + '.json', encoding='utf-8') as f:
+        data = json.load(f)
+    data['tex'] = base + '-tex.png'
+    return data
+
+
+def ref_tilt(data):
+    """Sudut lengan A-pose rujukan: sisi dengan sampel terbanyak (sisi lain bisa terganggu tas/kuncir)."""
+    arms = sorted(data['arm'].values(), key=lambda a: -a['samples'])
+    return math.radians(arms[0]['tilt_deg']) if arms else REST_TILT
+
+
+def _bands(f, n=5):
+    keys = sorted(f)
+    out = {}
+    for i, k in enumerate(keys):
+        win = [f[keys[j]] for j in range(max(0, i - n // 2), min(len(keys), i + n // 2 + 1))]
+        out[k] = sum(win) / len(win)
+    return out
+
+
+def _at(f, z):
+    if not f:
+        return 1.0
+    keys = sorted(f)
+    k = z / 0.01
+    if k <= keys[0]:
+        return f[keys[0]]
+    if k >= keys[-1]:
+        return f[keys[-1]]
+    lo = max(kk for kk in keys if kk <= k)
+    hi = min(kk for kk in keys if kk >= k)
+    t = (k - lo) / (hi - lo) if hi > lo else 0
+    return f[lo] * (1 - t) + f[hi] * t
+
+
+FIT_LO, FIT_HI = 0.7, 1.45
+DY_MAX = 0.08  # geser samping maksimum (m)
+FRONT_FIT_MAX_Z = 1.24  # di atas ketiak siluet depan rujukan menyatu dengan lengan A-pose
+
+
+def arm_weight(w):
+    return sum(v for k, v in w.items() if k.startswith(('shoulder', 'elbow', 'hand')))
+
+
+def fit_profile(m):
+    """Maju-mundurkan vertex ke profil siluet rujukan per baris 1 cm.
+    Tampak depan: skala lebar ke min(kiri, kanan) (kuncir/tas di satu sisi tidak dianggap badan); di atas ketiak
+    dilewati (siluet rujukan menyatu dengan lengan A-pose).
+    Tampak samping: badan digeser + diskalakan ke rentang depan..belakang rujukan; kepala hanya digeser agar wajah
+    sejajar (rentang belakang kepala memuat kuncir). Geseran = satu medan halus untuk semua baris (leher tidak
+    sobek); lengan ikut geseran bahu."""
+    prof = {round(e['z'] / 0.01): e for e in REF['profile']}
+    rows = {}
+    for i, w in enumerate(m.w):
+        if arm_weight(w) >= 0.3:
+            continue
+        g = 'kepala' if w.get('headPivot', 0) > 0.5 else 'badan'
+        rows.setdefault((g, round(m.v[i].z / 0.01)), []).append(i)
+    fx, fk, dy = {}, {}, {}
+    for (g, k), vs in rows.items():
+        e = prof.get(k)
+        if not e:
+            continue
+        z = k * 0.01
+        hw = max(abs(m.v[i].x) for i in vs)
+        ymin = min(m.v[i].y for i in vs)
+        ymax = max(m.v[i].y for i in vs)
+        if e['front'] and hw > 0.01 and (g == 'kepala' or z <= FRONT_FIT_MAX_Z):
+            fx[(g, k)] = min(FIT_HI, max(FIT_LO, min(e['front']) / hw))
+        if e['side']:
+            front, back = -e['side'][1], e['side'][0]
+            if g == 'kepala':
+                if z >= CHIN_Z:  # di atas dagu: wajah sejajar (belakang kepala memuat kuncir → hanya geser)
+                    dy[k] = max(-DY_MAX, min(DY_MAX, front - ymin))
+            elif z < CHIN_Z and ymax - ymin > 0.02:
+                kk = min(FIT_HI, max(FIT_LO, (back - front) / (ymax - ymin)))
+                fk[k] = kk
+                dy[k] = max(-DY_MAX, min(DY_MAX, (front + back) / 2 - (ymin + ymax) / 2))  # geser pusat
+    fx_b = _bands({k: v for (g, k), v in fx.items() if g == 'badan'})
+    fx_h = _bands({k: v for (g, k), v in fx.items() if g == 'kepala'})
+    fk, dy = _bands(fk, 9), _bands(dy, 9)
+    if os.environ.get('FIT_DEBUG'):
+        for k in sorted(dy):
+            if k % 5 == 0:
+                print(f'  z={k / 100:.2f} geser={dy[k]:+.3f} tebal={fk.get(k, 1):.2f} lebar={fx_b.get(k, fx_h.get(k, 1)):.2f}')
+    ctr = {}
+    for (g, k), vs in rows.items():
+        if g == 'badan':
+            ctr[k] = (min(m.v[i].y for i in vs) + max(m.v[i].y for i in vs)) / 2
+    ctr = _bands(ctr)
+    shoulder_dy = _at(dy, SHOULDER[1])
+    for i, w in enumerate(m.w):
+        v = m.v[i]
+        a = min(1.0, arm_weight(w))
+        if a >= 0.3:
+            v.y += shoulder_dy * a + _at(dy, v.z) * (1 - a)
+            continue
+        head = w.get('headPivot', 0) > 0.5
+        v.x *= _at(fx_h if head else fx_b, v.z)
+        if not head and fk:
+            c = _at(ctr, v.z)
+            v.y = c + (v.y - c) * _at(fk, v.z)
+        v.y += _at(dy, v.z)
+    return {n: (round(min(f.values()), 3), round(max(f.values()), 3)) for n, f in
+            (('lebar', fx_b), ('lebar kepala', fx_h), ('tebal', fk), ('geser', dy)) if f}
+
+
+def fit_arm_length(m):
+    """Skala lengan sepanjang sumbunya (dari bahu) agar ujung jari setinggi baris terbawah lengan rujukan."""
+    out = {}
+    for side, sx in (('L', 1), ('R', -1)):
+        zs = [e['z'] for e in REF['profile'] if e.get('arm', {}).get(side)]
+        ids = [i for i, w in enumerate(m.w) if sum(w.get(f'{j}{side}', 0) for j in ('shoulder', 'elbow', 'hand')) > 0]
+        if len(zs) < 8 or not ids:
+            continue
+        s_, d, _u = arm_axis(sx)
+        tip_m = min(m.v[i].z for i in ids)
+        f = max(0.85, min(1.15, (s_.z - min(zs)) / (s_.z - tip_m)))
+        for i in ids:
+            w = m.w[i]
+            a = min(1.0, sum(w.get(f'{j}{side}', 0) for j in ('shoulder', 'elbow', 'hand')))
+            r = m.v[i] - s_
+            t = r.dot(d)
+            m.v[i] = m.v[i] + d * (t * (f - 1) * a)
+        out[side] = round(f, 3)
+    return out
+
+
+def fit_arms(m):
+    """Lengan (A-pose) ke run lengan rujukan per baris: pusat & setengah lebar di tampak depan."""
+    prof = {round(e['z'] / 0.01): e.get('arm', {}) for e in REF['profile']}
+    rep = {}  # panjang lengan dari spec (skala per sisi menggeser sendi dari tulang); fit_arm_length = alat ukur
+    for side, sx in (('L', 1), ('R', -1)):
+        rows = {}
+        for i, w in enumerate(m.w):
+            if sum(w.get(f'{j}{side}', 0) for j in ('shoulder', 'elbow', 'hand')) >= 0.5:
+                rows.setdefault(round(m.v[i].z / 0.01), []).append(i)
+        dc, kk = {}, {}
+        for k, vs in rows.items():
+            tgt = prof.get(k, {}).get(side)
+            if not tgt:
+                continue
+            xs = [sx * m.v[i].x for i in vs]
+            c_m, hw_m = (max(xs) + min(xs)) / 2, (max(xs) - min(xs)) / 2
+            if hw_m < 0.01:
+                continue
+            dc[k] = max(-0.08, min(0.08, tgt[0] - c_m))
+            kk[k] = max(0.7, min(1.4, tgt[1] / hw_m))
+        if not dc:
+            continue
+        dc, kk = _bands(dc, 7), _bands(kk, 7)
+        top = max(dc) * 0.01
+        for k, vs in rows.items():
+            z = k * 0.01
+            fade = 1.0 - ramp(z, top, top + 0.08)  # di atas ketiak (tanpa data) memudar ke tanpa perubahan
+            if fade <= 0:
+                continue
+            for i in vs:
+                v = m.v[i]
+                xs = sx * v.x
+                c_m = (max(sx * m.v[j].x for j in vs) + min(sx * m.v[j].x for j in vs)) / 2
+                nx = c_m + _at(dc, z) + (xs - c_m) * _at(kk, z)
+                v.x = sx * (xs + (nx - xs) * fade)
+        rep[side] = (round(min(dc.values()), 3), round(max(dc.values()), 3))
+    return rep
+
+
+def assign_projection(m, plain_tags=()):
+    """Region tiap face: proyeksi dari tampak yang menghadapnya; tag di plain_tags tetap warna vertex (strip putih)."""
+    for fi, (idx, col, _reg) in enumerate(m.f):
+        if m.ft[fi] in plain_tags:
+            # Tanpa rujukan: warna vertex diberi bayangan faset (cahaya kiri-atas-depan) seperti gaya lukis rujukan.
+            pts = [m.v[i] for i in idx]
+            n = (pts[1] - pts[0]).cross(pts[2] - pts[0])
+            n = n.normalized() if n.length > 1e-12 else Vector((0, -1, 0))
+            k = 0.72 + 0.34 * max(0.0, n.dot(Vector((-0.45, -0.55, 0.70)).normalized()))
+            m.f[fi] = (idx, tuple(min(1.0, c * k) for c in col), 'putih')
+            continue
+        pts = [m.v[i] for i in idx]
+        n = (pts[1] - pts[0]).cross(pts[2] - pts[0])
+        n = n.normalized() if n.length > 1e-12 else Vector((0, -1, 0))
+        arm = sum(arm_weight(m.w[i]) for i in idx) / len(idx)
+        if arm > 0.5:  # A-pose: lengan terlihat penuh di tampak depan/belakang, di samping tertutup badan
+            side = 'L' if sum(m.v[i].x for i in idx) > 0 else 'R'
+            m.f[fi] = (idx, col, f"proj:{'front' if n.y <= 0 else 'back'}:{side}")
+        else:
+            m.f[fi] = (idx, col, 'proj:' + ('front' if n.y < -0.42 else ('back' if n.y > 0.42 else 'side')))
+
+
+def straighten_arms(m, tilt_from, tilt_to):
+    """Putar vertex lengan dari A-pose rujukan ke pose game, sudut dicampur bobot lengan (ketiak tidak sobek)."""
+    for i, w in enumerate(m.w):
+        for side, sx in (('L', 1), ('R', -1)):
+            a = w.get(f'shoulder{side}', 0) + w.get(f'elbow{side}', 0) + w.get(f'hand{side}', 0)
+            if a <= 0:
+                continue
+            ang = -sx * (tilt_from - tilt_to) * a
+            sh = Vector((sx * SHOULDER[0], 0.0, SHOULDER[1]))
+            d = m.v[i] - sh
+            c, si = math.cos(ang), math.sin(ang)
+            m.v[i] = sh + Vector((d.x * c - d.z * si, d.y, d.x * si + d.z * c))
+            break
+
+
+def ref_planes(data):
+    """Plane rujukan bertekstur (depan di y=+0,6, samping di x=−0,6) dari kalibrasi yang sama dengan proyeksi."""
+    img = bpy.data.images.load(data['tex'], check_existing=True)
+    im = data['image']
+    for k, name in ((0, 'ref_depan'), (1, 'ref_samping')):
+        v = data['views'][k]
+        s_, c, bot = v['s'], v['c'], v['bot']
+        z0, z1 = (bot - im['h']) * s_, bot * s_
+        a0, a1 = (0 - c) * s_, (v['w'] - c) * s_
+        if k == 0:
+            verts = [(a0, 0.6, z0), (a1, 0.6, z0), (a1, 0.6, z1), (a0, 0.6, z1)]
+        else:
+            verts = [(-0.6, -a0, z0), (-0.6, -a1, z0), (-0.6, -a1, z1), (-0.6, -a0, z1)]
+        me = bpy.data.meshes.new(name)
+        me.from_pydata(verts, [], [(0, 1, 2, 3)])
+        uv = me.uv_layers.new()
+        u0, u1 = v['x0'] / im['w'], (v['x0'] + v['w']) / im['w']
+        vb = 1 - im['tex_h'] / (im['tex_h'] + im['strip'])
+        for li, (u, vv) in enumerate(((u0, vb), (u1, vb), (u1, 1.0), (u0, 1.0))):
+            uv.data[li].uv = (u, vv)
+        mat = bpy.data.materials.new(name)
+        mat.use_nodes = True
+        nt = mat.node_tree
+        for n in list(nt.nodes):
+            if n.type == 'BSDF_PRINCIPLED':
+                nt.nodes.remove(n)
+        emit = nt.nodes.new('ShaderNodeEmission')
+        tex = nt.nodes.new('ShaderNodeTexImage')
+        tex.image = img
+        nt.links.new(tex.outputs['Color'], emit.inputs['Color'])
+        nt.links.new(emit.outputs['Emission'], next(n for n in nt.nodes if n.type == 'OUTPUT_MATERIAL').inputs['Surface'])
+        me.materials.append(mat)
+        ob = bpy.data.objects.new(name, me)
+        ob['rujukan'] = True
+        bpy.context.scene.collection.objects.link(ob)
+
+
+def build_one(pid, export=True, pose='game'):
+    """pose='ref': lengan tetap A-pose rujukan (untuk skor pembanding); 'game': lengan diluruskan lalu diekspor."""
+    global ARM_TILT, REF
     bpy.ops.wm.read_factory_settings(use_empty=True)
+    probe = Mesh()  # tinggi model (kalibrasi skala rujukan) tidak bergantung sudut lengan
+    ARM_TILT = REST_TILT
+    (build_cardigan if pid == 'cardigan_hijab' else lambda mm: build_tactical(mm, hijab=pid == 'tactical_hijab'))(probe)
+    height = max(v.z for v in probe.v)
+    REF = analyse_ref(pid, height)
+    REF['_rows'] = {round(e['z'] / 0.01): e for e in REF['profile']}
+    ARM_TILT = ref_tilt(REF)
     m = Mesh()
-    if pid == 'cardigan_hijab':
-        build_cardigan(m)
-        brow = 0x3A2418
-    else:
-        build_tactical(m, hijab=pid == 'tactical_hijab')
-        brow = 0x3A2418 if pid == 'tactical_hijab' else 0xA9824A
-    ref, fit_head = REFS[pid]
-    ref = os.path.join(SRC, ref)
-    if AUTO_FIT:  # pencocokan siluet otomatis (rapuh untuk lembar A-pose berkuncir; default mati)
-        print(f'{pid} cocok rujukan: {fit(m, ref, CHIN_Z, head=fit_head)}')
-    atlas = os.path.join(SRC, f'{pid}-atlas.png')
-    paint_atlas(atlas, brow)
-    obj = to_object(m, pid, atlas)
+    (build_cardigan if pid == 'cardigan_hijab' else lambda mm: build_tactical(mm, hijab=pid == 'tactical_hijab'))(m)
+    report = fit_profile(m)
+    report['lengan'] = fit_arms(m)
+    print(f'{pid} fit: {report}')
+    assign_projection(m, plain_tags=('hijab',) if pid == 'tactical_hijab' else ())
+    # Bekukan UV di A-pose (tempat proyeksi cocok dengan rujukan); lengan baru diputar sesudahnya.
+    m.uvs = [[region_uv(reg, m.v[i]) for i in idx] for (idx, _c, reg) in m.f]
+    if pose == 'game':
+        straighten_arms(m, ARM_TILT, REST_TILT)
+    obj = to_object(m, pid, REF['tex'])
     arm_data = bpy.data.armatures.new(f'rig_{pid}')
     arm = bpy.data.objects.new(f'rig_{pid}', arm_data)
     bpy.context.scene.collection.objects.link(arm)
@@ -615,7 +959,7 @@ def build_one(pid, export=True):
     mod = obj.modifiers.new('Armature', 'ARMATURE')
     mod.object = arm
     tris = sum(len(p.vertices) - 2 for p in obj.data.polygons)
-    add_reference_planes(ref, max(v.z for v in m.v), CHIN_Z)
+    ref_planes(REF)
     if export:
         bpy.ops.wm.save_as_mainfile(filepath=os.path.join(SRC, f'{pid}-rig.blend'))
         for o in bpy.context.scene.objects:
@@ -623,7 +967,8 @@ def build_one(pid, export=True):
         out = os.path.join(OUT, f'preset-{pid}.glb')
         bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', use_selection=True, export_skins=True,
                                   export_animations=False, export_morph=False, export_yup=True, export_texcoords=True,
-                                  export_normals=True, export_vertex_color='ACTIVE')
+                                  export_normals=True, export_vertex_color='ACTIVE',
+                                  export_image_format='JPEG', export_jpeg_quality=88)
     return obj, arm, tris
 
 
