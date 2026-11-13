@@ -17,6 +17,9 @@ const MAX_PREVIEW_PIXEL_RATIO = 1.5;
 const SHADOW_EXTENT_RANGE = Object.freeze([200, 700]); // setengah lebar frustum bayangan (m): ikut jarak kamera agar bangunan di layar bersayangan
 const LABEL_ZOOM = 0.4;       // zoom saat terbang ke landmark
 const NEAR_RANGE = Object.freeze([0.3, 120]);
+/** Gaya maket sore emas (pilihan user 2026-11-13): jam, tilt-shift kuat (pita tajam di tengah), bloom. */
+const MAKET = Object.freeze({ hour: 16.75, band: 0.17, falloff: 0.3, radiusScale: 1.6 });
+const AUDIO_STEP_S = 0.25;         // jeda pembaruan volume suara (setLevel memakai rampa, tak perlu tiap frame)
 const HINT = 'Kota isometrik: WASD/seret geser · Q/Z putar · roda zoom (jauhkan untuk seluruh peta) · K keluar';
 
 /**
@@ -25,7 +28,7 @@ const HINT = 'Kota isometrik: WASD/seret geser · Q/Z putar · roda zoom (jauhka
  *   landmarks?: Array<{id: string, label: string, x: number, z: number}>, stadionId: string, stadionPlacement: object, hide: Array<{visible: boolean}>}} opts
  *   hide: objek yang disembunyikan selama pratinjau (entitas dunia & entitas region)
  */
-export function createCityPreview({ app, rig, regions, time, store, hud, city = null, lighting = null, landmarks = [], stadionId, stadionPlacement, hide }) {
+export function createCityPreview({ app, rig, regions, time, store, hud, city = null, lighting = null, audioBus = null, landmarks = [], stadionId, stadionPlacement, hide }) {
   const camera = app.camera;
   const base = { near: camera.near, far: camera.far };
   let active = false;
@@ -35,6 +38,9 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
   let fogSet = FOG_PREVIEW;
   let styleCap = Infinity; // batas pixel ratio gaya grafis sebelum pratinjau
   let shadowSaved = null;
+  let maketSaved = null;       // keadaan sebelum gaya maket (jam, tilt-shift, bloom)
+  let sound = null;            // { hum, wind } loop suara ambient
+  let audioClock = 0;
   const light = lighting?.userData ?? {};
   const labels = createCityLabels(document.body, {
     landmarks, onSelect: (l) => rig.director.flyTo(l.x, l.z, LABEL_ZOOM),
@@ -55,6 +61,54 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     return proxy;
   };
 
+  /** Gaya maket: jam sore emas, tilt-shift kuat, bloom; keadaan lama disimpan untuk dipulihkan. */
+  const applyMaket = () => {
+    const tilt = app.post?.tiltPass;
+    if (!tilt) return;
+    const u = tilt.mix.material.uniforms;
+    maketSaved = { hour: time.hour, tilt: tilt.enabled, band: u.band.value, falloff: u.falloff.value, radius: tilt.radius, bloom: app.post.bloomPass?.enabled ?? false };
+    time.setHour(MAKET.hour);
+    u.band.value = MAKET.band;
+    u.falloff.value = MAKET.falloff;
+    tilt.radius = maketSaved.radius * MAKET.radiusScale;
+    app.setTiltShift?.(true);
+    app.setBloom?.(true);
+  };
+
+  const restoreMaket = () => {
+    if (!maketSaved) return;
+    const tilt = app.post.tiltPass;
+    const u = tilt.mix.material.uniforms;
+    u.band.value = maketSaved.band;
+    u.falloff.value = maketSaved.falloff;
+    tilt.radius = maketSaved.radius;
+    app.setTiltShift?.(maketSaved.tilt);
+    app.setBloom?.(maketSaved.bloom);
+    time.setHour(maketSaved.hour);
+    maketSaved = null;
+  };
+
+  const startSound = () => {
+    sound = { hum: audioBus.startCityHum?.({ channel: 'ambience', level: 0 }), wind: audioBus.startWind?.({ channel: 'ambience', level: 0 }) };
+  };
+
+  const stopSound = () => {
+    sound?.hum?.stop();
+    sound?.wind?.stop();
+    sound = null;
+  };
+
+  /** Volume menurut ketinggian: dekat = dengung kota, tinggi = angin; malam lebih sepi. */
+  const updateSound = (dist, dt) => {
+    audioClock += dt;
+    if (!sound || audioClock < AUDIO_STEP_S) return;
+    audioClock = 0;
+    const high = Math.min(1, Math.max(0, (dist - 200) / 9000));
+    const night = nightFactor(time.hour);
+    sound.hum?.setLevel((0.62 * (1 - 0.85 * high) + 0.04) * (1 - 0.45 * night), 0.5);
+    sound.wind?.setLevel(0.1 + 0.55 * high, 0.5);
+  };
+
   const enter = () => {
     active = true;
     regions.setHold(true);
@@ -73,6 +127,8 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     app.setPixelCap?.(Infinity);
     app.setPixelRatio?.(Math.min(window.devicePixelRatio || 1, MAX_PREVIEW_PIXEL_RATIO));
     app.setAdaptiveResolution?.(false);
+    if (store.get('camera.kotaMaket')) applyMaket();
+    if (store.get('camera.kotaSuara') && audioBus) startSound();
     document.body.classList.add('is-city-preview');
     labels.setVisible(true);
     shadowSaved = light.getShadowExtent?.() ?? null;
@@ -94,6 +150,8 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     }
     city?.setPreview(false);
     document.body.classList.remove('is-city-preview');
+    restoreMaket();
+    stopSound();
     labels.setVisible(false);
     if (light.clouds) light.clouds.visible = true;
     if (shadowSaved != null) { light.setShadowExtent?.(shadowSaved); shadowSaved = null; }
@@ -103,7 +161,7 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
   };
 
   /** near/far mengikuti jarak ke titik pandang selama pratinjau & transisinya; default dipulihkan setelah itu. */
-  const updateProjection = () => {
+  const updateProjection = (dt) => {
     const engaged = active || (projected && rig.director.transitioning);
     if (!engaged) {
       if (projected) {
@@ -125,6 +183,7 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
       const extent = Math.min(SHADOW_EXTENT_RANGE[1], Math.max(SHADOW_EXTENT_RANGE[0], dist * 0.55));
       if (Math.abs(extent - (light.getShadowExtent?.() ?? extent)) / extent > 0.1) light.setShadowExtent?.(extent);
       labels.update(camera, dist);
+      updateSound(dist, dt);
       proxy?.setNight(nightFactor(time.hour)); // lampu sorot proxy stadion menyala malam
     }
   };
@@ -132,10 +191,10 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
   app.addSystem({
     id: 'cityPreview',
     phase: 'camera',
-    update: () => {
+    update: (dt) => {
       const on = rig.povId === CITY.id;
       if (on !== active) (on ? enter : exit)();
-      updateProjection();
+      updateProjection(dt);
     },
   });
 
@@ -145,6 +204,7 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
       if (active) exit();
       app.removeSystem('cityPreview');
       labels.dispose();
+      stopSound();
       if (proxy) {
         proxy.group.removeFromParent();
         proxy.dispose();

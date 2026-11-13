@@ -8,14 +8,14 @@
  * kanal dibuat, sehingga settings dapat di-bind sebelum ada gesture.
  */
 
-import { karplusStrong, fanHumBuffer, rainOnTinBuffer, murmurBuffer } from './audioSynth.js';
+import { karplusStrong, fanHumBuffer, rainOnTinBuffer, murmurBuffer, cityHumBuffer, windBuffer } from './audioSynth.js';
 
 const DEFAULT_MASTER = 0.8;
 
 /** @typedef {{ ensure(): AudioContext|null, resume(): void, channel(name): GainNode|null,
  *   setMaster(v): void, setChannel(name, v): void, master: number, context: AudioContext|null,
  *   pluck(freq, opts?): boolean, startFanHum(opts?): LoopHandle, startRainOnTin(opts?): LoopHandle,
- *   startMurmur(opts?): LoopHandle,
+ *   startMurmur(opts?): LoopHandle, startCityHum(opts?): LoopHandle, startWind(opts?): LoopHandle,
  *   dispose(): void }} AudioBus */
 /** @typedef {{ setLevel(v:number, rampSeconds?:number): void, stop(): void, readonly stopped: boolean }} LoopHandle */
 
@@ -160,6 +160,8 @@ export function createAudioBus({ master = DEFAULT_MASTER, target = null } = {}) 
   const startFanHum = (opts) => loop('fanHum', (sr) => fanHumBuffer(sr), opts);
   const startRainOnTin = (opts) => loop('rainOnTin', (sr) => rainOnTinBuffer(sr), opts);
   const startMurmur = (opts) => loop('murmur', (sr) => murmurBuffer(sr), opts);
+  const startCityHum = (opts) => loop('cityHum', (sr) => cityHumBuffer(sr), opts); // pratinjau Kota
+  const startWind = (opts) => loop('wind', (sr) => windBuffer(sr), opts);
 
   const onGesture = () => resume();
   const evTarget = target ?? (typeof window !== 'undefined' ? window : null);
@@ -178,7 +180,7 @@ export function createAudioBus({ master = DEFAULT_MASTER, target = null } = {}) 
   };
 
   return {
-    ensure, resume, channel, setMaster, setChannel, dispose, play, loop, pluck, startFanHum, startRainOnTin, startMurmur,
+    ensure, resume, channel, setMaster, setChannel, dispose, play, loop, pluck, startFanHum, startRainOnTin, startMurmur, startCityHum, startWind,
     get master() { return masterLevel; },
     get context() { return ctx; },
   };

@@ -100,6 +100,8 @@ export const SETTINGS_SCHEMA = Object.freeze({
           fov: range('Sudut pandang (FOV)', 60, 40, 100, 1, { unit: '°' }),
           sensitivity: range('Sensitivitas mouse', 1, 0.2, 3, 0.05, { unit: '×' }),
           followSmoothing: range('Kehalusan kamera', 6, 1, 15, 0.5),
+          kotaMaket: toggle('Pratinjau Kota (K): gaya maket sore emas', true),
+          kotaSuara: toggle('Pratinjau Kota (K): suara ambient', true),
         }),
       }),
     }),

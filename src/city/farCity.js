@@ -24,6 +24,11 @@ export const FAR_ROAD_WIDTH = Object.freeze([18, 16, 14, 12, 10, 8, 6.5]);
 export const FAR_COLORS = Object.freeze({ wall: '#d6ccb8', flatRoof: '#85837f', gableRoof: '#a8452e', crownTop: '#4f8a3c', crownBottom: '#2c5524' });
 /** Pengali warna per kelas bangunan: 0 lain, 1 niaga, 2 industri, 3 publik/ibadah, 4 hunian. */
 export const FAR_CLASS_TINT = Object.freeze([[1, 1, 1], [1, 0.9, 0.87], [0.78, 0.85, 0.95], [1.1, 1.06, 0.88], [1, 0.95, 0.9]]);
+/** Lapisan irisan tanah diorama di tepi peta (tebal m dari permukaan, warna sRGB): rumput → tanah → liat → batuan. */
+export const SLAB_STRATA = Object.freeze([
+  Object.freeze({ depth: 45, color: '#5f8a3a' }), Object.freeze({ depth: 260, color: '#6b4a32' }),
+  Object.freeze({ depth: 560, color: '#a47a52' }), Object.freeze({ depth: 900, color: '#7a7774' }),
+]);
 const RIDGE = 0.45; // tinggi bubungan atap pelana relatif tinggi dinding
 /** Warna aspal jalan jauh per kelas (sRGB): jalan besar lebih gelap. */
 export const FAR_ROAD_COLORS = Object.freeze(['#34363b', '#34363b', '#383a3f', '#3c3e43', '#404247', '#46484d', '#4b4d52']);
@@ -133,6 +138,40 @@ function mergedBuilding(parts) {
   return g;
 }
 
+/**
+ * Dinding irisan diorama di keempat sisi `bounds` (dunia), pita warna per lapisan SLAB_STRATA dari y=top ke bawah.
+ * Quad per (dinding × lapisan) = 4 × strata; normal keluar; tanpa alas.
+ * @returns {THREE.BufferGeometry}
+ */
+export function slabGeometry(bounds, top, strata = SLAB_STRATA) {
+  const { minX, maxX, minZ, maxZ } = bounds;
+  const walls = [ // [x1,z1,x2,z2,nx,nz]
+    [minX, minZ, maxX, minZ, 0, -1], [maxX, minZ, maxX, maxZ, 1, 0], [maxX, maxZ, minX, maxZ, 0, 1], [minX, maxZ, minX, minZ, -1, 0],
+  ];
+  const pos = [];
+  const nor = [];
+  const col = [];
+  const idx = [];
+  const c = new THREE.Color();
+  for (const [x1, z1, x2, z2, nx, nz] of walls) {
+    let y0 = top;
+    for (const { depth, color } of strata) {
+      const y1 = top - depth;
+      const base = pos.length / 3;
+      pos.push(x1, y0, z1, x2, y0, z2, x2, y1, z2, x1, y1, z1);
+      for (let k = 0; k < 4; k += 1) { nor.push(nx, 0, nz); c.set(color); col.push(c.r, c.g, c.b); }
+      idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      y0 = y1;
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.setIndex(idx);
+  return g;
+}
+
 function roadGeometry(roads, ox, oz) {
   const pos = [];
   const colors = [];
@@ -228,6 +267,16 @@ export async function createFarCity({
     group.add(mesh);
   };
 
+  /** Alas diorama: irisan tanah berlapis di tepi peta (terlihat saat zoom jauh; gaya maket). */
+  const addSlab = () => {
+    const mat = own(new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+    mat.name = 'kotaJauh:alas';
+    const mesh = new THREE.Mesh(own(slabGeometry(manifest.bounds, GROUND_Y)), mat);
+    mesh.name = 'alasDiorama';
+    mesh.renderOrder = -6;
+    group.add(mesh);
+  };
+
   const addCell = async (c) => {
     const ox = c.ix * manifest.cell;
     const oz = c.iz * manifest.cell;
@@ -299,6 +348,7 @@ export async function createFarCity({
   };
 
   const loadAll = async () => {
+    addSlab();
     try {
       await addGround();
     } catch (err) {

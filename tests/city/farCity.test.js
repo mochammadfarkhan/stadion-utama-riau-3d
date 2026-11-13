@@ -34,3 +34,24 @@ describe('format biner kota jauh (v2)', () => {
     expect(roads).toEqual([{ cls: 2, pts: [[-10, 5], [300, -0.7]] }]);
   });
 });
+
+describe('alas diorama', () => {
+  it('slabGeometry: 4 dinding × lapisan quad, normal keluar, kedalaman total = lapisan terdalam', async () => {
+    const { slabGeometry, SLAB_STRATA } = await import('../../src/city/farCity.js');
+    const b = { minX: -100, maxX: 300, minZ: -50, maxZ: 250 };
+    const g = slabGeometry(b, -0.4);
+    expect(g.index.count).toBe(4 * SLAB_STRATA.length * 6);
+    const pos = g.attributes.position;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (let i = 0; i < pos.count; i += 1) { minY = Math.min(minY, pos.getY(i)); maxY = Math.max(maxY, pos.getY(i)); }
+    expect(maxY).toBeCloseTo(-0.4, 3);
+    expect(minY).toBeCloseTo(-0.4 - SLAB_STRATA.at(-1).depth, 2);
+    const nor = g.attributes.normal;
+    for (let i = 0; i < pos.count; i += 1) { // titik pada dinding: normal searah dari pusat peta ke luar
+      const outX = pos.getX(i) < 100 ? -1 : 1;
+      const onXWall = pos.getX(i) === b.minX || pos.getX(i) === b.maxX;
+      if (onXWall && nor.getX(i) !== 0) expect(Math.sign(nor.getX(i))).toBe(outX);
+    }
+  });
+});

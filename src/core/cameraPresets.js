@@ -8,7 +8,7 @@ import { STADIUM } from '../config/constants.js';
 
 /** Pratinjau kota isometrik: elevasi 35,264° (isometrik sejati), azimut 45°, lensa sempit (≈ ortografik), jarak dasar & batas geser (m). */
 export const CITY = Object.freeze({
-  fov: 20, elevation: Math.atan(1 / Math.SQRT2), azimuth: Math.PI / 4, radius: 1300, panLimit: 10000, panRate: 0.3, yawRate: 1.1, id: 'kota',
+  fov: 20, elevation: Math.atan(1 / Math.SQRT2), azimuth: Math.PI / 4, radius: 1300, panLimit: 26000, panRate: 0.3, yawRate: 1.1, id: 'kota',
 });
 
 export const POV_KINDS =Object.freeze({ FIXED: 'fixed', FOLLOW: 'follow', ORBIT: 'orbit' });

@@ -291,7 +291,7 @@ async function main() {
   addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel, portal: portalKit.portal });
   // K: pratinjau kota isometrik; isi berat (stadion, region, penonton) diganti bentuk dasar selama aktif.
   const cityPreview = createCityPreview({
-    app, rig, regions, time, store, hud, city, lighting, landmarks: travel.destinations.map((d) => (d.id === 'stadion' ? { ...d, ...frame.toWorld(0, 0) } : d)), stadionId: STADION_ID, stadionPlacement: frame.placement, hide: [ents.group, anchor],
+    app, rig, regions, time, store, hud, city, lighting, audioBus, landmarks: travel.destinations.map((d) => (d.id === 'stadion' ? { ...d, ...frame.toWorld(0, 0) } : d)), stadionId: STADION_ID, stadionPlacement: frame.placement, hide: [ents.group, anchor],
   });
   lifecycle.add(() => cityPreview.dispose());
   portalKit.trigger.installPrompt(); // sesudah sistem 'hud'
