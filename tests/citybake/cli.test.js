@@ -4,9 +4,13 @@ import { parseCli, main } from '../../tools/citybake/cli.js';
 describe('parseCli', () => {
   it('--area all → semua area; default opsi', () => {
     expect(parseCli(['--area', 'all'])).toEqual({
-      areaIds: ['stadion', 'pusat', 'unri'], offline: false, useOverture: true, release: '2026-09-23.1',
+      areaIds: ['stadion', 'pusat', 'unri', 'cincin-utara', 'cincin-selatan', 'cincin-barat', 'cincin-timur'], offline: false, useOverture: true, release: '2026-09-23.1',
       outDir: 'public/tiles', cacheDir: 'data-src',
     });
+  });
+
+  it('--area cincin → 4 strip cincin menengah', () => {
+    expect(parseCli(['--area', 'cincin']).areaIds).toEqual(['cincin-utara', 'cincin-selatan', 'cincin-barat', 'cincin-timur']);
   });
 
   it('opsi lengkap', () => {
