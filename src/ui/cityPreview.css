@@ -16,3 +16,18 @@ body.is-city-preview #minimap2d { display: none !important; }
 }
 .city-label.major { font-size: 14px; padding: 4px 14px; background: rgba(255, 244, 205, 0.96); }
 .city-label:hover { background: #fff; transform-origin: center; }
+
+#city-controls {
+  position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 21; display: flex; align-items: center; gap: 10px;
+  padding: 6px 14px; border: 1.5px solid rgba(60, 40, 20, 0.55); border-radius: 999px;
+  background: rgba(250, 240, 215, 0.94); color: #3a2614; font-family: inherit; font-weight: 600; font-size: 13px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+#city-controls[hidden] { display: none; }
+#city-controls .city-clock { min-width: 3.2em; font-variant-numeric: tabular-nums; }
+#city-controls input[type=range] { width: min(34vw, 240px); accent-color: #c2622b; }
+#city-controls .city-toggle {
+  padding: 3px 12px; border: 1.5px solid rgba(60, 40, 20, 0.55); border-radius: 999px; background: transparent; color: inherit;
+  font: inherit; cursor: pointer;
+}
+#city-controls .city-toggle[aria-pressed=true] { background: #c2622b; color: #fff; border-color: #c2622b; }

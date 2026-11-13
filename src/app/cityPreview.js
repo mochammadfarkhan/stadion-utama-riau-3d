@@ -10,6 +10,8 @@ import { nightFactor } from '../city/facade.js';
 import { applyPlacement } from './mountRegion.js';
 import { buildStadionProxy } from '../regions/stadion/proxy.js';
 import { createCityLabels } from '../ui/CityLabels.js';
+import { createCityControls } from '../ui/CityControls.js';
+import { TOUR, tourRoute, createTour, advanceHour } from './cityTour.js';
 
 const FOG_PREVIEW = 9000;      // m: jarak kabut selama pratinjau (setelan "Jarak kabut" hanya sampai 2000)
 const FOG_PER_DISTANCE = 14;     // fogDistance ≈ 14 × jarak kamera → awal kabut ≈ 1,8 × jarak: hanya cakrawala yang berkabut
@@ -44,6 +46,14 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
   const light = lighting?.userData ?? {};
   const labels = createCityLabels(document.body, {
     landmarks, onSelect: (l) => rig.director.flyTo(l.x, l.z, LABEL_ZOOM),
+  });
+
+  let tour = null;     // pewaktu tur landmark (null = mati)
+  let lapse = false;   // time-lapse: jam berjalan cepat
+  const controls = createCityControls(document.body, {
+    onHour: (h) => time.setHour(h),
+    onTour: (on) => { tour = on ? createTour(tourRoute(landmarks)) : null; },
+    onLapse: (on) => { lapse = on; },
   });
 
   const stadionGroup = () => regions.handleOf(stadionId)?.region?.group ?? null;
@@ -131,6 +141,7 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     if (store.get('camera.kotaSuara') && audioBus) startSound();
     document.body.classList.add('is-city-preview');
     labels.setVisible(true);
+    controls.setVisible(true);
     shadowSaved = light.getShadowExtent?.() ?? null;
     if (light.clouds) light.clouds.visible = false; // kubah awan (±2,2 km) menutupi kota di luar radiusnya dengan kerudung putih
     hud.toast(HINT, true);
@@ -153,6 +164,10 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     restoreMaket();
     stopSound();
     labels.setVisible(false);
+    controls.setVisible(false);
+    controls.reset();
+    tour = null;
+    lapse = false;
     if (light.clouds) light.clouds.visible = true;
     if (shadowSaved != null) { light.setShadowExtent?.(shadowSaved); shadowSaved = null; }
     app.setPixelCap?.(styleCap);
@@ -185,6 +200,10 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
       labels.update(camera, dist);
       updateSound(dist, dt);
       proxy?.setNight(nightFactor(time.hour)); // lampu sorot proxy stadion menyala malam
+      if (lapse) time.setHour(advanceHour(time.hour, dt));
+      controls.setHour(time.hour);
+      const stop = tour?.step(dt);
+      if (stop) rig.director.flyTo(stop.x, stop.z, TOUR.zoom);
     }
   };
 
@@ -204,6 +223,7 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
       if (active) exit();
       app.removeSystem('cityPreview');
       labels.dispose();
+      controls.dispose();
       stopSound();
       if (proxy) {
         proxy.group.removeFromParent();

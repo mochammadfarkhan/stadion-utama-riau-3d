@@ -28,7 +28,7 @@ Dari "peta 3D yang benar" ke **"pemandangan yang bikin betah"**: hangat, hidup, 
 - ✅ **Alas diorama**: irisan tanah berlapis (rumput → tanah → liat → batuan, 900 m) di keempat tepi peta kota jauh (`farCity.js::slabGeometry`). Terlihat saat zoom jauh.
 - ✅ **Suara ambient otomatis** (dibawa maju dari D): dengung kota + angin prosedural (`audioSynth.cityHumBuffer/windBuffer`, `AudioBus.startCityHum/startWind`), volume menurut ketinggian & malam, kanal 'ambience'. Sakelar: setelan Kamera "suara ambient".
 - ⬜ Vignette ringan & warna lebih jenuh (grading dioverride styleManager; butuh hook) ★ S
-- ⬜ **Kabut berwarna jarak jauh**: warna kabut = warna langit dekat cakrawala (matahari rendah → oranye-jingga), `FOG_PER_DISTANCE` dicocokkan agar cakrawala menyatu dengan langit, bukan tepi peta. ★★★ S
+- ✅ ~~Kabut berwarna jarak jauh~~ — dicek 2026-11-13: warna kabut = latar langit (`fogColor`) dan cakrawala tak pernah masuk bingkai di sudut 35°, tepi atas memudar mulus; tak perlu kode. (rencana lama: warna kabut = warna langit dekat cakrawala (matahari rendah → oranye-jingga), `FOG_PER_DISTANCE` dicocokkan agar cakrawala menyatu dengan langit, bukan tepi peta.)
 - ✅ ~~Tepi peta halus~~ → digantikan alas diorama (gaya maket memang ingin tepi tegas).
 - ⬜ **Bayangan panjang**: elevasi matahari preview ≈ 25° (sore) + bayangan sampai 700 m (sudah dinamis); kontak-AO murah pada dasar bangunan jauh (gradien vertex warna gelap di dasar). ★★ M
 
@@ -50,8 +50,8 @@ Dari "peta 3D yang benar" ke **"pemandangan yang bikin betah"**: hangat, hidup, 
 
 ### E. Kamera & penyajian (S–M)
 - ⬜ **Intro terbang**: masuk K dari ketinggian tinggi menukik ke stadion (bukan dari posisi pemain). ★★ S
-- ⬜ **Tur landmark otomatis** (tombol "Tur"): urutan `travelDestinations` dengan `flyTo`, jeda 4 dtk, jam berganti halus siang→malam. ★★★ M
-- ⬜ **Slider waktu** di panel pratinjau + tombol "Time-lapse" (jam berjalan cepat). ★★ S
+- ✅ **Tur landmark otomatis** (2026-11-13, tombol "Tur"): `tourRoute` (tetangga terdekat dari stadion, ≤ 9 perhentian) + `flyTo` tiap 5,5 dtk; bisa dipadukan dengan Putar waktu. Belum menghentikan diri saat user menggeser manual (matikan lewat tombol).
+- ✅ **Slider waktu + "Putar waktu"** (bar di bawah layar, `ui/CityControls.js`; 1,2 jam/dtk). Jam asli dipulihkan saat keluar K (lewat `restoreMaket`).
 - ⬜ **Label bergaya** (jam/cuaca kecil di sudut, kompas arah putar). ★ S
 - ⬜ **Mode foto Kota**: sembunyikan label, resolusi ×2, tanda air kecil. ★★ S (`Screenshot.js` ada)
 
