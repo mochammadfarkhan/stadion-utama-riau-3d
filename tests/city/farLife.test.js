@@ -52,3 +52,18 @@ describe('lampu jalan', () => {
     });
   });
 });
+
+describe('lampu mobil', () => {
+  it('carLightsGeometry: 4 kotak (2 depan terang, 2 belakang merah), warna per titik', async () => {
+    const { carLightsGeometry } = await import('../../src/city/farLife.js');
+    const g = carLightsGeometry();
+    expect(g.attributes.position.count).toBe(4 * 36);
+    const col = g.attributes.color;
+    const pos = g.attributes.position;
+    let front = 0; let rear = 0;
+    for (let i = 0; i < pos.count; i += 1) {
+      if (pos.getZ(i) > 0) { front += 1; expect(col.getY(i)).toBeGreaterThan(0.8); } else { rear += 1; expect(col.getY(i)).toBeLessThan(0.3); }
+    }
+    expect(front).toBe(rear);
+  });
+});
