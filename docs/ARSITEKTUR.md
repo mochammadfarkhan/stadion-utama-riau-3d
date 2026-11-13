@@ -55,6 +55,8 @@ Aturan praktis untuk sistem baru:
 - Pasang/lepas harus simetris: semua yang dibuat saat mount punya `dispose` (lihat `engine/disposeTree.js`).
 
 > Fitur Kota (pratinjau K, tile terperinci, kota jauh, proxy stadion, resep ganti model): **`docs/kota/README.md`** + rencana hidup `docs/kota/PLAN.md` (perbarui tiap sesi).
+>
+> Kritik kualitas (grafis, model manusia, UI, desain sistem, detail peta) dengan daftar prioritas: **`docs/KRITIK.md`** (hidup, per putaran).
 
 ## Dunia: siapa dipasang kapan
 

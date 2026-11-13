@@ -11,6 +11,7 @@ Urutan = prioritas dampak ÷ usaha. Tiap item menunjuk folder fiturnya.
 | 2026-11-13 | Tambah pohon dan marka jalan | tile-detail |
 | 2026-11-13 | Tekstur belum merata, bisa dikompres karena dilihat dari jauh; belum seluruh Pekanbaru, bangunan kecil boleh di-instans | kota-jauh |
 | 2026-11-13 | Detail baru sekitar stadion; di luar itu bangunan masih putih, jalan belum jelas; minta rencana .md per folder per fitur yang terus diperbarui | semua folder, PLAN ini |
+| 2026-11-13 | Minta kritik ala kritikus game (grafis, manusia, UI, sistem) + peta harus lebih detail, gedung ikonik dibuat lebih rinci | [../KRITIK.md](../KRITIK.md), bagian Landmark di bawah |
 
 ## Sekarang (sprint 1: "luar stadion tidak boleh putih")
 - ✅ Kota jauh v2: bangunan diputar mengikuti jejak asli, rumah kecil beratap pelana merah, atap datar abu, tint per kelas — [kota-jauh](kota-jauh/README.md)
@@ -43,14 +44,39 @@ Keputusan selera sudah dijawab (maket / 16:45 / suara otomatis); lihat vibes/REA
 6. 🔄 **Air**: perahu ✅ (rivers.bin + farLife); ⬜ shader air (riak + pantulan langit). [kota-jauh]
 
 ## Landmark (model Blender ringan, ganti lewat resep)
-Syarat: lokasi & nama dari OSM/Overture (jangan mengarang), model < 2 rb segitiga, 1 draw call per jenis.
-- ⬜ Masjid Raya An-Nur (kubah+menara) — proxy sederhana → model Blender
-- ⬜ Jembatan (Siak) — rentang + pilar
-- ⬜ Bandara, mal besar, gedung tertinggi — kandidat dari data tinggi Overture (cek dulu)
+Syarat: lokasi & nama dari OSM/Overture (jangan mengarang), 1 draw call per jenis.
+Anggaran (usul kritik 2026-11-13, belum diputuskan user): hero ≤ 5 rb segitiga untuk maksimal 6 model (sebelumnya < 2 rb).
+Rincian, akar masalah di kode, dan langkah K1–K8: [../KRITIK.md](../KRITIK.md) bagian 5.
+**Urutan kerja dari sisi kode:** K4 proxy stadion (`regions/stadion/proxy.js`) → K1 enum bentuk atap di byte ke-8 rekaman
+(`farbake.mjs` + `farCity.js`; bentuk langka = 1 InstancedMesh global) → K2 `far/landmarks.json` dari `names` Overture
+(`farFetch.mjs`) → K3 label bertingkat (`CityLabels.js`) → K6 warna kelas → K5 hero Blender menurut peringkat K2.
+Akar keterbatasan sekarang: `BUILDING_CLASS` melebur masjid/sekolah/RS/pemerintah ke satu kelas dan nama tidak diambil.
+
+**Tingkat A — hero buatan tangan (urut prioritas)**
+- ⬜ A1 **Proxy stadion lebih rinci**: rangka/lengkung atap, tingkat tribun, papan nama, menara lampu (sekarang donat polos) — [stadion-proxy](stadion-proxy/README.md)
+- ⬜ A2 Masjid Raya An-Nur (kubah + menara + halaman) — proxy sederhana → model Blender
+- ⬜ A3 Rektorat UNRI + gerbang: proxy LOD untuk mode Kota
+- ⬜ A4 Jembatan (Siak) — rentang + pilar
+- ⬜ A5 Bandara (landasan + terminal)
+- ⬜ A6 1–2 gedung ikonik pusat kota — kandidat dari data tinggi Overture + nama OSM (cek dulu)
+- ⬜ Identifikasi bangunan bundar berkubah di selatan stadion (tag OSM) sebelum diberi label
+
+**Tingkat B — arketipe otomatis dari tag OSM (generator + instancing)**
+- ⬜ Masjid/musala: kubah + menara instans di atas jejak
+- ⬜ Gedung tinggi (> ±20 m): podium + menara menyusut, mahkota atap, lampu puncak malam
+- ⬜ Mal/ruko besar: atap datar + kotak AC/skylight + papan nama menyala
+- ⬜ Sekolah/kampus, rumah sakit, SPBU, pasar: warna atap khas + 1 penanda
+- ⬜ Lapangan olahraga: garis lapangan di shader tanah
+
+**Tingkat C — keterbacaan**
+- ⬜ Label bertingkat (kawasan → landmark → jalan besar); sekarang hanya 2 label
+- ⬜ Warna kelas bangunan lebih berani; tutup tepi peta yang terlihat putih di zoom penuh
+- ⬜ Kartu kecepatan diganti nama kawasan + skala selama mode Kota
+
 Lihat [ganti-model](ganti-model/README.md).
 
 ## Kinerja & kualitas (cek berkala)
-- ⬜ Ukur di GPU asli (`?perf`): draw call target ≤ 600 di pratinjau penuh, segitiga ≤ 3 jt, GPU texture ≤ 70 MB.
+- 🔄 Ukur di GPU asli (`?perf`): draw call target ≤ 600 di pratinjau penuh, segitiga ≤ 3 jt, GPU texture ≤ 70 MB. **Terukur 2026-11-13 (headless d3d11, zoom maksimum): 1.423 draw call, 4,98 jt segitiga, 12 fps → melewati target**; zoom dekat stadion 157 call / 0,43 jt / 30 fps. Tekstur belum diukur.
 - ⬜ LOD sel jauh: zoom jauh → sel > 6 km hanya footprint datar tanpa atap (kurangi segitiga).
 - ⬜ Frustum/occlusion: bangunan di balik cakrawala dibuang per sel (sudah per-sel via bounding sphere).
 
@@ -61,6 +87,7 @@ Lihat [ganti-model](ganti-model/README.md).
 ## Log kerja
 | Tanggal | Perubahan | Hasil ukur |
 |---|---|---|
+| 2026-11-13 | Putaran kritik 1 (tanpa perubahan kode): 10 bidikan GPU + barisan NPC, hasil di `docs/KRITIK.md` (tiap temuan: berkas + perubahan + cara cek, 12 paket kerja); bagian Landmark dipecah jadi tingkat A/B/C + urutan K1–K8 | zoom penuh 1.423 call / 4,98 jt segitiga / 12 fps; titik awal 466 call / 2,17 jt; humanoid 5.546 segitiga |
 | 2026-11-13 | Kota jauh v1 (bangunan kotak sejajar sumbu, jalan kelas ≤5, peta tanah) | 380 rb bangunan, 4,7 MB |
 | 2026-11-13 | Kota jauh v2 (rotasi, atap pelana, pohon, jalan semua kelas, peta pekat) | 7 MB, 185 rb pohon, 742 berkas |
 | 2026-11-13 | Bar kendali Kota: slider jam, Putar waktu (1,2 jam/dtk), Tur (rute tetangga-terdekat, 5,5 dtk/perhentian) | 5 tes murni (`cityTour`); dicek di browser uji, belum di GPU asli |
