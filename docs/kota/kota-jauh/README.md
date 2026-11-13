@@ -22,6 +22,7 @@ Zona cincin menengah (tile terperinci) dikecualikan otomatis (bake membaca `publ
 | `b_{ix}_{iz}.bin` | 10 B/bangunan: u16 x, u16 z (dm dari sudut sel), u8 lebar, u8 dalam, u8 tinggi (0,5 m), u8 kelas, u8 rotasi `(θ+π/4)/(π/2)·255`, u8 bendera (bit0 = pelana) |
 | `r_{ix}_{iz}.bin` | berurutan `[u8 kelas, u16 n, n×(i16 x, i16 z dm)]` |
 | `t_{ix}_{iz}.bin` | 5 B/pohon: u16 x, u16 z (dm), u8 tinggi (0,5 m) |
+| `rivers.bin` | u32 n; per garis `u16 np` + np×(f32 x, f32 z) dunia (m); sungai/kanal/aliran ≥ 450 m (`RIVERS` di `farbake.mjs`); manifest `rivers: {file, lines}` |
 | `ground.webp` | peta tanah 2048² untuk `bounds` (baris 0 = utara) |
 Kelas bangunan: 0 lain · 1 niaga · 2 industri · 3 publik/ibadah · 4 hunian. Kelas jalan: `ROAD_INDEX` di `farbake.mjs`.
 Koordinat dunia: +X timur, +Z selatan (meter); sel = lantai(x/2000), lantai(z/2000).

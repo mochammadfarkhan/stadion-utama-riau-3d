@@ -67,3 +67,23 @@ describe('lampu mobil', () => {
     expect(front).toBe(rear);
   });
 });
+
+describe('perahu', () => {
+  it('parseRivers: membaca garis, membuang data terpotong', async () => {
+    const { parseRivers } = await import('../../src/city/farLife.js');
+    const b = new ArrayBuffer(4 + 2 + 16 + 2 + 8);
+    const v = new DataView(b);
+    v.setUint32(0, 2, true);
+    v.setUint16(4, 2, true);
+    [10, 20, 30, 40].forEach((n, i) => v.setFloat32(6 + i * 4, n, true));
+    v.setUint16(22, 5, true); // np=5 tetapi data habis → dibuang
+    expect(parseRivers(b)).toEqual([[[10, 20], [30, 40]]]);
+    expect(parseRivers(new ArrayBuffer(2))).toEqual([]);
+  });
+  it('boatsOnLane menurut panjang dan dibatasi', async () => {
+    const { boatsOnLane, BOATS } = await import('../../src/city/farLife.js');
+    expect(boatsOnLane({ len: 100 })).toBe(0);
+    expect(boatsOnLane({ len: 800 })).toBe(Math.floor(800 / BOATS.perLaneSpacing));
+    expect(boatsOnLane({ len: 1e6 })).toBe(BOATS.maxPerLane);
+  });
+});

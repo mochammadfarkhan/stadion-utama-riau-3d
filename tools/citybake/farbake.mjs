@@ -200,6 +200,38 @@ async function bakeRoads(cells, svgRoads) {
   return n;
 }
 
+/** Jalur perahu: sungai + kanal/aliran panjang (≥ minLen m) dari air.csv, titik dijarangkan (≥ step m). Format f32: u32 n; per garis u16 np, np×(f32 x, f32 z). */
+export const RIVERS = Object.freeze({ minLen: 450, step: 14, kinds: ['river', 'canal', 'stream'] });
+export function riverLines(rows) {
+  const out = [];
+  for (const r of rows) {
+    if (!RIVERS.kinds.includes(r.subtype) || !r.wkt?.startsWith('LINESTRING')) continue;
+    for (const line of wktParts(r.wkt)) {
+      const pts = [];
+      let len = 0;
+      for (const w of line.map(toWorld)) {
+        const last = pts.at(-1);
+        if (last && Math.hypot(w[0] - last[0], w[1] - last[1]) < RIVERS.step) continue;
+        if (last) len += Math.hypot(w[0] - last[0], w[1] - last[1]);
+        pts.push(w);
+      }
+      if (pts.length >= 2 && len >= RIVERS.minLen && pts.length < 65535) out.push(pts);
+    }
+  }
+  return out;
+}
+export function riversBuffer(lines) {
+  const size = 4 + lines.reduce((a, l) => a + 2 + l.length * 8, 0);
+  const buf = Buffer.alloc(size);
+  let o = 0;
+  buf.writeUInt32LE(lines.length, o); o += 4;
+  for (const l of lines) {
+    buf.writeUInt16LE(l.length, o); o += 2;
+    for (const [x, z] of l) { buf.writeFloatLE(x, o); buf.writeFloatLE(z, o + 4); o += 8; }
+  }
+  return buf;
+}
+
 const bounds = () => {
   const c = [[KOTA_BBOX.south, KOTA_BBOX.west], [KOTA_BBOX.north, KOTA_BBOX.east]].map(([la, lo]) => projection.toWorld(la, lo));
   return { minX: Math.min(c[0].x, c[1].x), maxX: Math.max(c[0].x, c[1].x), minZ: Math.min(c[0].z, c[1].z), maxZ: Math.max(c[0].z, c[1].z) };
@@ -293,6 +325,12 @@ async function main() {
   const ground = await bakeGround(gb, density, svgRoads);
   const nt = bakeTrees(cells, ground.rgba, gb, skipTiles);
   const manifest = { version: 2, cell: FAR.cell, bounds: gb, ground: { file: 'ground.webp', size: FAR.groundSize }, glow: 'glow.webp', cells: [] };
+  const water = await readCsv('air.csv');
+  if (water) {
+    const lines = riverLines(water.rows);
+    await writeFile(join(FAR.outDir, 'rivers.bin'), riversBuffer(lines));
+    manifest.rivers = { file: 'rivers.bin', lines: lines.length };
+  }
   for (const [key, c] of cells) {
     const entry = { key, ix: c.ix, iz: c.iz, nb: c.b.length / 8, nr: c.r.length, nt: c.t.length / 3 };
     if (entry.nb) {

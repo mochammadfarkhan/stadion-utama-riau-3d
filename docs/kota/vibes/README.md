@@ -34,7 +34,7 @@ Dari "peta 3D yang benar" ke **"pemandangan yang bikin betah"**: hangat, hidup, 
 
 ### B. Kehidupan (M)
 - ✅ **Lalu lintas jauh** (2026-11-13, `src/city/farLife.js`): ≤ 4000 mobil kotak (10 segitiga) bergerak sepanjang polyline jalan ≤ tertiary dalam radius R dari fokus (R = 0,9 × jarak kamera, 450–3600 m); posisi = fungsi waktu murni (tanpa state), lajur kiri, kecepatan/kerapatan menurut jam (`trafficDensity`: puncak 07–09 & 16–19, malam 0,2), pendar hangat malam. Mobil ×1,8 dari ukuran asli agar terbaca dari udara (gaya maket). ✅ lampu depan putih/belakang merah terpisah (`carLightsGeometry`, 1 mesh instans tambahan, hanya malam; dicek tanpa galat, warna belum terbedakan jelas di bidikan uji karena tilt-shift).
-- ⬜ **Perahu di Sungai Siak** + riak/kilau matahari (shader air jauh memakai `waterToon`). ★★ M
+- ✅ **Perahu di sungai/kanal** (2026-11-13): `public/far/rivers.bin` (631 jalur sungai/kanal/aliran ≥ 450 m dari Overture, 66 KB) → `farLife.js` (`parseRivers`, `boatsOnLane`, ≤ 300 perahu instans, bolak-balik sepanjang jalur, posisi = fungsi waktu). ⬜ riak/kilau matahari (shader air). Catatan: sungai tersisa di data hanya yang bernama/bertipe river|canal|stream; Sungai Siak utama tidak dipastikan ada di bbox kota [INFERENSI].
 - ✅ **Bayangan awan bergerak** (`groundDetail.js`, uniform `GROUND_UNIFORMS.uCloudT/uCloudAmt`): bercak ±1,4 km bergeser searah angin, gelap 20%, hilang malam & jauh > 9 km. Berlaku di tanah tile + kota jauh.
 - ✅ **Pohon jauh bergoyang** (`city/treeSway.js`, vertex shader instans, fase dari posisi; waktu dari sistem `city.stream`). ⬜ pohon di tile terperinci, bendera, `windState` nyata.
 - ⬜ **Burung/layang-layang** kawanan kecil melintas (sprite instans), muncul sore. ★ S
