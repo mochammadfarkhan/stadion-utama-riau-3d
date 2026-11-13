@@ -33,14 +33,14 @@ Dari "peta 3D yang benar" ke **"pemandangan yang bikin betah"**: hangat, hidup, 
 - ⬜ **Bayangan panjang**: elevasi matahari preview ≈ 25° (sore) + bayangan sampai 700 m (sudah dinamis); kontak-AO murah pada dasar bangunan jauh (gradien vertex warna gelap di dasar). ★★ M
 
 ### B. Kehidupan (M)
-- ⬜ **Lalu lintas jauh**: InstancedMesh kotak kecil bergerak sepanjang polyline jalan besar (data `r_*.bin`), kecepatan/kerapatan menurut jam (padat sore, jarang malam), lampu depan/belakang malam. ★★★ M
+- ✅ **Lalu lintas jauh** (2026-11-13, `src/city/farLife.js`): ≤ 4000 mobil kotak (10 segitiga) bergerak sepanjang polyline jalan ≤ tertiary dalam radius R dari fokus (R = 0,9 × jarak kamera, 450–3600 m); posisi = fungsi waktu murni (tanpa state), lajur kiri, kecepatan/kerapatan menurut jam (`trafficDensity`: puncak 07–09 & 16–19, malam 0,2), pendar hangat malam. Mobil ×1,8 dari ukuran asli agar terbaca dari udara (gaya maket). ⬜ lampu depan putih/belakang merah terpisah.
 - ⬜ **Perahu di Sungai Siak** + riak/kilau matahari (shader air jauh memakai `waterToon`). ★★ M
-- ⬜ **Bayangan awan bergerak** di tanah (tekstur noise bergeser × kekuatan matahari; awan kubah tetap mati). ★★ S
+- ✅ **Bayangan awan bergerak** (`groundDetail.js`, uniform `GROUND_UNIFORMS.uCloudT/uCloudAmt`): bercak ±1,4 km bergeser searah angin, gelap 20%, hilang malam & jauh > 9 km. Berlaku di tanah tile + kota jauh.
 - ⬜ **Pohon/bendera bergoyang** (pakai `windState` yang ada; vertex shader pada tajuk instans). ★ S
 - ⬜ **Burung/layang-layang** kawanan kecil melintas (sprite instans), muncul sore. ★ S
 
 ### C. Malam (M)
-- ⬜ **Lampu jalan nyata** (titik emisif instans tiap ±40 m di jalan ≥ tertiary) + bloom; ganti pendar rata. ★★★ M  (juga di PLAN.md "Berikutnya" #2)
+- ✅ **Lampu jalan nyata** (`farLife.js::lampSpots`): kepala lampu emisif tiap ±45 m bergantian kiri/kanan sepanjang jalan ≤ tertiary (≤ 5000), tampil hanya malam, ikut bloom. ⬜ lampu jalan di dalam tile terperinci (jalan OSM kecil), kerucut cahaya ke aspal.
 - ⬜ **Pantulan kota di air** (kilau garis di Sungai Siak). ★★ S
 - ⬜ **Kedip jendela/TV** (variasi `facadeHash` terhadap waktu, 1–2% jendela berkedip). ★ S
 
@@ -84,4 +84,5 @@ Dampak ke rencana: paket A diganti jadi **"Maket sore emas"** (tilt-shift kuat +
 
 ## Log
 - 2026-11-13: dokumen dibuat dari permintaan "bikin view-nya ciamik vibes-nya".
+- 2026-11-13: sprint 3b — lalu lintas jauh, lampu jalan nyata, bayangan awan (`farLife.js`, `groundDetail.js`).
 - 2026-11-13: keputusan selera (maket / 16:45 / suara otomatis) → paket A diimplementasi: preset maket, alas diorama, suara ambient.
