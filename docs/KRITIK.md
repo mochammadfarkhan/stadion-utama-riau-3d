@@ -5,6 +5,91 @@ Sudut pandang: kritikus game yang juga membaca sumbernya. Tiap temuan ditandai *
 Status: ⬜ belum · 🔄 dikerjakan · ✅ selesai · ➖ dicabut (alasan ditulis).
 Tiap baris berisi: masalah → **berkas** → perubahan konkret → cara cek. Nomor baris kode bisa bergeser; cari nama simbolnya.
 
+## Arah (sudut pandang game director) — 2026-11-13
+
+Daftar temuan di bawah (G/M/U/S/K) menjawab "apa yang rusak". Bagian ini menjawab pertanyaan yang lebih mahal:
+**game ini sebenarnya apa, untuk siapa, dan apa yang TIDAK dikerjakan.** Semua butir di sini adalah usul arah
+[INFERENSI dari kode + catatan keputusan user]; yang bertanda **D** butuh keputusan user sebelum jadi aturan.
+
+### Diagnosis: empat game dalam satu judul
+Di kode sekarang hidup empat produk yang masing-masing baru setengah jadi:
+1. simulator stadion (judul, `regions/stadion`, pertandingan, tribun),
+2. kehidupan kampus (UNRI, sekre ERC D5, NPC berjadwal, bab cerita),
+3. maket kota (mode K: seluruh Pekanbaru, tur, slider waktu, foto),
+4. sim kebun (`sim/farm.js`, kotak kiriman, tidur).
+
+Enam sprint terakhir hampir seluruhnya masuk ke nomor 3, yaitu mode yang **sepedanya dibekukan** dan pemain hanya menonton.
+Sementara itu sepuluh menit pertama di mode jalan (yang dimainkan) belum disentuh: itulah sumber hampir semua temuan
+Putaran 1. Ini bukan soal kualitas kerja, ini soal ke mana jam kerja diarahkan.
+
+### Fantasi inti dan pilar (D1)
+Kekuatan yang tidak dimiliki game lain: **tempatnya asli**. Koordinat nyata, terrain SRTM, jejak bangunan OSM/Overture, sekre
+ERC diukur dari Street View, fakta diberi tanda sumber. Catatan keputusan user sejak awal: "autentik, bukan kaleng".
+
+Usul kalimat inti: **"Bersepeda santai menjelajahi Pekanbaru yang sungguhan, dari stadion sampai sekre sendiri."**
+
+| Pilar | Artinya | Uji sederhana |
+|---|---|---|
+| P-1 **Tempat yang dikenali** | Orang Pekanbaru/UNRI melihat layar dan berkata "itu di sana!" | Tunjukkan bidikan tanpa label ke teman; mereka menyebut lokasinya |
+| P-2 **Sepeda yang enak** | Mengayuh tanpa tujuan pun menyenangkan (gerak, suara, kamera) | Orang baru masih bersepeda setelah 3 menit tanpa disuruh |
+| P-3 **Selalu ada yang dituju** | Tiap 1–2 menit ada tujuan kecil berikutnya (antar, cap, foto, orang) | Pemain tidak pernah bertanya "terus ngapain?" |
+| P-4 **Hangat dan milik sendiri** | Nada perkamen, jajanan, sekre ERC, nama-nama orang; tidak ada kekerasan/hukuman | Tidak ada layar "kalah"; yang ada "coba lagi" |
+
+**Aturan potong:** fitur yang tidak menguatkan minimal satu pilar tidak dikerjakan, walau menarik secara teknis.
+
+### Posisi tiap sub-game terhadap pilar (D2)
+| Sub-game | Peran yang diusulkan | Konsekuensi |
+|---|---|---|
+| Sepeda + kurir + cerita | **Inti** (P-2, P-3) | Semua tonggak awal ke sini |
+| Kampus + sekre ERC | **Jantung emosional** (P-1, P-4) | Rumah pemain: titik simpan, tempat upgrade, tujuan akhir bab |
+| Stadion | **Ikon dan panggung acara** (P-1) | Hari pertandingan (S6), bukan simulator tersendiri |
+| Maket kota (K) | **Peta dan hadiah**, bukan mode utama | Jadi layar perjalanan (S7) + paspor (S5) + foto; berhenti menambah lapisan sampai mode jalan menyusul |
+| Kebun | **Sampingan opsional** | Dibekukan apa adanya; hanya disambung ke pedagang (S4). Tidak ditambah jenis tanaman/mekanik |
+
+### Rendah adalah gaya utama (D3)
+Perangkat sasaran nyata = laptop user (iGPU): Rendah 27–30 fps, Tinggi 2 fps (`ARSITEKTUR.md`). Selama ini Rendah diperlakukan
+sebagai "versi dikurangi" dari Tinggi, sehingga yang dilihat user sehari-hari adalah versi terjelek game.
+Usul: **arah seni dikunci pada Rendah.** Artinya: warna datar yang tegas, bayangan kontak (G1), garis tepi murah, FXAA (G2),
+kabut berwarna (G3) harus membuat Rendah tampak *sengaja bergaya*, bukan *kekurangan*. Tinggi hanya menambah bonus.
+Gerbang visual tiap PR diambil di preset Rendah, bukan di GPU kuat.
+
+### Tonggak (menggantikan urutan paket P1–P12 yang datar)
+Tiap tonggak punya satu kalimat janji, kriteria selesai yang bisa dicek, dan **yang sengaja tidak dikerjakan**.
+
+| Tonggak | Janji ke pemain | Isi (paket) | Selesai bila | Tidak dikerjakan |
+|---|---|---|---|---|
+| **T1 Sepuluh menit pertama** | "Baru mulai sudah betah" | P1, P2, P7, M1, M3 (`LOD_NEAR`), K4, G6 + cek Putaran 2 untuk kendali/animasi/audio | 3 orang baru main 10 menit tanpa dibantu, tidak ada yang berhenti atau bingung arah; bidikan titik awal preset Rendah layak jadi sampul | Lapisan Kota baru, tanaman baru, region baru |
+| **T2 Ada alasan kembali** | "Besok main lagi" | P8, P9, S6, S8 | Ada satu loop 5 menit yang bisa diulang (pesanan → uang → upgrade terasa); uang pernah kurang minimal sekali di 20 menit pertama | Sistem baru di luar S2–S6 |
+| **T3 Kota punya wajah** | "Itu masjidnya! Itu jembatannya!" | P5, P6, P10, P12 (paspor + perjalanan dari peta) | Uji P-1 lulus untuk ≥ 5 landmark tanpa label; zoom penuh ≤ 600 draw call | Cincin kedua tile (±6 km) sampai P10 lulus |
+| **T4 Poles dan cerita** | "Ini dibuat dengan sayang" | P11 (hero Blender, kit manusia), bab cerita baru, isi sekre ERC asli (butuh data user, Tahap 5 rencana lama) | Galeri 8 titik + satu bab yang berakhir di sekre ERC | — |
+
+Urutan T1 → T2 → T3 → T4. Kota (T3) sengaja di belakang T2: maket yang indah tanpa alasan bermain tetap tontonan.
+
+### Di luar rencana sekarang ("beyond") — dicatat, tidak dijadwalkan
+Hanya dibuka setelah T2 selesai; masing-masing harus lulus aturan potong.
+- **Kalender kota**: hari pertandingan (S6) diperluas jadi acara berkala yang mengubah kota (wisuda kampus, pasar malam, hujan besar). Satu sistem `sim/calendar.js` murni memberi alasan kembali tanpa konten baru yang mahal. Nama/tanggal acara nyata harus bersumber.
+- **Kartu pos**: mode Foto yang sudah ada + bingkai perkamen + nama tempat dan koordinat → gambar siap dibagikan. Ini jalur pemasaran paling murah untuk game tentang tempat nyata.
+- **Rute kurir harian**: satu tantangan per hari dari benih tanggal (rute + tenggat sama untuk semua orang), papan waktu lokal tanpa server.
+- **Sekre sebagai rumah**: dekorasi dari upgrade (S2), piagam dari gelar, papan proker; isi asli dari user.
+- **Suara tempat**: ambience per kawasan (stadion, kampus, tepi sungai, jalan arteri) sebagai penguat P-1 yang murah.
+- **Bahasa/dialek**: sapaan NPC bernuansa Melayu Riau; **wajib dicek penutur asli** (jangan mengarang).
+- **Sengaja TIDAK**: multiplayer, mobil yang dikendarai, pertarungan, ekonomi mendalam, kota 100% tile terperinci. Semuanya melanggar pilar atau anggaran.
+
+### Keputusan yang saya butuhkan dari user
+| # | Pertanyaan | Saran saya |
+|---|---|---|
+| D1 | Setuju kalimat inti + 4 pilar? | Ya; ubah kata-katanya sesukamu, yang penting ada |
+| D2 | Maket kota jadi "peta dan hadiah", kebun dibekukan? | Ya |
+| D3 | Arah seni dikunci di preset Rendah? | Ya |
+| D4 | Judul tetap "Simulator Stadion Utama Riau"? Isinya sudah jauh lebih luas dari stadion | Pertimbangkan judul yang menyebut Pekanbaru/bersepeda; stadion jadi ikon sampul |
+| D5 | Avatar manekin tanpa wajah atau diberi wajah minimal (M1)? | Wajah minimal |
+| D6 | Siapa 3 penguji T1? | Teman ERC yang belum pernah melihat proyek ini |
+
+### Cara menilai sendiri tiap tonggak (tanpa telemetri)
+- **Uji 10 menit:** satu orang baru, tanpa penjelasan, direkam layarnya. Catat: detik pertama ia bergerak, tiap kali ia berhenti > 5 detik, dan kalimat pertama yang ia ucapkan.
+- **Uji sampul:** satu bidikan preset Rendah per tonggak; kalau tidak layak dipajang di README, tonggak belum selesai.
+- **Uji potong:** tiap PR menyebut pilar mana yang dikuatkannya di deskripsi; bila tidak ada, PR ditunda.
+
 ## Putaran 1 — 2026-11-13
 
 Cara uji: Chromium headless GPU (d3d11) 1600×900, 10 bidikan (stadion sore/pagi/malam, UNRI jalan/sekre/rektorat, mode Kota
@@ -93,7 +178,7 @@ Urutan: K4 → K1 → K2 + K3 → K6 → K5 → K7 → K8. K1 + K2 adalah intiny
 tinggi berubah sekaligus, dan daftar hero berikutnya keluar dari data.
 Bangunan bundar berkubah di selatan stadion [LIHAT]: identitasnya akan muncul dari K2; jangan diberi nama sebelum itu.
 
-### Paket kerja (1 paket = 1 branch/PR kecil)
+### Paket kerja (1 paket = 1 branch/PR kecil; urutan pengerjaan mengikuti tonggak T1–T4 di bagian Arah)
 | Paket | Isi | Jenis | Tes |
 |---|---|---|---|
 | P1 Perbaikan 1 jam | U1, U2, U3, U4, U5 | CSS + 3 baris JS | lihat bidikan |

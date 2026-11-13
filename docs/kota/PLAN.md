@@ -13,6 +13,11 @@ Urutan = prioritas dampak ÷ usaha. Tiap item menunjuk folder fiturnya.
 | 2026-11-13 | Detail baru sekitar stadion; di luar itu bangunan masih putih, jalan belum jelas; minta rencana .md per folder per fitur yang terus diperbarui | semua folder, PLAN ini |
 | 2026-11-13 | Minta kritik ala kritikus game (grafis, manusia, UI, sistem) + peta harus lebih detail, gedung ikonik dibuat lebih rinci | [../KRITIK.md](../KRITIK.md), bagian Landmark di bawah |
 
+> **Usul arah (game director, 2026-11-13, menunggu keputusan user D2):** mode Kota diposisikan sebagai "peta dan hadiah",
+> bukan mode utama. Pekerjaan Kota berikutnya = tonggak **T3** (setelah T1 "sepuluh menit pertama" dan T2 "alasan kembali"
+> di mode jalan); cincin kedua ditahan sampai kinerja zoom penuh lulus. Kecuali K4 proxy stadion, yang masuk T1.
+> Rincian: [../KRITIK.md](../KRITIK.md) bagian Arah.
+
 ## Sekarang (sprint 1: "luar stadion tidak boleh putih")
 - ✅ Kota jauh v2: bangunan diputar mengikuti jejak asli, rumah kecil beratap pelana merah, atap datar abu, tint per kelas — [kota-jauh](kota-jauh/README.md)
 - ✅ Pohon jauh 185 rb instans dari titik hijau peta tanah — [kota-jauh](kota-jauh/README.md)
