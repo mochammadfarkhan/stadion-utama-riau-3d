@@ -13,6 +13,7 @@ import { createTileMinimapCache } from './tileMinimap.js';
 import { validateManifest } from './tileData.js';
 import { mountParkedVehicles } from './parkedVehicles.js';
 import { applyGroundHole } from './groundHole.js';
+import { FACADE_UNIFORMS, nightFactor } from './facade.js';
 
 /** Tanah dasar kota: persegi besar di bawah landuse (y −0,05), dipindah per 50 m mengikuti fokus. */
 export const CITY_GROUND = Object.freeze({ size: 2 * STREAM.unloadRadius + 400, y: -0.05, snap: 50 });
@@ -93,6 +94,7 @@ export async function createCity({
     id: 'city.stream',
     phase: 'world',
     update(dt, ctx) {
+      if (time && Number.isFinite(time.hour)) FACADE_UNIFORMS.uNight.value = nightFactor(time.hour); // jendela menyala malam
       const focus = ctx.focus ?? ctx.bikePos;
       if (!focus) return;
       const a = groundAnchor(focus);

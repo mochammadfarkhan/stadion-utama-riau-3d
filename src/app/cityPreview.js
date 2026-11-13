@@ -8,19 +8,23 @@
 import { CITY } from '../core/cameraPresets.js';
 import { applyPlacement } from './mountRegion.js';
 import { buildStadionProxy } from '../regions/stadion/proxy.js';
+import { createCityLabels } from '../ui/CityLabels.js';
 
 const FOG_PREVIEW = 9000;      // m: jarak kabut selama pratinjau (setelan "Jarak kabut" hanya sampai 2000)
 const FOG_PER_DISTANCE = 9;      // fogDistance ≈ 9 × jarak kamera → awal kabut (0,16 × fogDistance) di belakang titik pandang
 const MAX_PREVIEW_PIXEL_RATIO = 1.5;
+const SHADOW_EXTENT_RANGE = Object.freeze([200, 700]); // setengah lebar frustum bayangan (m): ikut jarak kamera agar bangunan di layar bersayangan
+const LABEL_ZOOM = 0.4;       // zoom saat terbang ke landmark
 const NEAR_RANGE = Object.freeze([0.3, 120]);
 const HINT = 'Kota isometrik: WASD/seret geser · Q/Z putar · roda zoom (jauhkan untuk seluruh peta) · K keluar';
 
 /**
  * @param {{app: object, rig: object, regions: object, time: object, store: object, hud: {toast: Function},
- *   city?: {setPreview(on: boolean): void}|null, stadionId: string, stadionPlacement: object, hide: Array<{visible: boolean}>}} opts
+ *   city?: {setPreview(on: boolean): void}|null, lighting?: {userData: object}|null,
+ *   landmarks?: Array<{id: string, label: string, x: number, z: number}>, stadionId: string, stadionPlacement: object, hide: Array<{visible: boolean}>}} opts
  *   hide: objek yang disembunyikan selama pratinjau (entitas dunia & entitas region)
  */
-export function createCityPreview({ app, rig, regions, time, store, hud, city = null, stadionId, stadionPlacement, hide }) {
+export function createCityPreview({ app, rig, regions, time, store, hud, city = null, lighting = null, landmarks = [], stadionId, stadionPlacement, hide }) {
   const camera = app.camera;
   const base = { near: camera.near, far: camera.far };
   let active = false;
@@ -29,6 +33,11 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
   let saved = null;
   let fogSet = FOG_PREVIEW;
   let styleCap = Infinity; // batas pixel ratio gaya grafis sebelum pratinjau
+  let shadowSaved = null;
+  const light = lighting?.userData ?? {};
+  const labels = createCityLabels(document.body, {
+    landmarks, onSelect: (l) => rig.director.flyTo(l.x, l.z, LABEL_ZOOM),
+  });
 
   const stadionGroup = () => regions.handleOf(stadionId)?.region?.group ?? null;
 
@@ -63,6 +72,9 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     app.setPixelCap?.(Infinity);
     app.setPixelRatio?.(Math.min(window.devicePixelRatio || 1, MAX_PREVIEW_PIXEL_RATIO));
     app.setAdaptiveResolution?.(false);
+    document.body.classList.add('is-city-preview');
+    labels.setVisible(true);
+    shadowSaved = light.getShadowExtent?.() ?? null;
     hud.toast(HINT, true);
   };
 
@@ -79,6 +91,9 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
       saved = null;
     }
     city?.setPreview(false);
+    document.body.classList.remove('is-city-preview');
+    labels.setVisible(false);
+    if (shadowSaved != null) { light.setShadowExtent?.(shadowSaved); shadowSaved = null; }
     app.setPixelCap?.(styleCap);
     app.setPixelRatio?.(store.get('graphics.pixelRatio'));
     app.setAdaptiveResolution?.(Boolean(store.get('graphics.adaptiveResolution')));
@@ -104,6 +119,9 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     if (active) { // kabut ikut jarak: zoom jauh (seluruh peta) tidak boleh tenggelam dalam kabut
       const fog = Math.max(FOG_PREVIEW, dist * FOG_PER_DISTANCE);
       if (Math.abs(fog - fogSet) / fogSet > 0.05) { fogSet = fog; time.setFogDistance(fog); }
+      const extent = Math.min(SHADOW_EXTENT_RANGE[1], Math.max(SHADOW_EXTENT_RANGE[0], dist * 0.55));
+      if (Math.abs(extent - (light.getShadowExtent?.() ?? extent)) / extent > 0.1) light.setShadowExtent?.(extent);
+      labels.update(camera, dist);
     }
   };
 
@@ -122,6 +140,7 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     dispose() {
       if (active) exit();
       app.removeSystem('cityPreview');
+      labels.dispose();
       if (proxy) {
         proxy.group.removeFromParent();
         proxy.dispose();
