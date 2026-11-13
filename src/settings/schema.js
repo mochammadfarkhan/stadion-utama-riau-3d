@@ -102,6 +102,7 @@ export const SETTINGS_SCHEMA = Object.freeze({
           followSmoothing: range('Kehalusan kamera', 6, 1, 15, 0.5),
           kotaMaket: toggle('Pratinjau Kota (K): gaya maket sore emas', true),
           kotaSuara: toggle('Pratinjau Kota (K): suara ambient', true),
+          kotaIntro: toggle('Pratinjau Kota (K): intro terbang dari ketinggian', true),
         }),
       }),
     }),

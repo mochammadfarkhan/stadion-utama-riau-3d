@@ -31,7 +31,7 @@ Urutan = prioritas dampak ÷ usaha. Tiap item menunjuk folder fiturnya.
 1. ✅ Paket **Maket sore emas** (keputusan user: maket + 16:45 + suara otomatis): preset (jam, bloom, tilt-shift kuat), alas diorama berlapis, suara ambient — [vibes](vibes/README.md). ⬜ sisa: kabut berwarna menyatu dengan langit, kontak-AO dasar bangunan.
 2. ✅ **Lalu lintas jauh** instans + **bayangan awan** bergerak — `farLife.js`, `groundDetail.js`.
 3. ✅ **Lampu jalan nyata** (kota jauh) + bloom malam. ⬜ lampu di tile terperinci.
-4. ✅ **Tur landmark + slider waktu + Putar waktu** (bar bawah layar saat K; `cityTour.js`, `CityControls.js`). ⬜ intro terbang, mode foto Kota.
+4. ✅ **Tur landmark + slider waktu + Putar waktu** (bar bawah layar saat K; `cityTour.js`, `CityControls.js`). ✅ intro terbang (zoom 9→0,9 ke stadion; setelan `camera.kotaIntro`) dan tombol **Foto** (×2, label & bar disembunyikan).
 Keputusan selera sudah dijawab (maket / 16:45 / suara otomatis); lihat vibes/README.md.
 
 ## Berikutnya (dampak besar, mudah)
@@ -64,6 +64,7 @@ Lihat [ganti-model](ganti-model/README.md).
 | 2026-11-13 | Kota jauh v1 (bangunan kotak sejajar sumbu, jalan kelas ≤5, peta tanah) | 380 rb bangunan, 4,7 MB |
 | 2026-11-13 | Kota jauh v2 (rotasi, atap pelana, pohon, jalan semua kelas, peta pekat) | 7 MB, 185 rb pohon, 742 berkas |
 | 2026-11-13 | Bar kendali Kota: slider jam, Putar waktu (1,2 jam/dtk), Tur (rute tetangga-terdekat, 5,5 dtk/perhentian) | 5 tes murni (`cityTour`); dicek di browser uji, belum di GPU asli |
+| 2026-11-13 | Intro terbang + tombol Foto di bar Kota | dicek di browser uji (intro ya; unduhan PNG tidak terlihat dari sana) |
 | 2026-11-13 | Mobil berjalan, lampu jalan nyata, bayangan awan | ≤ 4000 mobil + ≤ 5000 lampu instans; 5 tes murni (`farLife`) |
 | 2026-11-13 | Cincin menengah: 4 strip (`tools/citybake --area cincin`) | +92 tile, 157 tile, 22,7 MB; bake 36 menit (Overpass 502, strip timur 5 percobaan; Overture ±5 mnt/area) |
 | 2026-11-13 | Lampu malam (`nightGlow.js`, `glow.webp`, lampu sorot proxy) | `glow.webp` ±4 KB; kekuatan jalan 0,38 (tile) / 0,55 (jauh) setelah dicek terlalu terang di 0,6/0,9, peta 2,0, jendela ×2,6 |

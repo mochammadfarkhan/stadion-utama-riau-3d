@@ -31,3 +31,5 @@ body.is-city-preview #minimap2d { display: none !important; }
   font: inherit; cursor: pointer;
 }
 #city-controls .city-toggle[aria-pressed=true] { background: #c2622b; color: #fff; border-color: #c2622b; }
+body.is-photo #city-labels,
+body.is-photo #city-controls { display: none !important; }
