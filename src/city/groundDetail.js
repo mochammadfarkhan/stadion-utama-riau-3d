@@ -5,10 +5,15 @@
  * Warna dasar tetap dari vertex color; pola hanya mengalikan luminans (±14%), jadi aman untuk semua lapisan datar.
  */
 
+/** Uniform bersama detail tanah: waktu (dtk) & kekuatan bayangan awan 0..1 (diisi sistem kota). */
+export const GROUND_UNIFORMS = { uCloudT: { value: 0 }, uCloudAmt: { value: 1 } };
+
 const COMMON_V = 'varying vec3 vGroundP;';
 const COMMON_F = [
   'varying vec3 vGroundP;',
   'uniform float uGroundGrain;',
+  'uniform float uCloudT;',
+  'uniform float uCloudAmt;',
   'float gdHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
   'float gdValue(vec2 p) {',
   '  vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);',
@@ -24,6 +29,10 @@ const FRAGMENT = [
   '  + (gdValue(vGroundP.xz / 7.0) - 0.5) * 0.14 * gdMid',
   '  + (gdValue(vGroundP.xz / 1.3) - 0.5) * 0.18 * gdFine * uGroundGrain;',
   'diffuseColor.rgb *= 1.0 + gdVar;',
+  // bayangan awan: bercak lebar (±1,4 km) bergeser searah angin; gelap 20% di bawah awan, tepi lembut
+  'vec2 gdCloudUv = vGroundP.xz / 1400.0 + vec2(uCloudT * 0.011, uCloudT * 0.006);',
+  'float gdCloud = smoothstep(0.5, 0.7, gdValue(gdCloudUv) * 0.65 + gdValue(gdCloudUv * 2.3 + 7.0) * 0.35);',
+  'diffuseColor.rgb *= 1.0 - 0.2 * gdCloud * uCloudAmt * (1.0 - smoothstep(2500.0, 9000.0, gdDist));',
 ].join('\n');
 
 /** Sisipkan varying + pola ke sumber shader (murni; dites tanpa WebGL). */
@@ -49,7 +58,7 @@ export function applyGroundDetail(material, name, grain = 1) {
   const own = { uGroundGrain: { value: grain } };
   material.onBeforeCompile = (shader, renderer) => {
     prev?.call(material, shader, renderer);
-    Object.assign(shader.uniforms, own);
+    Object.assign(shader.uniforms, own, GROUND_UNIFORMS);
     const patched = patchGroundDetailSource(shader);
     shader.vertexShader = patched.vertexShader;
     shader.fragmentShader = patched.fragmentShader;

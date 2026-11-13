@@ -16,6 +16,7 @@ import { applyGroundHole } from './groundHole.js';
 import { FACADE_UNIFORMS, nightFactor } from './facade.js';
 import { addTileDetail } from './tileDetail.js';
 import { createFarCity } from './farCity.js';
+import { GROUND_UNIFORMS } from './groundDetail.js';
 
 /** Tanah dasar kota: persegi besar di bawah landuse (y −0,05), dipindah per 50 m mengikuti fokus. */
 export const CITY_GROUND = Object.freeze({ size: 2 * STREAM.unloadRadius + 400, y: -0.05, snap: 50 });
@@ -89,6 +90,7 @@ export async function createCity({
   const waiters = new Set();
   let disposed = false;
   let previewOn = false;
+  let far = null; // objek kota jauh setelah dimuat (update per frame)
   let farPromise = null; // lapisan kota jauh (farCity.js), dimuat malas saat pratinjau pertama
   /** Selesaikan penunggu sekali dan bersihkan timer habis-waktunya. */
   const settle = (w, value) => {
@@ -100,9 +102,14 @@ export async function createCity({
     id: 'city.stream',
     phase: 'world',
     update(dt, ctx) {
-      if (time && Number.isFinite(time.hour)) FACADE_UNIFORMS.uNight.value = nightFactor(time.hour); // jendela menyala malam
+      if (time && Number.isFinite(time.hour)) {
+        FACADE_UNIFORMS.uNight.value = nightFactor(time.hour); // jendela menyala malam
+        GROUND_UNIFORMS.uCloudT.value = ctx.time ?? 0; // bayangan awan bergerak
+        GROUND_UNIFORMS.uCloudAmt.value = 1 - FACADE_UNIFORMS.uNight.value; // tak ada bayangan awan malam
+      }
       const focus = ctx.focus ?? ctx.bikePos;
       if (!focus) return;
+      if (previewOn && far && time) far.update({ time: ctx.time ?? 0, focus, distance: app.camera?.position.distanceTo(focus) ?? 1000, hour: time.hour });
       const a = groundAnchor(focus);
       ground.position.set(a.x, CITY_GROUND.y, a.z);
       for (const action of streamer.update(focus)) {
@@ -137,6 +144,7 @@ export async function createCity({
         farPromise ??= createFarCity({ scene: group, baseUrl, logger }).catch((err) => { logger.error('Kota jauh gagal:', err); return null; });
         farPromise.then(async (f) => {
           if (!f || disposed) return;
+          far = f;
           await f.setActive(previewOn);
           ground.visible = !previewOn; // peta tanah jauh menggantikan tanah dasar polos selama pratinjau
         });
