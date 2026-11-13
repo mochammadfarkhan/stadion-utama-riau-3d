@@ -6,6 +6,7 @@
  * Sistem 'cityPreview' (fase camera) mengikuti `rig.povId`, jadi tombol K, menu panel, dan Digit0/V semuanya bekerja.
  */
 import { CITY } from '../core/cameraPresets.js';
+import { nightFactor } from '../city/facade.js';
 import { applyPlacement } from './mountRegion.js';
 import { buildStadionProxy } from '../regions/stadion/proxy.js';
 import { createCityLabels } from '../ui/CityLabels.js';
@@ -124,6 +125,7 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
       const extent = Math.min(SHADOW_EXTENT_RANGE[1], Math.max(SHADOW_EXTENT_RANGE[0], dist * 0.55));
       if (Math.abs(extent - (light.getShadowExtent?.() ?? extent)) / extent > 0.1) light.setShadowExtent?.(extent);
       labels.update(camera, dist);
+      proxy?.setNight(nightFactor(time.hour)); // lampu sorot proxy stadion menyala malam
     }
   };
 

@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { applyGroundDetail } from './groundDetail.js';
 import { applyFacade } from './facade.js';
+import { applyNightGlow } from './nightGlow.js';
 
 const GROUND_Y = -0.4;
 const ROAD_Y = 0.08;
@@ -196,13 +197,13 @@ export async function createFarCity({
   let disposed = false;
   const counts = { cells: 0, buildings: 0, trees: 0, roadMeshes: 0 };
 
-  const own = (r) => { owned.push(r); return r; };
+  const own = (r) => { if (r) owned.push(r); return r; };
   const buildingMat = own(new THREE.MeshLambertMaterial({ vertexColors: true }));
   buildingMat.name = 'kotaJauh:bangunan';
   applyFacade(buildingMat, 'wall'); // jendela & kios pada dinding dari dekat; memudar > 900 m (atap tak terkena: normal.y >= 0,5)
   const treeMat = own(new THREE.MeshLambertMaterial({ vertexColors: true }));
   treeMat.name = 'kotaJauh:pohon';
-  const roadMat = own(new THREE.MeshLambertMaterial({ vertexColors: true, depthWrite: false }));
+  const roadMat = own(applyNightGlow(new THREE.MeshLambertMaterial({ vertexColors: true, depthWrite: false }), { strength: 0.9 })); // lampu jalan malam
   roadMat.name = 'kotaJauh:jalan';
   const colors = Object.fromEntries(Object.entries(FAR_COLORS).map(([k, v]) => [k, new THREE.Color(v)]));
   const flatGeo = own(mergedBuilding([wallsGeometry(colors.wall), flatRoofGeometry(colors.flatRoof)]));
@@ -215,7 +216,10 @@ export async function createFarCity({
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = 4;
     const geo = own(new THREE.PlaneGeometry(b.maxX - b.minX, b.maxZ - b.minZ).rotateX(-Math.PI / 2));
-    const mat = own(applyGroundDetail(new THREE.MeshLambertMaterial({ map: tex }), 'far', 0)); // tanpa butir halus (hanya dilihat jauh)
+    const glow = manifest.glow ? own(await loadTexture(`${baseUrl}far/${manifest.glow}`).catch(() => null)) : null; // peta pendar malam (opsional)
+    if (glow) { glow.colorSpace = THREE.NoColorSpace; glow.anisotropy = 2; }
+    const base = applyGroundDetail(new THREE.MeshLambertMaterial({ map: tex }), 'far', 0); // tanpa butir halus (hanya dilihat jauh)
+    const mat = own(glow ? applyNightGlow(base, { strength: 2.0, glowMap: glow }) : base);
     const mesh = new THREE.Mesh(geo, mat);
     mesh.name = 'tanahJauh';
     mesh.position.set((b.minX + b.maxX) / 2, GROUND_Y, (b.minZ + b.maxZ) / 2);

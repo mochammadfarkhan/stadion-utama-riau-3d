@@ -8,6 +8,7 @@
  *  - r_{ix}_{iz}.bin: jalan: [u8 kelas, u16 n, n × (i16 x, i16 z desimeter dari sudut sel)]… berurutan.
  *  - t_{ix}_{iz}.bin: pohon, 5 byte: u16 x, u16 z (desimeter), u8 tinggi (0,5 m). Dari peta tanah: titik grid berjitter pada piksel hijau.
  *  - ground.webp: peta tanah 2048² (tutupan lahan, air, jalan besar, kerapatan bangunan) — dikompres karena hanya dilihat dari jauh.
+ *  - glow.webp: peta pendar malam 512² satu kanal (kerapatan bangunan, diburamkan) — kawasan padat bersinar dari jauh (src/city/nightGlow.js).
  * Pakai: node tools/citybake/farbake.mjs   (butuh data-src/overture-kota/*.csv dari farFetch.mjs; air/lahan/jalan opsional)
  */
 import process from 'node:process';
@@ -243,6 +244,10 @@ async function bakeGround(gb, density, svgRoads) {
     .ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const out = join(FAR.outDir, 'ground.webp');
   await sharp(base.data, { raw: base.info }).modulate({ saturation: 1.2, brightness: 0.94 }).webp({ quality: 74, effort: 5 }).toFile(out);
+  // peta pendar: kerapatan → satu kanal, diperkecil 512² lalu diburamkan (pendar lembut, bukan titik); kecil (±40 KB)
+  const lum = Buffer.alloc(S * S);
+  for (let i = 0; i < S * S; i += 1) lum[i] = Math.min(255, density[i] * 34);
+  await sharp(lum, { raw: { width: S, height: S, channels: 1 } }).resize(512, 512, { kernel: 'lanczos3' }).blur(1.6).webp({ quality: 80 }).toFile(join(FAR.outDir, 'glow.webp'));
   return { file: out, rgba: base.data };
 }
 
@@ -287,7 +292,7 @@ async function main() {
   const nr = await bakeRoads(cells, svgRoads);
   const ground = await bakeGround(gb, density, svgRoads);
   const nt = bakeTrees(cells, ground.rgba, gb, skipTiles);
-  const manifest = { version: 2, cell: FAR.cell, bounds: gb, ground: { file: 'ground.webp', size: FAR.groundSize }, cells: [] };
+  const manifest = { version: 2, cell: FAR.cell, bounds: gb, ground: { file: 'ground.webp', size: FAR.groundSize }, glow: 'glow.webp', cells: [] };
   for (const [key, c] of cells) {
     const entry = { key, ix: c.ix, iz: c.iz, nb: c.b.length / 8, nr: c.r.length, nt: c.t.length / 3 };
     if (entry.nb) {
