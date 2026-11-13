@@ -67,28 +67,30 @@ function bowl() {
   return [upper, lower, seatUp, seat];
 }
 
-/** Empat tiang lampu sorot di sudut elips luar (kepala lampu = balok terang). */
+/** Empat tiang lampu sorot di sudut elips luar: tiang (digabung ke mesh utama) dan kepala lampu (mesh terpisah, menyala malam). */
 function floodlights() {
   const { outerSemiX: ox, outerSemiZ: oz } = STADIUM;
-  const out = [];
+  const masts = [];
+  const heads = [];
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
       const x = sx * ox * 0.78;
       const z = sz * oz * 0.78;
-      out.push(paint(boxAt(2.2, MAST_HEIGHT, 2.2, x, 0, z), COLOR.tiang));
-      out.push(paint(boxAt(11, 5, 2.4, x, MAST_HEIGHT, z), COLOR.lampu));
+      masts.push(paint(boxAt(2.2, MAST_HEIGHT, 2.2, x, 0, z), COLOR.tiang));
+      heads.push(boxAt(11, 5, 2.4, x, MAST_HEIGHT, z));
     }
   }
-  return out;
+  return { masts, heads };
 }
 
 /**
  * @param {{terrain?: {heightAt(x:number, z:number):number}, heightAtLocal?: (lx:number, lz:number)=>number}} [ctx]
- * @returns {{group: THREE.Group, dispose(): void}}
+ * @returns {{group: THREE.Group, setNight(n: number): void, dispose(): void}}
  */
 export function buildStadionProxy(ctx = {}) {
   const y0 = typeof ctx.heightAtLocal === 'function' ? ctx.heightAtLocal(0, 0) : 0;
   const { innerSemiX: ix, innerSemiZ: iz, outerSemiX: ox, outerSemiZ: oz, roofHeight: rh, facadeHeight: fh, roofOpeningPad: pad } = STADIUM;
+  const { masts, heads } = floodlights();
   const geos = [
     paint(flatShapeGeometry(ellipseShape(ox + 40, oz + 40), [], SEGMENTS).translate(0, 0.05, 0), COLOR.plaza),
     flatRing(ix * 0.82, iz * 0.82, ix * 0.18, 0.18, COLOR.lintasan),
@@ -99,7 +101,7 @@ export function buildStadionProxy(ctx = {}) {
     // fasad luar (dinding tegak) + atap putih berupa cincin tebal di ketinggian atap
     paint(ellipseRingExtrude(ox - 2, oz - 2, 2, fh, 0, SEGMENTS), COLOR.fasad),
     paint(ellipseRingExtrude(ix + pad, iz + pad, ox - ix - pad, 1.4, rh - 1.4, SEGMENTS), COLOR.atap),
-    ...floodlights(),
+    ...masts,
   ];
   const flat = geos.map((g) => (g.index ? g.toNonIndexed() : g)); // Extrude = tak berindeks, Shape/Box = berindeks: samakan agar bisa digabung
   const merged = mergeGeometries(flat, false);
@@ -114,5 +116,21 @@ export function buildStadionProxy(ctx = {}) {
   const group = new THREE.Group();
   group.name = STADION_PROXY_NAME;
   group.add(mesh);
-  return { group, dispose() { merged.dispose(); material.dispose(); } };
+  // kepala lampu sorot: tak berlampu (abu) siang, putih-hangat terang malam (setNight)
+  const headGeo = mergeGeometries(heads.map((g) => g.toNonIndexed()), false);
+  heads.forEach((g) => g.dispose());
+  headGeo.translate(0, y0, 0);
+  const headMat = new THREE.MeshBasicMaterial({ color: COLOR.tiang });
+  headMat.name = 'proxyStadionLampu';
+  const headMesh = new THREE.Mesh(headGeo, headMat);
+  headMesh.name = `${STADION_PROXY_NAME}:lampu`;
+  group.add(headMesh);
+  const off = new THREE.Color(COLOR.tiang);
+  const on = new THREE.Color(0xfff0b8).multiplyScalar(1.6);
+  return {
+    group,
+    /** n ∈ [0, 1]: kekuatan malam (nightFactor jam permainan). */
+    setNight(n) { headMat.color.copy(off).lerp(on, Math.min(1, Math.max(0, n))); },
+    dispose() { merged.dispose(); material.dispose(); headGeo.dispose(); headMat.dispose(); },
+  };
 }

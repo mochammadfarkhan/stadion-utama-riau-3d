@@ -1,13 +1,13 @@
 /**
  * Argumen CLI citybake:
- *   node tools/citybake --area stadion|pusat|unri|all [--offline] [--no-overture]
+ *   node tools/citybake --area stadion|pusat|unri|cincin|all [--offline] [--no-overture]
  *                       [--overture-release <id>] [--out <dir>] [--cache <dir>]
  */
 import { parseArgs } from 'node:util';
 import { AREAS, OVERTURE, PATHS } from './config.js';
 import { runBake } from './pipeline.js';
 
-export const USAGE = 'Pakai: node tools/citybake --area <stadion|pusat|unri|all> [--offline] [--no-overture] '
+export const USAGE = 'Pakai: node tools/citybake --area <stadion|pusat|unri|cincin|all> [--offline] [--no-overture] '
   + '[--overture-release <id>] [--out <dir>] [--cache <dir>]';
 
 /** @returns {{areaIds: string[], offline: boolean, useOverture: boolean, release: string, outDir: string, cacheDir: string}} */
@@ -25,7 +25,9 @@ export function parseCli(argv, areas = AREAS) {
     strict: true,
   });
   if (!values.area) throw new Error(`--area wajib. ${USAGE}`);
-  const areaIds = values.area === 'all' ? Object.keys(areas) : [values.area];
+  const areaIds = values.area === 'all' ? Object.keys(areas)
+    : values.area === 'cincin' ? Object.keys(areas).filter((id) => id.startsWith('cincin-')) // 4 strip cincin menengah
+      : [values.area];
   for (const id of areaIds) if (!areas[id]) throw new Error(`area tidak dikenal: "${id}". ${USAGE}`);
   return {
     areaIds,

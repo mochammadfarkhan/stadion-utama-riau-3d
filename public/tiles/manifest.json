@@ -10,6 +10,154 @@
   "unit": 0.1,
   "areas": [
     {
+      "id": "cincin-barat",
+      "name": "Cincin menengah — barat",
+      "bounds": {
+        "minX": -3000,
+        "minZ": -1500,
+        "maxX": -1500,
+        "maxZ": 1500
+      },
+      "osmTimestamp": "2026-11-13T09:41:02Z",
+      "overtureRelease": "2026-09-23.1",
+      "tiles": [
+        "-6_-3",
+        "-5_-3",
+        "-4_-3",
+        "-6_-2",
+        "-5_-2",
+        "-4_-2",
+        "-6_-1",
+        "-5_-1",
+        "-6_0",
+        "-5_0",
+        "-6_1",
+        "-5_1",
+        "-6_2",
+        "-5_2"
+      ]
+    },
+    {
+      "id": "cincin-selatan",
+      "name": "Cincin menengah — selatan",
+      "bounds": {
+        "minX": -3000,
+        "minZ": 1500,
+        "maxX": 3000,
+        "maxZ": 3000
+      },
+      "osmTimestamp": "2026-11-13T09:36:01Z",
+      "overtureRelease": "2026-09-23.1",
+      "tiles": [
+        "-6_3",
+        "-5_3",
+        "2_3",
+        "3_3",
+        "4_3",
+        "5_3",
+        "-6_4",
+        "-5_4",
+        "2_4",
+        "3_4",
+        "4_4",
+        "5_4",
+        "-6_5",
+        "-5_5",
+        "-4_5",
+        "-3_5",
+        "-2_5",
+        "-1_5",
+        "0_5",
+        "1_5",
+        "2_5",
+        "3_5",
+        "4_5",
+        "5_5"
+      ]
+    },
+    {
+      "id": "cincin-timur",
+      "name": "Cincin menengah — timur",
+      "bounds": {
+        "minX": 1500,
+        "minZ": -1500,
+        "maxX": 3000,
+        "maxZ": 1500
+      },
+      "osmTimestamp": "2026-11-13T09:56:21Z",
+      "overtureRelease": "2026-09-23.1",
+      "tiles": [
+        "3_-3",
+        "4_-3",
+        "5_-3",
+        "3_-2",
+        "4_-2",
+        "5_-2",
+        "3_-1",
+        "4_-1",
+        "5_-1",
+        "3_0",
+        "4_0",
+        "5_0",
+        "3_1",
+        "4_1",
+        "5_1",
+        "3_2",
+        "4_2",
+        "5_2"
+      ]
+    },
+    {
+      "id": "cincin-utara",
+      "name": "Cincin menengah — utara",
+      "bounds": {
+        "minX": -3000,
+        "minZ": -3000,
+        "maxX": 3000,
+        "maxZ": -1500
+      },
+      "osmTimestamp": "2026-11-13T09:25:50Z",
+      "overtureRelease": "2026-09-23.1",
+      "tiles": [
+        "-6_-6",
+        "-5_-6",
+        "-4_-6",
+        "-3_-6",
+        "-2_-6",
+        "-1_-6",
+        "0_-6",
+        "1_-6",
+        "2_-6",
+        "3_-6",
+        "4_-6",
+        "5_-6",
+        "-6_-5",
+        "-5_-5",
+        "-4_-5",
+        "-3_-5",
+        "-2_-5",
+        "-1_-5",
+        "0_-5",
+        "1_-5",
+        "2_-5",
+        "3_-5",
+        "4_-5",
+        "5_-5",
+        "-6_-4",
+        "-5_-4",
+        "-4_-4",
+        "-3_-4",
+        "-2_-4",
+        "-1_-4",
+        "0_-4",
+        "1_-4",
+        "2_-4",
+        "3_-4",
+        "4_-4",
+        "5_-4"
+      ]
+    },
+    {
       "id": "pusat",
       "name": "Pusat kota — Masjid Raya An-Nur",
       "bounds": {
@@ -519,6 +667,981 @@
       }
     },
     {
+      "key": "-6_-6",
+      "ix": -6,
+      "iz": -6,
+      "area": "cincin-utara",
+      "bytes": 155312,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-6_-6.lod0.glb",
+          "bytes": 80276,
+          "triangles": 4684
+        },
+        {
+          "level": 1,
+          "file": "-6_-6.lod1.glb",
+          "bytes": 51544,
+          "triangles": 3100
+        }
+      ],
+      "data": {
+        "file": "-6_-6.data.json",
+        "bytes": 23492
+      }
+    },
+    {
+      "key": "-5_-6",
+      "ix": -5,
+      "iz": -6,
+      "area": "cincin-utara",
+      "bytes": 103593,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-5_-6.lod0.glb",
+          "bytes": 52320,
+          "triangles": 2865
+        },
+        {
+          "level": 1,
+          "file": "-5_-6.lod1.glb",
+          "bytes": 38960,
+          "triangles": 2157
+        }
+      ],
+      "data": {
+        "file": "-5_-6.data.json",
+        "bytes": 12313
+      }
+    },
+    {
+      "key": "-4_-6",
+      "ix": -4,
+      "iz": -6,
+      "area": "cincin-utara",
+      "bytes": 31265,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-4_-6.lod0.glb",
+          "bytes": 15640,
+          "triangles": 499
+        },
+        {
+          "level": 1,
+          "file": "-4_-6.lod1.glb",
+          "bytes": 12756,
+          "triangles": 329
+        }
+      ],
+      "data": {
+        "file": "-4_-6.data.json",
+        "bytes": 2869
+      }
+    },
+    {
+      "key": "-3_-6",
+      "ix": -3,
+      "iz": -6,
+      "area": "cincin-utara",
+      "bytes": 13758,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-3_-6.lod0.glb",
+          "bytes": 9200,
+          "triangles": 57
+        },
+        {
+          "level": 1,
+          "file": "-3_-6.lod1.glb",
+          "bytes": 3920,
+          "triangles": 25
+        }
+      ],
+      "data": {
+        "file": "-3_-6.data.json",
+        "bytes": 638
+      }
+    },
+    {
+      "key": "-2_-6",
+      "ix": -2,
+      "iz": -6,
+      "area": "cincin-utara",
+      "bytes": 4792,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-2_-6.lod0.glb",
+          "bytes": 2280,
+          "triangles": 14
+        },
+        {
+          "level": 1,
+          "file": "-2_-6.lod1.glb",
+          "bytes": 2280,
+          "triangles": 14
+        }
+      ],
+      "data": {
+        "file": "-2_-6.data.json",
+        "bytes": 232
+      }
+    },
+    {
+      "key": "-1_-6",
+      "ix": -1,
+      "iz": -6,
+      "area": "cincin-utara",
+      "bytes": 24105,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-1_-6.lod0.glb",
+          "bytes": 12204,
+          "triangles": 264
+        },
+        {
+          "level": 1,
+          "file": "-1_-6.lod1.glb",
+          "bytes": 10124,
+          "triangles": 141
+        }
+      ],
+      "data": {
+        "file": "-1_-6.data.json",
+        "bytes": 1777
+      }
+    },
+    {
+      "key": "0_-6",
+      "ix": 0,
+      "iz": -6,
+      "area": "cincin-utara",
+      "bytes": 63553,
+      "lod": [
+        {
+          "level": 0,
+          "file": "0_-6.lod0.glb",
+          "bytes": 33820,
+          "triangles": 1699
+        },
+        {
+          "level": 1,
+          "file": "0_-6.lod1.glb",
+          "bytes": 20740,
+          "triangles": 892
+        }
+      ],
+      "data": {
+        "file": "0_-6.data.json",
+        "bytes": 8993
+      }
+    },
+    {
+      "key": "1_-6",
+      "ix": 1,
+      "iz": -6,
+      "area": "cincin-utara",
+      "bytes": 82485,
+      "lod": [
+        {
+          "level": 0,
+          "file": "1_-6.lod0.glb",
+          "bytes": 45052,
+          "triangles": 2409
+        },
+        {
+          "level": 1,
+          "file": "1_-6.lod1.glb",
+          "bytes": 26024,
+          "triangles": 1299
+        }
+      ],
+      "data": {
+        "file": "1_-6.data.json",
+        "bytes": 11409
+      }
+    },
+    {
+      "key": "2_-6",
+      "ix": 2,
+      "iz": -6,
+      "area": "cincin-utara",
+      "bytes": 146461,
+      "lod": [
+        {
+          "level": 0,
+          "file": "2_-6.lod0.glb",
+          "bytes": 77212,
+          "triangles": 4453
+        },
+        {
+          "level": 1,
+          "file": "2_-6.lod1.glb",
+          "bytes": 46900,
+          "triangles": 2719
+        }
+      ],
+      "data": {
+        "file": "2_-6.data.json",
+        "bytes": 22349
+      }
+    },
+    {
+      "key": "3_-6",
+      "ix": 3,
+      "iz": -6,
+      "area": "cincin-utara",
+      "bytes": 175746,
+      "lod": [
+        {
+          "level": 0,
+          "file": "3_-6.lod0.glb",
+          "bytes": 89816,
+          "triangles": 5286
+        },
+        {
+          "level": 1,
+          "file": "3_-6.lod1.glb",
+          "bytes": 59456,
+          "triangles": 3571
+        }
+      ],
+      "data": {
+        "file": "3_-6.data.json",
+        "bytes": 26474
+      }
+    },
+    {
+      "key": "4_-6",
+      "ix": 4,
+      "iz": -6,
+      "area": "cincin-utara",
+      "bytes": 204488,
+      "lod": [
+        {
+          "level": 0,
+          "file": "4_-6.lod0.glb",
+          "bytes": 105736,
+          "triangles": 6364
+        },
+        {
+          "level": 1,
+          "file": "4_-6.lod1.glb",
+          "bytes": 68112,
+          "triangles": 4176
+        }
+      ],
+      "data": {
+        "file": "4_-6.data.json",
+        "bytes": 30640
+      }
+    },
+    {
+      "key": "5_-6",
+      "ix": 5,
+      "iz": -6,
+      "area": "cincin-utara",
+      "bytes": 225878,
+      "lod": [
+        {
+          "level": 0,
+          "file": "5_-6.lod0.glb",
+          "bytes": 111824,
+          "triangles": 6849
+        },
+        {
+          "level": 1,
+          "file": "5_-6.lod1.glb",
+          "bytes": 78952,
+          "triangles": 4941
+        }
+      ],
+      "data": {
+        "file": "5_-6.data.json",
+        "bytes": 35102
+      }
+    },
+    {
+      "key": "-6_-5",
+      "ix": -6,
+      "iz": -5,
+      "area": "cincin-utara",
+      "bytes": 198880,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-6_-5.lod0.glb",
+          "bytes": 103280,
+          "triangles": 6170
+        },
+        {
+          "level": 1,
+          "file": "-6_-5.lod1.glb",
+          "bytes": 66764,
+          "triangles": 4132
+        }
+      ],
+      "data": {
+        "file": "-6_-5.data.json",
+        "bytes": 28836
+      }
+    },
+    {
+      "key": "-5_-5",
+      "ix": -5,
+      "iz": -5,
+      "area": "cincin-utara",
+      "bytes": 86768,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-5_-5.lod0.glb",
+          "bytes": 44352,
+          "triangles": 2424
+        },
+        {
+          "level": 1,
+          "file": "-5_-5.lod1.glb",
+          "bytes": 30544,
+          "triangles": 1640
+        }
+      ],
+      "data": {
+        "file": "-5_-5.data.json",
+        "bytes": 11872
+      }
+    },
+    {
+      "key": "-4_-5",
+      "ix": -4,
+      "iz": -5,
+      "area": "cincin-utara",
+      "bytes": 55773,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-4_-5.lod0.glb",
+          "bytes": 27908,
+          "triangles": 1410
+        },
+        {
+          "level": 1,
+          "file": "-4_-5.lod1.glb",
+          "bytes": 19932,
+          "triangles": 954
+        }
+      ],
+      "data": {
+        "file": "-4_-5.data.json",
+        "bytes": 7933
+      }
+    },
+    {
+      "key": "-3_-5",
+      "ix": -3,
+      "iz": -5,
+      "area": "cincin-utara",
+      "bytes": 33236,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-3_-5.lod0.glb",
+          "bytes": 16908,
+          "triangles": 625
+        },
+        {
+          "level": 1,
+          "file": "-3_-5.lod1.glb",
+          "bytes": 12544,
+          "triangles": 338
+        }
+      ],
+      "data": {
+        "file": "-3_-5.data.json",
+        "bytes": 3784
+      }
+    },
+    {
+      "key": "-2_-5",
+      "ix": -2,
+      "iz": -5,
+      "area": "cincin-utara",
+      "bytes": 45340,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-2_-5.lod0.glb",
+          "bytes": 24376,
+          "triangles": 1076
+        },
+        {
+          "level": 1,
+          "file": "-2_-5.lod1.glb",
+          "bytes": 15092,
+          "triangles": 538
+        }
+      ],
+      "data": {
+        "file": "-2_-5.data.json",
+        "bytes": 5872
+      }
+    },
+    {
+      "key": "-1_-5",
+      "ix": -1,
+      "iz": -5,
+      "area": "cincin-utara",
+      "bytes": 81767,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-1_-5.lod0.glb",
+          "bytes": 42960,
+          "triangles": 2395
+        },
+        {
+          "level": 1,
+          "file": "-1_-5.lod1.glb",
+          "bytes": 26516,
+          "triangles": 1277
+        }
+      ],
+      "data": {
+        "file": "-1_-5.data.json",
+        "bytes": 12291
+      }
+    },
+    {
+      "key": "0_-5",
+      "ix": 0,
+      "iz": -5,
+      "area": "cincin-utara",
+      "bytes": 49857,
+      "lod": [
+        {
+          "level": 0,
+          "file": "0_-5.lod0.glb",
+          "bytes": 28168,
+          "triangles": 1377
+        },
+        {
+          "level": 1,
+          "file": "0_-5.lod1.glb",
+          "bytes": 14928,
+          "triangles": 550
+        }
+      ],
+      "data": {
+        "file": "0_-5.data.json",
+        "bytes": 6761
+      }
+    },
+    {
+      "key": "1_-5",
+      "ix": 1,
+      "iz": -5,
+      "area": "cincin-utara",
+      "bytes": 83487,
+      "lod": [
+        {
+          "level": 0,
+          "file": "1_-5.lod0.glb",
+          "bytes": 44912,
+          "triangles": 2320
+        },
+        {
+          "level": 1,
+          "file": "1_-5.lod1.glb",
+          "bytes": 27332,
+          "triangles": 1296
+        }
+      ],
+      "data": {
+        "file": "1_-5.data.json",
+        "bytes": 11243
+      }
+    },
+    {
+      "key": "2_-5",
+      "ix": 2,
+      "iz": -5,
+      "area": "cincin-utara",
+      "bytes": 161886,
+      "lod": [
+        {
+          "level": 0,
+          "file": "2_-5.lod0.glb",
+          "bytes": 86412,
+          "triangles": 4963
+        },
+        {
+          "level": 1,
+          "file": "2_-5.lod1.glb",
+          "bytes": 51384,
+          "triangles": 2979
+        }
+      ],
+      "data": {
+        "file": "2_-5.data.json",
+        "bytes": 24090
+      }
+    },
+    {
+      "key": "3_-5",
+      "ix": 3,
+      "iz": -5,
+      "area": "cincin-utara",
+      "bytes": 123777,
+      "lod": [
+        {
+          "level": 0,
+          "file": "3_-5.lod0.glb",
+          "bytes": 63564,
+          "triangles": 3597
+        },
+        {
+          "level": 1,
+          "file": "3_-5.lod1.glb",
+          "bytes": 42332,
+          "triangles": 2354
+        }
+      ],
+      "data": {
+        "file": "3_-5.data.json",
+        "bytes": 17881
+      }
+    },
+    {
+      "key": "4_-5",
+      "ix": 4,
+      "iz": -5,
+      "area": "cincin-utara",
+      "bytes": 146766,
+      "lod": [
+        {
+          "level": 0,
+          "file": "4_-5.lod0.glb",
+          "bytes": 75324,
+          "triangles": 4307
+        },
+        {
+          "level": 1,
+          "file": "4_-5.lod1.glb",
+          "bytes": 48760,
+          "triangles": 2694
+        }
+      ],
+      "data": {
+        "file": "4_-5.data.json",
+        "bytes": 22682
+      }
+    },
+    {
+      "key": "5_-5",
+      "ix": 5,
+      "iz": -5,
+      "area": "cincin-utara",
+      "bytes": 182933,
+      "lod": [
+        {
+          "level": 0,
+          "file": "5_-5.lod0.glb",
+          "bytes": 93388,
+          "triangles": 5394
+        },
+        {
+          "level": 1,
+          "file": "5_-5.lod1.glb",
+          "bytes": 62940,
+          "triangles": 3680
+        }
+      ],
+      "data": {
+        "file": "5_-5.data.json",
+        "bytes": 26605
+      }
+    },
+    {
+      "key": "-6_-4",
+      "ix": -6,
+      "iz": -4,
+      "area": "cincin-utara",
+      "bytes": 130422,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-6_-4.lod0.glb",
+          "bytes": 67600,
+          "triangles": 3882
+        },
+        {
+          "level": 1,
+          "file": "-6_-4.lod1.glb",
+          "bytes": 43468,
+          "triangles": 2476
+        }
+      ],
+      "data": {
+        "file": "-6_-4.data.json",
+        "bytes": 19354
+      }
+    },
+    {
+      "key": "-5_-4",
+      "ix": -5,
+      "iz": -4,
+      "area": "cincin-utara",
+      "bytes": 84052,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-5_-4.lod0.glb",
+          "bytes": 44972,
+          "triangles": 2417
+        },
+        {
+          "level": 1,
+          "file": "-5_-4.lod1.glb",
+          "bytes": 27584,
+          "triangles": 1339
+        }
+      ],
+      "data": {
+        "file": "-5_-4.data.json",
+        "bytes": 11496
+      }
+    },
+    {
+      "key": "-4_-4",
+      "ix": -4,
+      "iz": -4,
+      "area": "cincin-utara",
+      "bytes": 98513,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-4_-4.lod0.glb",
+          "bytes": 53688,
+          "triangles": 3072
+        },
+        {
+          "level": 1,
+          "file": "-4_-4.lod1.glb",
+          "bytes": 28664,
+          "triangles": 1527
+        }
+      ],
+      "data": {
+        "file": "-4_-4.data.json",
+        "bytes": 16161
+      }
+    },
+    {
+      "key": "-3_-4",
+      "ix": -3,
+      "iz": -4,
+      "area": "cincin-utara",
+      "bytes": 147942,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-3_-4.lod0.glb",
+          "bytes": 76660,
+          "triangles": 4395
+        },
+        {
+          "level": 1,
+          "file": "-3_-4.lod1.glb",
+          "bytes": 49592,
+          "triangles": 2824
+        }
+      ],
+      "data": {
+        "file": "-3_-4.data.json",
+        "bytes": 21690
+      }
+    },
+    {
+      "key": "-2_-4",
+      "ix": -2,
+      "iz": -4,
+      "area": "cincin-utara",
+      "bytes": 127804,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-2_-4.lod0.glb",
+          "bytes": 66772,
+          "triangles": 3711
+        },
+        {
+          "level": 1,
+          "file": "-2_-4.lod1.glb",
+          "bytes": 43000,
+          "triangles": 2374
+        }
+      ],
+      "data": {
+        "file": "-2_-4.data.json",
+        "bytes": 18032
+      }
+    },
+    {
+      "key": "-1_-4",
+      "ix": -1,
+      "iz": -4,
+      "area": "cincin-utara",
+      "bytes": 39113,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-1_-4.lod0.glb",
+          "bytes": 20920,
+          "triangles": 844
+        },
+        {
+          "level": 1,
+          "file": "-1_-4.lod1.glb",
+          "bytes": 13784,
+          "triangles": 388
+        }
+      ],
+      "data": {
+        "file": "-1_-4.data.json",
+        "bytes": 4409
+      }
+    },
+    {
+      "key": "0_-4",
+      "ix": 0,
+      "iz": -4,
+      "area": "cincin-utara",
+      "bytes": 30148,
+      "lod": [
+        {
+          "level": 0,
+          "file": "0_-4.lod0.glb",
+          "bytes": 15644,
+          "triangles": 491
+        },
+        {
+          "level": 1,
+          "file": "0_-4.lod1.glb",
+          "bytes": 11872,
+          "triangles": 259
+        }
+      ],
+      "data": {
+        "file": "0_-4.data.json",
+        "bytes": 2632
+      }
+    },
+    {
+      "key": "1_-4",
+      "ix": 1,
+      "iz": -4,
+      "area": "cincin-utara",
+      "bytes": 90087,
+      "lod": [
+        {
+          "level": 0,
+          "file": "1_-4.lod0.glb",
+          "bytes": 48592,
+          "triangles": 2656
+        },
+        {
+          "level": 1,
+          "file": "1_-4.lod1.glb",
+          "bytes": 27784,
+          "triangles": 1413
+        }
+      ],
+      "data": {
+        "file": "1_-4.data.json",
+        "bytes": 13711
+      }
+    },
+    {
+      "key": "2_-4",
+      "ix": 2,
+      "iz": -4,
+      "area": "cincin-utara",
+      "bytes": 108459,
+      "lod": [
+        {
+          "level": 0,
+          "file": "2_-4.lod0.glb",
+          "bytes": 59040,
+          "triangles": 3188
+        },
+        {
+          "level": 1,
+          "file": "2_-4.lod1.glb",
+          "bytes": 33304,
+          "triangles": 1660
+        }
+      ],
+      "data": {
+        "file": "2_-4.data.json",
+        "bytes": 16115
+      }
+    },
+    {
+      "key": "3_-4",
+      "ix": 3,
+      "iz": -4,
+      "area": "cincin-utara",
+      "bytes": 56061,
+      "lod": [
+        {
+          "level": 0,
+          "file": "3_-4.lod0.glb",
+          "bytes": 29932,
+          "triangles": 1462
+        },
+        {
+          "level": 1,
+          "file": "3_-4.lod1.glb",
+          "bytes": 18340,
+          "triangles": 776
+        }
+      ],
+      "data": {
+        "file": "3_-4.data.json",
+        "bytes": 7789
+      }
+    },
+    {
+      "key": "4_-4",
+      "ix": 4,
+      "iz": -4,
+      "area": "cincin-utara",
+      "bytes": 86361,
+      "lod": [
+        {
+          "level": 0,
+          "file": "4_-4.lod0.glb",
+          "bytes": 45072,
+          "triangles": 2446
+        },
+        {
+          "level": 1,
+          "file": "4_-4.lod1.glb",
+          "bytes": 27848,
+          "triangles": 1306
+        }
+      ],
+      "data": {
+        "file": "4_-4.data.json",
+        "bytes": 13441
+      }
+    },
+    {
+      "key": "5_-4",
+      "ix": 5,
+      "iz": -4,
+      "area": "cincin-utara",
+      "bytes": 65894,
+      "lod": [
+        {
+          "level": 0,
+          "file": "5_-4.lod0.glb",
+          "bytes": 33916,
+          "triangles": 1731
+        },
+        {
+          "level": 1,
+          "file": "5_-4.lod1.glb",
+          "bytes": 21836,
+          "triangles": 907
+        }
+      ],
+      "data": {
+        "file": "5_-4.data.json",
+        "bytes": 10142
+      }
+    },
+    {
+      "key": "-6_-3",
+      "ix": -6,
+      "iz": -3,
+      "area": "cincin-barat",
+      "bytes": 81761,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-6_-3.lod0.glb",
+          "bytes": 42312,
+          "triangles": 2074
+        },
+        {
+          "level": 1,
+          "file": "-6_-3.lod1.glb",
+          "bytes": 28412,
+          "triangles": 1270
+        }
+      ],
+      "data": {
+        "file": "-6_-3.data.json",
+        "bytes": 11037
+      }
+    },
+    {
+      "key": "-5_-3",
+      "ix": -5,
+      "iz": -3,
+      "area": "cincin-barat",
+      "bytes": 151177,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-5_-3.lod0.glb",
+          "bytes": 78816,
+          "triangles": 4574
+        },
+        {
+          "level": 1,
+          "file": "-5_-3.lod1.glb",
+          "bytes": 49888,
+          "triangles": 2940
+        }
+      ],
+      "data": {
+        "file": "-5_-3.data.json",
+        "bytes": 22473
+      }
+    },
+    {
+      "key": "-4_-3",
+      "ix": -4,
+      "iz": -3,
+      "area": "cincin-barat",
+      "bytes": 150017,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-4_-3.lod0.glb",
+          "bytes": 79792,
+          "triangles": 4635
+        },
+        {
+          "level": 1,
+          "file": "-4_-3.lod1.glb",
+          "bytes": 47428,
+          "triangles": 2787
+        }
+      ],
+      "data": {
+        "file": "-4_-3.data.json",
+        "bytes": 22797
+      }
+    },
+    {
       "key": "-3_-3",
       "ix": -3,
       "iz": -3,
@@ -669,6 +1792,156 @@
       }
     },
     {
+      "key": "3_-3",
+      "ix": 3,
+      "iz": -3,
+      "area": "cincin-timur",
+      "bytes": 58663,
+      "lod": [
+        {
+          "level": 0,
+          "file": "3_-3.lod0.glb",
+          "bytes": 30484,
+          "triangles": 1539
+        },
+        {
+          "level": 1,
+          "file": "3_-3.lod1.glb",
+          "bytes": 19884,
+          "triangles": 892
+        }
+      ],
+      "data": {
+        "file": "3_-3.data.json",
+        "bytes": 8295
+      }
+    },
+    {
+      "key": "4_-3",
+      "ix": 4,
+      "iz": -3,
+      "area": "cincin-timur",
+      "bytes": 79445,
+      "lod": [
+        {
+          "level": 0,
+          "file": "4_-3.lod0.glb",
+          "bytes": 41056,
+          "triangles": 2177
+        },
+        {
+          "level": 1,
+          "file": "4_-3.lod1.glb",
+          "bytes": 26396,
+          "triangles": 1247
+        }
+      ],
+      "data": {
+        "file": "4_-3.data.json",
+        "bytes": 11993
+      }
+    },
+    {
+      "key": "5_-3",
+      "ix": 5,
+      "iz": -3,
+      "area": "cincin-timur",
+      "bytes": 21233,
+      "lod": [
+        {
+          "level": 0,
+          "file": "5_-3.lod0.glb",
+          "bytes": 10352,
+          "triangles": 141
+        },
+        {
+          "level": 1,
+          "file": "5_-3.lod1.glb",
+          "bytes": 9920,
+          "triangles": 101
+        }
+      ],
+      "data": {
+        "file": "5_-3.data.json",
+        "bytes": 961
+      }
+    },
+    {
+      "key": "-6_-2",
+      "ix": -6,
+      "iz": -2,
+      "area": "cincin-barat",
+      "bytes": 210240,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-6_-2.lod0.glb",
+          "bytes": 107972,
+          "triangles": 6296
+        },
+        {
+          "level": 1,
+          "file": "-6_-2.lod1.glb",
+          "bytes": 70472,
+          "triangles": 4200
+        }
+      ],
+      "data": {
+        "file": "-6_-2.data.json",
+        "bytes": 31796
+      }
+    },
+    {
+      "key": "-5_-2",
+      "ix": -5,
+      "iz": -2,
+      "area": "cincin-barat",
+      "bytes": 185506,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-5_-2.lod0.glb",
+          "bytes": 96996,
+          "triangles": 5745
+        },
+        {
+          "level": 1,
+          "file": "-5_-2.lod1.glb",
+          "bytes": 59984,
+          "triangles": 3623
+        }
+      ],
+      "data": {
+        "file": "-5_-2.data.json",
+        "bytes": 28526
+      }
+    },
+    {
+      "key": "-4_-2",
+      "ix": -4,
+      "iz": -2,
+      "area": "cincin-barat",
+      "bytes": 232443,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-4_-2.lod0.glb",
+          "bytes": 120416,
+          "triangles": 7054
+        },
+        {
+          "level": 1,
+          "file": "-4_-2.lod1.glb",
+          "bytes": 78876,
+          "triangles": 4774
+        }
+      ],
+      "data": {
+        "file": "-4_-2.data.json",
+        "bytes": 33151
+      }
+    },
+    {
       "key": "-3_-2",
       "ix": -3,
       "iz": -2,
@@ -816,6 +2089,131 @@
       "data": {
         "file": "2_-2.data.json",
         "bytes": 19663
+      }
+    },
+    {
+      "key": "3_-2",
+      "ix": 3,
+      "iz": -2,
+      "area": "cincin-timur",
+      "bytes": 255628,
+      "lod": [
+        {
+          "level": 0,
+          "file": "3_-2.lod0.glb",
+          "bytes": 133340,
+          "triangles": 7827
+        },
+        {
+          "level": 1,
+          "file": "3_-2.lod1.glb",
+          "bytes": 84340,
+          "triangles": 5065
+        }
+      ],
+      "data": {
+        "file": "3_-2.data.json",
+        "bytes": 37948
+      }
+    },
+    {
+      "key": "4_-2",
+      "ix": 4,
+      "iz": -2,
+      "area": "cincin-timur",
+      "bytes": 249074,
+      "lod": [
+        {
+          "level": 0,
+          "file": "4_-2.lod0.glb",
+          "bytes": 129224,
+          "triangles": 7617
+        },
+        {
+          "level": 1,
+          "file": "4_-2.lod1.glb",
+          "bytes": 82464,
+          "triangles": 5068
+        }
+      ],
+      "data": {
+        "file": "4_-2.data.json",
+        "bytes": 37386
+      }
+    },
+    {
+      "key": "5_-2",
+      "ix": 5,
+      "iz": -2,
+      "area": "cincin-timur",
+      "bytes": 20488,
+      "lod": [
+        {
+          "level": 0,
+          "file": "5_-2.lod0.glb",
+          "bytes": 9868,
+          "triangles": 221
+        },
+        {
+          "level": 1,
+          "file": "5_-2.lod1.glb",
+          "bytes": 8680,
+          "triangles": 135
+        }
+      ],
+      "data": {
+        "file": "5_-2.data.json",
+        "bytes": 1940
+      }
+    },
+    {
+      "key": "-6_-1",
+      "ix": -6,
+      "iz": -1,
+      "area": "cincin-barat",
+      "bytes": 128782,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-6_-1.lod0.glb",
+          "bytes": 64892,
+          "triangles": 3653
+        },
+        {
+          "level": 1,
+          "file": "-6_-1.lod1.glb",
+          "bytes": 45416,
+          "triangles": 2559
+        }
+      ],
+      "data": {
+        "file": "-6_-1.data.json",
+        "bytes": 18474
+      }
+    },
+    {
+      "key": "-5_-1",
+      "ix": -5,
+      "iz": -1,
+      "area": "cincin-barat",
+      "bytes": 235384,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-5_-1.lod0.glb",
+          "bytes": 121128,
+          "triangles": 7274
+        },
+        {
+          "level": 1,
+          "file": "-5_-1.lod1.glb",
+          "bytes": 79948,
+          "triangles": 4988
+        }
+      ],
+      "data": {
+        "file": "-5_-1.data.json",
+        "bytes": 34308
       }
     },
     {
@@ -994,6 +2392,131 @@
       }
     },
     {
+      "key": "3_-1",
+      "ix": 3,
+      "iz": -1,
+      "area": "cincin-timur",
+      "bytes": 308598,
+      "lod": [
+        {
+          "level": 0,
+          "file": "3_-1.lod0.glb",
+          "bytes": 158088,
+          "triangles": 9566
+        },
+        {
+          "level": 1,
+          "file": "3_-1.lod1.glb",
+          "bytes": 103896,
+          "triangles": 6490
+        }
+      ],
+      "data": {
+        "file": "3_-1.data.json",
+        "bytes": 46614
+      }
+    },
+    {
+      "key": "4_-1",
+      "ix": 4,
+      "iz": -1,
+      "area": "cincin-timur",
+      "bytes": 237214,
+      "lod": [
+        {
+          "level": 0,
+          "file": "4_-1.lod0.glb",
+          "bytes": 122308,
+          "triangles": 7278
+        },
+        {
+          "level": 1,
+          "file": "4_-1.lod1.glb",
+          "bytes": 78448,
+          "triangles": 4750
+        }
+      ],
+      "data": {
+        "file": "4_-1.data.json",
+        "bytes": 36458
+      }
+    },
+    {
+      "key": "5_-1",
+      "ix": 5,
+      "iz": -1,
+      "area": "cincin-timur",
+      "bytes": 127452,
+      "lod": [
+        {
+          "level": 0,
+          "file": "5_-1.lod0.glb",
+          "bytes": 64960,
+          "triangles": 3788
+        },
+        {
+          "level": 1,
+          "file": "5_-1.lod1.glb",
+          "bytes": 43516,
+          "triangles": 2546
+        }
+      ],
+      "data": {
+        "file": "5_-1.data.json",
+        "bytes": 18976
+      }
+    },
+    {
+      "key": "-6_0",
+      "ix": -6,
+      "iz": 0,
+      "area": "cincin-barat",
+      "bytes": 206115,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-6_0.lod0.glb",
+          "bytes": 111460,
+          "triangles": 6490
+        },
+        {
+          "level": 1,
+          "file": "-6_0.lod1.glb",
+          "bytes": 64284,
+          "triangles": 3698
+        }
+      ],
+      "data": {
+        "file": "-6_0.data.json",
+        "bytes": 30371
+      }
+    },
+    {
+      "key": "-5_0",
+      "ix": -5,
+      "iz": 0,
+      "area": "cincin-barat",
+      "bytes": 198632,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-5_0.lod0.glb",
+          "bytes": 103056,
+          "triangles": 6194
+        },
+        {
+          "level": 1,
+          "file": "-5_0.lod1.glb",
+          "bytes": 64188,
+          "triangles": 3981
+        }
+      ],
+      "data": {
+        "file": "-5_0.data.json",
+        "bytes": 31388
+      }
+    },
+    {
       "key": "-4_0",
       "ix": -4,
       "iz": 0,
@@ -1144,6 +2667,131 @@
       }
     },
     {
+      "key": "3_0",
+      "ix": 3,
+      "iz": 0,
+      "area": "cincin-timur",
+      "bytes": 219793,
+      "lod": [
+        {
+          "level": 0,
+          "file": "3_0.lod0.glb",
+          "bytes": 113360,
+          "triangles": 6755
+        },
+        {
+          "level": 1,
+          "file": "3_0.lod1.glb",
+          "bytes": 72772,
+          "triangles": 4468
+        }
+      ],
+      "data": {
+        "file": "3_0.data.json",
+        "bytes": 33661
+      }
+    },
+    {
+      "key": "4_0",
+      "ix": 4,
+      "iz": 0,
+      "area": "cincin-timur",
+      "bytes": 204870,
+      "lod": [
+        {
+          "level": 0,
+          "file": "4_0.lod0.glb",
+          "bytes": 104260,
+          "triangles": 6301
+        },
+        {
+          "level": 1,
+          "file": "4_0.lod1.glb",
+          "bytes": 68488,
+          "triangles": 4205
+        }
+      ],
+      "data": {
+        "file": "4_0.data.json",
+        "bytes": 32122
+      }
+    },
+    {
+      "key": "5_0",
+      "ix": 5,
+      "iz": 0,
+      "area": "cincin-timur",
+      "bytes": 219411,
+      "lod": [
+        {
+          "level": 0,
+          "file": "5_0.lod0.glb",
+          "bytes": 110052,
+          "triangles": 6741
+        },
+        {
+          "level": 1,
+          "file": "5_0.lod1.glb",
+          "bytes": 75476,
+          "triangles": 4699
+        }
+      ],
+      "data": {
+        "file": "5_0.data.json",
+        "bytes": 33883
+      }
+    },
+    {
+      "key": "-6_1",
+      "ix": -6,
+      "iz": 1,
+      "area": "cincin-barat",
+      "bytes": 225572,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-6_1.lod0.glb",
+          "bytes": 114260,
+          "triangles": 6896
+        },
+        {
+          "level": 1,
+          "file": "-6_1.lod1.glb",
+          "bytes": 76788,
+          "triangles": 4802
+        }
+      ],
+      "data": {
+        "file": "-6_1.data.json",
+        "bytes": 34524
+      }
+    },
+    {
+      "key": "-5_1",
+      "ix": -5,
+      "iz": 1,
+      "area": "cincin-barat",
+      "bytes": 199909,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-5_1.lod0.glb",
+          "bytes": 101820,
+          "triangles": 6122
+        },
+        {
+          "level": 1,
+          "file": "-5_1.lod1.glb",
+          "bytes": 67036,
+          "triangles": 4050
+        }
+      ],
+      "data": {
+        "file": "-5_1.data.json",
+        "bytes": 31053
+      }
+    },
+    {
       "key": "-4_1",
       "ix": -4,
       "iz": 1,
@@ -1266,6 +2914,131 @@
       "data": {
         "file": "2_1.data.json",
         "bytes": 40660
+      }
+    },
+    {
+      "key": "3_1",
+      "ix": 3,
+      "iz": 1,
+      "area": "cincin-timur",
+      "bytes": 240324,
+      "lod": [
+        {
+          "level": 0,
+          "file": "3_1.lod0.glb",
+          "bytes": 121580,
+          "triangles": 7330
+        },
+        {
+          "level": 1,
+          "file": "3_1.lod1.glb",
+          "bytes": 81948,
+          "triangles": 5112
+        }
+      ],
+      "data": {
+        "file": "3_1.data.json",
+        "bytes": 36796
+      }
+    },
+    {
+      "key": "4_1",
+      "ix": 4,
+      "iz": 1,
+      "area": "cincin-timur",
+      "bytes": 240220,
+      "lod": [
+        {
+          "level": 0,
+          "file": "4_1.lod0.glb",
+          "bytes": 123332,
+          "triangles": 7453
+        },
+        {
+          "level": 1,
+          "file": "4_1.lod1.glb",
+          "bytes": 79052,
+          "triangles": 4822
+        }
+      ],
+      "data": {
+        "file": "4_1.data.json",
+        "bytes": 37836
+      }
+    },
+    {
+      "key": "5_1",
+      "ix": 5,
+      "iz": 1,
+      "area": "cincin-timur",
+      "bytes": 187932,
+      "lod": [
+        {
+          "level": 0,
+          "file": "5_1.lod0.glb",
+          "bytes": 97140,
+          "triangles": 5935
+        },
+        {
+          "level": 1,
+          "file": "5_1.lod1.glb",
+          "bytes": 61064,
+          "triangles": 3788
+        }
+      ],
+      "data": {
+        "file": "5_1.data.json",
+        "bytes": 29728
+      }
+    },
+    {
+      "key": "-6_2",
+      "ix": -6,
+      "iz": 2,
+      "area": "cincin-barat",
+      "bytes": 235921,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-6_2.lod0.glb",
+          "bytes": 120036,
+          "triangles": 7186
+        },
+        {
+          "level": 1,
+          "file": "-6_2.lod1.glb",
+          "bytes": 80264,
+          "triangles": 4930
+        }
+      ],
+      "data": {
+        "file": "-6_2.data.json",
+        "bytes": 35621
+      }
+    },
+    {
+      "key": "-5_2",
+      "ix": -5,
+      "iz": 2,
+      "area": "cincin-barat",
+      "bytes": 211753,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-5_2.lod0.glb",
+          "bytes": 109192,
+          "triangles": 6554
+        },
+        {
+          "level": 1,
+          "file": "-5_2.lod1.glb",
+          "bytes": 69648,
+          "triangles": 4246
+        }
+      ],
+      "data": {
+        "file": "-5_2.data.json",
+        "bytes": 32913
       }
     },
     {
@@ -1444,6 +3217,131 @@
       }
     },
     {
+      "key": "3_2",
+      "ix": 3,
+      "iz": 2,
+      "area": "cincin-timur",
+      "bytes": 276469,
+      "lod": [
+        {
+          "level": 0,
+          "file": "3_2.lod0.glb",
+          "bytes": 138820,
+          "triangles": 8298
+        },
+        {
+          "level": 1,
+          "file": "3_2.lod1.glb",
+          "bytes": 96232,
+          "triangles": 5936
+        }
+      ],
+      "data": {
+        "file": "3_2.data.json",
+        "bytes": 41417
+      }
+    },
+    {
+      "key": "4_2",
+      "ix": 4,
+      "iz": 2,
+      "area": "cincin-timur",
+      "bytes": 103100,
+      "lod": [
+        {
+          "level": 0,
+          "file": "4_2.lod0.glb",
+          "bytes": 52192,
+          "triangles": 3069
+        },
+        {
+          "level": 1,
+          "file": "4_2.lod1.glb",
+          "bytes": 34248,
+          "triangles": 2029
+        }
+      ],
+      "data": {
+        "file": "4_2.data.json",
+        "bytes": 16660
+      }
+    },
+    {
+      "key": "5_2",
+      "ix": 5,
+      "iz": 2,
+      "area": "cincin-timur",
+      "bytes": 195313,
+      "lod": [
+        {
+          "level": 0,
+          "file": "5_2.lod0.glb",
+          "bytes": 101696,
+          "triangles": 6242
+        },
+        {
+          "level": 1,
+          "file": "5_2.lod1.glb",
+          "bytes": 62012,
+          "triangles": 3956
+        }
+      ],
+      "data": {
+        "file": "5_2.data.json",
+        "bytes": 31605
+      }
+    },
+    {
+      "key": "-6_3",
+      "ix": -6,
+      "iz": 3,
+      "area": "cincin-selatan",
+      "bytes": 197873,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-6_3.lod0.glb",
+          "bytes": 103100,
+          "triangles": 5999
+        },
+        {
+          "level": 1,
+          "file": "-6_3.lod1.glb",
+          "bytes": 65552,
+          "triangles": 3777
+        }
+      ],
+      "data": {
+        "file": "-6_3.data.json",
+        "bytes": 29221
+      }
+    },
+    {
+      "key": "-5_3",
+      "ix": -5,
+      "iz": 3,
+      "area": "cincin-selatan",
+      "bytes": 251620,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-5_3.lod0.glb",
+          "bytes": 127244,
+          "triangles": 7507
+        },
+        {
+          "level": 1,
+          "file": "-5_3.lod1.glb",
+          "bytes": 87228,
+          "triangles": 5277
+        }
+      ],
+      "data": {
+        "file": "-5_3.data.json",
+        "bytes": 37148
+      }
+    },
+    {
       "key": "-4_3",
       "ix": -4,
       "iz": 3,
@@ -1594,6 +3492,156 @@
       }
     },
     {
+      "key": "2_3",
+      "ix": 2,
+      "iz": 3,
+      "area": "cincin-selatan",
+      "bytes": 208556,
+      "lod": [
+        {
+          "level": 0,
+          "file": "2_3.lod0.glb",
+          "bytes": 104496,
+          "triangles": 6273
+        },
+        {
+          "level": 1,
+          "file": "2_3.lod1.glb",
+          "bytes": 72140,
+          "triangles": 4425
+        }
+      ],
+      "data": {
+        "file": "2_3.data.json",
+        "bytes": 31920
+      }
+    },
+    {
+      "key": "3_3",
+      "ix": 3,
+      "iz": 3,
+      "area": "cincin-selatan",
+      "bytes": 157699,
+      "lod": [
+        {
+          "level": 0,
+          "file": "3_3.lod0.glb",
+          "bytes": 80656,
+          "triangles": 4761
+        },
+        {
+          "level": 1,
+          "file": "3_3.lod1.glb",
+          "bytes": 52900,
+          "triangles": 3179
+        }
+      ],
+      "data": {
+        "file": "3_3.data.json",
+        "bytes": 24143
+      }
+    },
+    {
+      "key": "4_3",
+      "ix": 4,
+      "iz": 3,
+      "area": "cincin-selatan",
+      "bytes": 197559,
+      "lod": [
+        {
+          "level": 0,
+          "file": "4_3.lod0.glb",
+          "bytes": 101976,
+          "triangles": 5998
+        },
+        {
+          "level": 1,
+          "file": "4_3.lod1.glb",
+          "bytes": 66708,
+          "triangles": 4000
+        }
+      ],
+      "data": {
+        "file": "4_3.data.json",
+        "bytes": 28875
+      }
+    },
+    {
+      "key": "5_3",
+      "ix": 5,
+      "iz": 3,
+      "area": "cincin-selatan",
+      "bytes": 193789,
+      "lod": [
+        {
+          "level": 0,
+          "file": "5_3.lod0.glb",
+          "bytes": 94904,
+          "triangles": 5733
+        },
+        {
+          "level": 1,
+          "file": "5_3.lod1.glb",
+          "bytes": 69968,
+          "triangles": 4349
+        }
+      ],
+      "data": {
+        "file": "5_3.data.json",
+        "bytes": 28917
+      }
+    },
+    {
+      "key": "-6_4",
+      "ix": -6,
+      "iz": 4,
+      "area": "cincin-selatan",
+      "bytes": 148606,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-6_4.lod0.glb",
+          "bytes": 78768,
+          "triangles": 4339
+        },
+        {
+          "level": 1,
+          "file": "-6_4.lod1.glb",
+          "bytes": 48660,
+          "triangles": 2565
+        }
+      ],
+      "data": {
+        "file": "-6_4.data.json",
+        "bytes": 21178
+      }
+    },
+    {
+      "key": "-5_4",
+      "ix": -5,
+      "iz": 4,
+      "area": "cincin-selatan",
+      "bytes": 192274,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-5_4.lod0.glb",
+          "bytes": 97392,
+          "triangles": 5676
+        },
+        {
+          "level": 1,
+          "file": "-5_4.lod1.glb",
+          "bytes": 65468,
+          "triangles": 3818
+        }
+      ],
+      "data": {
+        "file": "-5_4.data.json",
+        "bytes": 29414
+      }
+    },
+    {
       "key": "-4_4",
       "ix": -4,
       "iz": 4,
@@ -1741,6 +3789,406 @@
       "data": {
         "file": "1_4.data.json",
         "bytes": 32490
+      }
+    },
+    {
+      "key": "2_4",
+      "ix": 2,
+      "iz": 4,
+      "area": "cincin-selatan",
+      "bytes": 212293,
+      "lod": [
+        {
+          "level": 0,
+          "file": "2_4.lod0.glb",
+          "bytes": 106028,
+          "triangles": 6369
+        },
+        {
+          "level": 1,
+          "file": "2_4.lod1.glb",
+          "bytes": 73256,
+          "triangles": 4493
+        }
+      ],
+      "data": {
+        "file": "2_4.data.json",
+        "bytes": 33009
+      }
+    },
+    {
+      "key": "3_4",
+      "ix": 3,
+      "iz": 4,
+      "area": "cincin-selatan",
+      "bytes": 180730,
+      "lod": [
+        {
+          "level": 0,
+          "file": "3_4.lod0.glb",
+          "bytes": 89680,
+          "triangles": 5402
+        },
+        {
+          "level": 1,
+          "file": "3_4.lod1.glb",
+          "bytes": 63652,
+          "triangles": 3908
+        }
+      ],
+      "data": {
+        "file": "3_4.data.json",
+        "bytes": 27398
+      }
+    },
+    {
+      "key": "4_4",
+      "ix": 4,
+      "iz": 4,
+      "area": "cincin-selatan",
+      "bytes": 153907,
+      "lod": [
+        {
+          "level": 0,
+          "file": "4_4.lod0.glb",
+          "bytes": 75308,
+          "triangles": 4483
+        },
+        {
+          "level": 1,
+          "file": "4_4.lod1.glb",
+          "bytes": 55300,
+          "triangles": 3275
+        }
+      ],
+      "data": {
+        "file": "4_4.data.json",
+        "bytes": 23299
+      }
+    },
+    {
+      "key": "5_4",
+      "ix": 5,
+      "iz": 4,
+      "area": "cincin-selatan",
+      "bytes": 157371,
+      "lod": [
+        {
+          "level": 0,
+          "file": "5_4.lod0.glb",
+          "bytes": 77872,
+          "triangles": 4601
+        },
+        {
+          "level": 1,
+          "file": "5_4.lod1.glb",
+          "bytes": 55856,
+          "triangles": 3289
+        }
+      ],
+      "data": {
+        "file": "5_4.data.json",
+        "bytes": 23643
+      }
+    },
+    {
+      "key": "-6_5",
+      "ix": -6,
+      "iz": 5,
+      "area": "cincin-selatan",
+      "bytes": 126299,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-6_5.lod0.glb",
+          "bytes": 63996,
+          "triangles": 3707
+        },
+        {
+          "level": 1,
+          "file": "-6_5.lod1.glb",
+          "bytes": 43112,
+          "triangles": 2525
+        }
+      ],
+      "data": {
+        "file": "-6_5.data.json",
+        "bytes": 19191
+      }
+    },
+    {
+      "key": "-5_5",
+      "ix": -5,
+      "iz": 5,
+      "area": "cincin-selatan",
+      "bytes": 199931,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-5_5.lod0.glb",
+          "bytes": 102240,
+          "triangles": 6032
+        },
+        {
+          "level": 1,
+          "file": "-5_5.lod1.glb",
+          "bytes": 67256,
+          "triangles": 4050
+        }
+      ],
+      "data": {
+        "file": "-5_5.data.json",
+        "bytes": 30435
+      }
+    },
+    {
+      "key": "-4_5",
+      "ix": -4,
+      "iz": 5,
+      "area": "cincin-selatan",
+      "bytes": 238679,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-4_5.lod0.glb",
+          "bytes": 117528,
+          "triangles": 7142
+        },
+        {
+          "level": 1,
+          "file": "-4_5.lod1.glb",
+          "bytes": 85136,
+          "triangles": 5302
+        }
+      ],
+      "data": {
+        "file": "-4_5.data.json",
+        "bytes": 36015
+      }
+    },
+    {
+      "key": "-3_5",
+      "ix": -3,
+      "iz": 5,
+      "area": "cincin-selatan",
+      "bytes": 314912,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-3_5.lod0.glb",
+          "bytes": 158616,
+          "triangles": 9703
+        },
+        {
+          "level": 1,
+          "file": "-3_5.lod1.glb",
+          "bytes": 108496,
+          "triangles": 6937
+        }
+      ],
+      "data": {
+        "file": "-3_5.data.json",
+        "bytes": 47800
+      }
+    },
+    {
+      "key": "-2_5",
+      "ix": -2,
+      "iz": 5,
+      "area": "cincin-selatan",
+      "bytes": 263828,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-2_5.lod0.glb",
+          "bytes": 131928,
+          "triangles": 7883
+        },
+        {
+          "level": 1,
+          "file": "-2_5.lod1.glb",
+          "bytes": 92604,
+          "triangles": 5697
+        }
+      ],
+      "data": {
+        "file": "-2_5.data.json",
+        "bytes": 39296
+      }
+    },
+    {
+      "key": "-1_5",
+      "ix": -1,
+      "iz": 5,
+      "area": "cincin-selatan",
+      "bytes": 221655,
+      "lod": [
+        {
+          "level": 0,
+          "file": "-1_5.lod0.glb",
+          "bytes": 112384,
+          "triangles": 6802
+        },
+        {
+          "level": 1,
+          "file": "-1_5.lod1.glb",
+          "bytes": 74692,
+          "triangles": 4680
+        }
+      ],
+      "data": {
+        "file": "-1_5.data.json",
+        "bytes": 34579
+      }
+    },
+    {
+      "key": "0_5",
+      "ix": 0,
+      "iz": 5,
+      "area": "cincin-selatan",
+      "bytes": 149514,
+      "lod": [
+        {
+          "level": 0,
+          "file": "0_5.lod0.glb",
+          "bytes": 74844,
+          "triangles": 4250
+        },
+        {
+          "level": 1,
+          "file": "0_5.lod1.glb",
+          "bytes": 53112,
+          "triangles": 3032
+        }
+      ],
+      "data": {
+        "file": "0_5.data.json",
+        "bytes": 21558
+      }
+    },
+    {
+      "key": "1_5",
+      "ix": 1,
+      "iz": 5,
+      "area": "cincin-selatan",
+      "bytes": 166834,
+      "lod": [
+        {
+          "level": 0,
+          "file": "1_5.lod0.glb",
+          "bytes": 84176,
+          "triangles": 4849
+        },
+        {
+          "level": 1,
+          "file": "1_5.lod1.glb",
+          "bytes": 57924,
+          "triangles": 3399
+        }
+      ],
+      "data": {
+        "file": "1_5.data.json",
+        "bytes": 24734
+      }
+    },
+    {
+      "key": "2_5",
+      "ix": 2,
+      "iz": 5,
+      "area": "cincin-selatan",
+      "bytes": 274469,
+      "lod": [
+        {
+          "level": 0,
+          "file": "2_5.lod0.glb",
+          "bytes": 141288,
+          "triangles": 8704
+        },
+        {
+          "level": 1,
+          "file": "2_5.lod1.glb",
+          "bytes": 90632,
+          "triangles": 5856
+        }
+      ],
+      "data": {
+        "file": "2_5.data.json",
+        "bytes": 42549
+      }
+    },
+    {
+      "key": "3_5",
+      "ix": 3,
+      "iz": 5,
+      "area": "cincin-selatan",
+      "bytes": 254875,
+      "lod": [
+        {
+          "level": 0,
+          "file": "3_5.lod0.glb",
+          "bytes": 126788,
+          "triangles": 7796
+        },
+        {
+          "level": 1,
+          "file": "3_5.lod1.glb",
+          "bytes": 88828,
+          "triangles": 5722
+        }
+      ],
+      "data": {
+        "file": "3_5.data.json",
+        "bytes": 39259
+      }
+    },
+    {
+      "key": "4_5",
+      "ix": 4,
+      "iz": 5,
+      "area": "cincin-selatan",
+      "bytes": 206267,
+      "lod": [
+        {
+          "level": 0,
+          "file": "4_5.lod0.glb",
+          "bytes": 104392,
+          "triangles": 6356
+        },
+        {
+          "level": 1,
+          "file": "4_5.lod1.glb",
+          "bytes": 69424,
+          "triangles": 4330
+        }
+      ],
+      "data": {
+        "file": "4_5.data.json",
+        "bytes": 32451
+      }
+    },
+    {
+      "key": "5_5",
+      "ix": 5,
+      "iz": 5,
+      "area": "cincin-selatan",
+      "bytes": 114491,
+      "lod": [
+        {
+          "level": 0,
+          "file": "5_5.lod0.glb",
+          "bytes": 57424,
+          "triangles": 3369
+        },
+        {
+          "level": 1,
+          "file": "5_5.lod1.glb",
+          "bytes": 40512,
+          "triangles": 2431
+        }
+      ],
+      "data": {
+        "file": "5_5.data.json",
+        "bytes": 16555
       }
     }
   ]

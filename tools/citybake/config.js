@@ -48,6 +48,24 @@ export const AREAS = Object.freeze({
     halfSize: 1300,
     skipAreas: Object.freeze(['stadion']),
   }),
+  // Cincin menengah (docs/kota/PLAN.md): 4 strip persegi panjang di sekeliling kawasan stadion (±1,5 → ±3 km, dunia ENU),
+  // dibake terpisah agar satu permintaan Overpass/Overture tetap kecil. Tile milik stadion/unri dilewati.
+  'cincin-utara': Object.freeze({
+    id: 'cincin-utara', name: 'Cincin menengah — utara', center: ORIGIN, halfSize: 1500,
+    rect: Object.freeze({ minX: -3000, minZ: -3000, maxX: 3000, maxZ: -1500 }), skipAreas: Object.freeze(['stadion', 'unri']),
+  }),
+  'cincin-selatan': Object.freeze({
+    id: 'cincin-selatan', name: 'Cincin menengah — selatan', center: ORIGIN, halfSize: 1500,
+    rect: Object.freeze({ minX: -3000, minZ: 1500, maxX: 3000, maxZ: 3000 }), skipAreas: Object.freeze(['stadion', 'unri']),
+  }),
+  'cincin-barat': Object.freeze({
+    id: 'cincin-barat', name: 'Cincin menengah — barat', center: ORIGIN, halfSize: 1500,
+    rect: Object.freeze({ minX: -3000, minZ: -1500, maxX: -1500, maxZ: 1500 }), skipAreas: Object.freeze(['stadion', 'unri']),
+  }),
+  'cincin-timur': Object.freeze({
+    id: 'cincin-timur', name: 'Cincin menengah — timur', center: ORIGIN, halfSize: 1500,
+    rect: Object.freeze({ minX: 1500, minZ: -1500, maxX: 3000, maxZ: 1500 }), skipAreas: Object.freeze(['stadion', 'unri']),
+  }),
 });
 
 /** Endpoint Overpass publik (dicoba berurutan saat retry). */
@@ -154,7 +172,7 @@ export const BUILDING_COLORS = Object.freeze({
 });
 
 /** Batas ukuran (laporan memberi peringatan, tidak menggagalkan bake). */
-export const BUDGET = Object.freeze({ tileBytes: 300 * 1024, totalBytes: 20 * 1024 * 1024 });
+export const BUDGET = Object.freeze({ tileBytes: 300 * 1024, totalBytes: 60 * 1024 * 1024 });
 
 /**
  * Mask region handmade dalam koordinat DUNIA ({id, ring}). Sumber tunggal: mask region klien
@@ -174,6 +192,7 @@ export const DISTRICTS = Object.freeze([
 
 /** Persegi dunia kawasan (sebelum dibulatkan ke grid). */
 export function areaRect(area, projection) {
+  if (area.rect) return area.rect; // kawasan berbentuk persegi panjang eksplisit (dunia, m): mis. cincin menengah
   const c = projection.toWorld(area.center.lat, area.center.lon);
   return { minX: c.x - area.halfSize, minZ: c.z - area.halfSize, maxX: c.x + area.halfSize, maxZ: c.z + area.halfSize };
 }

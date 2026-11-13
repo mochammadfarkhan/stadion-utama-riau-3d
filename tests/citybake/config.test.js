@@ -29,12 +29,26 @@ describe('citybake config', () => {
   });
 
   it('bbox fetch memuat pusat kawasan dan berorientasi benar', () => {
-    for (const area of Object.values(AREAS)) {
+    for (const area of Object.values(AREAS).filter((a) => !a.rect)) { // kawasan persegi panjang (cincin) tidak berpusat di `center`
       const b = areaFetchBBox(area, proj);
       expect(b.south).toBeLessThan(area.center.lat);
       expect(b.north).toBeGreaterThan(area.center.lat);
       expect(b.west).toBeLessThan(area.center.lon);
       expect(b.east).toBeGreaterThan(area.center.lon);
+    }
+  });
+
+  it('cincin menengah: 4 strip tidak tumpang tindih satu sama lain dan tidak memuat tile stadion/unri', () => {
+    const ring = Object.values(AREAS).filter((a) => a.rect);
+    expect(ring).toHaveLength(4);
+    const seen = new Set();
+    const skip = new Set(['stadion', 'unri'].flatMap((id) => areaTiles(AREAS[id], proj).map((t) => t.key)));
+    for (const a of ring) {
+      for (const t of areaTiles(a, proj, 500, AREAS)) {
+        expect(seen.has(t.key), `tile ganda ${t.key}`).toBe(false);
+        expect(skip.has(t.key), `tile milik stadion/unri ${t.key}`).toBe(false);
+        seen.add(t.key);
+      }
     }
   });
 

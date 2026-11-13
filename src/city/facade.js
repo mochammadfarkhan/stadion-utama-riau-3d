@@ -47,13 +47,13 @@ const WALL_FRAGMENT = [
   '  float shopWin = step(0.08, fv) * step(fv, 0.8) * step(0.1, fu) * step(fu, 0.9);',
   '  float pane = shop * shopWin + (1.0 - shop) * win;',
   '  diffuseColor.rgb = mix(diffuseColor.rgb, mix(glass, shutter, shop), pane * 0.9 * facadeFade);',
-  '  facadeGlow = pane * step(mix(0.45, 0.25, shop), facadeHash(vec2(ci * 1.7, fi + 3.0))) * (0.4 + 0.6 * facadeFade);', // sebagian jendela/kios menyala
+  '  facadeGlow = pane * step(mix(0.45, 0.25, shop), facadeHash(vec2(ci * 1.7, fi + 3.0))) * (0.6 + 0.4 * facadeFade);', // sebagian jendela/kios menyala
   '  diffuseColor.rgb *= 1.0 - 0.10 * facadeFade * step(fv, 0.06);', // pelat lantai
   '}',
 ].join('\n');
 
 /** Cahaya jendela malam (setelah emissivemap_fragment: totalEmissiveRadiance sudah ada). */
-const WALL_EMISSIVE = 'totalEmissiveRadiance += vec3(1.0, 0.72, 0.38) * facadeGlow * uNight * 1.6;';
+const WALL_EMISSIVE = 'totalEmissiveRadiance += vec3(1.0, 0.72, 0.38) * facadeGlow * uNight * 2.6;';
 
 const ROOF_FRAGMENT = [
   FADE,
