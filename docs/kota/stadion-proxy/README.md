@@ -5,7 +5,8 @@ Menggantikan stadion asli (ribuan instans kursi/penonton) di pratinjau: SATU mes
 
 ## Status (2026-11-13)
 ✅ plaza oval, lintasan, rumput + marka FIFA (garis, lingkaran, kotak penalti), fasad putih, tribun berundak + jalur kursi biru, atap putih, 4 tiang lampu sorot.
-⬜ Cocokkan warna/bentuk dengan foto asli `[INFERENSI]`; ⬜ lampu sorot menyala malam.
+✅ lampu sorot menyala malam (`setNight(n)`, mesh kepala lampu terpisah, dipanggil `cityPreview` tiap frame dari `nightFactor`).
+⬜ Cocokkan warna/bentuk dengan foto asli `[INFERENSI]`; ⬜ pendar lapangan/tribun saat pertandingan malam.
 
 ## Cara kerja
 `src/regions/stadion/proxy.js::buildStadionProxy()` — dimensi dari `STADIUM` (`config/stadionSite.js`, region-lokal, pusat lapangan = origin). Dipasang & dilepas oleh `app/cityPreview.js`

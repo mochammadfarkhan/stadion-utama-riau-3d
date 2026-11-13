@@ -36,7 +36,7 @@ export function createCityMaterials() {
   const byName = {
     landuse: applyGroundDetail(flat('landuse', THREE.MeshLambertMaterial), 'landuse'), // variasi tanah dunia (groundDetail.js)
     water: flat('water', THREE.MeshStandardMaterial, { roughness: 0.35, metalness: 0 }),
-    roads: applyNightGlow(applyGroundDetail(flat('roads', THREE.MeshLambertMaterial), 'roads', 1.4), { strength: 0.6 }), // lampu jalan malam
+    roads: applyNightGlow(applyGroundDetail(flat('roads', THREE.MeshLambertMaterial), 'roads', 1.4), { strength: 0.38 }), // lampu jalan malam
     road_markings: flat('road_markings', THREE.MeshLambertMaterial, { side: THREE.DoubleSide }), // marka (tileDetail.js)
     trees: solid('trees'),                                                                       // pohon instans (tileDetail.js)
     buildings_walls: applyFacade(solid('buildings_walls'), 'wall'), // jendela, lantai, kios (shader; lihat facade.js)

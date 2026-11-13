@@ -22,9 +22,14 @@ Urutan = prioritas dampak ÷ usaha. Tiap item menunjuk folder fiturnya.
 - ✅ Tajuk pohon jauh lebih gemuk (tidak seperti berlian)
 - 🔄 Cek visual di luar tile terperinci (butuh GPU asli untuk kelancaran)
 
+## Sprint 2 (selesai 2026-11-13): cincin menengah + lampu malam
+- ✅ **Cincin menengah**: 92 tile OSM+Overture baru di sekeliling stadion (±1,5 → ±3 km; 4 strip `cincin-utara/selatan/barat/timur`), manifest 65 → 157 tile, 22,7 MB — [tile-detail](tile-detail/README.md)
+- ✅ Bangunan kota jauh di zona cincin dibuang otomatis (bake far ulang: 380 rb → 354 rb bangunan) — [kota-jauh](kota-jauh/README.md)
+- ✅ **Lampu malam**: pendar jalan (tile + jauh), peta pendar kota jauh (`glow.webp`), jendela lebih terang & tetap menyala dari jauh, lampu sorot proxy stadion — [kota-jauh](kota-jauh/README.md), [stadion-proxy](stadion-proxy/README.md)
+
 ## Berikutnya (dampak besar, mudah)
-1. ⬜ **Cincin menengah**: bake tile terperinci (OSM penuh) di sekitar stadion→pusat sampai ±3 km (≈144 tile, ±20 MB) lewat `tools/citybake` — batas "detail hanya di sekitar stadion" bergeser jauh. [tile-detail]
-2. ⬜ **Jendela menyala malam (lampu jalan jauh; jendela bangunan jauh sudah ikut `uNight`) di bangunan jauh** + lampu jalan jauh (titik emisif instans). [kota-jauh]
+1. ⬜ **Cincin kedua** (±3 → ±6 km, ≈250 tile, ±40 MB?) — pertimbangkan hanya LOD1 + data untuk menghemat; Overpass sering 502/timeout (strip timur butuh 5 percobaan) → bake per strip kecil. [tile-detail]
+2. ⬜ **Lampu jalan nyata** (titik emisif instans tiap ±40 m di jalan ≥ tertiary) menggantikan pendar rata; bayangan lampu. [tile-detail, kota-jauh]
 3. ⬜ **Garis tengah & tepi jalan jauh** untuk kelas ≤ tertiary (strip putih tipis, fade jarak). [kota-jauh]
 4. ⬜ **Variasi pohon**: 3 jenis (tajuk bulat, palem, pohon peneduh) + batang; ganti geometri di `farCity.js`/`tileDetail.js`. [ganti-model]
 5. ⬜ **Peta tanah 4096 dipecah per sel + KTX2 (Basis)** agar tajam saat zoom menengah tanpa melewati anggaran 70 MB; muat per sel terdekat. [kota-jauh]
@@ -51,4 +56,6 @@ Lihat [ganti-model](ganti-model/README.md).
 |---|---|---|
 | 2026-11-13 | Kota jauh v1 (bangunan kotak sejajar sumbu, jalan kelas ≤5, peta tanah) | 380 rb bangunan, 4,7 MB |
 | 2026-11-13 | Kota jauh v2 (rotasi, atap pelana, pohon, jalan semua kelas, peta pekat) | 7 MB, 185 rb pohon, 742 berkas |
+| 2026-11-13 | Cincin menengah: 4 strip (`tools/citybake --area cincin`) | +92 tile, 157 tile, 22,7 MB; bake 36 menit (Overpass 502, strip timur 5 percobaan; Overture ±5 mnt/area) |
+| 2026-11-13 | Lampu malam (`nightGlow.js`, `glow.webp`, lampu sorot proxy) | `glow.webp` ±4 KB; kekuatan jalan 0,38 (tile) / 0,55 (jauh) setelah dicek terlalu terang di 0,6/0,9, peta 2,0, jendela ×2,6 |
 | 2026-11-13 | Awan disembunyikan di mode Kota (penyebab kerudung putih); fasad di bangunan jauh | browser uji 20–30 fps (software) |

@@ -203,7 +203,7 @@ export async function createFarCity({
   applyFacade(buildingMat, 'wall'); // jendela & kios pada dinding dari dekat; memudar > 900 m (atap tak terkena: normal.y >= 0,5)
   const treeMat = own(new THREE.MeshLambertMaterial({ vertexColors: true }));
   treeMat.name = 'kotaJauh:pohon';
-  const roadMat = own(applyNightGlow(new THREE.MeshLambertMaterial({ vertexColors: true, depthWrite: false }), { strength: 0.9 })); // lampu jalan malam
+  const roadMat = own(applyNightGlow(new THREE.MeshLambertMaterial({ vertexColors: true, depthWrite: false }), { strength: 0.55 })); // lampu jalan malam
   roadMat.name = 'kotaJauh:jalan';
   const colors = Object.fromEntries(Object.entries(FAR_COLORS).map(([k, v]) => [k, new THREE.Color(v)]));
   const flatGeo = own(mergedBuilding([wallsGeometry(colors.wall), flatRoofGeometry(colors.flatRoof)]));

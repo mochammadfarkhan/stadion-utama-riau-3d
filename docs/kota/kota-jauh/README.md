@@ -5,7 +5,7 @@ Pratinjau (K) menampilkan **seluruh kota** tanpa bake tile GLB penuh (±130 MB).
 
 ## Status (2026-11-13)
 v2 jalan: bangunan diputar + atap pelana, pohon, jalan semua kelas, peta tanah pekat. Kelancaran GPU asli belum terukur.
-Detail tersisa → [PLAN.md](../PLAN.md) (jendela di bangunan jauh, garis jalan, air, KTX2 per sel).
+Zona cincin menengah (tile terperinci) dikecualikan otomatis (bake membaca `public/tiles/manifest.json`; 354 rb bangunan setelah cincin). Detail tersisa → [PLAN.md](../PLAN.md) (jendela di bangunan jauh, garis jalan, air, KTX2 per sel).
 
 ## Cara kerja
 1. `node tools/citybake/farFetch.mjs [bangunan|jalan|air|lahan]` — DuckDB menarik Overture Maps (rilis di `config.js`) untuk kotak kota
@@ -25,6 +25,13 @@ Detail tersisa → [PLAN.md](../PLAN.md) (jendela di bangunan jauh, garis jalan,
 | `ground.webp` | peta tanah 2048² untuk `bounds` (baris 0 = utara) |
 Kelas bangunan: 0 lain · 1 niaga · 2 industri · 3 publik/ibadah · 4 hunian. Kelas jalan: `ROAD_INDEX` di `farbake.mjs`.
 Koordinat dunia: +X timur, +Z selatan (meter); sel = lantai(x/2000), lantai(z/2000).
+
+## Lampu malam (2026-11-13)
+- `src/city/nightGlow.js`: emisi hangat × `uNight` (jam permainan → `nightFactor`, `facade.js`).
+  - **Jalan jauh & jalan tile**: pendar rata (lampu jalan) — `strength` 0,55 (jauh) / 0,38 (tile) di `farCity.js` / `cityMaterials.js`.
+  - **Peta tanah jauh**: `glow.webp` (512², 1 kanal, ±4 KB; kerapatan bangunan diburamkan) dibaca `uGlowMap` pada `vMapUv` → kawasan padat bersinar dari jauh (`strength` 2,0).
+  - **Jendela bangunan jauh**: ikut shader fasad (`facade.js`), sebagian menyala; jauh pun tetap ≥ 60% (fade pola tidak mematikan cahaya).
+- `manifest.glow` opsional: tanpa berkas → hanya pendar jalan/jendela.
 
 ## Cara mengganti model
 Lihat [ganti-model](../ganti-model/README.md). Ringkas: bentuk bangunan di `wallsGeometry/flatRoofGeometry/gableRoofGeometry` (`farCity.js`),
