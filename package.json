@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Simulator 3D Stadion Utama Riau (Pekanbaru) dengan Three.js",
+  "description": "Anak Bertuah: game dunia terbuka 3D Pekanbaru (Stadion Utama Riau, UNRI) dengan Three.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
