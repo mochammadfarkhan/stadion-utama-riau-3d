@@ -49,11 +49,11 @@ Dari "peta 3D yang benar" ke **"pemandangan yang bikin betah"**: hangat, hidup, 
 - ⬜ ~~Ambient pratinjau~~ (`core/AudioBus`, `audioSynth`): dengung kota + angin; volume/lowpass menurut ketinggian kamera (`cityDistance`), malam: jangkrik, siang: lalu lintas. ★★ M
 
 ### E. Kamera & penyajian (S–M)
-- ⬜ **Intro terbang**: masuk K dari ketinggian tinggi menukik ke stadion (bukan dari posisi pemain). ★★ S
+- ✅ **Intro terbang** (`cityPreview.js::enter`): zoom 9 → 0,9 menukik ke stadion; setelan Kamera "intro terbang" (default ON); input apa pun membatalkan.
 - ✅ **Tur landmark otomatis** (2026-11-13, tombol "Tur"): `tourRoute` (tetangga terdekat dari stadion, ≤ 9 perhentian) + `flyTo` tiap 5,5 dtk; bisa dipadukan dengan Putar waktu. Belum menghentikan diri saat user menggeser manual (matikan lewat tombol).
 - ✅ **Slider waktu + "Putar waktu"** (bar di bawah layar, `ui/CityControls.js`; 1,2 jam/dtk). Jam asli dipulihkan saat keluar K (lewat `restoreMaket`).
 - ⬜ **Label bergaya** (jam/cuaca kecil di sudut, kompas arah putar). ★ S
-- ⬜ **Mode foto Kota**: sembunyikan label, resolusi ×2, tanda air kecil. ★★ S (`Screenshot.js` ada)
+- ✅ **Mode foto Kota**: tombol Foto di bar → `captureScreenshot` ×2, label & bar disembunyikan (`body.is-photo`). ⬜ tanda air kecil.
 
 ### F. Varian gaya (L, opsional — butuh keputusan selera)
 - ⬜ **"Maket"** (diorama): bingkai/alas kotak di tepi peta + tilt-shift kuat + warna jenuh.

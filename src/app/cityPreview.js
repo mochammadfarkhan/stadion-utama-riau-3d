@@ -10,6 +10,7 @@ import { nightFactor } from '../city/facade.js';
 import { applyPlacement } from './mountRegion.js';
 import { buildStadionProxy } from '../regions/stadion/proxy.js';
 import { createCityLabels } from '../ui/CityLabels.js';
+import { captureScreenshot, screenshotFilename } from '../ui/Screenshot.js';
 import { createCityControls } from '../ui/CityControls.js';
 import { TOUR, tourRoute, createTour, advanceHour } from './cityTour.js';
 
@@ -22,6 +23,9 @@ const NEAR_RANGE = Object.freeze([0.3, 120]);
 /** Gaya maket sore emas (pilihan user 2026-11-13): jam, tilt-shift kuat (pita tajam di tengah), bloom. */
 const MAKET = Object.freeze({ hour: 16.75, band: 0.17, falloff: 0.3, radiusScale: 1.6 });
 const AUDIO_STEP_S = 0.25;         // jeda pembaruan volume suara (setLevel memakai rampa, tak perlu tiap frame)
+const PHOTO_SCALE = 2;          // foto Kota: resolusi ×2 (label & bar disembunyikan lewat body.is-photo)
+const INTRO_ZOOM = 9;          // intro terbang: mulai dari ketinggian ini lalu menukik ke stadion
+const INTRO_END_ZOOM = 0.9;
 const HINT = 'Kota isometrik: WASD/seret geser · Q/Z putar · roda zoom (jauhkan untuk seluruh peta) · K keluar';
 
 /**
@@ -54,6 +58,7 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     onHour: (h) => time.setHour(h),
     onTour: (on) => { tour = on ? createTour(tourRoute(landmarks)) : null; },
     onLapse: (on) => { lapse = on; },
+    onPhoto: () => { captureScreenshot(app, { scale: PHOTO_SCALE, filename: screenshotFilename() }); },
   });
 
   const stadionGroup = () => regions.handleOf(stadionId)?.region?.group ?? null;
@@ -145,6 +150,11 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     shadowSaved = light.getShadowExtent?.() ?? null;
     if (light.clouds) light.clouds.visible = false; // kubah awan (±2,2 km) menutupi kota di luar radiusnya dengan kerudung putih
     hud.toast(HINT, true);
+    const home = landmarks.find((l) => l.id === stadionId) ?? landmarks[0];
+    if (home && store.get('camera.kotaIntro')) {
+      rig.director.zoom = INTRO_ZOOM;
+      rig.director.flyTo(home.x, home.z, INTRO_END_ZOOM);
+    }
   };
 
   const exit = () => {

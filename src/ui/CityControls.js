@@ -7,9 +7,9 @@ export const formatHour = (h) => {
 
 /**
  * @param {HTMLElement} parent
- * @param {{onHour(h: number): void, onTour(on: boolean): void, onLapse(on: boolean): void}} cb
+ * @param {{onHour(h: number): void, onTour(on: boolean): void, onLapse(on: boolean): void, onPhoto(): void}} cb
  */
-export function createCityControls(parent, { onHour, onTour, onLapse }) {
+export function createCityControls(parent, { onHour, onTour, onLapse, onPhoto }) {
   const root = document.createElement('div');
   root.id = 'city-controls';
   root.hidden = true;
@@ -32,7 +32,10 @@ export function createCityControls(parent, { onHour, onTour, onLapse }) {
   };
   const tourBtn = toggle('Tur', onTour);
   const lapseBtn = toggle('Putar waktu', onLapse);
-  root.append(readout, slider, lapseBtn, tourBtn);
+  const photoBtn = document.createElement('button');
+  photoBtn.type = 'button'; photoBtn.className = 'city-toggle'; photoBtn.textContent = 'Foto';
+  photoBtn.addEventListener('click', () => onPhoto());
+  root.append(readout, slider, lapseBtn, tourBtn, photoBtn);
   parent.appendChild(root);
 
   return {
