@@ -18,6 +18,8 @@ import { NPCS, SLOTS, TALK_SLOTS, SCHEDULE_SEED, NPC_PROFIL } from './data.js';
 const HAIR_DARK = Object.freeze([0x1c1410, 0x2b1d14, 0x3b2a1e]);
 const SOCKS = Object.freeze([null, 0x2b2b2b, 0xf2f2f2]);
 const TALK = new Set(TALK_SLOTS);
+/** Karakter jadi kiriman user (Humanoid.preset.js) per anggota; anggota lain tetap manekin. */
+export const NPC_PRESET = Object.freeze({ 'npc-4': 'tactical_hijab', 'npc-12': 'cardigan_hijab' });
 
 /** Pakaian NPC (deterministik per seed data). */
 export function npcOutfit(def) {
@@ -34,6 +36,7 @@ export function npcOutfit(def) {
     hair: berhijab ? null : (def.rambut ?? 'buzz'),
     hairColor,
     shoes: sock ?? base.skin,
+    preset: NPC_PRESET[def.id] ?? null,
     ...(berhijab ? { longSleeve: true, bottom: base.bottom === 'shorts' ? 'pants' : base.bottom } : {}),
   };
 }
