@@ -53,7 +53,7 @@ export function startPerfProbe() {
    * @param {{app:object, store:{get(k:string):unknown}, quality?:{tier:string}|null,
    *   where?:() => object|null}} opts where = posisi pemain untuk laporan
    */
-  const attach = ({ app, store, quality = null, where = () => null }) => {
+  const attach = ({ app, store, quality = null, where = () => null, context = () => null }) => {
     const frames = createFrameWindow();
     const gpu = readGpuName(app.renderer);
     let startedAt = null;
@@ -87,6 +87,7 @@ export function startPerfProbe() {
           resolusiAdaptif: store.get('graphics.adaptiveResolution'),
         },
         posisi: where(),
+        konteks: context(),
         frame,
         dugaan: guessBottleneck(frame, targetMs()),
         render: {

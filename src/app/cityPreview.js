@@ -17,6 +17,7 @@ import { TOUR, tourRoute, createTour, advanceHour } from './cityTour.js';
 const FOG_PREVIEW = 9000;      // m: jarak kabut selama pratinjau (setelan "Jarak kabut" hanya sampai 2000)
 const FOG_PER_DISTANCE = 14;     // fogDistance ≈ 14 × jarak kamera → awal kabut ≈ 1,8 × jarak: hanya cakrawala yang berkabut
 const MAX_PREVIEW_PIXEL_RATIO = 1.5;
+const LOW_TIER_PIXEL_RATIO = 1;     // GPU lemah (tier rendah, mis. iGPU): bloom + tilt-shift di resolusi penuh terlalu berat
 const SHADOW_EXTENT_RANGE = Object.freeze([200, 700]); // setengah lebar frustum bayangan (m): ikut jarak kamera agar bangunan di layar bersayangan
 const LABEL_ZOOM = 0.4;       // zoom saat terbang ke landmark
 const NEAR_RANGE = Object.freeze([0.3, 120]);
@@ -34,7 +35,7 @@ const HINT = 'Kota isometrik: WASD/seret geser · Q/Z putar · roda zoom (jauhka
  *   landmarks?: Array<{id: string, label: string, x: number, z: number}>, stadionId: string, stadionPlacement: object, hide: Array<{visible: boolean}>}} opts
  *   hide: objek yang disembunyikan selama pratinjau (entitas dunia & entitas region)
  */
-export function createCityPreview({ app, rig, regions, time, store, hud, city = null, lighting = null, audioBus = null, landmarks = [], stadionId, stadionPlacement, hide }) {
+export function createCityPreview({ app, rig, regions, time, store, hud, city = null, lighting = null, audioBus = null, tier = () => null, landmarks = [], stadionId, stadionPlacement, hide }) {
   const camera = app.camera;
   const base = { near: camera.near, far: camera.far };
   let active = false;
@@ -140,7 +141,7 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     city?.setPreview(true); // semua tile peta dimuat (LOD0), tanah dasar diperluas
     // Resolusi penuh: adegan pratinjau ringan, dan skala render < 1 membuat atap/jalan buram & bergerigi dari atas.
     app.setPixelCap?.(Infinity);
-    app.setPixelRatio?.(Math.min(window.devicePixelRatio || 1, MAX_PREVIEW_PIXEL_RATIO));
+    app.setPixelRatio?.(Math.min(window.devicePixelRatio || 1, tier() === 'rendah' ? LOW_TIER_PIXEL_RATIO : MAX_PREVIEW_PIXEL_RATIO));
     app.setAdaptiveResolution?.(false);
     if (store.get('camera.kotaMaket')) applyMaket();
     if (store.get('camera.kotaSuara') && audioBus) startSound();
