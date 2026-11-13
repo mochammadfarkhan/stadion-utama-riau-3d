@@ -9,6 +9,7 @@ Rencana hidup ada di [PLAN.md](PLAN.md) — **perbarui di akhir setiap sesi kerj
 | [tile-detail/](tile-detail/README.md) | 65 tile terperinci (stadion, UNRI, pusat kota): fasad, marka, pohon, tekstur tanah, malam | `src/city/*` (kecuali `farCity.js`), `tools/citybake/` |
 | [kota-jauh/](kota-jauh/README.md) | seluruh Pekanbaru di luar tile terperinci: bangunan, jalan, pohon, peta tanah | `src/city/farCity.js`, `tools/citybake/farFetch.mjs`, `farbake.mjs`, `public/far/` |
 | [stadion-proxy/](stadion-proxy/README.md) | stadion versi ringan untuk pratinjau | `src/regions/stadion/proxy.js` |
+| [vibes/](vibes/README.md) | **suasana**: cahaya, kabut, lalu lintas, malam, suara, kamera sinematik; rencana sprint 3 | `engine/`, `core/postprocessing/`, `world/` (dipakai ulang), `app/cityPreview.js` |
 | [ganti-model/](ganti-model/README.md) | **resep mengganti model/aset** per bagian (bangunan, pohon, stadion, landmark, material) | — |
 
 ## Aturan dokumen

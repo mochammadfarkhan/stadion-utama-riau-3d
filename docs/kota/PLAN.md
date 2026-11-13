@@ -27,6 +27,13 @@ Urutan = prioritas dampak ÷ usaha. Tiap item menunjuk folder fiturnya.
 - ✅ Bangunan kota jauh di zona cincin dibuang otomatis (bake far ulang: 380 rb → 354 rb bangunan) — [kota-jauh](kota-jauh/README.md)
 - ✅ **Lampu malam**: pendar jalan (tile + jauh), peta pendar kota jauh (`glow.webp`), jendela lebih terang & tetap menyala dari jauh, lampu sorot proxy stadion — [kota-jauh](kota-jauh/README.md), [stadion-proxy](stadion-proxy/README.md)
 
+## Sprint 3 (rencana): vibes "ciamik" — lihat [vibes/README.md](vibes/README.md)
+1. ⬜ Paket **Sore emas**: preset pratinjau (jam 16:45, kartun, bloom, vignette, tilt-shift ringan), kabut berwarna menyatu dengan langit, tepi peta memudar.
+2. ⬜ **Lalu lintas jauh** instans + **bayangan awan** bergerak.
+3. ⬜ **Lampu jalan nyata** + bloom malam.
+4. ⬜ **Intro terbang + tur landmark + slider waktu**, lalu suara ambient.
+Menunggu keputusan selera kamu (arah gaya, jam default, suara otomatis) — pertanyaan ada di vibes/README.md.
+
 ## Berikutnya (dampak besar, mudah)
 1. ⬜ **Cincin kedua** (±3 → ±6 km, ≈250 tile, ±40 MB?) — pertimbangkan hanya LOD1 + data untuk menghemat; Overpass sering 502/timeout (strip timur butuh 5 percobaan) → bake per strip kecil. [tile-detail]
 2. ⬜ **Lampu jalan nyata** (titik emisif instans tiap ±40 m di jalan ≥ tertiary) menggantikan pendar rata; bayangan lampu. [tile-detail, kota-jauh]
