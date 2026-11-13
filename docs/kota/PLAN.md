@@ -30,13 +30,13 @@ Urutan = prioritas dampak ÷ usaha. Tiap item menunjuk folder fiturnya.
 ## Sprint 3 (rencana): vibes "ciamik" — lihat [vibes/README.md](vibes/README.md)
 1. ✅ Paket **Maket sore emas** (keputusan user: maket + 16:45 + suara otomatis): preset (jam, bloom, tilt-shift kuat), alas diorama berlapis, suara ambient — [vibes](vibes/README.md). ⬜ sisa: kabut berwarna menyatu dengan langit, kontak-AO dasar bangunan.
 2. ✅ **Lalu lintas jauh** instans + **bayangan awan** bergerak — `farLife.js`, `groundDetail.js`.
-3. ✅ **Lampu jalan nyata** (kota jauh) + bloom malam. ⬜ lampu di tile terperinci.
+3. ✅ **Lampu jalan nyata** (kota jauh) + bloom malam. ✅ lampu di tile terperinci (jalan kelas besar).
 4. ✅ **Tur landmark + slider waktu + Putar waktu** (bar bawah layar saat K; `cityTour.js`, `CityControls.js`). ✅ intro terbang (zoom 9→0,9 ke stadion; setelan `camera.kotaIntro`) dan tombol **Foto** (×2, label & bar disembunyikan).
 Keputusan selera sudah dijawab (maket / 16:45 / suara otomatis); lihat vibes/README.md.
 
 ## Berikutnya (dampak besar, mudah)
 1. ⬜ **Cincin kedua** (±3 → ±6 km, ≈250 tile, ±40 MB?) — pertimbangkan hanya LOD1 + data untuk menghemat; Overpass sering 502/timeout (strip timur butuh 5 percobaan) → bake per strip kecil. [tile-detail]
-2. ⬜ **Lampu jalan di tile terperinci** (jalan OSM kecil) + kerucut cahaya ke aspal. [tile-detail]
+2. ✅ Lampu jalan di tile terperinci (jalan besar) — ⬜ jalan kecil + kerucut cahaya ke aspal. [tile-detail]
 3. ⬜ **Garis tengah & tepi jalan jauh** untuk kelas ≤ tertiary (strip putih tipis, fade jarak). [kota-jauh]
 4. ⬜ **Variasi pohon**: 3 jenis (tajuk bulat, palem, pohon peneduh) + batang; ganti geometri di `farCity.js`/`tileDetail.js`. [ganti-model]
 5. ⬜ **Peta tanah 4096 dipecah per sel + KTX2 (Basis)** agar tajam saat zoom menengah tanpa melewati anggaran 70 MB; muat per sel terdekat. [kota-jauh]
@@ -64,6 +64,7 @@ Lihat [ganti-model](ganti-model/README.md).
 | 2026-11-13 | Kota jauh v1 (bangunan kotak sejajar sumbu, jalan kelas ≤5, peta tanah) | 380 rb bangunan, 4,7 MB |
 | 2026-11-13 | Kota jauh v2 (rotasi, atap pelana, pohon, jalan semua kelas, peta pekat) | 7 MB, 185 rb pohon, 742 berkas |
 | 2026-11-13 | Bar kendali Kota: slider jam, Putar waktu (1,2 jam/dtk), Tur (rute tetangga-terdekat, 5,5 dtk/perhentian) | 5 tes murni (`cityTour`); dicek di browser uji, belum di GPU asli |
+| 2026-11-13 | Lampu jalan tile terperinci (tiang+kepala instans, ≤ 170/tile) | 3 tes murni; dicek malam di browser uji, tanpa galat; draw call +2 per tile berjalan |
 | 2026-11-13 | Lampu depan putih/belakang merah mobil jauh (malam) | 1 tes murni; render tanpa galat, warna belum terbedakan di bidikan uji |
 | 2026-11-13 | Kontak-AO dasar bangunan jauh (×0,72 di y=0) + pohon jauh bergoyang (`treeSway.js`) | 3 tes murni; shader terkompilasi di browser uji, efek halus (belum dibandingkan sebelum/sesudah) |
 | 2026-11-13 | Intro terbang + tombol Foto di bar Kota | dicek di browser uji (intro ya; unduhan PNG tidak terlihat dari sana) |

@@ -38,6 +38,8 @@ export function createCityMaterials() {
     water: flat('water', THREE.MeshStandardMaterial, { roughness: 0.35, metalness: 0 }),
     roads: applyNightGlow(applyGroundDetail(flat('roads', THREE.MeshLambertMaterial), 'roads', 1.4), { strength: 0.2 }), // lampu jalan malam
     road_markings: flat('road_markings', THREE.MeshLambertMaterial, { side: THREE.DoubleSide }), // marka (tileDetail.js)
+    lamp_poles: Object.assign(new THREE.MeshLambertMaterial({ color: 0x4a4d55 }), { name: 'kota:lamp_poles' }),
+    lamp_heads: applyNightGlow(Object.assign(new THREE.MeshLambertMaterial({ color: 0xcfc8b0 }), { name: 'kota:lamp_heads' }), { strength: 3.2 }), // kepala lampu menyala malam
     trees: solid('trees'),                                                                       // pohon instans (tileDetail.js)
     buildings_walls: applyFacade(solid('buildings_walls'), 'wall'), // jendela, lantai, kios (shader; lihat facade.js)
     buildings_roofs: applyFacade(solid('buildings_roofs'), 'roof'), // garis genteng / petak seng

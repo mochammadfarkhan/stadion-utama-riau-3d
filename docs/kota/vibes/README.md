@@ -40,7 +40,7 @@ Dari "peta 3D yang benar" ke **"pemandangan yang bikin betah"**: hangat, hidup, 
 - ⬜ **Burung/layang-layang** kawanan kecil melintas (sprite instans), muncul sore. ★ S
 
 ### C. Malam (M)
-- ✅ **Lampu jalan nyata** (`farLife.js::lampSpots`): kepala lampu emisif tiap ±45 m bergantian kiri/kanan sepanjang jalan ≤ tertiary (≤ 5000), tampil hanya malam, ikut bloom. ⬜ lampu jalan di dalam tile terperinci (jalan OSM kecil), kerucut cahaya ke aspal.
+- ✅ **Lampu jalan nyata** (`farLife.js::lampSpots`): kepala lampu emisif tiap ±45 m bergantian kiri/kanan sepanjang jalan ≤ tertiary (≤ 5000), tampil hanya malam, ikut bloom. ✅ lampu jalan di tile terperinci (`tileDetail.js::streetLampPoints`, 2 InstancedMesh tiang+kepala, tiap 38 m bergantian sisi, jalan kelas besar saja, ≤ 170/tile; kepala menyala malam via `applyNightGlow`). ⬜ jalan kecil, kerucut cahaya ke aspal.
 - ⬜ **Pantulan kota di air** (kilau garis di Sungai Siak). ★★ S
 - ⬜ **Kedip jendela/TV** (variasi `facadeHash` terhadap waktu, 1–2% jendela berkedip). ★ S
 
