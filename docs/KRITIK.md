@@ -92,12 +92,20 @@ Hanya dibuka setelah T2 selesai; masing-masing harus lulus aturan potong.
 | D1 | Kalimat inti + pilar | "Ini GTA pada akhirnya, bebas; sekre pusatnya" → dunia terbuka bebas, sekre ERC pusat |
 | D2 | Posisi Kota vs mode jalan | Dua-duanya seimbang (selang-seling) |
 | D3 | Arah seni dikunci di preset Rendah | Ya |
-| D4 | Judul | Ganti; pilih dari usul di bawah (belum dipilih) |
+| D4 | Judul | **"Anak Bertuah"** (dipilih 2026-11-14) |
 | D5 | Wajah/avatar | User akan mengirim contoh rujukan; pekerjaan model manusia menunggu itu |
 | D6 | Penguji T1 | 3 teman ERC yang belum pernah melihat proyek |
 
-**Usul judul (D4, belum dipilih):** "Pulang ke Sekre" · "Pekanbaru Bebas" · "Kayuh Pekanbaru" · "Anak Bertuah" (gelar
-yang sudah ada di `story/chapters.js`) · "Dari Sekre ke Kota". Stadion tetap ikon sampul.
+**Judul (D4): "Anak Bertuah".** Usul lain yang tidak dipilih: "Pulang ke Sekre", "Pekanbaru Bebas", "Kayuh Pekanbaru",
+"Dari Sekre ke Kota". Stadion tetap ikon sampul.
+
+Akibat di kode (belum dikerjakan, satu PR kecil):
+- Ganti teks judul di `index.html` (`<title>`, `<h1>` layar muat), `README.md`, dan `description` di `package.json`.
+  Nama repo dan URL Pages tidak perlu ikut berubah.
+- "Anak Bertuah" sekarang juga gelar bab terakhir (`story/chapters.js`, bab `jejak-air-molek`: `rank` dan
+  `reward.badge`). Ini dipertahankan: kalimat penutup "Kamu kini Anak Bertuah!" jadi momen judul. Gelar itu jangan
+  dipakai untuk bab lain.
+- Subjudul [usul]: "Dunia terbuka Pekanbaru", supaya orang yang belum kenal istilahnya tahu ini game apa.
 
 ### Cara menilai sendiri tiap tonggak (tanpa telemetri)
 - **Uji 10 menit:** satu orang baru, tanpa penjelasan, direkam layarnya. Catat: detik pertama ia bergerak, tiap kali ia berhenti > 5 detik, dan kalimat pertama yang ia ucapkan.
