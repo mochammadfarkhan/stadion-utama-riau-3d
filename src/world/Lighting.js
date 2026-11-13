@@ -92,6 +92,7 @@ export function createLighting(scene, renderer) {
       sun.shadow.needsUpdate = true;
     },
     shadowExtentDefault: SHADOW_EXTENT,
+    getShadowExtent: () => sun.shadow.camera.right,
     setSunDirection: (dir) => {
       follower.setDirection(dir);
       sky.material.uniforms.sunPosition.value.copy(dir);

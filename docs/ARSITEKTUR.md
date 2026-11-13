@@ -62,6 +62,8 @@ Aturan praktis untuk sistem baru:
 | UNRI lembaga / rektorat | streaming jarak (mountRadius/unmountRadius, histeresis, 1 mount/500 ms) | proxy siluet > 900 m; hero LOD1/tengah > 300 m |
 | Distrik UNRI (`districts/unri`) | dipasang saat boot | `terrainChunks`, gedung kit 150/900 m |
 | Kota (`city/`) | tile streaming (`ChunkStreamer`) | tile di luar radius dilepas |
+| Pratinjau kota (K, `app/cityPreview.js`) | POV `kota`: kamera isometrik; stadion→proxy, region ditahan, semua 65 tile LOD0 dimuat | `city/farCity.js`: SELURUH Pekanbaru di luar tile (380 rb bangunan instans + jalan + peta tanah 2048² WebP), data `public/far/` dari `tools/citybake/farFetch.mjs` + `farbake.mjs` |
+| Rincian tile (`city/tileDetail.js`, `facade.js`, `groundDetail.js`) | marka jalan + pohon instans dari data.json; shader jendela/genteng/variasi tanah (tanpa tekstur) | hanya LOD0; wilayah region hero dikecualikan |
 | Pohon/humanoid/rumput | instancing | LOD per jenis |
 
 ## Anggaran (dari AGENTS.md)
@@ -86,6 +88,7 @@ Aturan praktis untuk sistem baru:
 
 | Tanggal | Keputusan | Alasan / rujukan |
 |---|---|---|
+| 2026-11-13 | Pratinjau kota memuat seluruh Pekanbaru lewat lapisan "jauh" instans (bukan tile bake penuh) | 380 rb bangunan = 3 MB biner (8 B/bangunan) vs ±130 MB bila di-bake sebagai tile GLB; peta tanah WebP karena hanya dilihat dari jauh |
 | 2026-10-27 | Dokumen ini jadi titik masuk; plan/spec lama tetap arsip | konteks proyek terlalu besar untuk dibaca ulang tiap sesi |
 | 2026-10-26 | Batas FPS default 60 + preset kualitas Otomatis | laptop panas & GPU terintegrasi; `engine/frameCap.js`, `config/quality.js` |
 | 2026-10-26 | Inventory gaya Minecraft (hotbar), kendaraan tetap ganti bebas | keputusan user; `sim/inventory.js` |

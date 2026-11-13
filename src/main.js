@@ -5,6 +5,7 @@ import { createGamepadPoller } from './core/gamepad.js';
 import { TouchControls } from './ui/TouchControls.js';
 import { isTouchPrimary } from './ui/touchMath.js';
 import './ui/touch.css';
+import './ui/cityPreview.css';
 import './ui/perkamen.css';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/jetbrains-mono';
@@ -50,6 +51,7 @@ import { createDisposerStack } from './app/lifecycle.js';
 import { setPbrRenderer } from './world/textures/pbr.js';
 import { applyPlacement } from './app/mountRegion.js';
 import { createRegionManager } from './app/regionManager.js';
+import { createCityPreview } from './app/cityPreview.js';
 import { createTerrainService } from './app/terrainService.js';
 import { mountDistrict } from './app/districtMount.js';
 import { unriDistrict } from './districts/unri/index.js';
@@ -189,7 +191,10 @@ async function main() {
 
   await loading.step(0.4, 'Menyiapkan peta kota (OpenStreetMap)…');
   // Kota: tile OSM di-stream di sekitar fokus. Manifest gagal → null: mode hanya-region (perilaku lama) + toast.
-  const city = await createCity({ app, baseUrl: import.meta.env.BASE_URL, weather, time, toast: (t, ok) => hud.toast(t, ok) });
+  const city = await createCity({
+    app, baseUrl: import.meta.env.BASE_URL, weather, time, toast: (t, ok) => hud.toast(t, ok),
+    reserved: (x, z) => regionContains(stadionDef, x, z) || HERO_REGIONS.some((r) => regionContains(r, x, z)), // region handmade punya isi sendiri
+  });
   if (city) {
     lifecycle.add(() => city.dispose());
     time.setFogLimit(STREAM.loadRadius); // batas muat tertutup kabut
@@ -284,6 +289,11 @@ async function main() {
   });
   lifecycle.add(() => farm.dispose());
   addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel, portal: portalKit.portal });
+  // K: pratinjau kota isometrik; isi berat (stadion, region, penonton) diganti bentuk dasar selama aktif.
+  const cityPreview = createCityPreview({
+    app, rig, regions, time, store, hud, city, lighting, landmarks: travel.destinations.map((d) => (d.id === 'stadion' ? { ...d, ...frame.toWorld(0, 0) } : d)), stadionId: STADION_ID, stadionPlacement: frame.placement, hide: [ents.group, anchor],
+  });
+  lifecycle.add(() => cityPreview.dispose());
   portalKit.trigger.installPrompt(); // sesudah sistem 'hud'
   farm.installPrompt();
 
@@ -461,6 +471,7 @@ function setupFastTravel({ app, lifecycle, hud, rig, ents, colliders, city, fram
     /** Selama perjalanan atau panel terbuka sepeda tidak dikayuh (pola toko): WASD memilih tujuan. */
     get blocksInput() { return travel.busy || menu.open; },
     go: (id) => travel.go(id),
+    destinations: travel.destinations,
   };
 }
 

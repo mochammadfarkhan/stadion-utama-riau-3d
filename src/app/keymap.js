@@ -74,6 +74,10 @@ function handleCameraKeys(input, { rig, hud, store, dt = 0 }) {
     const turn = (input.isDown('KeyZ') ? 1 : 0) - (input.isDown('KeyQ') ? 1 : 0);
     if (turn) rig.rotateAngled(turn * ANGLED.yawKeyRate * dt);
   }
+  if (rig.director?.isCity && dt > 0) { // pratinjau kota: WASD/panah geser, Q/Z putar
+    const axis = (pos, neg) => (pos.some((c) => input.isDown(c)) ? 1 : 0) - (neg.some((c) => input.isDown(c)) ? 1 : 0);
+    rig.moveCity(axis(['KeyW', 'ArrowUp'], ['KeyS', 'ArrowDown']), axis(['KeyD', 'ArrowRight'], ['KeyA', 'ArrowLeft']), axis(['KeyZ'], ['KeyQ']), dt);
+  }
   if (input.consumePress('KeyL')) cycleStyle(store, hud);
   for (const code of [EXIT_KEY, ...POVS.map((p) => p.key)]) {
     if (!input.consumePress(code)) continue;

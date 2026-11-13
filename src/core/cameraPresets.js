@@ -6,7 +6,12 @@ import { STADIUM } from '../config/constants.js';
  * Dunia: pusat lapangan di origin, +Y atas, utara = −Z, barat = −X.
  */
 
-export const POV_KINDS = Object.freeze({ FIXED: 'fixed', FOLLOW: 'follow', ORBIT: 'orbit' });
+/** Pratinjau kota isometrik: elevasi 35,264° (isometrik sejati), azimut 45°, lensa sempit (≈ ortografik), jarak dasar & batas geser (m). */
+export const CITY = Object.freeze({
+  fov: 20, elevation: Math.atan(1 / Math.SQRT2), azimuth: Math.PI / 4, radius: 1300, panLimit: 10000, panRate: 0.3, yawRate: 1.1, id: 'kota',
+});
+
+export const POV_KINDS =Object.freeze({ FIXED: 'fixed', FOLLOW: 'follow', ORBIT: 'orbit' });
 
 /**
  * @typedef {{id:string,label:string,key:string,kind:string,fov:number,controlsBike:boolean,
@@ -23,6 +28,8 @@ export const POVS = Object.freeze([
   { id: 'atas', label: 'Top-down', key: 'Digit7', kind: 'follow', fov: 45, controlsBike: true, follow: 8, minElev: 1.0, maxElev: 1.5, zoomMin: 0.4, zoomMax: 2.2 },
   // M0 multi-region: POV milik region aktif (Region.povs, pose dunia); tekan lagi = POV region berikutnya.
   { id: 'region', label: 'POV region', key: 'Digit8', kind: 'region', fov: 55, controlsBike: false, cycle: true, minElev: -0.2, maxElev: 1.4, zoomMin: 0.4, zoomMax: 2.0 },
+  // Pratinjau kota (K): helikopter isometrik. Elevasi dikunci (minElev = maxElev), lensa sempit meniru ortografik; WASD/seret = geser, Q/Z = putar, roda = zoom.
+  { id: 'kota', label: 'Kota isometrik', key: 'KeyK', kind: 'follow', fov: CITY.fov, controlsBike: false, follow: 8, minElev: CITY.elevation, maxElev: CITY.elevation, zoomMin: 0.25, zoomMax: 14 },
 ].map(Object.freeze));
 
 export const POV_BY_ID = Object.freeze(Object.fromEntries(POVS.map((p) => [p.id, p])));
@@ -227,6 +234,15 @@ function poseFront(out, s) {
   out.tx = s.x; out.ty = VENDOR.lookY; out.tz = s.z;
 }
 
+/** Pratinjau kota: titik pandang di bawah pemain, kamera di tenggara pada elevasi isometrik. */
+function poseCity(out, bike) {
+  const ce = Math.cos(CITY.elevation);
+  out.tx = bike.x; out.ty = 0; out.tz = bike.z;
+  out.px = bike.x + CITY.radius * Math.sin(CITY.azimuth) * ce;
+  out.py = CITY.radius * Math.sin(CITY.elevation);
+  out.pz = bike.z + CITY.radius * Math.cos(CITY.azimuth) * ce;
+}
+
 function poseTopDown(out, bike) {
   out.px = bike.x; out.py = TOPDOWN.height; out.pz = bike.z + TOPDOWN.lean;
   out.tx = bike.x; out.ty = 0; out.tz = bike.z;
@@ -253,6 +269,7 @@ export function povPose(def, src, subject, time, out, heightAt = null) {
     case 'tribun': poseTribune(out); break;
     case 'orbit': poseOrbit(out, time); break;
     case 'atas': poseTopDown(out, src.bike); break;
+    case 'kota': poseCity(out, src.bike); break;
     case 'bola': {
       const ball = src.ball?.();
       if (!ball) return false;

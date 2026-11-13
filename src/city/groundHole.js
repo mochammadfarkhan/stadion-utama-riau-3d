@@ -39,13 +39,16 @@ export function applyGroundHole(material) {
     uHoleRect: { value: new THREE.Vector4(0, 0, 1, 1) },
     uHoleOn: { value: 0 },
   };
-  material.onBeforeCompile = (shader) => {
+  const prev = material.onBeforeCompile; // berantai dengan detail tanah (groundDetail) yang sudah terpasang
+  const prevKey = Object.hasOwn(material, 'customProgramCacheKey') ? `${material.customProgramCacheKey()}|` : ''; // bawaan three = toString onBeforeCompile (tak dipakai)
+  material.onBeforeCompile = (shader, renderer) => {
+    prev?.call(material, shader, renderer);
     Object.assign(shader.uniforms, uniforms);
     const patched = patchShaderSource(shader);
     shader.vertexShader = patched.vertexShader;
     shader.fragmentShader = patched.fragmentShader;
   };
-  material.customProgramCacheKey = () => 'kota-ground-hole-v1';
+  material.customProgramCacheKey = () => `${prevKey}kota-ground-hole-v1`;
   material.needsUpdate = true;
   return {
     set(hole) {

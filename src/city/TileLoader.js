@@ -60,7 +60,7 @@ export async function fetchJson(url) {
 export function createTileLoader({
   manifest, baseUrl = '/', parent, materials, collider, minimap = null, weather = null,
   loadGltf = createGltfLoader(), fetchJson: getJson = fetchJson, retries = TILE_RETRIES, backoffMs = TILE_BACKOFF_MS,
-  sleep = (ms) => new Promise((r) => setTimeout(r, ms)), onFail = () => {}, logger = console,
+  sleep = (ms) => new Promise((r) => setTimeout(r, ms)), onFail = () => {}, logger = console, decorate = null,
 }) {
   const info = new Map(manifest.tiles.map((t) => [t.key, t]));
   const entries = new Map(); // key → {root, lod, offWet, meshes, triangles}
@@ -108,6 +108,16 @@ export function createTileLoader({
     return { root, ...applyCityMaterials(gltf.scene, materials) };
   };
 
+  /** Rincian tambahan (marka, pohon) dari data tile; galat tidak boleh menggagalkan tile. */
+  const decorateRoot = (root, tile, lod) => {
+    if (!decorate || !tile) return;
+    try {
+      decorate(root, tile, lod);
+    } catch (err) {
+      logger.error(`Rincian tile ${tile.key} gagal (dilewati):`, err);
+    }
+  };
+
   const discard = (root) => disposeTree(root, { scope: materials }); // material kota dibagi: hanya geometri
 
   const attach = (key, built, lod) => {
@@ -148,6 +158,7 @@ export function createTileLoader({
       discard(built.root); // dibongkar/dibatalkan sementara dimuat
       return;
     }
+    decorateRoot(built.root, tile, action.lod);
     attach(action.key, built, action.lod);
     collider.addTile(action.key, tile);
     minimap?.add(action.key, tile);
@@ -167,6 +178,7 @@ export function createTileLoader({
       return;
     }
     detach(action.key); // LOD lama dilepas setelah yang baru siap (tanpa lubang)
+    decorateRoot(built.root, decoded.get(action.key), action.lod);
     attach(action.key, built, action.lod);
   }
 

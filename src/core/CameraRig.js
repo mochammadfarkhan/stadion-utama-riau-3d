@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { PovDirector } from './PovDirector.js';
-import { EXIT_KEY, POV_BY_KEY } from './cameraPresets.js';
+import { CITY, EXIT_KEY, POV_BY_KEY } from './cameraPresets.js';
 import {
   ANGLED, angledOffset, clampDistance, decayYawOffset, shouldSnapAngled, stepPosition, stepYaw, wrap as wrapYaw, zoomDistance,
 } from './cameraAngled.js';
@@ -68,6 +68,10 @@ export class CameraRig {
       this.locked = document.pointerLockElement === this.dom;
     }, { signal });
     document.addEventListener('mousemove', (e) => {
+      if (this.director.isCity) { // pratinjau kota: seret = geser peta (tanpa pointer lock)
+        if (e.buttons) this.lookBy(e.movementX, e.movementY);
+        return;
+      }
       // Mode 3/4: yaw hanya lewat DRAG (tombol mouse ditahan), tidak perlu pointer lock.
       if (this.#angledActive) {
         if (e.buttons) this.lookBy(e.movementX, 0);
@@ -89,6 +93,11 @@ export class CameraRig {
   lookBy(dx, dy, scale = 1) {
     if (!Number.isFinite(dx) || !Number.isFinite(dy)) return;
     const k = MOUSE_SENSITIVITY * this.sensitivity * scale;
+    if (this.director.isCity) { // piksel layar → meter di titik pandang
+      const h = Math.max(1, this.dom.clientHeight || 720);
+      this.director.panDrag(dx * scale, dy * scale, (2 * this.director.cityDistance * Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2)) / h);
+      return;
+    }
     if (this.director.mode === 'pov') {
       this.director.look(dx * k, dy * k);
       return;
@@ -100,6 +109,17 @@ export class CameraRig {
     this._idle = 0;
     this.yawOffset = wrapAngle(this.yawOffset - dx * k);
     this.pitch = THREE.MathUtils.clamp(this.pitch + dy * k, -PITCH_LIMIT, PITCH_LIMIT);
+  }
+
+  /** Pratinjau kota (tombol K): geser `forward`/`right` (−1..1 per detik × dt, sebanding jarak) dan putar `turn` (−1..1). */
+  moveCity(forward, right, turn, dt) {
+    const d = this.director;
+    if (!d.isCity) return;
+    if (forward || right) {
+      const step = d.cityDistance * CITY.panRate * dt;
+      d.panBy(forward * step, right * step);
+    }
+    if (turn) d.look(-turn * CITY.yawRate * dt, 0);
   }
 
   get #angledActive() { return this.mode === 'angled' && !this.director.active; }

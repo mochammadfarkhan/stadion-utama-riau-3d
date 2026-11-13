@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {
-  applyOrbit, bezier3, clamp01, copyPose, createPose, easeInOutCubic, povPose,
+  CITY, applyOrbit, bezier3, clamp01, copyPose, createPose, easeInOutCubic, povPose,
   routeControl, smoothPose, transitionDuration,
 } from './cameraPresets.js';
 
@@ -40,7 +40,41 @@ export class PovDirector {
     this._hasSmooth = false;
     this._src = null; // sumber POV terakhir (label subjek POV region)
     this._heightAt = null;  // (x, z) → tinggi tanah dunia; null = datar
+    this.pan = { x: 0, z: 0 }; // geseran pratinjau kota (m dunia) dari posisi pemain
+    this._az = CITY.azimuth;   // azimut kamera pratinjau kota (untuk arah geser)
+    this._dist = CITY.radius;  // jarak kamera ke titik pandang pratinjau kota (m)
+    this._goal = null;         // terbang ke titik dunia {x, z, zoom} (klik label landmark); dibatalkan input geser/zoom
   }
+
+  /** Pratinjau kota: geser halus titik pandang ke (x, z) dunia dan zoom ke `zoom` (pengali jarak dasar). */
+  flyTo(x, z, zoom = 0.4) {
+    if (this.isCity && Number.isFinite(x + z + zoom)) this._goal = { x, z, zoom: Math.min(this.def.zoomMax, Math.max(this.def.zoomMin, zoom)) };
+  }
+
+  /** Kamera sedang terbang antar pose (transisi masuk/keluar/ganti POV). */
+  get transitioning() { return this.mode !== 'idle' && this._t < 1; }
+
+  get isCity() { return this.mode === 'pov' && this.def.id === CITY.id; }
+
+  /** Geser titik pandang pratinjau kota: `forward` m ke depan kamera, `right` m ke kanan kamera (datar). */
+  panBy(forward, right) {
+    if (!this.isCity || !Number.isFinite(forward + right)) return;
+    this._goal = null;
+    const s = Math.sin(this._az);
+    const c = Math.cos(this._az);
+    let x = this.pan.x + forward * -s + right * c;
+    let z = this.pan.z + forward * -c + right * -s;
+    const len = Math.hypot(x, z);
+    if (len > CITY.panLimit) { x *= CITY.panLimit / len; z *= CITY.panLimit / len; }
+    this.pan.x = x; this.pan.z = z;
+  }
+
+  /** Seret layar `dx`,`dy` piksel (lalu `perPx` m/piksel di titik pandang): peta mengikuti jari. */
+  panDrag(dx, dy, perPx) {
+    this.panBy(dy * perPx / Math.sin(CITY.elevation), -dx * perPx);
+  }
+
+  get cityDistance() { return this._dist; }
 
   /** Pose POV relatif tanah di titik pandang (M1); null = datar (perilaku lama). */
   setHeightAt(fn) { this._heightAt = typeof fn === 'function' ? fn : null; }
@@ -67,6 +101,8 @@ export class PovDirector {
     this.yaw = 0;
     this.pitch = 0;
     this.zoom = 1;
+    this.pan.x = 0; this.pan.z = 0;
+    this._goal = null;
     this._hasSmooth = false;
     this.#restart();
     return true;
@@ -112,6 +148,7 @@ export class PovDirector {
   /** Zoom dari roda mouse (deltaY piksel); dibatasi per POV. */
   zoomBy(deltaY) {
     if (this.mode !== 'pov') return;
+    this._goal = null;
     const z = this.zoom * (1 + deltaY * WHEEL_ZOOM_RATE);
     this.zoom = Math.min(this.def.zoomMax, Math.max(this.def.zoomMin, z));
   }
@@ -147,7 +184,21 @@ export class PovDirector {
       this._hasSmooth = true;
     }
     copyPose(d, this._smooth);
+    if (def.id === CITY.id && this._goal) { // terbang ke landmark: pan & zoom mengejar tujuan
+      const k = 1 - Math.exp(-4 * dt);
+      const gx = this._goal.x - this._smooth.tx;
+      const gz = this._goal.z - this._smooth.tz;
+      this.pan.x += (gx - this.pan.x) * k;
+      this.pan.z += (gz - this.pan.z) * k;
+      this.zoom += (this._goal.zoom - this.zoom) * k;
+      if (Math.hypot(gx - this.pan.x, gz - this.pan.z) < 1 && Math.abs(this._goal.zoom - this.zoom) < 0.01) this._goal = null;
+    }
+    if (def.id === CITY.id) { d.px += this.pan.x; d.tx += this.pan.x; d.pz += this.pan.z; d.tz += this.pan.z; }
     applyOrbit(d, def, this.yaw, this.pitch, this.zoom);
+    if (def.id === CITY.id) {
+      this._az = Math.atan2(d.px - d.tx, d.pz - d.tz);
+      this._dist = Math.hypot(d.px - d.tx, d.py - d.ty, d.pz - d.tz);
+    }
     d.fov = def.fov;
   }
 
