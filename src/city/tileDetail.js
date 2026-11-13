@@ -12,6 +12,7 @@ export const MARKING = Object.freeze({ y: 0.14, dash: 3.5, gap: 5.5, width: 0.5,
 const CENTER_CLASSES = new Set(['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential']);
 const EDGE_CLASSES = new Set(['motorway', 'trunk', 'primary', 'secondary', 'tertiary']);
 const TREE_ROAD_CLASSES = new Set(['primary', 'secondary', 'tertiary', 'unclassified', 'residential', 'living_street']);
+export const LAMPS = Object.freeze({ spacing: 38, offset: 1.4, maxPerTile: 170, poleH: 6.5 });
 export const TREES = Object.freeze({ spacing: 13, scatter: 17, maxPerTile: 420, rowKeep: 0.72, minH: 6, maxH: 11, half: 250, cell: 20 });
 
 /** Hash deterministik [0, 1) dari tiga bilangan bulat. */
@@ -64,6 +65,40 @@ export function markingQuads(roads, reserved = () => false) {
           pushQuad(out, ax, az, ux, uz, 0, len, off, MARKING.width / 2);
           pushQuad(out, ax, az, ux, uz, 0, len, -off, MARKING.width / 2);
         }
+      }
+      s += len;
+    }
+  }
+  return out;
+}
+
+/**
+ * Titik lampu jalan tile: tiap LAMPS.spacing m sepanjang jalan besar (kelas EDGE, lebar ≥ minRoadWidth), bergantian kiri/kanan,
+ * digeser lebar/2 + offset dari sumbu; `rot` = arah jalan (kepala lampu memanjang searah jalan). Dibatasi maxPerTile.
+ * @returns {Array<{x:number, z:number, rot:number}>}
+ */
+export function streetLampPoints(roads, reserved = () => false, { max = LAMPS.maxPerTile } = {}) {
+  const out = [];
+  for (const r of roads) {
+    if (!EDGE_CLASSES.has(r.cls) || r.width < MARKING.minRoadWidth) continue;
+    let s = 0;
+    let next = hash01(Math.round(r.pts[0][0]), Math.round(r.pts[0][1]), 11) * LAMPS.spacing; // fase acak per jalan
+    let k = 0;
+    for (let i = 0; i + 1 < r.pts.length; i += 1) {
+      const [ax, az] = r.pts[i];
+      const [bx, bz] = r.pts[i + 1];
+      const len = Math.hypot(bx - ax, bz - az);
+      if (len < 1e-3) continue;
+      const ux = (bx - ax) / len;
+      const uz = (bz - az) / len;
+      for (; next < s + len; next += LAMPS.spacing, k += 1) {
+        const t = next - s;
+        const side = k % 2 === 0 ? 1 : -1;
+        const off = side * (r.width / 2 + LAMPS.offset);
+        const x = ax + ux * t - uz * off;
+        const z = az + uz * t + ux * off;
+        if (!reserved(x, z)) out.push({ x, z, rot: Math.atan2(ux, uz) });
+        if (out.length >= max) return out;
       }
       s += len;
     }
@@ -211,8 +246,8 @@ const col = new THREE.Color();
  * @param {{reserved?: (x: number, z: number) => boolean, trees?: boolean, markings?: boolean}} [opts]
  * @returns {{markings: number, trees: number}}
  */
-export function addTileDetail(root, tile, materials, { reserved = () => false, trees = true, markings = true } = {}) {
-  const result = { markings: 0, trees: 0 };
+export function addTileDetail(root, tile, materials, { reserved = () => false, trees = true, markings = true, lamps = true } = {}) {
+  const result = { markings: 0, trees: 0, lamps: 0 };
   const { x: cx, z: cz } = tile.center;
   const markMat = materials.forMesh('road_markings');
   if (markings && markMat) {
@@ -245,6 +280,28 @@ export function addTileDetail(root, tile, materials, { reserved = () => false, t
       mesh.frustumCulled = true;
       root.add(mesh);
       result.markings = n;
+    }
+  }
+  const poleMat = materials.forMesh('lamp_poles');
+  const headMat = materials.forMesh('lamp_heads');
+  if (lamps && poleMat && headMat) {
+    const spots = streetLampPoints(tile.roads, reserved);
+    if (spots.length > 0) {
+      const mk = (geo, mat, name) => {
+        const mesh = new THREE.InstancedMesh(geo, mat, spots.length);
+        mesh.name = name;
+        spots.forEach((p, i) => {
+          q.setFromAxisAngle(up, p.rot);
+          mesh.setMatrixAt(i, m4.compose(pos.set(p.x - cx, 0, p.z - cz), q, scl.set(1, 1, 1)));
+        });
+        mesh.instanceMatrix.needsUpdate = true;
+        mesh.castShadow = false;
+        mesh.computeBoundingSphere();
+        root.add(mesh);
+      };
+      mk(new THREE.BoxGeometry(0.26, LAMPS.poleH, 0.26).translate(0, LAMPS.poleH / 2, 0), poleMat, 'tiangLampu');
+      mk(new THREE.BoxGeometry(0.9, 0.3, 1.7).translate(0, LAMPS.poleH + 0.1, 0), headMat, 'kepalaLampu');
+      result.lamps = spots.length;
     }
   }
   const treeMat = materials.forMesh('trees');

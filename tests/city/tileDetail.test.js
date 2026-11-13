@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { markingQuads, treePoints, hash01, TREES, MARKING } from '../../src/city/tileDetail.js';
+import { markingQuads, treePoints, streetLampPoints, hash01, TREES, MARKING, LAMPS } from '../../src/city/tileDetail.js';
 import { pointInPolygon } from '../../src/geo/polygon.js';
 
 const road = (cls, width, pts) => ({ cls, width, name: null, pts });
@@ -46,5 +46,25 @@ describe('treePoints', () => {
       expect(h).toBeGreaterThanOrEqual(0);
       expect(h).toBeLessThan(1);
     }
+  });
+});
+
+describe('streetLampPoints', () => {
+  const big = road('primary', 14, [[0, 0], [380, 0]]);
+  it('jarak ≈ spacing, bergantian dua sisi, digeser dari tepi jalan', () => {
+    const pts = streetLampPoints([big]);
+    expect(pts.length).toBeGreaterThanOrEqual(Math.floor(380 / LAMPS.spacing));
+    expect(pts.length).toBeLessThanOrEqual(Math.ceil(380 / LAMPS.spacing));
+    for (const p of pts) expect(Math.abs(p.z)).toBeCloseTo(7 + LAMPS.offset, 6);
+    expect(Math.sign(pts[0].z)).not.toBe(Math.sign(pts[1].z));
+  });
+  it('jalan kecil/sempit dan reserved dilewati; max membatasi', () => {
+    expect(streetLampPoints([road('residential', 6, [[0, 0], [380, 0]])])).toEqual([]);
+    expect(streetLampPoints([road('primary', 4, [[0, 0], [380, 0]])])).toEqual([]);
+    expect(streetLampPoints([big], () => true)).toEqual([]);
+    expect(streetLampPoints([big], () => false, { max: 3 })).toHaveLength(3);
+  });
+  it('deterministik', () => {
+    expect(streetLampPoints([big])).toEqual(streetLampPoints([big]));
   });
 });
