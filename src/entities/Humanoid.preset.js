@@ -25,11 +25,15 @@ const PARENT = Object.freeze({
 });
 const THIGH_R = 0.08; // tebal paha (pose duduk: tinggi pinggul di atas kursi/lantai)
 
-/** @type {Map<string, {geometry: THREE.BufferGeometry, joints: Record<string, THREE.Vector3>, height: number}>} */
+/** @type {Map<string, {geometry: THREE.BufferGeometry, map: THREE.Texture|null, joints: Record<string, THREE.Vector3>, height: number}>} */
 let presets = new Map();
 
-const presetMaterial = () => currentScope().get('humanoid:presetMaterial', () => new THREE.MeshLambertMaterial({
-  vertexColors: true,
+/**
+ * Material per preset: warna vertex × atlas (wajah dilukis, motif batik; sisanya putih). Dua sisi karena rambut,
+ * tudung hijab, dan kardigan berupa cangkang terbuka.
+ */
+const presetMaterial = (id, map) => currentScope().get(`humanoid:presetMaterial:${id}`, () => new THREE.MeshLambertMaterial({
+  vertexColors: true, map, side: THREE.DoubleSide,
 }));
 
 /**
@@ -53,6 +57,10 @@ export function addHumanoidPreset(id, root) {
   geo.setAttribute('position', src.getAttribute('position').clone());
   geo.setAttribute('normal', src.getAttribute('normal').clone());
   geo.applyMatrix4(skinned.matrixWorld);
+  const uv = src.getAttribute('uv');
+  if (uv) geo.setAttribute('uv', uv.clone());
+  const map = uv && skinned.material?.map ? skinned.material.map.clone() : null;
+  if (map) map.colorSpace = THREE.SRGBColorSpace;
   const col = src.getAttribute('color');
   const n = geo.attributes.position.count;
   const rgb = new Float32Array(n * 3).fill(1);
@@ -67,8 +75,11 @@ export function addHumanoidPreset(id, root) {
   geo.computeBoundingBox();
   geo.computeBoundingSphere();
   const prev = presets.get(id);
-  if (prev) prev.geometry.dispose();
-  presets = new Map(presets).set(id, { geometry: geo, joints, height: geo.boundingBox.max.y });
+  if (prev) {
+    prev.geometry.dispose();
+    prev.map?.dispose();
+  }
+  presets = new Map(presets).set(id, { geometry: geo, map, joints, height: geo.boundingBox.max.y });
   return true;
 }
 
@@ -76,7 +87,10 @@ export const hasPreset = (id) => presets.has(id);
 
 /** Lepas semua preset (tes / halaman dev). */
 export function clearHumanoidPresets() {
-  for (const p of presets.values()) p.geometry.dispose();
+  for (const p of presets.values()) {
+    p.geometry.dispose();
+    p.map?.dispose();
+  }
   presets = new Map();
 }
 
@@ -88,7 +102,7 @@ export function clearHumanoidPresets() {
 export function createPresetHumanoid(id, opts = {}) {
   const preset = presets.get(id);
   if (!preset) throw new Error(`Preset karakter "${id}" belum dimuat`);
-  const { geometry, joints } = preset;
+  const { geometry, joints, map } = preset;
   const height = Number.isFinite(opts.height) && opts.height > 0 ? opts.height : preset.height;
   const scale = height / preset.height;
   const group = new THREE.Group();
@@ -106,7 +120,7 @@ export function createPresetHumanoid(id, opts = {}) {
   // Invers tulang dihitung pada ukuran asli (= bind pose geometri); skala tinggi baru diterapkan sesudahnya.
   group.updateMatrixWorld(true);
   const skeleton = new THREE.Skeleton(PRESET_BONES.map((nm) => parts[nm]));
-  const mesh = new THREE.SkinnedMesh(geometry, presetMaterial());
+  const mesh = new THREE.SkinnedMesh(geometry, presetMaterial(id, map));
   mesh.name = `preset-${id}`;
   mesh.castShadow = true;
   mesh.frustumCulled = false; // pose duduk/rebahan keluar dari bounding sphere pose diam
