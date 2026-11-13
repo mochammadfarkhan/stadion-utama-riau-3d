@@ -1,16 +1,28 @@
 import { describe, it, expect } from 'vitest';
-import { parseBuildings, parseRoads } from '../../src/city/farCity.js';
+import { parseBuildings, parseRoads, parseTrees } from '../../src/city/farCity.js';
 
-describe('format biner kota jauh', () => {
-  it('parseBuildings membaca 8 byte/bangunan (desimeter, setengah meter)', () => {
-    const buf = new ArrayBuffer(16);
+describe('format biner kota jauh (v2)', () => {
+  it('parseBuildings membaca 10 byte/bangunan (desimeter, setengah meter, rotasi, bendera atap pelana)', () => {
+    const buf = new ArrayBuffer(20);
     const v = new DataView(buf);
     v.setUint16(0, 12345, true); v.setUint16(2, 20000, true); v.setUint8(4, 24); v.setUint8(5, 18); v.setUint8(6, 9); v.setUint8(7, 4);
-    v.setUint16(8, 1, true); v.setUint16(10, 2, true); v.setUint8(12, 255); v.setUint8(13, 1); v.setUint8(14, 200); v.setUint8(15, 0);
+    v.setUint8(8, 255); v.setUint8(9, 1);
+    v.setUint16(10, 1, true); v.setUint16(12, 2, true); v.setUint8(14, 255); v.setUint8(15, 1); v.setUint8(16, 200); v.setUint8(17, 0);
+    v.setUint8(18, 0); v.setUint8(19, 0);
     const list = parseBuildings(buf);
     expect(list).toHaveLength(2);
-    expect(list[0]).toEqual({ x: 1234.5, z: 2000, w: 12, d: 9, h: 4.5, cls: 4 });
+    expect(list[0]).toMatchObject({ x: 1234.5, z: 2000, w: 12, d: 9, h: 4.5, cls: 4, gable: true });
+    expect(list[0].rot).toBeCloseTo(Math.PI / 4, 6); // 255 → +45°
     expect(list[1].w).toBe(127.5);
+    expect(list[1].gable).toBe(false);
+    expect(list[1].rot).toBeCloseTo(-Math.PI / 4, 6); // 0 → −45°
+  });
+  it('parseTrees membaca 5 byte/pohon', () => {
+    const buf = new ArrayBuffer(10);
+    const v = new DataView(buf);
+    v.setUint16(0, 100, true); v.setUint16(2, 250, true); v.setUint8(4, 20);
+    v.setUint16(5, 65535, true); v.setUint16(7, 0, true); v.setUint8(9, 13);
+    expect(parseTrees(buf)).toEqual([{ x: 10, z: 25, h: 10 }, { x: 6553.5, z: 0, h: 6.5 }]);
   });
   it('parseRoads membaca rangkaian [kelas, n, titik i16] dan berhenti pada data terpotong', () => {
     const b = new ArrayBuffer(3 + 8 + 3 + 4);

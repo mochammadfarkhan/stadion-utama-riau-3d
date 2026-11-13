@@ -11,7 +11,7 @@ import { buildStadionProxy } from '../regions/stadion/proxy.js';
 import { createCityLabels } from '../ui/CityLabels.js';
 
 const FOG_PREVIEW = 9000;      // m: jarak kabut selama pratinjau (setelan "Jarak kabut" hanya sampai 2000)
-const FOG_PER_DISTANCE = 9;      // fogDistance ≈ 9 × jarak kamera → awal kabut (0,16 × fogDistance) di belakang titik pandang
+const FOG_PER_DISTANCE = 14;     // fogDistance ≈ 14 × jarak kamera → awal kabut ≈ 1,8 × jarak: hanya cakrawala yang berkabut
 const MAX_PREVIEW_PIXEL_RATIO = 1.5;
 const SHADOW_EXTENT_RANGE = Object.freeze([200, 700]); // setengah lebar frustum bayangan (m): ikut jarak kamera agar bangunan di layar bersayangan
 const LABEL_ZOOM = 0.4;       // zoom saat terbang ke landmark
@@ -75,6 +75,7 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     document.body.classList.add('is-city-preview');
     labels.setVisible(true);
     shadowSaved = light.getShadowExtent?.() ?? null;
+    if (light.clouds) light.clouds.visible = false; // kubah awan (±2,2 km) menutupi kota di luar radiusnya dengan kerudung putih
     hud.toast(HINT, true);
   };
 
@@ -93,6 +94,7 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     city?.setPreview(false);
     document.body.classList.remove('is-city-preview');
     labels.setVisible(false);
+    if (light.clouds) light.clouds.visible = true;
     if (shadowSaved != null) { light.setShadowExtent?.(shadowSaved); shadowSaved = null; }
     app.setPixelCap?.(styleCap);
     app.setPixelRatio?.(store.get('graphics.pixelRatio'));

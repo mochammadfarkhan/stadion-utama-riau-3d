@@ -69,13 +69,26 @@ const ROOF_FRAGMENT = [
   '}',
 ].join('\n');
 
+/** Posisi/normal dunia untuk fasad; memperhitungkan instanceMatrix (bangunan jauh = InstancedMesh). */
+const INSTANCE_AWARE_VERTEX = [
+  '#include <begin_vertex>',
+  'vec4 facadeLocal = vec4(transformed, 1.0);',
+  'vec3 facadeNormal = objectNormal;',
+  '#ifdef USE_INSTANCING',
+  '  facadeLocal = instanceMatrix * facadeLocal;',
+  '  facadeNormal = mat3(instanceMatrix) * facadeNormal;',
+  '#endif',
+  'vFacadeP = (modelMatrix * facadeLocal).xyz;',
+  'vFacadeN = normalize(mat3(modelMatrix) * facadeNormal);',
+].join('\n');
+
 /** Sisipkan varying + pola ke sumber shader MeshLambertMaterial (murni; dites tanpa WebGL). */
 export function patchFacadeSource(shader, kind) {
   const fragment = kind === 'roof' ? ROOF_FRAGMENT : WALL_FRAGMENT;
   return {
     vertexShader: shader.vertexShader
       .replace('#include <common>', `#include <common>\n${COMMON_V}`)
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFacadeP = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvFacadeN = normalize(mat3(modelMatrix) * objectNormal);'),
+      .replace('#include <begin_vertex>', INSTANCE_AWARE_VERTEX),
     fragmentShader: shader.fragmentShader
       .replace('#include <common>', `#include <common>\n${COMMON_F}`)
       .replace('#include <color_fragment>', `#include <color_fragment>\n${fragment}`)

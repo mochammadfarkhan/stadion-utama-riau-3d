@@ -26,7 +26,8 @@ export const QUERIES = Object.freeze({
     // luas planar derajat² → m² dihitung di farbake (butuh lintang); di sini simpan mentah
     sql: `SELECT round((bbox.xmin + bbox.xmax) / 2, 6) AS lon, round((bbox.ymin + bbox.ymax) / 2, 6) AS lat,
       round(bbox.xmax - bbox.xmin, 7) AS dlon, round(bbox.ymax - bbox.ymin, 7) AS dlat, round(ST_Area(geometry), 12) AS area_deg2,
-      coalesce(height, num_floors * 3.2, 0) AS h, coalesce(class, subtype, '') AS kelas
+      coalesce(height, num_floors * 3.2, 0) AS h, coalesce(class, subtype, '') AS kelas,
+      ST_AsText(ST_Simplify(geometry, 0.000004)) AS wkt
       FROM ${base('buildings', 'building')} WHERE ${where()}`,
   },
   jalan: {
