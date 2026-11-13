@@ -40,3 +40,13 @@ describe('cahaya jendela', () => {
     expect(patchFacadeSource(sh, 'roof').fragmentShader).not.toContain('totalEmissiveRadiance +=');
   });
 });
+
+describe('detail tanah', () => {
+  it('menyisipkan varying & pola tanpa nama terpesan', async () => {
+    const { patchGroundDetailSource } = await import('../src/city/groundDetail.js');
+    const out = patchGroundDetailSource({ vertexShader: '#include <common>\n#include <begin_vertex>', fragmentShader: '#include <common>\n#include <color_fragment>' });
+    expect(out.vertexShader).toContain('vGroundP =');
+    expect(out.fragmentShader).toContain('gdVar');
+    expect(out.fragmentShader).not.toMatch(/\b(patch|sample|filter|input|output|packed|union)\b\s+\w+\s*=/);
+  });
+});

@@ -7,6 +7,7 @@
  */
 import * as THREE from 'three';
 import { applyFacade } from './facade.js';
+import { applyGroundDetail } from './groundDetail.js';
 
 export const CITY_LAYERS = Object.freeze({
   ground: Object.freeze({ renderOrder: -4, flat: true }),
@@ -32,14 +33,17 @@ export function createCityMaterials() {
     return m;
   };
   const byName = {
-    landuse: flat('landuse', THREE.MeshLambertMaterial),
+    landuse: applyGroundDetail(flat('landuse', THREE.MeshLambertMaterial), 'landuse'), // variasi tanah dunia (groundDetail.js)
     water: flat('water', THREE.MeshStandardMaterial, { roughness: 0.35, metalness: 0 }),
-    roads: flat('roads', THREE.MeshLambertMaterial),
+    roads: applyGroundDetail(flat('roads', THREE.MeshLambertMaterial), 'roads', 1.4),
+    road_markings: flat('road_markings', THREE.MeshLambertMaterial, { side: THREE.DoubleSide }), // marka (tileDetail.js)
+    trees: solid('trees'),                                                                       // pohon instans (tileDetail.js)
     buildings_walls: applyFacade(solid('buildings_walls'), 'wall'), // jendela, lantai, kios (shader; lihat facade.js)
     buildings_roofs: applyFacade(solid('buildings_roofs'), 'roof'), // garis genteng / petak seng
   };
   const ground = new THREE.MeshLambertMaterial({ color: CITY_GROUND_COLOR, depthWrite: true });
   ground.name = 'kota:ground';
+  applyGroundDetail(ground, 'ground');
   const all = new Set([...Object.values(byName), ground]);
   return {
     forMesh: (name) => byName[name] ?? null,
