@@ -1,0 +1,69 @@
+{
+ "preset": "rendah",
+ "gaya": null,
+ "titik": {
+  "awal-sore": {
+   "calls": 466,
+   "triangles": 2168901,
+   "fps": 9.3
+  },
+  "awal-malam": {
+   "calls": 483,
+   "triangles": 2163647,
+   "fps": 11.3
+  },
+  "unri-jalan": {
+   "calls": 460,
+   "triangles": 1152158,
+   "fps": 15.5
+  },
+  "sekre-luar": {
+   "calls": 504,
+   "triangles": 1030342,
+   "fps": 11.3
+  },
+  "rektorat": {
+   "calls": 459,
+   "triangles": 1209629,
+   "fps": 20
+  },
+  "kota-dekat": {
+   "calls": 157,
+   "triangles": 434098,
+   "fps": 14.3
+  },
+  "kota-jauh": {
+   "calls": 1399,
+   "triangles": 4952927,
+   "fps": 7.3
+  },
+  "kota-malam": {
+   "calls": 218,
+   "triangles": 574243,
+   "fps": 10.7
+  },
+  "hp-awal": {
+   "calls": 472,
+   "triangles": 2171083,
+   "fps": 30
+  }
+ },
+ "ui": {
+  "dompetTertutupRail": true,
+  "kartuKiriTertutupMisi": false,
+  "hpDompetTertutupRail": true,
+  "hpMisiTertutupMinimap": false
+ },
+ "errors": [],
+ "setelan": {
+  "preset": "rendah",
+  "pixelRatio": 0.75,
+  "shadow": "mati",
+  "gaya": "kartun"
+ },
+ "spawn": {
+  "x": 0.0020107358867644393,
+  "z": -275.00259324303437,
+  "yaw": 0.000031788146451389333
+ }
+}

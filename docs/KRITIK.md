@@ -5,6 +5,9 @@ Sudut pandang: kritikus game yang juga membaca sumbernya. Tiap temuan ditandai *
 Status: ⬜ belum · 🔄 dikerjakan · ✅ selesai · ➖ dicabut (alasan ditulis).
 Tiap baris berisi: masalah → **berkas** → perubahan konkret → cara cek. Nomor baris kode bisa bergeser; cari nama simbolnya.
 
+> **Mau mengerjakan? Jangan mulai dari sini.** Tiap butir di bawah sudah dipecah menjadi kartu kerja langkah demi langkah (tes, perintah, angka lulus) di
+> **`docs/rencana/README.md`** (kartu R01–R25). Dokumen ini menyimpan *kenapa*; kartu menyimpan *bagaimana*.
+
 ## Arah (sudut pandang game director) — 2026-11-13
 
 Daftar temuan di bawah (G/M/U/S/K) menjawab "apa yang rusak". Bagian ini menjawab pertanyaan yang lebih mahal:
@@ -73,7 +76,7 @@ Tiap tonggak punya satu kalimat janji, kriteria selesai yang bisa dicek, dan **y
 **Irama (keputusan D2):** selang-seling, 1 PR mode jalan (T1 lalu T2) : 1 PR Kota (T3). T3 berjalan sejajar, tidak menunggu.
 Urutan Kota: K4 → K1 → K2 + K3 → P10 kinerja → K6 → K5. T4 setelah T1 dan T2 selesai.
 **Akibat D1 pada T1:** titik mulai pindah ke sekre ERC, dan "sepuluh menit pertama" = keluar dari sekre, keliling kampus,
-sampai stadion. **Akibat D5:** M1/M2/M4/M5 menunggu contoh rujukan dari user; M3 (`LOD_NEAR`) dan M6 tetap bisa jalan.
+sampai stadion. **Akibat D5:** M1/M2/M4/M5 dikerjakan sesi lain dari rujukan user (PR #39); M3 (`LOD_NEAR`, R05) dan M6 (R17) tetap bisa jalan.
 
 ### Di luar rencana sekarang ("beyond") — dicatat, tidak dijadwalkan
 Hanya dibuka setelah T2 selesai; masing-masing harus lulus aturan potong.
@@ -93,7 +96,7 @@ Hanya dibuka setelah T2 selesai; masing-masing harus lulus aturan potong.
 | D2 | Posisi Kota vs mode jalan | Dua-duanya seimbang (selang-seling) |
 | D3 | Arah seni dikunci di preset Rendah | Ya |
 | D4 | Judul | **"Anak Bertuah"** (dipilih 2026-11-14) |
-| D5 | Wajah/avatar | User akan mengirim contoh rujukan; pekerjaan model manusia menunggu itu |
+| D5 | Wajah/avatar | User mengirim rujukan + 3 karakter jadi (2026-11-14); dikerjakan sesi lain di PR #39 (`feat/karakter-preset`, `entities/Humanoid.preset.js`). M1/M2/M4/M5 dinilai ulang setelah PR itu masuk |
 | D6 | Penguji T1 | 3 teman ERC yang belum pernah melihat proyek |
 
 **Judul (D4): "Anak Bertuah".** Usul lain yang tidak dipilih: "Pulang ke Sekre", "Pekanbaru Bebas", "Kayuh Pekanbaru",
@@ -128,7 +131,7 @@ tetapi dimatikan di preset Rendah atau gaya `asli`** (bayangan kontak, bayangan,
 ### 1. Grafis
 | # | Masalah | Akar di kode | Perubahan | Cek |
 |---|---|---|---|---|
-| G1 ⬜ | Sepeda, pohon, NPC melayang tanpa bayangan [LIHAT] | Preset Rendah: `graphics.shadowQuality: 'mati'` (`config/quality.js`). Bayangan kontak murah **sudah ada** (`engine/contactShadows.js`, 1 draw call) tetapi `styleManager.js` memanggil `contact.setEnabled(style !== 'asli')` | Ubah syarat jadi: aktif bila gaya ≠ asli **atau** bayangan nyata mati. Daftarkan pohon kota/tile sebagai sumber (`registerContactSource`) seperti yang sudah dilakukan `districts/unri/groundLayer.js` | bidikan stadion preset Rendah: ada cakram gelap di bawah sepeda/pohon; draw call +1 |
+| G1 ⬜ | Sepeda, pohon, NPC melayang tanpa bayangan [LIHAT] | **[UKUR 2026-11-14, mengoreksi akar lama]** Bayangan kontak (`engine/contactShadows.js`) **aktif** di gaya default `kartun` (mesh `visible`, 30 instans, tinggi benar) tetapi **tidak pernah terlihat**: `blobTexture()` menggambar gradien hitam dan memakainya sebagai `alphaMap`, padahal three.js membaca `alphaMap` dari kanal hijau (piksel tengah `[0,0,0,255]` → alpha 0). Sumber yang terdaftar baru humanoid, pohon Lembaga, tiang PJU kampus | Gradien putih→hitam di `blobTexture()` (satu baris), lalu daftarkan tiang dan pohon kawasan stadion (`registerContactSource`) → **R02** | `docs/screenshots/kritik/dasar/bayangan-kontak-sesudah.jpg`; draw call tidak naik |
 | G2 ⬜ | Gambar bergerigi, tulisan stadion pecah [LIHAT] | Rendah: `graphics.pixelRatio: 0.75`; renderer `antialias:false`, penghalusan hanya dari supersampling (`core/App.js` komentar dekat `new WebGLRenderer`), jadi di rasio < 1 **tidak ada AA sama sekali**. `adaptiveResolution.js` `floor = 0.6` | Tambah pass FXAA di ujung composer (`core/postprocessing/efekLayar.js`), aktif otomatis saat rasio ≤ 1. Biaya 1 lintasan layar penuh; ukur di iGPU. Alternatif tanpa pass: naikkan lantai adaptif ke 0,7 | bidikan sebelum/sesudah pada tulisan "STADION UTAMA RIAU"; `tools/shots/kualitas.mjs` untuk fps |
 | G3 ⬜ | Siang pudar, stadion tenggelam kabut pada jarak 275 m [LIHAT] | `world/Lighting.js`: `FOG_NEAR = 220`, `FOG_FAR = 1100`; Rendah menurunkan `sky.fogDistance` ke 700 → near ikut turun proporsional (`world/TimeOfDay.js` `fogRange`) ≈ 140 m | Pisahkan near dari pengali jarak: near minimum ±300 m supaya objek hero di depan mata tetap jenuh; hanya far yang ikut preset. Warnai kabut ikut warna cakrawala langit per jam | bidikan sore dari titik awal: warna tribun terbaca |
 | G4 ⬜ | 275 m rumput satu warna di depan pemain [LIHAT] | Titik awal `regions/stadion/layout.js` `spawn: {x:0, z:-275}`; variasi tanah Rendah = `graphics.tanahPbr: 'rendah'` | Lihat S1 (pindah titik awal) — lebih murah daripada mendandani lapangan. Lalu variasi warna petak di shader tanah (`city/groundDetail.js` sudah punya pola serupa) | bidikan titik awal |
@@ -136,6 +139,7 @@ tetapi dimatikan di preset Rendah atau gaya `asli`** (bayangan kontak, bayangan,
 | G6 ⬜ | Malam: stadion gelap, papan nama mati [LIHAT] | Lampu sorot + pendar hanya ada di proxy (`regions/stadion/proxy.js` `floodlights`) | Emissive pada material papan nama + strip jendela tribun di `regions/stadion`, dikendalikan faktor malam yang sama dengan `city/nightGlow.js` | bidikan 20.30 dari titik awal |
 | G7 ⬜ | Kota zoom penuh: 1.423 draw call / 4,98 jt segitiga / 12 fps; target ≤ 600 / ≤ 3 jt [UKUR] | `city/farCity.js`: InstancedMesh **per sel 2 km × per jenis** (datar, pelana, pohon) + jalan per sel; semua sel tampil sekaligus saat zoom maksimum | (a) saat `director.zoom` > ambang: sembunyikan mesh pohon dan atap pelana sel yang jauh dari titik pandang (toggle `mesh.visible`, tanpa bake); (b) gabung jalan per sel menjadi 1 geometri per kelas-besar; (c) `mesh.count` diturunkan (buang bangunan terkecil dulu, urutkan saat bake) | `?perf` di zoom maksimum: ≤ 600 call |
 | G8 ⬜ | Pola kisi di area buram tilt-shift; pojok putih di zoom penuh [LIHAT] `kota-jauh.jpg` | Tilt-shift maket (`app/cityPreview.js` `tiltPass`); alas diorama `SLAB_STRATA` (`farCity.js`) tidak menutup latar | Tambah jitter/rotasi sampel per piksel di shader tilt; set `scene.background`/kabut ke warna langit maket; batasi `zoomMax` (`core/cameraPresets.js`, sekarang 14) sampai tepi tidak terlihat | bidikan zoom maksimum |
+| G9 ⬜ | **Mode jalan hampir 2× anggaran draw call** [UKUR 2026-11-14, preset Rendah]: titik awal 466–488, depan sekre 504–511, jalan kampus 460, rektorat 459 (anggaran ≤ 250) | Rincian mesh: `entitasRegion` 167 (humanoid detail penuh ±15 mesh/orang dalam `LOD_NEAR = 60`), sepeda pemain 57 (68 mesh terpisah), isi region Lembaga 188, kehidupan kampus 63, kendaraan mangkal 24 (4 kendaraan) | `LOD_NEAR` 28; gabung bagian diam sepeda per material; gabung kendaraan mangkal; pastikan detail stadion tidak digambar dari kampus → **R05** | `tools/shots/rincianDraw.mjs` (dibuat R05) |
 
 ### 2. Model manusia
 | # | Masalah | Akar di kode | Perubahan | Cek |
@@ -191,39 +195,50 @@ mengambil nama (`names`). Jadi klien tidak tahu mana masjid, mana kampus, mana g
 | K2 ⬜ | **Daftar landmark dari data** | `tools/citybake/farFetch.mjs`, `farbake.mjs` → `public/far/landmarks.json` | Query Overture tambah `names.primary`; ekspor bangunan bernama dengan tinggi > ambang atau kelas ibadah/pendidikan/medis/pemerintah/transportasi dan luas besar: `{nama, x, z, h, kelas, luas}` diurutkan skor (tinggi × luas). Ini menjawab "gedung ikonik yang mana" tanpa mengarang nama | jaringan/cache `data-src`; berkas kecil (< 50 KB) |
 | K3 ⬜ | **Label bertingkat** | `src/ui/CityLabels.js`, `app/cityPreview.js` | Label dari `landmarks.json`: N teratas menurut skor sesuai `director.zoom` (jauh 5, menengah 15, dekat 40); tolak label yang bertumpuk di layar | DOM saja |
 | K4 ⬜ | **Proxy stadion** | `src/regions/stadion/proxy.js` (`bowl`, `floodlights`) | Tambah `roofRibs()`: lengkung rangka atap instans mengelilingi elips (parameter elips sudah ada di `regions/stadion`), `tiers()`: 2–3 cincin tribun berwarna, papan nama. Tetap 1–3 draw call | tanpa bake |
-| K5 ⬜ | **Hero buatan tangan** (maks 6, ≤ 5 rb segitiga, vertex color) | `assets-src/blender/<nama>.py` → `public/models/monumen/`, `src/city/landmarks.js` (resep di `kota/ganti-model/README.md`) | Urutan diambil dari peringkat K2, bukan tebakan. Kandidat yang sudah pasti ada di data: Masjid Raya An-Nur (area `annur`), Rektorat UNRI, jembatan Sungai Siak (`rivers.bin`), bandara (poligon landasan). `farbake` membuang kotak yang ditimpa | per model ±1 jam Blender |
+| K5 ⬜ | **Hero buatan tangan** (maks 6, ≤ 5 rb segitiga, vertex color) | `assets-src/blender/<nama>.py` → `public/models/monumen/`, pemasang landmark di lapisan `city/` (berkas belum ada; resep di `kota/ganti-model/README.md`) | Urutan diambil dari peringkat K2, bukan tebakan. Kandidat yang sudah pasti ada di data: Masjid Raya An-Nur (area `annur`), Rektorat UNRI, jembatan Sungai Siak (`rivers.bin`), bandara (poligon landasan). `farbake` membuang kotak yang ditimpa | per model ±1 jam Blender |
 | K6 ⬜ | **Warna kawasan terbaca** | `farCity.js` `FAR_CLASS_TINT` | Rentang sekarang 0,78–1,1 (hampir seragam). Perlebar: niaga hangat, industri biru-abu, publik krem terang, hunian genteng; atap datar ikut kelas | tanpa bake |
 | K7 ⬜ | **Jalan arteri terbaca dari jauh** | `farCity.js` (jalan per kelas), PLAN "Berikutnya" no. 3 | Lebar minimum dalam piksel untuk kelas 0–2 (skala ikut zoom) + garis tengah | tanpa bake |
 | K8 ⬜ | **Lapangan, sekolah, RS** | `farFetch.mjs` (tema `base/land_use`), peta tanah di `farbake.mjs` | Gambar poligon `pitch`/`school`/`hospital`/`cemetery` ke SVG peta tanah dengan warna khas (pola `COVER_COLOR`) | bake ulang |
 
-Urutan: K4 → K1 → K2 + K3 → K6 → K5 → K7 → K8. K1 + K2 adalah intinya: sekali bake, ratusan masjid dan semua gedung
-tinggi berubah sekaligus, dan daftar hero berikutnya keluar dari data.
+Urutan: K4 → K1 → K2 + K3 → K6 → K5 → K7 → K8. K1 + K2 adalah intinya, **dengan koreksi dari data (2026-11-14,
+`bangunan.csv` 420.728 baris):** 98,8% bangunan tanpa kelas dan 99,8% tanpa tinggi; hanya 12 bangunan ≥ 25 m; `religious` + `mosque` = 297.
+Jadi "menara dari tinggi" dibuang, kubah hanya untuk 297 rumah ibadah yang terdata, dan warna kawasan juga diturunkan dari luas jejak (rincian di R06).
+Rekaman bangunan 10 byte (bukan 8). Kartu: K4 → R04 · K1, K6 → R06 · K2, K3 → R07 · K5 → R26 bagian C · K7, K8 → R12.
 Bangunan bundar berkubah di selatan stadion [LIHAT]: identitasnya akan muncul dari K2; jangan diberi nama sebelum itu.
 
-### Paket kerja (1 paket = 1 branch/PR kecil; urutan pengerjaan mengikuti tonggak T1–T4 di bagian Arah)
-| Paket | Isi | Jenis | Tes |
+### Dari butir ke kartu kerja (menggantikan tabel paket P1–P12)
+| Butir | Kartu | Butir | Kartu |
 |---|---|---|---|
-| P1 Perbaikan 1 jam | U1, U2, U3, U4, U5 | CSS + 3 baris JS | lihat bidikan |
-| P2 Rendah tapi rapi | G1, G3, G2 (FXAA) | setelan + 1 pass | bidikan + fps iGPU |
-| P3 Orang | M1 (keputusan user), M3 (`LOD_NEAR`), M6 | kode + kit | lineup, draw call |
-| P4 Stadion ikon | K4, G6 | geometri prosedural | bidikan Kota + malam |
-| P5 Kota bersiluet | K1, K6 | bake + klien | tes murni enum bentuk di `farbake` |
-| P6 Landmark dari data | K2, K3, U9 | bake + UI | tes murni skor/pemilihan label |
-| P7 Menit pertama | S1, U6 | data + UI | main dari awal |
-| P8 Ekonomi | S2, S3 | `sim/` murni | tes stamina + harga |
-| P9 Kurir | S4, S6 | `sim/` murni | tes pesanan |
-| P10 Kinerja Kota | G7, G8 | klien | `?perf` zoom maksimum |
-| P11 Hero Blender | K5, M2, M4, M5 | aset | lineup, bidikan |
-| P12 Jelajah | S5, S7, S8 | UI + simpan | tes penyimpanan |
+| U1–U5 | R01 HUD rapi | S2, S3 | R09 ekonomi + stamina |
+| G1, G2, G3 | R02 Rendah rapi | S4, S6 | R10 kurir + hari pertandingan |
+| S1, U6, G4 | R03 mulai dari sekre | S5, S7, S8 | R11 paspor + jelajah |
+| K4, G6 | R04 stadion ikon | G5, U8, K7, K8 | R12 sisa |
+| M3, G9 | R05 draw call mode jalan | M6 | R17 animasi |
+| K1, K6 | R06 kota bersiluet | M1, M2, M4, M5 | PR #39 (sesi lain), lalu dinilai ulang |
+| K2, K3, U9 | R07 landmark dari data | K5 | R26 bagian C (menunggu) |
+| G7, G8 | R08 kinerja Kota | | |
 
-## Putaran 2 — belum dijelajahi (jujur: belum saya buka)
-Untuk "perbaiki semuanya", area ini masih perlu dikritik dengan cara yang sama (main + baca kode):
-- ⬜ **Rasa kendali**: `sim/bikePhysics.js`, `sim/walkPhysics.js`, kamera (`core/CameraRig.js`, `cameraAngled.js`): akselerasi, belok, tabrakan, guncangan kamera.
-- ⬜ **Animasi**: `entities/Humanoid.anim.js`, `Humanoid.poses.js`: kayuh, jalan, diam; transisi.
-- ⬜ **Audio**: `core/AudioBus.js`, `audioSynth.js`: semua disintesis? ambience per kawasan, langkah, bel, kerumunan.
-- ⬜ **HP/sentuh**: `ui/TouchControls.js`, `touch.css`, orientasi; belum ada satu bidikan pun dari viewport HP.
-- ⬜ **Kebun + interior**: `app/farm.js` (296 baris), `interiors/`: keterbacaan petak, umpan balik aksi.
-- ⬜ **Simpan/muat**: `story/storage.js`, `app/session.js`: apa yang hilang saat muat ulang.
-- ⬜ **Waktu muat**: distrik UNRI dipasang penuh saat boot (titik lemah no. 4 di ARSITEKTUR).
-- ⬜ **Lalu lintas dan kehidupan jalan** di mode jalan (bukan hanya Kota): `city/parkedVehicles.js`, `sim/campusLife.js`.
-- ⬜ **Aksesibilitas**: kontras teks perkamen, ukuran font, `prefers-reduced-motion` (sebagian sudah ada di `hud.css`).
+Urutan, prasyarat, dan status: `docs/rencana/README.md` bagian 4.
+
+## Putaran 2 — 2026-11-14 (dibaca dari kode; belum dimainkan)
+
+Cara: tiga penjelajahan kode menyeluruh (kendali/kamera/animasi/kehidupan jalan; audio/sentuh/aksesibilitas; simpan/muat/boot/kebun/interior), cek silang baris kunci,
+dan satu putaran ukur dengan `tools/shots/kritik.mjs`. **Belum ada uji main oleh manusia**: semua butir "rasa" di bawah adalah [KODE] + hitungan, bukan [LIHAT].
+
+| Area | Temuan terpenting (akar di kode) | Kartu |
+|---|---|---|
+| **Rasa kendali** | Di 9 m/s radius belok 2,9 m (±2,9 g) sehingga sepeda "kedutan" (`sim/bikePhysics.js` `updateSteer`); lepas kayuh = rem (drag 0,6, berhenti dalam 15 m); lepas sprint memotong 13 → 9 m/s dalam satu frame; menyenggol dinding mengalikan laju 0,5 **tiap frame** (`Bicycle.js` `COLLISION_DAMPING`); pedal tetap berputar saat meluncur; `BIKE.turnRate` konstanta mati | R13 |
+| **Masukan** | Gamepad dan joystick layar diubah jadi tombol hidup/mati (tidak ada belok setengah); jalan kaki luar ruang kendali tank, dalam ruang relatif kamera (dua sistem, dua konstanta bernama `WALK`); ganti kendaraan menolkan laju seketika; di bawah 20 fps waktu melambat (`MAX_DT 0.05`) | R14 |
+| **Kamera** | Arah kamera dikunci ke arah sepeda (hanya posisi dihaluskan); tidak ada FOV kecepatan atau pandangan ke depan; orang pertama tidak ikut miring; jarak traktor dikalikan setelah uji dinding; kepekaan mouse dipakai untuk sentuh dan gamepad, tanpa balik-Y | R15 |
+| **Animasi** | Lengan pengendara pose tetap, tidak ke setang (M6); lari di luar = siklus jalan dipercepat 3×; irama lari dalam ruang terhitung dua kali; pose meloncat tanpa transisi; garpu berputar di sumbu tegak | R17 |
+| **Audio** | Di mode jalan hanya bel dan hujan yang berbunyi; dengung kota dan angin hanya di mode K; desis hujan bisa berdetak tiap 2 detik (buffer tanpa sambungan); suara tidak berhenti saat tab disembunyikan; tanpa "bisukan" | R18 |
+| **HP/sentuh** | Mode foto = jebakan (tanpa jalan keluar sentuh); layar "putar perangkat" teks gelap di latar gelap (1,46 : 1); tidak ada tombol untuk ganti kendaraan (F), tas (I), ganti benih (B); aturan layar kecil (`max-width: 640px`) tidak pernah aktif di HP landscape; hotbar tertutup tombol; zona aman notch diabaikan | R16 |
+| **Keterbacaan** | Tema perkamen (default): daftar toko 1,17 : 1 (tak terbaca), toast 2,5–2,7 : 1, aksen jam 3,93 : 1; teks sampai 8,5 px; `el()` di `HUD.js` membuang `role`/`aria-live`; tiga daftar kontrol saling bertentangan | R21 |
+| **Simpan/muat** | Beli benih atau tidur tidak menyimpan dompet (benih gratis, bayaran hilang); posisi tersimpan tapi **tidak pernah dibaca** (`savedPlace`); kendaraan tidak disimpan; "Mulai dari awal" tanpa konfirmasi dan tidak mengosongkan kebun/tas; data kebun rusak diganti diam-diam | R19 |
+| **Kebun** | Tidur bisa ditekan berulang kapan saja: +1 tahap + bayaran per tekan; 40 petak terong = Rp 120.000 per tidur (seluruh hadiah cerita stadion Rp 64.000); tumbuh mengikuti selisih jam layar (tekan `]` = tumbuh); petak yang sedang tumbuh tanpa prompt; aksi tanpa suara | R20 |
+| **Waktu muat** | Label langkah 0,8 salah ("waktu dan cuaca" padahal memasang kampus dan belasan sistem); sampai 8 + 12 detik menunggu model opsional dan streaming; distrik UNRI ditunggu saat boot | R22 |
+| **Kehidupan jalan** | Mobil bergerak hanya ada di mode K; mahasiswa tidak bereaksi pada pemain atau bel dan berbalik 180° seketika; sepeda menembus orang | R23 |
+| **Sekre/interior** | Interior dibangun ulang penuh tiap masuk; di dalam tidak ada simpan, tidur, atau penyimpanan; keluar pintu langsung memicu prompt masuk lagi (`exitTo` di dalam radius pemicu) | R24, R03 Tugas 5 |
+| **Kendaraan** | Yang bisa dinaiki hanya sepeda dan traktor (traktor = fisika sepeda dengan angka lain, collider titik); motor dan mobil hanya hiasan | R25 |
+
+**Yang belum dijelajahi sama sekali:** rasa sesungguhnya saat dimainkan (butuh manusia), HP sungguhan, alur cerita sampai tamat, pemakaian memori jangka panjang.

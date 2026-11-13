@@ -52,6 +52,8 @@ Keputusan selera sudah dijawab (maket / 16:45 / suara otomatis); lihat vibes/REA
 Syarat: lokasi & nama dari OSM/Overture (jangan mengarang), 1 draw call per jenis.
 Anggaran (usul kritik 2026-11-13, belum diputuskan user): hero ≤ 5 rb segitiga untuk maksimal 6 model (sebelumnya < 2 rb).
 Rincian, akar masalah di kode, dan langkah K1–K8: [../KRITIK.md](../KRITIK.md) bagian 5.
+**Kartu kerja siap eksekusi (2026-11-14):** K4 → [R04](../rencana/R04-stadion-ikon.md) · kinerja zoom penuh → [R08](../rencana/R08-kinerja-kota.md) · K1, K6 → [R06](../rencana/R06-kota-bersiluet.md) · K2, K3 → [R07](../rencana/R07-landmark-dari-data.md) · paspor + "Ke sini" → [R11](../rencana/R11-jelajah-paspor.md) · K7, K8 → [R12](../rencana/R12-sisa-putaran-1.md).
+**Koreksi dari data** (`bangunan.csv`, 420.728 baris): 98,8% tanpa kelas, 99,8% tanpa tinggi, hanya 12 bangunan ≥ 25 m, `religious` + `mosque` = 297. Bentuk "menara" dibuang dari rencana; kubah hanya untuk yang terdata.
 **Urutan kerja dari sisi kode:** K4 proxy stadion (`regions/stadion/proxy.js`) → K1 enum bentuk atap di byte ke-8 rekaman
 (`farbake.mjs` + `farCity.js`; bentuk langka = 1 InstancedMesh global) → K2 `far/landmarks.json` dari `names` Overture
 (`farFetch.mjs`) → K3 label bertingkat (`CityLabels.js`) → K6 warna kelas → K5 hero Blender menurut peringkat K2.
@@ -93,6 +95,7 @@ Lihat [ganti-model](ganti-model/README.md).
 | Tanggal | Perubahan | Hasil ukur |
 |---|---|---|
 | 2026-11-13 | Putaran kritik 1 (tanpa perubahan kode): 10 bidikan GPU + barisan NPC, hasil di `docs/KRITIK.md` (tiap temuan: berkas + perubahan + cara cek, 12 paket kerja); bagian Landmark dipecah jadi tingkat A/B/C + urutan K1–K8 | zoom penuh 1.423 call / 4,98 jt segitiga / 12 fps; titik awal 466 call / 2,17 jt; humanoid 5.546 segitiga |
+| 2026-11-14 | Putaran kritik 2 + kartu kerja (tanpa perubahan kode permainan): data bangunan dianalisis (98,8% tanpa kelas), angka diukur ulang dengan `tools/shots/kritik.mjs` (zoom penuh 1.399 draw call / 4,95 jt segitiga), rencana Kota dipecah jadi kartu R04, R06, R07, R08, R11, R12 di `docs/rencana/` |
 | 2026-11-13 | Kota jauh v1 (bangunan kotak sejajar sumbu, jalan kelas ≤5, peta tanah) | 380 rb bangunan, 4,7 MB |
 | 2026-11-13 | Kota jauh v2 (rotasi, atap pelana, pohon, jalan semua kelas, peta pekat) | 7 MB, 185 rb pohon, 742 berkas |
 | 2026-11-13 | Bar kendali Kota: slider jam, Putar waktu (1,2 jam/dtk), Tur (rute tetangga-terdekat, 5,5 dtk/perhentian) | 5 tes murni (`cityTour`); dicek di browser uji, belum di GPU asli |
