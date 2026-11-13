@@ -23,10 +23,13 @@ Dari "peta 3D yang benar" ke **"pemandangan yang bikin betah"**: hangat, hidup, 
 | Air kartun | `world/shaders/waterToon.js` | belum dipakai di bidang air kota jauh |
 
 ## Rencana kerja (usaha S/M/L · dampak ★)
-### A. Paket "Sore emas" — kerja paling besar rasanya, murah (S–M)
-- ⬜ **Preset pratinjau**: saat K aktif, set jam default 16:45 (bisa diganti), gaya `kartun`, bloom ON, vignette ringan ON, tilt-shift ringan ON (blur tepi atas/bawah ±15%), lalu pulihkan saat keluar. ★★★ S
+### A. Paket "Maket sore emas" — kerja paling besar rasanya, murah (S–M)
+- ✅ **Preset pratinjau** (2026-11-13): saat K aktif → jam 16:45, bloom ON, tilt-shift KUAT (pita tajam `band 0,17`, `falloff 0,3`, radius ×1,6), lalu dipulihkan saat keluar. Sakelar: setelan Kamera "Pratinjau Kota (K): gaya maket sore emas" (default ON). `app/cityPreview.js::applyMaket`.
+- ✅ **Alas diorama**: irisan tanah berlapis (rumput → tanah → liat → batuan, 900 m) di keempat tepi peta kota jauh (`farCity.js::slabGeometry`). Terlihat saat zoom jauh.
+- ✅ **Suara ambient otomatis** (dibawa maju dari D): dengung kota + angin prosedural (`audioSynth.cityHumBuffer/windBuffer`, `AudioBus.startCityHum/startWind`), volume menurut ketinggian & malam, kanal 'ambience'. Sakelar: setelan Kamera "suara ambient".
+- ⬜ Vignette ringan & warna lebih jenuh (grading dioverride styleManager; butuh hook) ★ S
 - ⬜ **Kabut berwarna jarak jauh**: warna kabut = warna langit dekat cakrawala (matahari rendah → oranye-jingga), `FOG_PER_DISTANCE` dicocokkan agar cakrawala menyatu dengan langit, bukan tepi peta. ★★★ S
-- ⬜ **Tepi peta halus**: bidang tanah jauh memudar ke warna kabut di batas `bounds` (bukan tepi tajam). ★★ S
+- ✅ ~~Tepi peta halus~~ → digantikan alas diorama (gaya maket memang ingin tepi tegas).
 - ⬜ **Bayangan panjang**: elevasi matahari preview ≈ 25° (sore) + bayangan sampai 700 m (sudah dinamis); kontak-AO murah pada dasar bangunan jauh (gradien vertex warna gelap di dasar). ★★ M
 
 ### B. Kehidupan (M)
@@ -42,7 +45,8 @@ Dari "peta 3D yang benar" ke **"pemandangan yang bikin betah"**: hangat, hidup, 
 - ⬜ **Kedip jendela/TV** (variasi `facadeHash` terhadap waktu, 1–2% jendela berkedip). ★ S
 
 ### D. Suara (M)
-- ⬜ **Ambient pratinjau** (`core/AudioBus`, `audioSynth`): dengung kota + angin; volume/lowpass menurut ketinggian kamera (`cityDistance`), malam: jangkrik, siang: lalu lintas. ★★ M
+- ✅ (dasar) Ambient pratinjau — lihat paket A. ⬜ Variasi: jangkrik malam, burung sore, klakson jauh.
+- ⬜ ~~Ambient pratinjau~~ (`core/AudioBus`, `audioSynth`): dengung kota + angin; volume/lowpass menurut ketinggian kamera (`cityDistance`), malam: jangkrik, siang: lalu lintas. ★★ M
 
 ### E. Kamera & penyajian (S–M)
 - ⬜ **Intro terbang**: masuk K dari ketinggian tinggi menukik ke stadion (bukan dari posisi pemain). ★★ S
@@ -56,10 +60,11 @@ Dari "peta 3D yang benar" ke **"pemandangan yang bikin betah"**: hangat, hidup, 
 - ⬜ **"Peta kartun"**: outline tebal (`OutlinePass` sudah ada) + warna datar.
 - ⬜ **"Neon malam"**: grading ungu-biru + bloom kuat + pendar jalan magenta/cyan.
 
-## Keputusan selera yang dibutuhkan dari kamu
-1. Arah utama: **Sore emas hangat** (rekomendasi), **Maket/diorama**, atau **Neon malam**?
-2. Pratinjau default jam berapa? (rekomendasi 16:45; atau ikut jam permainan)
-3. Boleh suara ambient otomatis menyala saat K? (ada tombol mute)
+## Keputusan selera (2026-11-13, dijawab user)
+1. **Arah utama: Maket/diorama** (bukan sore emas polos / neon). Sore emas tetap jadi pencahayaannya.
+2. **Jam default pratinjau: 16:45** (jam permainan dipulihkan saat keluar).
+3. **Suara ambient: otomatis** saat K (volume mengikuti slider "Suasana"; bisa dimatikan di setelan Kamera).
+Dampak ke rencana: paket A diganti jadi **"Maket sore emas"** (tilt-shift kuat + alas diorama + warna), varian F-"Maket" naik jadi utama.
 
 ## Urutan kerja yang disarankan (sprint 3)
 1. A (preset + kabut + tepi halus) → bidikan sebelum/sesudah di 4 jam (12, 16:45, 18:10, 21).
@@ -78,4 +83,5 @@ Dari "peta 3D yang benar" ke **"pemandangan yang bikin betah"**: hangat, hidup, 
 - Jangan menambah tekstur besar; semua pola prosedural/shader (pelajaran dari kerudung awan: **uji tiap lapisan transparan dari jarak jauh**).
 
 ## Log
-- 2026-11-13: dokumen dibuat dari permintaan "bikin view-nya ciamik vibes-nya". Belum ada pekerjaan.
+- 2026-11-13: dokumen dibuat dari permintaan "bikin view-nya ciamik vibes-nya".
+- 2026-11-13: keputusan selera (maket / 16:45 / suara otomatis) → paket A diimplementasi: preset maket, alas diorama, suara ambient.

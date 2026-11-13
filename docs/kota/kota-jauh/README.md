@@ -33,6 +33,9 @@ Koordinat dunia: +X timur, +Z selatan (meter); sel = lantai(x/2000), lantai(z/20
   - **Jendela bangunan jauh**: ikut shader fasad (`facade.js`), sebagian menyala; jauh pun tetap ≥ 60% (fade pola tidak mematikan cahaya).
 - `manifest.glow` opsional: tanpa berkas → hanya pendar jalan/jendela.
 
+## Alas diorama
+`slabGeometry` (farCity.js): dinding irisan tanah berlapis (`SLAB_STRATA`: rumput 45 m, tanah 260, liat 560, batuan 900) di empat tepi `bounds`; 1 mesh, 16 quad. Ganti warna/ketebalan di `SLAB_STRATA`.
+
 ## Cara mengganti model
 Lihat [ganti-model](../ganti-model/README.md). Ringkas: bentuk bangunan di `wallsGeometry/flatRoofGeometry/gableRoofGeometry` (`farCity.js`),
 pohon di `crownGeometry`, warna di `FAR_COLORS`/`FAR_CLASS_TINT`/`FAR_ROAD_COLORS`. Data (rotasi, kelas) tidak perlu di-bake ulang bila hanya mengganti geometri/warna.
