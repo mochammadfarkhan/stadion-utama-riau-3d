@@ -13,6 +13,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { applyGroundDetail } from './groundDetail.js';
 import { applyFacade } from './facade.js';
 import { applyNightGlow } from './nightGlow.js';
+import { createFarLife } from './farLife.js';
 
 const GROUND_Y = -0.4;
 const ROAD_Y = 0.08;
@@ -232,6 +233,7 @@ export async function createFarCity({
   group.visible = false;
   scene.add(group);
   const owned = [];
+  const life = createFarLife({ parent: group }); // mobil berjalan + lampu jalan (farLife.js)
   let loaded = null;
   let disposed = false;
   const counts = { cells: 0, buildings: 0, trees: 0, roadMeshes: 0 };
@@ -242,7 +244,7 @@ export async function createFarCity({
   applyFacade(buildingMat, 'wall'); // jendela & kios pada dinding dari dekat; memudar > 900 m (atap tak terkena: normal.y >= 0,5)
   const treeMat = own(new THREE.MeshLambertMaterial({ vertexColors: true }));
   treeMat.name = 'kotaJauh:pohon';
-  const roadMat = own(applyNightGlow(new THREE.MeshLambertMaterial({ vertexColors: true, depthWrite: false }), { strength: 0.55 })); // lampu jalan malam
+  const roadMat = own(applyNightGlow(new THREE.MeshLambertMaterial({ vertexColors: true, depthWrite: false }), { strength: 0.3 })); // lampu jalan malam
   roadMat.name = 'kotaJauh:jalan';
   const colors = Object.fromEntries(Object.entries(FAR_COLORS).map(([k, v]) => [k, new THREE.Color(v)]));
   const flatGeo = own(mergedBuilding([wallsGeometry(colors.wall), flatRoofGeometry(colors.flatRoof)]));
@@ -334,7 +336,9 @@ export async function createFarCity({
       counts.trees += list.length;
     }
     if (rb) {
-      const g = roadGeometry(parseRoads(rb), ox, oz);
+      const roads = parseRoads(rb);
+      life.addRoads(ox, oz, roads);
+      const g = roadGeometry(roads, ox, oz);
       if (g) {
         const mesh = new THREE.Mesh(own(g), roadMat);
         mesh.name = `jalanJauh:${c.key}`;
@@ -368,12 +372,16 @@ export async function createFarCity({
     /** true: tampilkan (dan muat pada pemanggilan pertama); false: sembunyikan. */
     async setActive(on) {
       group.visible = Boolean(on);
+      life.setVisible(on);
       if (on && !loaded) loaded = loadAll();
       if (on) await loaded;
     },
-    stats: () => ({ ...counts }),
+    /** Tiap frame saat pratinjau: gerak mobil, lampu malam. `focus` {x,z}, `distance` kamera→fokus (m), `hour` jam permainan. */
+    update(o) { if (group.visible) life.update(o); },
+    stats: () => ({ ...counts, ...life.stats() }),
     dispose() {
       disposed = true;
+      life.dispose();
       group.removeFromParent();
       for (const r of owned) r.dispose?.();
     },

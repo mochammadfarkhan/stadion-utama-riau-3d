@@ -28,10 +28,13 @@ Koordinat dunia: +X timur, +Z selatan (meter); sel = lantai(x/2000), lantai(z/20
 
 ## Lampu malam (2026-11-13)
 - `src/city/nightGlow.js`: emisi hangat × `uNight` (jam permainan → `nightFactor`, `facade.js`).
-  - **Jalan jauh & jalan tile**: pendar rata (lampu jalan) — `strength` 0,55 (jauh) / 0,38 (tile) di `farCity.js` / `cityMaterials.js`.
+  - **Jalan jauh & jalan tile**: pendar rata (lampu jalan) — `strength` 0,3 (jauh) / 0,2 (tile); lampu jalan nyata (farLife) menggantikan sebagian peran pendar di `farCity.js` / `cityMaterials.js`.
   - **Peta tanah jauh**: `glow.webp` (512², 1 kanal, ±4 KB; kerapatan bangunan diburamkan) dibaca `uGlowMap` pada `vMapUv` → kawasan padat bersinar dari jauh (`strength` 2,0).
   - **Jendela bangunan jauh**: ikut shader fasad (`facade.js`), sebagian menyala; jauh pun tetap ≥ 60% (fade pola tidak mematikan cahaya).
 - `manifest.glow` opsional: tanpa berkas → hanya pendar jalan/jendela.
+
+## Kehidupan (`farLife.js`)
+Mobil & lampu jalan di jalan ≤ tertiary, pool per radius dari fokus (`LIFE`: ≤ 4000 mobil, ≤ 5000 lampu, R 450–3600 m). Jalan didaftarkan `farCity.addCell → life.addRoads`; diperbarui per frame oleh sistem `city.stream` saat pratinjau. Ganti bentuk mobil di `carGeometry`, palet `CAR_COLORS`, kecepatan `SPEED`, jarak `SPACING`.
 
 ## Alas diorama
 `slabGeometry` (farCity.js): dinding irisan tanah berlapis (`SLAB_STRATA`: rumput 45 m, tanah 260, liat 560, batuan 900) di empat tepi `bounds`; 1 mesh, 16 quad. Ganti warna/ketebalan di `SLAB_STRATA`.
