@@ -14,6 +14,8 @@ import { validateManifest } from './tileData.js';
 import { mountParkedVehicles } from './parkedVehicles.js';
 import { applyGroundHole } from './groundHole.js';
 import { FACADE_UNIFORMS, nightFactor } from './facade.js';
+import { addTileDetail } from './tileDetail.js';
+import { createFarCity } from './farCity.js';
 
 /** Tanah dasar kota: persegi besar di bawah landuse (y −0,05), dipindah per 50 m mengikuti fokus. */
 export const CITY_GROUND = Object.freeze({ size: 2 * STREAM.unloadRadius + 400, y: -0.05, snap: 50 });
@@ -39,13 +41,14 @@ export function groundAnchor(focus, snap = CITY_GROUND.snap) {
  * @param {{app: {scene: THREE.Scene, addSystem(s:object):object, removeSystem(id:string):boolean},
  *   baseUrl?: string, weather?: object|null, time?: {registerEmissive(root: THREE.Object3D): () => boolean}|null, toast?: (text:string, ok:boolean) => void,
  *   fetchJson?: (url:string) => Promise<unknown>, loadGltf?: (url:string) => Promise<{scene: THREE.Object3D}>,
+ *   reserved?: (x:number, z:number) => boolean (dunia; kawasan region hero tanpa pohon/marka kota),
  *   createCanvas?: (w:number, h:number) => object, logger?: {error: (...a: unknown[]) => void}, config?: typeof STREAM,
  *   setTimer?: (fn: () => void, ms: number) => unknown, clearTimer?: (handle: unknown) => void}} opts
  */
 export async function createCity({
   app, baseUrl = '/', weather = null, time = null, toast = () => {}, fetchJson = defaultFetchJson, loadGltf = null,
   createCanvas = null, logger = console, config = STREAM, setTimer = (fn, ms) => setTimeout(fn, ms),
-  clearTimer = (handle) => clearTimeout(handle),
+  clearTimer = (handle) => clearTimeout(handle), reserved = () => false,
 }) {
   let manifest;
   try {
@@ -72,6 +75,7 @@ export async function createCity({
   const loader = createTileLoader({
     manifest, baseUrl, parent: group, materials, collider, minimap, weather, fetchJson, logger,
     loadGltf: gltf,
+    decorate: (root, tile, lod) => { if (lod === 0) addTileDetail(root, tile, materials, { reserved }); }, // marka jalan + pohon instans
     onFail: () => {
       if (warned) return;
       warned = true;
@@ -84,6 +88,8 @@ export async function createCity({
   });
   const waiters = new Set();
   let disposed = false;
+  let previewOn = false;
+  let farPromise = null; // lapisan kota jauh (farCity.js), dimuat malas saat pratinjau pertama
   /** Selesaikan penunggu sekali dan bersihkan timer habis-waktunya. */
   const settle = (w, value) => {
     if (!waiters.delete(w)) return;
@@ -126,6 +132,18 @@ export async function createCity({
     setPreview(value) {
       streamer.setPreview(value);
       ground.scale.setScalar(value ? PREVIEW_GROUND_SCALE : 1);
+      previewOn = Boolean(value);
+      if (previewOn) {
+        farPromise ??= createFarCity({ scene: group, baseUrl, logger }).catch((err) => { logger.error('Kota jauh gagal:', err); return null; });
+        farPromise.then(async (f) => {
+          if (!f || disposed) return;
+          await f.setActive(previewOn);
+          ground.visible = !previewOn; // peta tanah jauh menggantikan tanah dasar polos selama pratinjau
+        });
+      } else {
+        ground.visible = true;
+        farPromise?.then((f) => f?.setActive(false));
+      }
     },
     /**
      * Lubang tanah dasar kota di sel yang ditutup terrain distrik (null = tanpa lubang).
@@ -137,6 +155,7 @@ export async function createCity({
       disposed = true;
       app.removeSystem(system.id);
       for (const w of [...waiters]) settle(w, false);
+      farPromise?.then((f) => f?.dispose());
       vehicles.dispose(); // muatan kendaraan yang telat dibuang (tidak dipasang/didaftarkan)
       loader.dispose(); // muatan yang masih berjalan dibuang saat selesai (tidak dipasang/didaftarkan)
       group.removeFromParent();
