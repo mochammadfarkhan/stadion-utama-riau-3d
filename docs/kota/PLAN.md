@@ -64,6 +64,7 @@ Lihat [ganti-model](ganti-model/README.md).
 | 2026-11-13 | Kota jauh v1 (bangunan kotak sejajar sumbu, jalan kelas ≤5, peta tanah) | 380 rb bangunan, 4,7 MB |
 | 2026-11-13 | Kota jauh v2 (rotasi, atap pelana, pohon, jalan semua kelas, peta pekat) | 7 MB, 185 rb pohon, 742 berkas |
 | 2026-11-13 | Bar kendali Kota: slider jam, Putar waktu (1,2 jam/dtk), Tur (rute tetangga-terdekat, 5,5 dtk/perhentian) | 5 tes murni (`cityTour`); dicek di browser uji, belum di GPU asli |
+| 2026-11-13 | **Ukur GPU asli** (user, Radeon iGPU, layar 1396×663 dpr 1,375, tier rendah, batas 30 fps), `?perf`, K aktif [KONTEKS belum tercatat saat itu] | 620 draw call, 1,69 jt segitiga, tekstur 99, 17,7 fps, p50 53 ms, CPU p50 21 ms → **terikat GPU (piksel/efek)**, bukan geometri. Sebelum K: 307 draw call, 633 rb segitiga, 22,7 fps. Tindakan: K di tier rendah memakai rasio render 1,0 (dulu ≤ 1,5); laporan `?perf` kini memuat `konteks` {pov, zoom, jam}. Belum diukur ulang setelahnya |
 | 2026-11-13 | Perahu di sungai/kanal (`rivers.bin` 66 KB, 631 jalur; ≤ 300 perahu) | 4 tes murni; satu perahu terlihat di kanal timur laut di browser uji, tanpa galat |
 | 2026-11-13 | Lampu jalan tile terperinci (tiang+kepala instans, ≤ 170/tile) | 3 tes murni; dicek malam di browser uji, tanpa galat; draw call +2 per tile berjalan |
 | 2026-11-13 | Lampu depan putih/belakang merah mobil jauh (malam) | 1 tes murni; render tanpa galat, warna belum terbedakan di bidikan uji |
