@@ -136,10 +136,10 @@ async function main() {
   lifecycle.add(() => rig.dispose());
   // Kontrol sentuh + gamepad menulis ke Input yang sama dengan keyboard.
   // Router lihat: kamera sepeda di luar, kamera interior di dalam sekre (target diganti portal.onInsideChange).
-  const look = { target: rig, lookBy(dx, dy, scale) { look.target.lookBy(dx, dy, scale); } };
+  const look = { target: rig, lookBy(dx, dy, scale, source) { look.target.lookBy(dx, dy, scale, source); } };
   const touchUi = new TouchControls(document.body, { input, rig: look, surface: app.renderer.domElement });
   lifecycle.add(() => touchUi.dispose());
-  const gamepad = createGamepadPoller(input, { lookBy: (dx, dy) => look.lookBy(dx, dy) });
+  const gamepad = createGamepadPoller(input, { lookBy: (dx, dy) => look.lookBy(dx, dy, 1, 'pad') });
   app.addSystem({ id: 'gamepad', phase: 'input', update: (dt) => gamepad.update(dt) });
   window.addEventListener('gamepadconnected', () => hud.toast('Gamepad terhubung', true), { signal: listeners.signal });
   const audioBus = createAudioBus();
@@ -416,12 +416,16 @@ function addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, stor
       raining: Boolean(store.get('weather.raining')), paused: hud.shopOpen || rig.freezesBike || travel.busy, // timer misi beku selama perjalanan
     }),
   });
+  const rigBike = {}; // state sepeda + pitch + tinggi mata untuk rig kamera (diisi ulang tiap frame)
   app.addSystem({
     id: 'cameraRig',
     phase: 'camera',
     update: (dt, ctx) => {
       rig.distanceScale = ents.bike.mode === 'traktor' ? 1.4 : 1; // traktor lebih besar: kamera mundur
-      rig.update(ents.bike.state, dt, ctx.time);
+      Object.assign(rigBike, ents.bike.state); // satu objek scratch (tanpa alokasi per frame)
+      rigBike.pitch = ents.bike.pitch;
+      rigBike.eyeHeight = ents.bike.eyeHeight;
+      rig.update(rigBike, dt, ctx.time);
       ents.bike.setRiderVisible(!rig.firstPersonView);
       // POV beku: sepeda berhenti seketika (bukan meluncur karena momentum)
       if (rig.freezesBike && ents.bike.state.v !== 0) ents.bike.state = { ...ents.bike.state, v: 0 };
