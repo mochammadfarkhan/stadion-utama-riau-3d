@@ -30,6 +30,7 @@ export const MODEL = [
   { out: 'buku', id: 'book_encyclopedia_set_01', fit: 'w', size: 0.34, rotY: Math.PI, ratio: 0.2 },
   { out: 'map', id: 'binder_notebook', fit: 'w', size: 0.42, rotY: 0 },
   { out: 'lampu-meja', id: 'desk_lamp_arm_01', fit: 'h', size: 0.5, rotY: Math.PI },
+  { out: 'rak-siku', id: 'worn_metal_rack', fit: 'dims', size: [0.8, 0.4, 1.6], rotY: 0 },
   { out: 'toolbox', id: 'metal_toolbox', fit: 'w', size: 0.4, rotY: Math.PI },
 ];
 

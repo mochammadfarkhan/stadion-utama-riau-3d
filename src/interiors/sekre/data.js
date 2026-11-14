@@ -243,7 +243,8 @@ export const HQ_ASET = freeze({
   buku: freeze({ glb: 'models/sekre-hq/buku.glb', items: freeze([atRaw(-1.38, 0.75, -2.8, 0)]) }),
   map: freeze({ glb: 'models/sekre-hq/map.glb', items: freeze([atRaw(-1.55, 0.752, -2.48, 0.25)]) }),
   lampuMeja: freeze({ glb: 'models/sekre-hq/lampu-meja.glb', items: freeze([atRaw(-2.6, 0.75, -2.82, 0.5)]) }),
-  toolbox: freeze({ glb: 'models/sekre-hq/toolbox.glb', items: freeze([atRaw(-2.78, 0.91, -1.05, PI / 2)]) }),
+  rakSiku: freeze({ glb: 'models/sekre-hq/rak-siku.glb', items: freeze([EKSTRA.rakSiku]) }),
+  toolbox: freeze({ glb: 'models/sekre-hq/toolbox.glb', items: freeze([atRaw(-2.78, 1.6, -1.05, PI / 2)]) }), // di atas rak (Tinggi)
 });
 
 /** Model GLB final per ID aset (path relatif public/). Diisi di Task 22 setelah ekspor Blender berhasil. */

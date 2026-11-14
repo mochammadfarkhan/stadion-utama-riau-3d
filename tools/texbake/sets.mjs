@@ -29,6 +29,7 @@ export const SETS = Object.freeze([
   { name: 'catBesi', id: 'Metal028', category: 'besi-cat-bubuk', tileM: 1 },
   { name: 'plastik', id: 'Plastic018A', category: 'plastik-doff', tileM: 0.6 },
   { name: 'kayuHalus', id: 'Wood092', category: 'kayu-halus', tileM: 1 },
+  { name: 'kulit', id: 'Leather026', category: 'kulit-sintetis', tileM: 0.5 },
 ]);
 
 export const TIER_SIZES = Object.freeze([512, 256]);

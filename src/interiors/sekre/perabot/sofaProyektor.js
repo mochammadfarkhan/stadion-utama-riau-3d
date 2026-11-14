@@ -44,5 +44,5 @@ export function buildSofaProyektor(m) {
   screen.name = 'layar-proyeksi';
   screen.position.set(2.985, 2.1, 1.15);
   screen.rotation.y = -PI / 2;
-  return groupOf('sofa-proyektor', piece(sofa, m.plastik, 'sofa'), piece(projector, m.plastik, 'proyektor', false), screen);
+  return groupOf('sofa-proyektor', piece(sofa, m.kulit, 'sofa'), piece(projector, m.plastik, 'proyektor', false), screen);
 }

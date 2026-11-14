@@ -60,6 +60,7 @@ const BAHAN = Object.freeze({
   kain: { avg: '#bababa', albedo: true, roughness: 1, normalScale: 0.9 },
   plastik: { avg: '#7e7e7e', albedo: true, roughness: 1, normalScale: 0.4 },
   catBesi: { albedo: false, roughness: 1, metalness: 0.35, normalScale: 0.5 },
+  kulit: { albedo: false, roughness: 0.85, normalScale: 1 }, // kulit sintetis sofa (Leather026): pori & kilap saja, warna tan dari verteks
 });
 
 function bahanMaterial(name) {
@@ -102,6 +103,7 @@ export function createSekreMaterials(renderer = null) {
     kain: bahanMaterial('kain'),
     plastik: bahanMaterial('plastik'),
     catBesi: bahanMaterial('catBesi'),
+    kulit: bahanMaterial('kulit'),
   };
 }
 
@@ -144,7 +146,7 @@ export function buildFurniture({ materials, hq = false }) {
   for (const it of EKSTRA.kursiUkir) proc('kursiUkir', placed(buildKursiUkir(m), it));
   staticGroup.add(placed(buildPermadani(), EKSTRA.permadani));
   staticGroup.add(placed(buildJasHujan(m), EKSTRA.jasHujan));
-  staticGroup.add(placed(buildRakSiku(m), EKSTRA.rakSiku));
+  proc('rakSiku', placed(buildRakSiku(m), EKSTRA.rakSiku));
   proc('buku', placed(buildMejaDetail(m), EKSTRA.mejaDetail));
   staticGroup.add(placed(buildLemari(m), ASET.S09.items[0]));
   staticGroup.add(buildOrdner(m));

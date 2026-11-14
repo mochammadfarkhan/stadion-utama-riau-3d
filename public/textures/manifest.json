@@ -282,6 +282,22 @@
    "sourceUrl": "https://ambientcg.com/view?id=Wood092",
    "license": "CC0-1.0",
    "bytes": 23844
+  },
+  {
+   "name": "kulit",
+   "category": "kulit-sintetis",
+   "tileM": 0.5,
+   "sizes": [
+    512,
+    256
+   ],
+   "avg": "#1a1819",
+   "hasAo": false,
+   "sourceId": "Leather026",
+   "sourceName": "Leather 026",
+   "sourceUrl": "https://ambientcg.com/view?id=Leather026",
+   "license": "CC0-1.0",
+   "bytes": 42280
   }
  ],
  "atlases": [

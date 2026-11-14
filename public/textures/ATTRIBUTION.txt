@@ -19,3 +19,4 @@ kain       Fabric036            https://ambientcg.com/view?id=Fabric036  (kain-t
 catBesi    Metal028             https://ambientcg.com/view?id=Metal028  (besi-cat-bubuk, tile 1 m)
 plastik    Plastic018A          https://ambientcg.com/view?id=Plastic018A  (plastik-doff, tile 0.6 m)
 kayuHalus  Wood092              https://ambientcg.com/view?id=Wood092  (kayu-halus, tile 1 m)
+kulit      Leather026           https://ambientcg.com/view?id=Leather026  (kulit-sintetis, tile 0.5 m)
