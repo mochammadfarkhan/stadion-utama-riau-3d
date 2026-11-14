@@ -97,3 +97,12 @@ describe('desiredVelocity', () => {
     expect(Math.hypot(v.x, v.z)).toBeCloseTo(WALK.walkSpeed / 2, 9);
   });
 });
+
+describe('stepWalk cfg (R14)', () => {
+  it('cfg.walkSpeed 1,6 → laju akhir 1,6', () => {
+    const cfg = { walkSpeed: 1.6, runSpeed: 4.2, accel: 8, maxStep: 0.05, maxDt: 0.1 };
+    let s = createWalkState();
+    for (let i = 0; i < 60; i += 1) s = stepWalk(s, { forward: 1, yaw: 0 }, 1 / 30, null, cfg);
+    expect(walkSpeedOf(s)).toBeCloseTo(1.6, 6);
+  });
+});

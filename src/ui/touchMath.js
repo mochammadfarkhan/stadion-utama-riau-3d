@@ -1,4 +1,5 @@
 /** Matematika kontrol sentuh yang murni (tanpa DOM) agar mudah dites. */
+import { radialDeadzone } from '../core/gamepad.js';
 
 const DEADZONE = 0.28;        // fraksi radius: di bawah ini joystick dianggap netral
 const AXIS_ON = 0.38;         // sumbu menyalakan tombol di atas fraksi ini
@@ -32,6 +33,14 @@ export function joystickKeys(dx, dy, radius) {
     KeyA: nx < 0 && on(ax),
     KeyD: nx > 0 && on(ax),
   };
+}
+
+/** Joystick virtual → sumbu analog {x kanan, y maju} ∈ [−1, 1] dengan zona mati melingkar 0,18. */
+export function touchAxes(dx, dy, radius) {
+  if (!(radius > 0)) return { x: 0, y: 0 };
+  const c = clampToRadius(dx, dy, radius);
+  const a = radialDeadzone(c.x / radius, -c.y / radius, 0.18);
+  return { x: a.x + 0, y: a.y + 0 }; // +0: buang −0
 }
 
 /** Perangkat yang pointer utamanya jari (ponsel/tablet), bukan laptop layar sentuh dengan mouse. */

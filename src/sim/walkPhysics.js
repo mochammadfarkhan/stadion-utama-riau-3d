@@ -32,12 +32,12 @@ export function walkSpeedOf(state) {
  * Kecepatan target dari masukan (forward/strafe −1..1, run) pada yaw; diagonal dinormalkan,
  * masukan analog < 1 menghasilkan kecepatan proporsional.
  */
-export function desiredVelocity(input, yaw) {
+export function desiredVelocity(input, yaw, cfg = WALK) {
   const f = clamp(fin(input?.forward), -1, 1);
   const s = clamp(fin(input?.strafe), -1, 1);
   const len = Math.hypot(f, s);
   if (len < 1e-6) return { x: 0, z: 0 };
-  const k = (input.run ? WALK.runSpeed : WALK.walkSpeed) / Math.max(1, len);
+  const k = (input.run ? cfg.runSpeed : cfg.walkSpeed) / Math.max(1, len);
   const fx = Math.sin(yaw);
   const fz = Math.cos(yaw);
   return { x: (f * fx - s * fz) * k, z: (f * fz + s * fx) * k };
@@ -48,22 +48,23 @@ export function desiredVelocity(input, yaw) {
  * @param {{forward?:number, strafe?:number, run?:boolean, yaw?:number}} input
  * @param {number} dt detik (dibatasi 0..WALK.maxDt)
  * @param {{isWalkable(x:number, z:number):boolean}|null} collider
+ * @param {{walkSpeed:number, runSpeed:number, accel:number, maxStep:number, maxDt:number}} [cfg] default WALK (interior)
  */
-export function stepWalk(state, input, dt, collider = null) {
+export function stepWalk(state, input, dt, collider = null, cfg = WALK) {
   if (![state?.x, state?.z, state?.vx, state?.vz].every(Number.isFinite)) return createWalkState(state ?? {});
-  const d = clamp(fin(dt), 0, WALK.maxDt);
+  const d = clamp(fin(dt), 0, cfg.maxDt);
   const yaw = wrapAngle(Number.isFinite(input?.yaw) ? input.yaw : fin(state.yaw));
-  const want = desiredVelocity(input, yaw);
+  const want = desiredVelocity(input, yaw, cfg);
   const dvx = want.x - state.vx;
   const dvz = want.z - state.vz;
   const dv = Math.hypot(dvx, dvz);
-  const maxDv = WALK.accel * d;
+  const maxDv = cfg.accel * d;
   const k = dv > maxDv ? maxDv / dv : 1;
   let vx = state.vx + dvx * k;
   let vz = state.vz + dvz * k;
   const stuck = Boolean(collider) && !collider.isWalkable(state.x, state.z);
   const free = (px, pz) => !collider || stuck || collider.isWalkable(px, pz);
-  const steps = Math.max(1, Math.ceil((Math.hypot(vx, vz) * d) / WALK.maxStep));
+  const steps = Math.max(1, Math.ceil((Math.hypot(vx, vz) * d) / cfg.maxStep));
   const h = d / steps;
   let { x, z } = state;
   for (let i = 0; i < steps; i += 1) {

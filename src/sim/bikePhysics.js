@@ -134,3 +134,8 @@ export function slideResponse(v, yaw, intended, actual, dt, { alignRate = 6, fri
   const turn = clamp(diff, -alignRate * dt, alignRate * dt);
   return { v: nextV, yaw: yaw + turn };
 }
+
+/** Ganti kendaraan hanya saat hampir berhenti (dulu laju dipotong ke 0 seketika). */
+export function canSwitchMode(v, maxV = 1.5) {
+  return Math.abs(v) <= maxV;
+}

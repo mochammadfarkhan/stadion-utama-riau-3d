@@ -28,6 +28,8 @@ export class CameraRig {
     this.dom = domElement;
     this.mode = 'third';
     this.yawOffset = 0;
+    /** Yaw kamera dunia milik rig (jalan kaki relatif kamera): null = ikut arah sepeda + yawOffset. */
+    this.freeYaw = null;
     this.pitch = 0.12;
     this._idle = 0;                          // detik sejak input lihat terakhir (kembali ke belakang sepeda setelah jeda)
     this._snap = true;                       // loncat ke pose ideal pada frame berikutnya (awal, ganti mode, teleport)
@@ -107,7 +109,8 @@ export class CameraRig {
       return;
     }
     this._idle = 0;
-    this.yawOffset = wrapAngle(this.yawOffset - dx * k);
+    if (this.freeYaw !== null) this.freeYaw = wrapAngle(this.freeYaw - dx * k);
+    else this.yawOffset = wrapAngle(this.yawOffset - dx * k);
     this.pitch = THREE.MathUtils.clamp(this.pitch + dy * k, -PITCH_LIMIT, PITCH_LIMIT);
   }
 
@@ -279,6 +282,24 @@ export class CameraRig {
     else this.lodPoint.copy(this.camera.position);
   }
 
+  /**
+   * Jalan kaki luar ruang: kamera memegang yaw dunianya sendiri (badan berputar ke arah gerak tanpa memutar kamera).
+   * Mati: offset diambil dari posisi kamera sekarang, lalu kembali pelan ke belakang sepeda (decayLook).
+   */
+  setFreeYaw(on) {
+    const bikeYaw = this._bike?.yaw ?? 0;
+    if (on && this.freeYaw === null) {
+      this.freeYaw = wrapAngle(bikeYaw + this.yawOffset);
+      this.yawOffset = 0;
+    } else if (!on && this.freeYaw !== null) {
+      this.yawOffset = wrapAngle(this.freeYaw - bikeYaw);
+      this.freeYaw = null;
+    }
+  }
+
+  /** Yaw kamera dunia (arah "maju" untuk jalan kaki). */
+  get cameraYaw() { return this.freeYaw ?? (this._bike?.yaw ?? 0) + this.yawOffset; }
+
   /** Pose pemain ideal (tanpa smoothing) untuk transisi kembali dari POV. */
   #writePlayerPose(out) {
     const bike = this._bike;
@@ -292,14 +313,14 @@ export class CameraRig {
   #poseFirst(bike, outPos, outTarget) {
     const eye = this._eye.copy(FIRST_PERSON_EYE).applyAxisAngle(THREE.Object3D.DEFAULT_UP, bike.yaw);
     outPos.set(bike.x + eye.x, this._heightAt(bike.x, bike.z) + eye.y, bike.z + eye.z);
-    const d = firstPersonDirection(bike.yaw + this.yawOffset, this.pitch);
+    const d = firstPersonDirection(this.freeYaw ?? bike.yaw + this.yawOffset, this.pitch);
     outTarget.set(outPos.x + d.x, outPos.y + d.y, outPos.z + d.z);
   }
 
   /** Pose orang ketiga ideal: orbit konstan di sekitar titik pandang, sudah ditarik dari dinding. */
   #poseThird(bike, outPos, outTarget) {
     outTarget.set(bike.x, this._heightAt(bike.x, bike.z) + THIRD.lookHeight, bike.z);
-    const yaw = bike.yaw + this.yawOffset;
+    const yaw = this.freeYaw ?? bike.yaw + this.yawOffset;
     // Terhalang dinding: geser sudut orbit ke posisi bebas terdekat; bila semua terhalang, tarik mendekat.
     const safe = (this.obstacleTest && sweepOffset(outTarget, yaw, this.pitch, this.obstacleTest))
       || this.#pullIn(outTarget, thirdPersonOffset(yaw, this.pitch));
@@ -354,7 +375,7 @@ export class CameraRig {
   #updateThird(bike, dt) {
     // Kamera kembali ke belakang sepeda hanya setelah input lihat berhenti (tidak melawan mouse/jari/stick).
     this._idle += dt;
-    this.yawOffset = decayLook(this.yawOffset, dt, this._idle);
+    if (this.freeYaw === null) this.yawOffset = decayLook(this.yawOffset, dt, this._idle);
     this.#poseThird(bike, this._desired, this._target);
     const cam = this.camera.position;
     if (this._snap || shouldSnap(cam.x - this._desired.x, cam.y - this._desired.y, cam.z - this._desired.z)) {

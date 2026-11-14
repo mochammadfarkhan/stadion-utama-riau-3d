@@ -17,6 +17,16 @@ const ACTIONS = Object.freeze([
 ]);
 const HELD_CODES = Object.freeze(['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ShiftLeft']);
 
+/** Zona mati melingkar: magnitudo < dz → {0,0}; selain itu diskalakan ulang (tepi zona mati = 0, tepi luar = 1), arah tetap. */
+export function radialDeadzone(x, y, dz = 0.2) {
+  const fx = Number.isFinite(x) ? x : 0;
+  const fy = Number.isFinite(y) ? y : 0;
+  const m = Math.hypot(fx, fy);
+  if (m < dz || m === 0) return { x: 0, y: 0 };
+  const k = Math.min(1, (m - dz) / (1 - dz)) / m;
+  return { x: fx * k, y: fy * k };
+}
+
 /** Buang zona mati lalu skalakan ulang agar keluaran tetap 0..1 (simetris). */
 export function applyDeadzone(v, dz = DEADZONE) {
   if (!Number.isFinite(v)) return 0;
@@ -34,7 +44,7 @@ const axis = (pad, i) => pad?.axes?.[i] ?? 0;
  * @returns {{held: Record<string, boolean>, buttons: boolean[], look: {x:number, y:number}}}
  */
 export function padToIntents(pad) {
-  const empty = { held: Object.fromEntries(HELD_CODES.map((c) => [c, false])), buttons: [], look: { x: 0, y: 0 } };
+  const empty = { held: Object.fromEntries(HELD_CODES.map((c) => [c, false])), buttons: [], move: { x: 0, y: 0 }, look: { x: 0, y: 0 } };
   if (!pad || pad.connected === false) return empty;
   const lx = applyDeadzone(axis(pad, 0));
   const ly = applyDeadzone(axis(pad, 1));
@@ -46,7 +56,8 @@ export function padToIntents(pad) {
     ShiftLeft: value(pad, BTN.RT) > TRIGGER_THRESHOLD || pressed(pad, BTN.RB),
   };
   const buttons = Array.from({ length: 17 }, (_, i) => pressed(pad, i));
-  return { held, buttons, look: { x: applyDeadzone(axis(pad, 2)), y: applyDeadzone(axis(pad, 3)) } };
+  const move = radialDeadzone(axis(pad, 0), axis(pad, 1));
+  return { held, buttons, move, look: { x: applyDeadzone(axis(pad, 2)), y: applyDeadzone(axis(pad, 3)) } };
 }
 
 /**
@@ -60,8 +71,10 @@ export function createGamepadPoller(input, { getPads = () => (typeof navigator !
   return {
     update(dt) {
       const pad = Array.from(getPads() ?? []).find((p) => p && p.connected !== false) ?? null;
-      const { held, buttons, look } = padToIntents(pad);
-      for (const code of HELD_CODES) input.setVirtual(code, held[code], 'gamepad');
+      const { held, buttons, move, look } = padToIntents(pad);
+      for (const code of HELD_CODES) input.setVirtual(code, held[code], 'gamepad'); // tetap: menu & mode Kota membaca WASD
+      input.setAxis?.('moveX', move.x, 'pad'); // stik kiri analog: belok/kayuh sebagian
+      input.setAxis?.('moveY', -move.y, 'pad');
       for (const [index, code] of ACTIONS) if (buttons[index] && !prev[index]) input.press(code);
       prev = buttons;
       if (look.x || look.y) lookBy(look.x * LOOK_PX_PER_SEC * dt, look.y * LOOK_PX_PER_SEC * dt);
