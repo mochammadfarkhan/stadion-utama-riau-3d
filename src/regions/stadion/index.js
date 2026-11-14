@@ -14,7 +14,7 @@ import { LAYOUT } from './layout.js';
 import { STADION_MASK, isVegetationSpot } from './mask.js';
 import { stadionNightLights } from './lamps.js';
 import { STADION_PLACEMENT } from './placement.js';
-import { createFarGate } from './farDetail.js';
+import { createFarGate, createFogGate } from './farDetail.js';
 
 export const STADION_ID = 'stadion';
 export { STADION_PLACEMENT };
@@ -35,6 +35,13 @@ function buildStadion({ scope, placement = STADION_PLACEMENT, loadModels: withMo
   const farGate = createFarGate(world.farDetail);
   const models = createModelGroup();
   world.group.add(models);
+  // Di luar ujung kabut seluruh stadion (termasuk model GLB) tertutup warna kabut: tidak digambar sama sekali (dari kampus ±1 km: ±140 draw call).
+  const farSet = new Set(world.farDetail);
+  const sceneOf = (o) => { let r = o; while (r.parent) r = r.parent; return r; };
+  const fogGate = createFogGate(world.group.children.filter((c) => !farSet.has(c)), {
+    radius: Math.max(...STADION_MASK.map(([x, z]) => Math.hypot(x, z))),
+    fogFar: () => Math.abs(sceneOf(world.group).fog?.far ?? Infinity),
+  });
   let disposed = false;
   const ready = loadModels(scope, models, world.group, withModels, () => disposed);
   return validateBuild({
@@ -43,7 +50,7 @@ function buildStadion({ scope, placement = STADION_PLACEMENT, loadModels: withMo
     minimapLayer: () => {}, // peta dasar region di-bake App.bakeMinimap dari layer minimap
     systems: [
       { id: 'stadion.world', phase: 'world', update: (dt, ctx) => world.update(dt, ctx.time, ctx.focus), dispose() {} },
-      { id: 'stadion.farDetail', phase: 'world', update: (dt, ctx) => farGate.update(ctx.focus), dispose() {} },
+      { id: 'stadion.farDetail', phase: 'world', update: (dt, ctx) => { farGate.update(ctx.focus); fogGate.update(ctx.focus); }, dispose() {} },
     ],
     seatSamples: world.seatSamples,
     layout: LAYOUT,

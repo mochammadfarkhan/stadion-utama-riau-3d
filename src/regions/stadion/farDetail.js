@@ -53,3 +53,40 @@ export function createFarGate(objects, config = FAR_DETAIL) {
     },
   };
 }
+
+/** Celah histeresis (m) gerbang kabut: tampil lagi hanya bila tepi region sudah FOG_GATE_MARGIN di dalam ujung kabut. */
+export const FOG_GATE_MARGIN = 60;
+
+/**
+ * Gerbang kabut: SELURUH isi region disembunyikan bila titik terdekatnya (jarak pusat − radius) sudah di luar ujung kabut,
+ * yaitu tertutup warna kabut penuh dan tak terlihat. Murni.
+ * @param {boolean} hidden status sebelumnya
+ * @param {number} dist jarak datar fokus ke pusat region (m)
+ * @param {number} radius jari-jari region (m)
+ * @param {number} fogFar ujung kabut (m, positif)
+ */
+export function nextFogHidden(hidden, dist, radius, fogFar, margin = FOG_GATE_MARGIN) {
+  if (!Number.isFinite(dist) || !Number.isFinite(fogFar) || fogFar <= 0) return false; // kabut tak diketahui/mati: tampilkan
+  const gap = dist - radius;
+  if (hidden) return gap > fogFar - margin;
+  return gap > fogFar;
+}
+
+/**
+ * Penjaga gerbang kabut. `objects` = akar yang BUKAN detail jauh (detail jauh dijaga createFarGate, yang selalu sudah
+ * tersembunyi bila gerbang kabut menutup karena jaraknya jauh melebihi hideAt). `fogFar()` membaca ujung kabut adegan.
+ */
+export function createFogGate(objects, { radius, fogFar }) {
+  let hidden = false;
+  const disabled = typeof location !== 'undefined' && new URLSearchParams(location.search).has('nofar');
+  return {
+    get hidden() { return hidden; },
+    update(focus) {
+      if (disabled || !focus) return;
+      const next = nextFogHidden(hidden, Math.hypot(focus.x, focus.z), radius, fogFar());
+      if (next === hidden) return;
+      hidden = next;
+      applyFarHidden(objects, hidden);
+    },
+  };
+}
