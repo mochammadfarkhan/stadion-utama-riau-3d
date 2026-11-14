@@ -235,3 +235,21 @@ export function windBuffer(sampleRate, { seconds = 12, seed = 13 } = {}) {
   }
   return normalizePeak(makeLoopable(out, fade), 0.7);
 }
+
+/**
+ * Desis hujan: derau cokelat (integrator bocor) yang bisa diulang tanpa klik di sambungan (makeLoopable). Deterministik.
+ * Dulu: buffer 2 detik dari Math.random() di-loop mentah → klik tiap 2 detik.
+ */
+export function rainHissBuffer(sampleRate, { seconds = 6, seed = 41 } = {}) {
+  const sr = sr8(sampleRate);
+  const fade = Math.round(sr * LOOP_FADE_S);
+  const total = Math.round(sr * seconds) + fade;
+  const rnd = mulberry(seed);
+  const out = new Float32Array(total);
+  let last = 0;
+  for (let i = 0; i < total; i += 1) {
+    last = (last + 0.04 * (rnd() * 2 - 1)) / 1.04;
+    out[i] = last * 3.5;
+  }
+  return normalizePeak(makeLoopable(out, fade), 0.9);
+}
