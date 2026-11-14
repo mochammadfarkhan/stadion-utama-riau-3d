@@ -13,13 +13,16 @@
 import * as THREE from 'three';
 import { KEBUN, CROPS, CROP_ORDER, tileIndexAt, tileCenter, MODE_LABEL } from '../config/kebun.js';
 import { ITEMS } from '../config/items.js';
+import { loadJsonWithBackup } from '../settings/jsonBackup.js';
+import { safeLocalStorage } from '../settings/safeStorage.js';
 import { createFarm, actOn, planAction, plow, growFarm, farmToJson, farmFromJson } from '../sim/farm.js';
 import { loadModel } from '../world/assets/models.js';
 import { KEBUN_MODELS, buildTractorModel, createFarmView } from '../world/props/unri/kebun.js';
 import { HELD_MODELS, createHeldItemFactory } from '../world/props/unri/heldItems.js';
 import { createFarmFx } from '../world/props/unri/kebunFx.js';
+import { SAVE_KEYS } from '../config/saveKeys.js';
 
-const STORAGE_KEY = 'stadion.kebun.v1';
+const STORAGE_KEY = SAVE_KEYS.farm;
 const TILE_COUNT = KEBUN.cols * KEBUN.rows;
 const DOOR_RADIUS = 2;
 const NEED_LABEL = Object.freeze({ cangkul: 'cangkul', benih: 'benih', gembor: 'gembor' });
@@ -32,12 +35,8 @@ const rp = (n) => `Rp ${n.toLocaleString('id-ID')}`;
 const lower = (type) => CROPS[type]?.label.toLowerCase() ?? '';
 
 function loadFarm() {
-  try {
-    const text = localStorage.getItem(STORAGE_KEY);
-    return text ? farmFromJson(text, TILE_COUNT, CROP_ORDER) : createFarm(TILE_COUNT);
-  } catch {
-    return createFarm(TILE_COUNT);
-  }
+  const parse = (text) => (Array.isArray(JSON.parse(text)) ? farmFromJson(text, TILE_COUNT, CROP_ORDER) : null);
+  return loadJsonWithBackup(safeLocalStorage(), STORAGE_KEY, parse) ?? createFarm(TILE_COUNT); // rusak → .bak + kebun baru
 }
 
 function saveFarm(farm) {
@@ -61,7 +60,9 @@ const near = (b, p, r) => Math.hypot(b.x - p.x, b.z - p.z) < r;
  *   terrain:{heightAt(x:number,z:number):number}, time:{hour:number}, store:{set(k:string,v:unknown):void},
  *   isBlocked?:() => boolean, logger?:{error:Function}}} opts
  */
-export function setupFarm({ app, input, hud, ents, inventory, terrain, time, store, isBlocked = () => false, logger = console }) {
+export function setupFarm({
+  app, input, hud, ents, inventory, terrain, time, store, isBlocked = () => false, logger = console, onWalletChanged = () => {},
+}) {
   let farm = loadFarm();
   let view = null;
   let held = null; // pabrik model item di tangan
@@ -118,7 +119,10 @@ export function setupFarm({ app, input, hud, ents, inventory, terrain, time, sto
     view?.update(farm);
     saveFarm(farm);
   };
-  const walletChanged = () => hud.setWallet(ents.vendors.wallet);
+  const walletChanged = () => {
+    hud.setWallet(ents.vendors.wallet);
+    onWalletChanged(); // simpan sekarang: tanpa ini benih gratis / bayaran tidur hilang saat muat ulang
+  };
 
   function buySeed() {
     const id = `benih-${buyType}`;
@@ -276,6 +280,8 @@ export function setupFarm({ app, input, hud, ents, inventory, terrain, time, sto
 
   return {
     get farm() { return farm; },
+    /** Mulai dari awal: semua petak kembali rumput (tersimpan). */
+    reset() { commit(createFarm(TILE_COUNT)); },
     /** Panggil SETELAH sistem 'hud' terdaftar. */
     installPrompt() {
       app.addSystem({ id: 'kebun.prompt', phase: 'ui', update: () => { if (target) hud.setPrompt(promptOf(target)); } });

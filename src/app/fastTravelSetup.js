@@ -33,6 +33,7 @@ export function setupFastTravel({ app, lifecycle, hud, rig, ents, colliders, cit
     /** Selama perjalanan atau panel terbuka sepeda tidak dikayuh (pola toko): WASD memilih tujuan. */
     get blocksInput() { return travel.busy || menu.open; },
     go: (id) => travel.go(id),
+    goTo: (p) => travel.goTo(p),
     destinations: travel.destinations,
   };
 }

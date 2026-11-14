@@ -18,7 +18,7 @@ import { createLighting } from './world/Lighting.js';
 import { createTimeOfDay } from './world/TimeOfDay.js';
 import { createWeather } from './world/Weather.js';
 import { MainMenu } from './ui/MainMenu.js';
-import { hasStoryProgress } from './ui/menuModel.js';
+import { hasAnyProgress } from './ui/menuModel.js';
 import { createRotatePrompt } from './ui/orientation.js';
 import { updateWind } from './world/shaders/windState.js';
 import { buildEntities } from './entities/index.js';
@@ -33,6 +33,7 @@ import { createLoadingScreen } from './ui/LoadingScreen.js';
 import { disposeTree } from './engine/disposeTree.js';
 import { stadionRegion, STADION_ID } from './regions/stadion/index.js';
 import { session, setupMenu } from './app/session.js';
+import { setupAutosave, restorePlace } from './app/savePlace.js';
 import { setupShop } from './app/shop.js';
 import { exposeDevTools, parsePlacementParam, parseFlagParam } from './app/devtools.js';
 import { preloadProcTextures, releaseBaked } from './world/textures/procBake.js';
@@ -228,7 +229,8 @@ async function main() {
   hud.setCameraMode(rig.mode);
   // bayangan kontak untuk semua humanoid ber-LOD (NPC cerita, mahasiswa, satpam, pedagang) dalam 30 m dari fokus
   lifecycle.add(registerContactSource((emit, focus) => ents.lod.forEachNear(focus, 30, (x, z) => emit(x, z, 0.55))));
-  const story = setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle, terrain });
+  const travelRef = { current: null }; // perjalanan cepat dibuat sesudah cerita
+  const story = setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle, terrain, isTravelling: () => Boolean(travelRef.current?.busy), onReset: () => resetGame() });
   const shop = setupShop(hud, ents, story);
   const minimap = setupMinimap(app, ents, story, frame, regions);
   if (city) minimap.setTileLayer(city.minimap);
@@ -252,6 +254,8 @@ async function main() {
   lifecycle.add(() => heroOrnaments.dispose());
   app.addSystem({ id: 'heroOrnaments', phase: 'world', update: (dt, ctx) => heroOrnaments.update(ctx.focus) });
   const travel = setupFastTravel({ app, lifecycle, hud, rig, ents, colliders, city, frame, spawn: region.layout.spawn, touch, unri, regions });
+  travelRef.current = travel;
+  setupAutosave({ app, story, ents, travel, signal: listeners.signal });
   const panelRef = { current: null }; // SettingsPanel (diisi saat panel selesai dipasang)
   /** Tas pemain (setupInventory): dibaca sistem frame & portal untuk membekukan input saat panel tas terbuka. */
   let inventory = null;
@@ -264,7 +268,7 @@ async function main() {
   });
   lifecycle.add(() => inventory.dispose());
   const farm = setupFarm({ // kebun dekat sekre ERC; juga sebelum 'keymap' (E kebun lebih dulu dari cerita/toko)
-    app, input, hud, ents, inventory, terrain, time, store,
+    app, input, hud, ents, inventory, terrain, time, store, onWalletChanged: () => story.saveNow(),
     isBlocked: () => hud.shopOpen || inventory.open || rig.freezesBike || portalKit.portal.state !== 'outside',
   });
   lifecycle.add(() => farm.dispose());
@@ -314,7 +318,16 @@ async function main() {
   const menu = new MainMenu();
   const rotatePrompt = createRotatePrompt(document.body, { isTouch: touch });
   lifecycle.add(() => rotatePrompt.dispose());
-  setupMenu({ app, rig, hud, store, touchUi, touch, menu, story })
+  /** Satu jalur "mulai dari awal" (menu dan jurnal): cerita + dompet + kebun + tas. */
+  function resetGame() {
+    story.reset();
+    farm.reset();
+    inventory.reset();
+  }
+  setupMenu({
+    app, rig, hud, store, touchUi, touch, menu, story, resetGame,
+    restore: () => restorePlace({ story, regions, travel, ents }).catch((err) => console.error('Tempat terakhir gagal dipulihkan:', err)),
+  })
     .then((mounted) => {
       panelRef.current = mounted.panel;
       lifecycle.add(() => mounted.dispose());
@@ -338,7 +351,7 @@ async function main() {
   releaseBaked(); // bitmap tekstur bake tidak dibutuhkan lagi (pemasangan ulang = prosedural)
   await loading.step(1, 'Siap!');
   loading.done();
-  menu.ready({ hasProgress: hasStoryProgress(story.state), touch });
+  menu.ready({ hasProgress: hasAnyProgress({ storyState: story.state, storage, savedPlace: story.savedPlace }), touch });
   if (perfProbe) {
     perfProbe.attach({
       app, store, quality,

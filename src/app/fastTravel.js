@@ -141,6 +141,28 @@ export function createFastTravel({
     bike.state = { ...bike.state, x, z, yaw, v: 0 };
     bike.setCollider(createCollider({ x, z }, colliders.isWalkable, colliders.penetration));
   };
+  /**
+   * Perjalanan ke titik bebas (tempat terakhir, titik mulai): jalur sama dengan go(id).
+   * @param {{x:number, z:number, yaw?:number, label:string}} d
+   * @returns {Promise<TravelStatus>}
+   */
+  async function goTo({ x, z, yaw = 0, label }) {
+    if (busy) return 'busy';
+    busy = true;
+    screen.show(`Menuju ${label}…`);
+    try {
+      if (rig?.povId) rig.exitPov({ instant: true }); // fokus streamer kembali ke sepeda; tanpa terbang ke tujuan
+      place(x, z, yaw); // fokus streamer pindah ke tujuan
+      const cityOk = city ? await city.whenSettled(x, z, settleRadius) : true;
+      const extraOk = settle ? await settle(x, z) : true; // M7: distrik + region hero
+      const spot = findSpawnNear(x, z, { isWalkable: colliders.isWalkable, isCameraClear, fallbackYaw: yaw }) ?? { x, z, yaw };
+      place(spot.x, spot.z, spot.yaw); // collider tile sudah ada: titik walkable dengan ruang kamera
+      return cityOk && extraOk ? 'ok' : 'timeout';
+    } finally {
+      screen.hide();
+      busy = false;
+    }
+  }
   return {
     destinations,
     get busy() { return busy; },
@@ -151,22 +173,8 @@ export function createFastTravel({
     async go(id) {
       const d = destinations.find((v) => v.id === id);
       if (!d) return 'unknown';
-      if (busy) return 'busy';
-      busy = true;
-      screen.show(`Menuju ${d.label}…`);
-      try {
-        if (rig?.povId) rig.exitPov({ instant: true }); // fokus streamer kembali ke sepeda; tanpa terbang ke tujuan
-        place(d.x, d.z, d.yaw); // fokus streamer pindah ke tujuan
-        const cityOk = city ? await city.whenSettled(d.x, d.z, settleRadius) : true;
-        const extraOk = settle ? await settle(d.x, d.z) : true; // M7: distrik + region hero
-        const settled = cityOk && extraOk;
-        const spot = findSpawnNear(d.x, d.z, { isWalkable: colliders.isWalkable, isCameraClear, fallbackYaw: d.yaw }) ?? d;
-        place(spot.x, spot.z, spot.yaw); // collider tile sudah ada: titik walkable dengan ruang kamera
-        return settled ? 'ok' : 'timeout';
-      } finally {
-        screen.hide();
-        busy = false;
-      }
+      return goTo(d);
     },
+    goTo,
   };
 }

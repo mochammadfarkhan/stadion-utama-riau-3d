@@ -1,8 +1,22 @@
+import { SAVE_KEYS } from '../config/saveKeys.js';
 /** Teks dan visibilitas menu utama dari keadaan simpanan dan jenis perangkat (murni, dites). */
 
 /** Apakah simpanan cerita menunjukkan progres yang layak dilanjutkan. */
 export function hasStoryProgress(state) {
   return Boolean(state) && (state.finished === true || state.chapter > 0 || state.step > 0 || (state.eggs?.length ?? 0) > 0);
+}
+
+/** Kunci simpanan di luar cerita yang juga berarti "sudah pernah main" (kebun, tas). */
+export const OTHER_PROGRESS_KEYS = Object.freeze([SAVE_KEYS.farm, SAVE_KEYS.inventory]);
+
+/** Progres apa pun: cerita maju, ada tempat tersimpan, atau kebun/tas pernah tersimpan. */
+export function hasAnyProgress({ storyState, storage, savedPlace = null }) {
+  if (hasStoryProgress(storyState) || savedPlace) return true;
+  try {
+    return OTHER_PROGRESS_KEYS.some((k) => storage?.getItem(k) != null);
+  } catch {
+    return false;
+  }
 }
 
 /** @returns {{startLabel:string, showNewGame:boolean, hint:string}} */

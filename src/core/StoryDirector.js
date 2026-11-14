@@ -55,14 +55,14 @@ export class StoryDirector {
    */
   constructor({
     storage, vendors, storyHud, journal, markers, onToast = () => {}, onWalletChange = () => {}, pointerLock = null,
-    frameOf = () => IDENTITY_FRAME, placeOf = () => null,
+    frameOf = () => IDENTITY_FRAME, placeOf = () => null, modeOf = () => 'sepeda',
   }) {
     this.chapters = resolveChapters(CHAPTERS, frameOf);
     this.npcs = resolveNpcs(STORY_NPCS, frameOf);
     this.eggs = resolveEggs(EASTER_EGGS, frameOf);
     this.anchors = resolveAnchors(EGG_ANCHORS, frameOf);
     this.story = createStory({ chapters: this.chapters, eggs: this.eggs });
-    Object.assign(this, { storage, vendors, storyHud, journal, markers, onToast, onWalletChange, pointerLock, frameOf, placeOf });
+    Object.assign(this, { storage, vendors, storyHud, journal, markers, onToast, onWalletChange, pointerLock, frameOf, placeOf, modeOf });
     this.state = this.story.initial();
     this.eggState = createEggState();
     this.checkpoints = lapCheckpoints(frameOf);
@@ -113,8 +113,19 @@ export class StoryDirector {
       version: SAVE_VERSION,
       ...Object.fromEntries(PROGRESS_KEYS.map((k) => [k, this.state[k]])),
       wallet: this.vendors.wallet,
-      place: this.placeOf() ?? null,
+      place: this.#placeNow(),
     });
+  }
+
+  /** Tempat sekarang; placeOf null (mis. menu utama masih terbuka) → tempat tersimpan dipertahankan, bukan dihapus. */
+  #placeNow() {
+    const p = this.placeOf();
+    return p ? { ...p, mode: this.modeOf() } : this.savedPlace;
+  }
+
+  /** Simpan sekarang (dompet, progres, tempat + kendaraan): dipakai transaksi kebun, simpan berkala, dan saat tab ditutup. */
+  saveNow() {
+    this.#persist();
   }
 
   dispatch(event) {
@@ -272,6 +283,7 @@ export class StoryDirector {
     this.fundedStep = null; // uang saku per langkah boleh diberikan lagi setelah mulai ulang
     this.fundsTimer = 0;
     this.vendors.setWallet(createWallet()); // "Mulai dari awal" = dompet awal juga
+    this.savedPlace = null; // tempat lama tidak dipulihkan lagi
     this.onWalletChange(this.vendors.wallet);
     this.#persist();
     this.journal.hide();

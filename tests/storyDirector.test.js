@@ -266,6 +266,24 @@ describe('StoryDirector: koordinat dunia multi-region (M0)', () => {
     expect(d.promptFor(w)).toMatch(/Pak Satpam/);
   });
 
+  it('placeOf null (menu masih terbuka) mempertahankan tempat tersimpan; reset menghapusnya', () => {
+    const place = { region: 'stadion', x: 1, z: 2, yaw: 0.5, mode: 'jalan' };
+    const m = makeDeps({ save: { version: 3, chapter: 0, step: 0, badges: [], eggs: [], bestLap: null, rupiah: 0, finished: false, wallet: { balance: 1000, items: [] }, place } });
+    const d = new StoryDirector({ ...m.deps, frameOf, placeOf: () => null });
+    d.start();
+    d.saveNow();
+    expect(JSON.parse(m.store.get(STORY_KEY)).place).toEqual(place);
+    d.reset();
+    expect(JSON.parse(m.store.get(STORY_KEY)).place).toBeNull();
+  });
+
+  it('saveNow menulis saldo terkini ke penyimpanan', () => {
+    const { d, deps, store } = started();
+    deps.vendors.credit(1234);
+    d.saveNow();
+    expect(JSON.parse(store.get(STORY_KEY)).wallet.balance).toBe(51234);
+  });
+
   it('save v3 menyimpan tempat dari placeOf; tempat tersimpan dibaca sebagai savedPlace', () => {
     const place = { region: 'stadion', x: 1, z: 2, yaw: 0.5 };
     const m = makeDeps();
@@ -274,11 +292,11 @@ describe('StoryDirector: koordinat dunia multi-region (M0)', () => {
     expect(d.savedPlace).toBeNull();
     d.vendors.wallet = { balance: 45000, items: [] };
     d.onBought('es-teh');
-    expect(JSON.parse(m.store.get(STORY_KEY))).toMatchObject({ version: 3, place });
+    expect(JSON.parse(m.store.get(STORY_KEY))).toMatchObject({ version: 3, place: { ...place, mode: 'sepeda' } });
     const reload = makeDeps({ store: m.store });
     const d2 = new StoryDirector({ ...reload.deps, frameOf });
     d2.start();
-    expect(d2.savedPlace).toEqual(place);
+    expect(d2.savedPlace).toEqual({ ...place, mode: 'sepeda' });
   });
 });
 
