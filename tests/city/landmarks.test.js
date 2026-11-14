@@ -24,6 +24,20 @@ describe('landmarkDistance', () => {
   });
 });
 
+describe('LANDMARKS (daftar)', () => {
+  it('id unik, koordinat berhingga, berkas ada di public/models/landmark', async () => {
+    const { existsSync } = await import('node:fs');
+    const ids = new Set();
+    for (const lm of LANDMARKS) {
+      expect(ids.has(lm.id)).toBe(false);
+      ids.add(lm.id);
+      expect(Number.isFinite(lm.x) && Number.isFinite(lm.z)).toBe(true);
+      for (const f of lm.files) expect(existsSync(new URL(`../../public/models/landmark/${f}`, import.meta.url))).toBe(true);
+    }
+    expect(LANDMARKS.length).toBeGreaterThanOrEqual(26);
+  });
+});
+
 describe('LANDMARKS', () => {
   it('tiap landmark punya 3 berkas LOD dan batas menaik', () => {
     for (const lm of LANDMARKS) {

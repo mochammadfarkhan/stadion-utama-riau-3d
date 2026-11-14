@@ -5,6 +5,7 @@
  */
 import * as THREE from 'three';
 import { FACADE_UNIFORMS } from './facade.js';
+import { GENERATED_LANDMARKS } from './landmarks.data.js';
 
 export const LANDMARK_Y = -0.05;
 
@@ -49,7 +50,7 @@ export const LANDMARKS = Object.freeze([
   {
     id: 'jembatan-siak-4', name: 'Jembatan Siak IV', x: 6467.2, z: -6184.0, yaw: 0,
     files: ['jembatan-siak-4-lod0.glb', 'jembatan-siak-4-lod1.glb', 'jembatan-siak-4-lod2.glb'], lod: [1300, 2800],
-  },
+  },  ...GENERATED_LANDMARKS, // bangunan, tugu, bandara: assets-src/blender/landmark/bangunan.py
 ]);
 
 /**

@@ -3,6 +3,8 @@
 Dihimpun 2026-11-14 dari pencarian web. **Cikal bakal** rencana model tambahan; belum diputuskan user.
 Aturan: nama/lokasi final harus dicek ke OSM/Overture (`far/landmarks.json`, K2) sebelum dipasang. Tanda `[INFERENSI]` = bukan dari sumber, perlu dicek.
 
+> **Status 2026-11-15:** sebagian besar daftar ini sudah menjadi model (lihat [landmark/README.md](landmark/README.md)): An-Nur, jembatan Siak I/III/IV, Tugu Selais/Zapin/Keris/Perjuangan/Bambu Runcing, Kantor Gubernur + Menara Lancang Kuning, Soeman Hs., 7 mal/plaza + Pasar Bawah, Hotel Furaya, Masjid Raya Senapelan, Balai Adat, Anjung Seni Idrus Tintin, Museum Sang Nila Utama, bandara. **Belum:** Transmart, Bandar Serai, Rumah Singgah Tuan Kadi, TBRK (tidak ada jejak bernama di OSM).
+
 ## Prioritas 1 — paling dikenal warga (studi persepsi Sigma Teknika, Nov 2025)
 Tiga teratas menurut survei: Masjid Agung An-Nur, Perpustakaan Soeman HS, Kantor Gubernur Riau.
 

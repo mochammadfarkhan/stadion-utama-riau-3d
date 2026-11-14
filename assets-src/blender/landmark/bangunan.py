@@ -1,0 +1,458 @@
+"""
+Landmark Pekanbaru lainnya (bangunan, tugu, bandara) → GLB 3 LOD per landmark, dari JEJAK OSM + bentuk khas.
+
+Jalankan (Blender headless):
+    "C:\\Program Files\\Blender Foundation\\Blender 5.2\\blender.exe" -b --python-expr "import runpy;print(runpy.run_path(r'<repo>\\assets-src\\blender\\landmark\\bangunan.py')['build']())"
+
+Keluaran: public/models/landmark/<id>-lod{0,1,2}.glb + src/city/landmarks.data.js (daftar posisi, DIHASILKAN skrip ini).
+Jejak: assets-src/blender/landmark/osm/footprints.json (Overpass 2026-11-15; way/node OSM, koordinat dunia x, z).
+
+Fakta = jejak (bentuk denah), nama, jumlah lantai bila ada di OSM. Foto (Commons/Maps) = ciri khas (atap Melayu bertingkat di Kantor
+Gubernur, kaca + atap miring di Soeman HS, plang "MAL SKA", patung tiga ikan selais, busur oranye dll).
+[INFERENSI] tinggi per lantai, warna merek, bentuk atap Balai Adat/Anjung Seni/Museum (gaya atap Melayu umum), kubah Masjid Raya Senapelan,
+bentuk Tugu Zapin/Keris/Perjuangan/Bambu Runcing/Skyhawk, tinggi hangar & terminal.
+"""
+import json
+import math
+import os
+import runpy
+
+import bpy
+
+HERE = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else r"C:\Users\mocha\Documents\stadion-utama-riau-3d\assets-src\blender\landmark"
+_C = runpy.run_path(os.path.join(HERE, "lm_common.py"))
+Mesh, extrude_unused = _C["Mesh"], None
+area, ccw, centroid, inside, simplify, min_rect, hash01 = (_C[k] for k in ("area", "ccw", "centroid", "inside", "simplify", "min_rect", "hash01"))
+dome, x_finial, material, export_lods = _C["dome"], _C["x_finial"], _C["material"], _C["export_lods"]
+REPO = _C["REPO"]
+FOOT = json.load(open(os.path.join(HERE, "osm", "footprints.json"), encoding="utf-8"))
+OUT_BLEND = os.path.join(HERE, "bangunan.blend")
+OUT_JS = os.path.join(REPO, "src", "city", "landmarks.data.js")
+
+GLASS = "#1f2c35"
+BATU = "#d9d3c4"
+
+
+def way(wid):
+    return [tuple(p) for p in FOOT["way"][str(wid)]["pts"]][:-1]
+
+
+def tag(wid, k, default=None):
+    return FOOT["way"][str(wid)]["tags"].get(k, default)
+
+
+class Frame:
+    """Titik tengah (dunia) → koordinat model (x, -z) relatif."""
+    def __init__(self, pts_list):
+        xs = [p[0] for pts in pts_list for p in pts]
+        zs = [p[1] for pts in pts_list for p in pts]
+        self.cx, self.cz = round((min(xs) + max(xs)) / 2, 1), round((min(zs) + max(zs)) / 2, 1)
+
+    def pts(self, pts):
+        return [(x - self.cx, -(z - self.cz)) for x, z in pts]
+
+    def pt(self, x, z):
+        return (x - self.cx, -(z - self.cz))
+
+
+def bands(z0, n, fh, wall, glass=GLASS):
+    out = []
+    for k in range(n):
+        z = z0 + k * fh
+        out += [(z, z + 0.26 * fh, wall), (z + 0.26 * fh, z + 0.78 * fh, glass), (z + 0.78 * fh, z + fh, wall)]
+    return out
+
+
+def tol(lod):
+    return (0.0, 1.5, 4.0)[lod]
+
+
+def ac_boxes(m, poly, z, lod, seed):
+    if lod:
+        return
+    xs, ys = [p[0] for p in poly], [p[1] for p in poly]
+    n = 0
+    for i in range(14):
+        for j in range(14):
+            x = min(xs) + (max(xs) - min(xs)) * (i + 0.5) / 14
+            y = min(ys) + (max(ys) - min(ys)) * (j + 0.5) / 14
+            if hash01(i, j, seed) < 0.12 and inside((x, y), poly) and n < 16:
+                m.box(x, y, z, 3.2, 2.2, 1.6, "#8e9195")
+                n += 1
+
+
+def sign_on_longest(m, poly, z, length, col, lod):
+    if lod:
+        return
+    poly = ccw(poly)
+    a, b = max(zip(poly, poly[1:] + poly[:1]), key=lambda e: math.dist(*e))
+    L = math.dist(a, b)
+    dx, dy = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+    nx, ny = dy, -dx
+    c = ((a[0] + b[0]) / 2 + nx * 0.5, (a[1] + b[1]) / 2 + ny * 0.5)
+    h = min(length, L * 0.5) / 2
+    m.prism((c[0] - dx * h, c[1] - dy * h, z), (c[0] + dx * h, c[1] + dy * h, z), 0.7, col, wz=3.2)
+
+
+# ---------------- bangunan umum (mal, hotel, pasar) ----------------
+def b_mal(spec):
+    fr = Frame([way(w) for w in spec["ways"]])
+
+    def build(lod):
+        m = Mesh()
+        for w in spec["ways"]:
+            poly = simplify(fr.pts(way(w)), tol(lod))
+            n = int(tag(w, "building:levels", spec["levels"]))
+            H = n * spec["fh"]
+            wall, acc = spec["wall"], spec["accent"]
+            m.extrude(poly, 0, H, wall, roof="#8a8d8f", bands=bands(0, n, spec["fh"], wall) if lod == 0 else None)
+            m.extrude(poly, H, H + 1.3, acc)
+            ac_boxes(m, poly, H, lod, w)
+            sign_on_longest(m, poly, H - 4.2, spec.get("sign", 22), acc, lod)
+        return m
+    return fr, build
+
+
+# ---------------- Melayu: atap bertingkat + selembayung ----------------
+def melayu_roof(m, poly, z0, lod, roof, trim, scale=1.0, tiers=2, h1=7.0, eave=2.5):
+    cx, cy, ang, L, W = min_rect(poly)
+    L, W = (L + eave) * scale, (W + eave) * scale
+    m.hip(cx, cy, ang, L, W, z0, h1, 0.78, roof)
+    top = z0 + h1
+    if tiers >= 2:
+        L2, W2 = L * 0.55, max(W * 0.5, 6.0)
+        m.hip(cx, cy, ang, L2, W2, top, h1 * 0.75, 0.7, roof)
+        top += h1 * 0.75
+    if lod < 2:
+        for sgn in (-1, 1):
+            r = (L2 if tiers >= 2 else L) * 0.5 * 0.7
+            x_finial(m, cx + math.cos(ang) * r * sgn, cy + math.sin(ang) * r * sgn, top - 0.4, ang, 2.6, trim)
+    return top
+
+
+def b_melayu(spec):
+    fr = Frame([way(w) for w in spec["ways"]])
+
+    def build(lod):
+        m = Mesh()
+        for w in spec["ways"]:
+            poly = simplify(fr.pts(way(w)), tol(lod))
+            H = spec["h"]
+            n = spec.get("floors", 1)
+            fh = H / n
+            m.extrude(poly, 0, H, spec["wall"], roof=spec["roof"], bands=bands(0, n, fh, spec["wall"], "#3a3226") if lod == 0 else None)
+            m.extrude(poly, H - 1.0, H, spec["trim"])
+            melayu_roof(m, poly, H, lod, spec["roof"], spec["trim"], tiers=spec.get("tiers", 2), h1=spec.get("h1", 7.0), eave=spec.get("eave", 2.5))
+        return m
+    return fr, build
+
+
+def b_gubernur(spec):
+    """Kantor Gubernur (4 lantai, atap Melayu) + Menara Lancang Kuning (9 lantai, mahkota selembayung bertingkat)."""
+    fr = Frame([way(w) for w in spec["ways"]])
+
+    def build(lod):
+        m = Mesh()
+        off, tow = way(spec["ways"][0]), way(spec["ways"][1])
+        poly = simplify(fr.pts(off), tol(lod))
+        H = 4 * 4.2
+        m.extrude(poly, 0, H, "#e6dcc3", roof="#8c3a24", bands=bands(0, 4, 4.2, "#e6dcc3", "#26323a") if lod == 0 else None)
+        cx, cy, ang, L, W = min_rect(poly)
+        for k in (-1, 0, 1):  # tiga atap pelana melintang sepanjang bangunan
+            u = k * L * 0.3
+            m.hip(cx + math.cos(ang) * u, cy + math.sin(ang) * u, ang + math.pi / 2, W + 3, 11.0, H, 7.5, 0.9, "#8c3a24")
+            if lod < 2:
+                for sg in (-1, 1):
+                    x_finial(m, cx + math.cos(ang) * u + math.cos(ang + math.pi / 2) * (W / 2 + 0.5) * sg, cy + math.sin(ang) * u + math.sin(ang + math.pi / 2) * (W / 2 + 0.5) * sg, H + 6.8, ang + math.pi / 2, 2.4, "#d8aa2e")
+        tp = simplify(fr.pts(tow), tol(lod))
+        TH = 9 * 3.8
+        m.extrude(tp, 0, TH, "#d9d3c4", roof="#8a8d8f", bands=bands(0, 9, 3.8, "#d9d3c4", "#1f2c35") if lod == 0 else None)
+        m.extrude(tp, TH, TH + 1.5, "#d8aa2e")
+        top = melayu_roof(m, tp, TH + 1.5, lod, "#7c2f1d", "#d8aa2e", scale=0.8, tiers=2, h1=9.0, eave=3.0)
+        return m
+    return fr, build
+
+
+def b_soeman(spec):
+    """Perpustakaan Soeman Hs.: badan kaca 6 lantai + atap miring (satu sisi), malam menyala."""
+    fr = Frame([way(w) for w in spec["ways"]])
+
+    def build(lod):
+        m = Mesh()
+        poly = simplify(fr.pts(way(spec["ways"][0])), tol(lod))
+        n, fh = 6, 4.0
+        H = n * fh
+        m.extrude(poly, 0, H, "#d6d9d8", roof=None, bands=bands(0, n, fh, "#cfd3d3", "#1c3140") if lod == 0 else None)
+        cx, cy, ang, L, W = min_rect(poly)
+        c, s = math.cos(ang), math.sin(ang)
+        P = lambda u, v, z: (cx + u * c - v * s, cy + u * s + v * c, z)  # noqa: E731
+        zl, zh = H, H + 9.0   # atap miring: rendah di sisi -v, tinggi di sisi +v
+        ref = (cx, cy, H - 3)
+        m.poly_out([P(-L / 2, -W / 2, zl), P(L / 2, -W / 2, zl), P(L / 2, W / 2, zh), P(-L / 2, W / 2, zh)], ref, "#8fb4c9")
+        m.poly_out([P(-L / 2, W / 2, H), P(L / 2, W / 2, H), P(L / 2, W / 2, zh), P(-L / 2, W / 2, zh)], ref, "#1c3140")
+        m.poly_out([P(-L / 2, -W / 2, H), P(-L / 2, W / 2, H), P(-L / 2, W / 2, zh), P(-L / 2, -W / 2, zl)], ref, "#aab4ba")
+        m.poly_out([P(L / 2, -W / 2, H), P(L / 2, W / 2, H), P(L / 2, W / 2, zh), P(L / 2, -W / 2, zl)], ref, "#aab4ba")
+        m.top(poly, H, "#7e8486")
+        if lod == 0:  # sirip vertikal fasad
+            for i in range(1, 14):
+                u = -L / 2 + L * i / 14
+                m.prism(P(u, -W / 2 - 0.4, 2), P(u, -W / 2 - 0.4, H + 4), 0.5, "#c9ced0", wz=0.9)
+        return m
+    return fr, build
+
+
+def b_masjid(spec):
+    fr = Frame([way(w) for w in spec["ways"]])
+
+    def build(lod):
+        m = Mesh()
+        poly = simplify(fr.pts(way(spec["ways"][0])), tol(lod))
+        cx, cy, ang, L, W = min_rect(poly)
+        Hw = 9.0
+        m.extrude(poly, 0, Hw, "#e8e2d0", roof="#9d9a92", bands=bands(0, 2, 4.5, "#e8e2d0", "#2a3b3a") if lod == 0 else None)
+        R = min(L, W) * 0.3
+        seg = 20 if lod == 0 else 12 if lod == 1 else 8
+        m.revolve(cx, cy, Hw, [(R * 0.9, 0), (R * 0.9, 4.0)], seg, "#ece5d2")
+        dome(m, cx, cy, Hw + 4.0, R, R * 1.2, seg, 8 if lod == 0 else 5 if lod == 1 else 3, spec["dome"], spec.get("dome2"))
+        if lod < 2:
+            m.revolve(cx, cy, Hw + 4.0 + R * 1.2, [(0.5, 0), (0.2, 2.4), (0, 3.4)], 6, "#d8aa2e")
+        mx, my = cx + math.cos(ang) * (L / 2 + 1.5), cy + math.sin(ang) * (L / 2 + 1.5)
+        seg2 = 8 if lod == 0 else 6
+        m.revolve(mx, my, 0, [(1.7, 0), (1.7, 26)], seg2, "#e2d08e")
+        m.revolve(mx, my, 26, [(2.5, 0), (2.5, 1.0), (1.4, 1.0)], seg2, "#3a9a88", cap_top=True)
+        dome(m, mx, my, 27, 1.9, 3.6, seg2 if lod < 2 else 4, 5 if lod == 0 else 3, spec["dome"], None)
+        return m
+    return fr, build
+
+
+# ---------------- tugu / monumen ----------------
+def at_node(nid):
+    n = FOOT["node"][str(nid)]
+    return n["x"], n["z"]
+
+
+def b_tugu_selais(spec):
+    x, z = at_node(spec["node"])
+
+    def build(lod):
+        m = Mesh()
+        seg = 24 if lod == 0 else 14 if lod == 1 else 8
+        m.revolve(0, 0, 0, [(11.0, 0), (11.0, 0.9), (10.0, 0.9)], seg, "#cdc7b8", cap_top=True)
+        m.revolve(0, 0, 0, [(10.0, 0.4), (10.0, 0.5)], seg, "#4a7ea6", cap_top=True)
+        m.revolve(0, 0, 0.5, [(4.4, 0), (4.0, 2.6), (3.2, 2.6)], seg, "#bdb7a5", cap_top=True)
+        n = 8 if lod == 0 else 5 if lod == 1 else 3
+        for f in range(3):
+            base = 2 * math.pi * f / 3
+            prev = None
+            for k in range(n + 1):
+                t = k / n
+                r = 2.3 * (1 - t) + 0.5
+                th = base + 1.1 * t
+                p = (r * math.cos(th), r * math.sin(th), 3.1 + 8.8 * t)
+                if prev:
+                    m.prism(prev, p, 1.7 * (1 - 0.65 * t) + 0.3, "#b87333", caps=True)
+                prev = p
+            if lod < 2:  # sirip ekor mekar di puncak
+                for sg in (-1, 1):
+                    m.prism(prev, (prev[0] + math.cos(base + 1.1 + sg * 0.9) * 1.6, prev[1] + math.sin(base + 1.1 + sg * 0.9) * 1.6, prev[2] + 1.8), 0.35, "#b87333")
+        return m
+    return Frame([[(x, z)]]), build
+
+
+def obelisk(m, h, w, col, cap, steps=3):
+    for k in range(steps):
+        m.box(0, 0, k * 0.5, w * 1.8 + (steps - k) * 1.4, w * 1.8 + (steps - k) * 1.4, 0.5, "#bdb7a5")
+    s0 = steps * 0.5
+    m.prism((0, 0, s0), (0, 0, s0 + h), w, col, caps=True)
+    m.prism((0, 0, s0 + h), (0, 0, s0 + h + w), w * 0.7, cap, caps=True)
+
+
+def b_tugu_zapin(spec):
+    x, z = at_node(spec["node"])
+
+    def build(lod):
+        m = Mesh()
+        obelisk(m, 9.0, 1.8, "#e8e0c8", "#d8aa2e")
+        if lod < 2:  # [INFERENSI] empat "lengan penari zapin" melengkung di sekeliling tiang
+            for k in range(4):
+                a = math.pi / 2 * k
+                m.prism((math.cos(a) * 0.9, math.sin(a) * 0.9, 2.2), (math.cos(a) * 2.8, math.sin(a) * 2.8, 7.2), 0.5, "#d8aa2e")
+        return m
+    return Frame([[(x, z)]]), build
+
+
+def b_tugu_perjuangan(spec):
+    x, z = at_node(spec["node"])
+
+    def build(lod):
+        m = Mesh()
+        obelisk(m, 13.0, 1.6, "#d9d3c4", "#8a8d8f", steps=4)
+        return m
+    return Frame([[(x, z)]]), build
+
+
+def b_tugu_keris(spec):
+    x, z = at_node(spec["node"])
+
+    def build(lod):
+        m = Mesh()
+        m.revolve(0, 0, 0, [(5.0, 0), (4.5, 1.2), (3.0, 1.2)], 10 if lod < 2 else 6, "#bdb7a5", cap_top=True)
+        m.prism((0, 0, 1.2), (0, 0, 4.0), 1.0, "#d8aa2e", caps=True)  # hulu emas
+        n = 14 if lod == 0 else 8 if lod == 1 else 4
+        for k in range(n):  # bilah bergelombang (luk), makin runcing
+            t = k / n
+            cx = 0.9 * math.sin(k * 0.95) * (1 - 0.6 * t)
+            m.box(cx, 0, 4.0 + t * 18.0, 2.6 * (1 - t) + 0.45, 0.8, 18.0 / n + 0.05, "#c9ced0")
+        return m
+    return Frame([[(x, z)]]), build
+
+
+def b_tugu_bambu(spec):
+    x, z = at_node(spec["node"])
+
+    def build(lod):
+        m = Mesh()
+        m.revolve(0, 0, 0, [(4.5, 0), (4.0, 1.0), (3.0, 1.0)], 10 if lod < 2 else 6, "#bdb7a5", cap_top=True)
+        for k in range(5):
+            a = 2 * math.pi * k / 5
+            hh = 11.0 + 3.0 * hash01(k, 7)
+            cx, cy = 1.6 * math.cos(a), 1.6 * math.sin(a)
+            m.revolve(cx, cy, 1.0, [(0.75, 0), (0.7, hh * 0.45)], 6, "#b3261e")
+            m.revolve(cx, cy, 1.0 + hh * 0.45, [(0.7, 0), (0.7, 1.0)], 6, "#e8e4da")
+            m.revolve(cx, cy, 1.0 + hh * 0.45 + 1.0, [(0.7, 0), (0.55, hh * 0.35), (0, hh * 0.2)], 6, "#b3261e")
+        return m
+    return Frame([[(x, z)]]), build
+
+
+def b_skyhawk(spec):
+    x, z = at_node(spec["node"])
+
+    def build(lod):
+        m = Mesh()
+        m.prism((0, 0, 0), (0, 0, 6.2), 1.0, "#bdb7a5", caps=True)
+        g = "#8f969c"
+        m.prism((-5.0, 0, 7.0), (5.0, 0, 7.9), 1.5, g, caps=True)           # badan
+        m.prism((-0.8, -5.2, 7.5), (-0.8, 5.2, 7.5), 2.4, g, wz=0.3)      # sayap
+        m.prism((-4.4, 0, 7.4), (-5.2, 0, 10.0), 0.3, g, wz=1.8)          # sirip ekor
+        m.prism((-4.5, -2.0, 7.6), (-4.5, 2.0, 7.6), 1.4, g, wz=0.25)     # sayap ekor
+        return m
+    return Frame([[(x, z)]]), build
+
+
+# ---------------- bandara ----------------
+def b_terminal(spec):
+    fr = Frame([way(w) for w in spec["ways"]])
+
+    def build(lod):
+        m = Mesh()
+        term = simplify(fr.pts(way(spec["ways"][0])), tol(lod))
+        H = 12.0
+        m.extrude(term, 0, H, "#dfe1e0", roof="#9aa0a6", bands=bands(0, 2, 6.0, "#dfe1e0", "#1c2d3a") if lod == 0 else None)
+        cx, cy, ang, L, W = min_rect(term)
+        m.hip(cx, cy, ang, L * 0.9, W * 0.5, H, 3.0, 1.0, "#c9ced0")  # atap tengah sedikit naik
+        vip = simplify(fr.pts(way(spec["ways"][1])), tol(lod))
+        m.extrude(vip, 0, 8.0, "#e6dcc3", roof="#8c3a24")
+        melayu_roof(m, vip, 8.0, lod, "#8c3a24", "#d8aa2e", tiers=1, h1=6.0, eave=2.0)
+        return m
+    return fr, build
+
+
+def strip(m, line, width, z, col):
+    for a, b in zip(line, line[1:]):
+        L = math.dist(a, b)
+        if L < 0.1:
+            continue
+        nx, ny = -(b[1] - a[1]) / L * width / 2, (b[0] - a[0]) / L * width / 2
+        m.poly([(a[0] - nx, a[1] - ny, z), (b[0] - nx, b[1] - ny, z), (b[0] + nx, b[1] + ny, z), (a[0] + nx, a[1] + ny, z)], col)
+
+
+def b_landasan(spec):
+    air = [w for w, d in FOOT["way"].items() if d["tags"].get("aeroway") in ("runway", "taxiway", "apron") or d["tags"].get("building") == "hangar" or "hangar" in str(d["tags"])]
+    runway, aprons = ["30627063"], ["30627087", "583654434", "634318391", "634318394"]
+    hangars = ["315317230", "634318398", "634318404", "634318407", "918692687", "918692688"]
+    tax = [w for w, d in FOOT["way"].items() if d["tags"].get("aeroway") == "taxiway"]
+    use = runway + aprons + hangars + tax
+    fr = Frame([[tuple(p) for p in FOOT["way"][w]["pts"]] for w in use])
+
+    def build(lod):
+        m = Mesh()
+        for w in aprons:
+            m.top(simplify(fr.pts([tuple(p) for p in FOOT["way"][w]["pts"]][:-1]), 2 * lod), 0.12, "#707174")
+        for w in tax:
+            strip(m, fr.pts([tuple(p) for p in FOOT["way"][w]["pts"]]), 23.0, 0.14, "#505257")
+        rw = fr.pts([tuple(p) for p in FOOT["way"][runway[0]]["pts"]])
+        strip(m, rw, 45.0, 0.16, "#3b3d41")
+        if lod == 0:
+            seglen = [math.dist(a, b) for a, b in zip(rw, rw[1:])]
+            tot = sum(seglen)
+            s = 40.0
+            while s < tot - 40:
+                acc, i = 0.0, 0
+                while acc + seglen[i] < s:
+                    acc += seglen[i]
+                    i += 1
+                t = (s - acc) / seglen[i]
+                p0 = (rw[i][0] + (rw[i + 1][0] - rw[i][0]) * t, rw[i][1] + (rw[i + 1][1] - rw[i][1]) * t)
+                t2 = min(1.0, (s + 28 - acc) / seglen[i])
+                p1 = (rw[i][0] + (rw[i + 1][0] - rw[i][0]) * t2, rw[i][1] + (rw[i + 1][1] - rw[i][1]) * t2)
+                strip(m, [p0, p1], 1.2, 0.2, "#e8e8e4")
+                s += 60.0
+        for w in hangars:
+            poly = simplify(fr.pts([tuple(p) for p in FOOT["way"][w]["pts"]][:-1]), 2 * lod)
+            m.extrude(poly, 0, 11.0, "#a9b0b4", roof="#8f979c")
+            cx, cy, ang, L, W = min_rect(poly)
+            m.hip(cx, cy, ang, L, W, 11.0, 3.5, 1.0, "#8f979c")
+        return m
+    return fr, build
+
+
+# ---------------- daftar ----------------
+MAL = dict(fh=4.6, levels=4)
+SPECS = [
+    dict(id="kantor-gubernur-riau", name="Kantor Gubernur Riau + Menara Lancang Kuning", fn=b_gubernur, ways=[318513897, 318513901]),
+    dict(id="perpustakaan-soeman-hs", name="Perpustakaan Soeman Hs.", fn=b_soeman, ways=[318103012]),
+    dict(id="balai-adat-melayu-riau", name="Balai Adat Melayu Riau", fn=b_melayu, ways=[1294872408], h=7.0, floors=1, wall="#e8dcc0", roof="#8c3a24", trim="#d8aa2e", tiers=2, h1=8.0, eave=3.0),
+    dict(id="anjung-seni-idrus-tintin", name="Anjung Seni Idrus Tintin", fn=b_melayu, ways=[290157956], h=8.0, floors=1, wall="#e6d9b8", roof="#7c2f1d", trim="#d8aa2e", tiers=2, h1=8.0, eave=3.0),
+    dict(id="museum-sang-nila-utama", name="Museum Sang Nila Utama", fn=b_melayu, ways=[1082088975], h=6.5, floors=1, wall="#e8e0c8", roof="#8c3a24", trim="#d8aa2e", tiers=1, h1=7.0, eave=2.5),
+    dict(id="mal-ska", name="Mal SKA", fn=b_mal, ways=[280698814], wall="#e8e6e1", accent="#1d5ea8", sign=30, **{**MAL, "levels": 6}),
+    dict(id="swiss-belinn-ska", name="Swiss-Belinn SKA", fn=b_mal, ways=[327403746], wall="#dfe3e6", accent="#1f3b6b", fh=3.5, levels=11),
+    dict(id="living-world", name="Living World Pekanbaru", fn=b_mal, ways=[327710042], wall="#efe3cf", accent="#2f8f55", sign=30, **MAL),
+    dict(id="ciputra-seraya-mall", name="Mal Ciputra Seraya", fn=b_mal, ways=[327709577], wall="#e9dccb", accent="#b5382c", sign=24, **MAL),
+    dict(id="mall-pekanbaru", name="Mall Pekanbaru", fn=b_mal, ways=[465740381], wall="#ddd9d2", accent="#c57a1a", sign=22, **MAL),
+    dict(id="plaza-suka-ramai", name="Plaza Suka Ramai", fn=b_mal, ways=[465325690], wall="#e6ddcc", accent="#7a3b8f", sign=28, **{**MAL, "levels": 3}),
+    dict(id="plaza-citra", name="Plaza Citra", fn=b_mal, ways=[318513887], wall="#d9d6cf", accent="#2e7d7a", sign=22, **MAL),
+    dict(id="pasar-bawah", name="Pasar Bawah", fn=b_mal, ways=[1253091010], wall="#d9c9a8", accent="#a0482a", sign=20, fh=4.2, levels=4),
+    dict(id="hotel-furaya", name="Hotel Furaya", fn=b_mal, ways=[737845378], wall="#e9e5da", accent="#8a6d2a", sign=20, fh=3.5, levels=7),
+    dict(id="masjid-raya-senapelan", name="Masjid Raya Senapelan", fn=b_masjid, ways=[1293729477], dome="#3f8f5a", dome2="#2f7a4a"),
+    dict(id="tugu-selais", name="Tugu Selais Tiga Sepadan", fn=b_tugu_selais, node=12007849467),
+    dict(id="tugu-zapin", name="Tugu Zapin 0 KM", fn=b_tugu_zapin, node=3221127383),
+    dict(id="tugu-keris", name="Tugu Keris", fn=b_tugu_keris, node=3101596368),
+    dict(id="tugu-perjuangan", name="Tugu Perjuangan", fn=b_tugu_perjuangan, node=3203037814),
+    dict(id="tugu-bambu-runcing", name="Tugu Bambu Runcing", fn=b_tugu_bambu, node=3203037813),
+    dict(id="monumen-skyhawk", name="Monumen Pesawat Skyhawk", fn=b_skyhawk, node=12618267339),
+    dict(id="bandara-terminal", name="Terminal Bandara SSK II", fn=b_terminal, ways=[311878399, 327379139]),
+    dict(id="bandara-landasan", name="Landasan Bandara SSK II", fn=b_landasan, lod=[3200, 6400]),
+]
+
+
+def build(only=None):
+    for o in list(bpy.data.objects):
+        bpy.data.objects.remove(o, do_unlink=True)
+    mat = material()
+    res, entries = {}, []
+    for sp in SPECS:
+        if only and sp["id"] not in only:
+            continue
+        fr, builder = sp["fn"](sp)
+        res[sp["id"]] = export_lods(sp["id"], builder, mat)
+        entries.append(dict(id=sp["id"], name=sp["name"], x=fr.cx, z=fr.cz, lod=sp.get("lod", [1300, 2800])))
+    if not only:
+        with open(OUT_JS, "w", encoding="utf-8", newline="\n") as f:
+            f.write("// DIHASILKAN oleh assets-src/blender/landmark/bangunan.py — jangan sunting tangan.\n"
+                    "// Model memakai koordinat dunia relatif ke titik tengah (yaw 0), lihat docs/kota/landmark/README.md.\n"
+                    "export const GENERATED_LANDMARKS = Object.freeze([\n")
+            for e in entries:
+                f.write(f"  {{ id: '{e['id']}', name: '{e['name']}', x: {e['x']}, z: {e['z']}, yaw: 0, files: ['{e['id']}-lod0.glb', '{e['id']}-lod1.glb', '{e['id']}-lod2.glb'], lod: {e['lod']} }},\n")
+            f.write("]);\n")
+        bpy.ops.wm.save_as_mainfile(filepath=OUT_BLEND)
+    return {k: [t for t, _ in v] for k, v in res.items()}

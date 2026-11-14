@@ -26,6 +26,18 @@ Skrip: `assets-src/blender/landmark/jembatan.py` → 9 GLB (3 jembatan × 3 LOD)
 | Siak IV, 830 m | pilon beton putih bentuk A + palang, 40 kabel kuning, pagar abu | 2.804 / 1.220 / 196 |
 `[INFERENSI]`: lebar geladak (Siak I 12 m, Siak III 16 m), tinggi busur 26 m, tinggi pilon 62 m, posisi pilon (450 m), jarak pilar. Foto "Tengku Agung Sultanah Latifah" di folder `jembatan-siak-3` (rujukan lokal) milik jembatan di Kabupaten Siak, bukan Pekanbaru.
 
+## Bangunan, tugu, bandara (✅ 2026-11-15)
+Skrip: `assets-src/blender/landmark/bangunan.py` (+ pustaka `lm_common.py`) → 23 landmark × 3 LOD, dari **jejak OSM** (`osm/footprints.json`, diambil Overpass; bisa dibangun ulang tanpa internet). Skrip juga menulis `src/city/landmarks.data.js` (posisi; jangan sunting tangan) yang dimuat `landmarks.js`. Seperti jembatan: koordinat dunia relatif ke titik tengah, yaw 0.
+| Kelompok | Landmark | Cara |
+|---|---|---|
+| Pemerintahan/budaya | Kantor Gubernur Riau + Menara Lancang Kuning (9 lantai, mahkota atap Melayu bertingkat), Perpustakaan Soeman Hs. (kaca 6 lantai + atap miring + sirip), Balai Adat Melayu Riau, Anjung Seni Idrus Tintin, Museum Sang Nila Utama | ekstrusi jejak + atap Melayu/selembayung |
+| Mal & hotel | Mal SKA, Living World, Ciputra Seraya, Mall Pekanbaru, Plaza Suka Ramai, Plaza Citra, Pasar Bawah, Hotel Furaya, Swiss-Belinn SKA | ekstrusi per lantai (pita kaca gelap = menyala malam), parapet warna merek, plang, kotak AC |
+| Ibadah | Masjid Raya Senapelan | kubah hijau + 1 menara |
+| Tugu | Selais Tiga Sepadan, Zapin 0 KM, Keris, Perjuangan, Bambu Runcing, Pesawat Skyhawk | model kecil di titik node OSM |
+| Bandara | Terminal (terminal + gedung VVIP Lancang Kuning), Landasan (landasan 2,6 km + marka, taxiway, apron, hangar; batas LOD 3200/6400 m) | jejak/garis OSM |
+`[INFERENSI]`: tinggi per lantai, warna merek, atap Balai Adat/Anjung Seni/Museum (gaya atap Melayu umum), kubah Senapelan, bentuk semua tugu kecuali Selais (foto), tinggi terminal/hangar. **Tidak ada di OSM / tidak dibuat:** Transmart, Bandar Serai, Rumah Singgah Tuan Kadi, Taman Budaya Riau Khatulistiwa (hanya poligon area, belum jadi model).
+Pohon instans kota kadang tumbuh di atas landasan (pohon dibuat dari peta tanah, belum disaring).
+
 ## Status
 - ✅ An-Nur (2026-11-14): jejak 61×73 m dari OSM `way 465323008`, pusat (6823,0; −4760,1), depan ke plaza ESE (citra satelit). Bentuk detail `[INFERENSI]`: tinggi kubah ±38 m, menara ±54 m, 10 kubah = 1 utama + 1 depan + 4 samping + 4 puncak menara.
 - Poles (2026-11-14): plaza putih ±120×110 m + 4 kolam bintang di depan (dari citra satelit); malam: ceruk/jendela menyala hangat + sorot lembut lewat `applyLandmarkNight` (memakai `uNight` fasad kota). Bangunan tile di bawah masjid = satu poligon U (masjid + sayap) berbentuk kompleks; model menutup bagian tengahnya, tidak dihapus.

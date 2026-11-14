@@ -62,8 +62,8 @@ Akar keterbatasan sekarang: `BUILDING_CLASS` melebur masjid/sekolah/RS/pemerinta
 - ✅ A2 Masjid Raya An-Nur (2026-11-14): model Blender 3 LOD (3,0 rb / 1,2 rb / 340 segitiga) + plaza + lampu malam di mode Kota — [landmark](landmark/README.md); plaza dari citra satelit
 - ⬜ A3 Rektorat UNRI + gerbang: proxy LOD untuk mode Kota
 - ✅ A4 Jembatan Siak I/III/IV (2026-11-14): generator Blender 3 LOD tiap jembatan (balok / busur baja / kabel), garis dari OSM, pilar di sungai — [landmark](landmark/README.md)
-- ⬜ A5 Bandara (landasan + terminal)
-- ⬜ A6 1–2 gedung ikonik pusat kota — kandidat dari data tinggi Overture + nama OSM (cek dulu)
+- ✅ A5 Bandara (2026-11-15): landasan 2,6 km + taxiway/apron/hangar, terminal + VVIP — [landmark](landmark/README.md)
+- ✅ A6 gedung ikonik pusat kota: Kantor Gubernur + Menara Lancang Kuning (9 lantai), Soeman Hs., Plaza Citra, Hotel Furaya, Swiss-Belinn (nama & jejak OSM)
 - ⬜ Identifikasi bangunan bundar berkubah di selatan stadion (tag OSM) sebelum diberi label
 
 **Tingkat B — arketipe otomatis dari tag OSM (generator + instancing)**
@@ -80,11 +80,11 @@ Akar keterbatasan sekarang: `BUILDING_CLASS` melebur masjid/sekolah/RS/pemerinta
 
 **Tingkat D — kandidat hias dari riset web (usul, belum diputuskan)** — daftar lengkap + sumber: [DAFTAR-IKON.md](DAFTAR-IKON.md)
 - ✅ D1 Generator jembatan (Siak I/III/IV) — selesai bersama A4
-- ⬜ D2 Tugu Selais Tiga Sepadan (Jl. Sudirman), model kecil
-- ⬜ D3 Perpustakaan Soeman HS + Kantor Gubernur Riau (butuh foto rujukan dulu)
-- ⬜ D4 Mal SKA/Living World/Ciputra Seraya/Transmart lewat arketipe mal + papan nama
-- ⬜ D5 Kawasan Senapelan/Pasar Bawah: warna atap + label, bukan model
-- ⬜ D6 Budaya: TBRK, Bandar Serai, Rumah Singgah Tuan Kadi (cek nama & lokasi di OSM dulu)
+- ✅ D2 Tugu Selais Tiga Sepadan (+ Zapin, Keris, Perjuangan, Bambu Runcing, Skyhawk)
+- ✅ D3 Perpustakaan Soeman HS + Kantor Gubernur Riau (rujukan foto dari Maps, dilihat saja)
+- ✅ D4 Mal SKA, Living World, Ciputra Seraya, Mall Pekanbaru, Plaza Suka Ramai/Citra (Transmart tidak ada di OSM)
+- ◐ D5 Pasar Bawah + Masjid Raya Senapelan sudah model; warna atap kawasan + label belum
+- ◐ D6 Budaya: Balai Adat, Anjung Seni Idrus Tintin, Museum Sang Nila Utama ✅; TBRK (hanya poligon area), Bandar Serai, Tuan Kadi belum ada di OSM
 
 Lihat [ganti-model](ganti-model/README.md).
 
@@ -116,3 +116,4 @@ Lihat [ganti-model](ganti-model/README.md).
 | 2026-11-13 | Awan disembunyikan di mode Kota (penyebab kerudung putih); fasad di bangunan jauh | browser uji 20–30 fps (software) |
 | 2026-11-14 | Landmark hero An-Nur: `assets-src/blender/landmark/an_nur.py` → 3 GLB LOD, `src/city/landmarks.js` (LOD menurut jarak kamera, 1 draw call), `tools/shots/landmarkKota.mjs` | 4 tes murni (`tests/city/landmarks.test.js`); 279 tes kota hijau; dilihat di mode Kota zoom 0,4–3 (LOD0→2 berganti benar); batas LOD awal 260/900 m salah (jarak kamera ≈ 1300 m × zoom) → 1300/2800 |
 | 2026-11-14 | Jembatan Siak I/III/IV: `assets-src/blender/landmark/jembatan.py` → 9 GLB (garis OSM, struktur menurut foto Commons), terdaftar di `landmarks.js` | dilihat di mode Kota zoom 0,4/1,2; pilon Siak IV digeser 400→450 m setelah garis tengah sungai (`rivers.bin`) memotong di 454 m; koreksi: angka "Siak III 1.196 m" milik jembatan Latifah di Kab. Siak |
+| 2026-11-15 | 23 landmark lain sekaligus: `bangunan.py` + `lm_common.py` → GLB 3 LOD dari jejak OSM (`osm/footprints.json`), daftar posisi dihasilkan `src/city/landmarks.data.js` | 280 tes kota hijau, `npm run build` ok; dilihat di mode Kota (Gubernur, Mal SKA, Selais, terminal, landasan, Senapelan); sebagian bentuk `[INFERENSI]` |
