@@ -68,8 +68,8 @@ import { setupPortal } from './app/portalSetup.js';
 import { setupStory } from './app/storySetup.js';
 import { setupMinimap } from './app/minimapSetup.js';
 
-const MODELS_TIMEOUT_MS = 8000;
-const START_SETTLE_TIMEOUT_MS = 12000; // batas tunggu streaming area awal sebelum render pertama
+const START_SETTLE_TIMEOUT_MS = 6000; // batas tunggu streaming area awal (berjalan di belakang menu)
+const START_BUTTON_WAIT_MS = 4000; // tombol Mulai aktif paling lambat sekian setelah dunia bisa digambar
 
 /** Tunggu tile kota + distrik di sekitar titik awal termuat (dibatasi waktu: streaming lambat tidak menahan Mulai). */
 function settleStartArea({ city, unri, at }) {
@@ -220,7 +220,7 @@ async function main() {
     id: `entities.${i}`, phase: 'sim', update: (dt, ctx) => e.update(dt, e === ents.bike ? ctx : toLocalCtx(ctx)),
   }));
 
-  await loading.step(0.8, 'Menyiapkan siklus waktu dan cuaca…');
+  await loading.step(0.8, 'Menyiapkan cerita dan HUD…');
   time.registerEmissive(ents.group);
   time.registerEmissive(ents.regionGroup);
   app.addSystem({ id: 'timeOfDay', phase: 'world', update: (dt, ctx) => time.update(dt, ctx, ents.bike.state) });
@@ -243,6 +243,7 @@ async function main() {
     excludeAt: (x, z) => regionIdAt(x, z) !== null,
   });
   // Distrik kampus UNRI (terrain, tanah, gedung, kehidupan). Gagal → null + toast; permainan berlanjut tanpa distrik (spec §10).
+  await loading.step(0.85, 'Memuat kampus UNRI…');
   const unri = await mountDistrict(app, unriDistrict, {
     terrain, scheduler, collider: districtColliders, minimap, city, weather, time, baseUrl: import.meta.env.BASE_URL,
     toast: (t, ok) => hud.toast(t, ok),
@@ -336,9 +337,7 @@ async function main() {
       lifecycle.add(() => mounted.dispose());
     })
     .catch((err) => console.error('Panel pengaturan gagal dipasang:', err));
-  await loading.step(0.9, 'Memuat model 3D (tugu, bangku)…');
-  // Model 3D opsional (ada cadangan prosedural): jangan tahan tombol Mulai bila unduhan macet.
-  await Promise.race([modelsReady, new Promise((resolve) => setTimeout(resolve, MODELS_TIMEOUT_MS))]);
+  // Model 3D opsional (ada cadangan prosedural; modelsReady hanya untuk toast gagal): tidak ditunggu.
   await loading.step(0.97, 'Menggambar peta…');
   // Base layer minimap per region aktif dibake sekarang (galat bake ditangani manager: latar polos);
   // region yang dipasang kemudian dibake setelah siap.
@@ -348,8 +347,9 @@ async function main() {
   rig.handlePovKey(POVS.find((p) => p.id === 'orbit').key);
   await loading.step(0.98, 'Menyiapkan shader…');
   await precompiled;
-  await settleStartArea({ city, unri, at: rig.focus });
-  await precompile(); // objek hasil streaming; program yang sudah ada diambil dari cache
+  // Sisa streaming + prekompilasi berjalan di belakang orbit menu; Mulai aktif saat selesai atau paling lambat START_BUTTON_WAIT_MS.
+  const siap = settleStartArea({ city, unri, at: rig.focus }).then(precompile); // objek hasil streaming; program lama dari cache
+  await Promise.race([siap, new Promise((resolve) => setTimeout(resolve, START_BUTTON_WAIT_MS))]);
   app.holdRender = false;
   releaseBaked(); // bitmap tekstur bake tidak dibutuhkan lagi (pemasangan ulang = prosedural)
   await loading.step(1, 'Siap!');
