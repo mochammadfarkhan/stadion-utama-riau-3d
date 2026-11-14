@@ -109,6 +109,16 @@ describe('rasa kendali (R13)', () => {
   });
 });
 
+describe('meluncur (R13)', () => {
+  const COAST = { pedal: 0, steer: 0, sprint: false };
+  const moving = (v) => ({ ...createBikeState(), v });
+  const runG = (state, input, seconds, grade) => { let s = state; for (let i = 0; i < seconds * 60; i += 1) s = stepBike(s, input, DT, { grade }); return s; };
+  it('meluncur di datar: dari 9 m/s masih di atas 4,5 m/s setelah 3 detik, berhenti total sebelum 13 detik', () => {
+    expect(runG(moving(9), COAST, 3, 0).v).toBeGreaterThan(4.5);
+    expect(runG(moving(9), COAST, 13, 0).v).toBeLessThan(0.001);
+  });
+});
+
 describe('stepBike dengan grade (tanjakan, M1)', () => {
   const PEDAL = { pedal: 1, steer: 0, sprint: false };
   const COAST = { pedal: 0, steer: 0, sprint: false };
@@ -138,8 +148,8 @@ describe('stepBike dengan grade (tanjakan, M1)', () => {
     expect(runG(moving(9), PEDAL, 3, 0.06).v).toBeCloseTo(7.38, 2);
   });
 
-  it('turunan 6% tanpa kayuh: meluncur stabil ±6,54 m/s (datar: berhenti)', () => {
-    expect(runG(moving(9), COAST, 20, -0.06).v).toBeCloseTo(6.54, 1);
+  it('turunan 6% tanpa kayuh: meluncur stabil ±6,16 m/s (datar: berhenti)', () => {
+    expect(runG(moving(9), COAST, 40, -0.06).v).toBeCloseTo(6.16, 1);
     expect(runG(moving(9), COAST, 20, 0).v).toBeLessThan(0.01);
   });
 

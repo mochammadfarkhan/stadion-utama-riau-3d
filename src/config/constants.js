@@ -92,7 +92,8 @@ export const BIKE = Object.freeze({
   sprintSpeed: 13,
   accel: 3.5,
   brake: 7,
-  drag: 0.6,
+  drag: 0.15,          // hambatan udara (sebanding laju) saat meluncur
+  rollDecel: 0.3,      // m/s² hambatan gulir tetap: sepeda benar-benar berhenti
   wheelRadius: 0.34,
   leanMax: 0.6,
   wheelBase: 1.05,     // jarak sumbu roda (m) untuk model kinematik

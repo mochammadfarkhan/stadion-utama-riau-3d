@@ -47,7 +47,10 @@ function updateSpeed(v, input, dt, cfg, grade) {
     // rem bila masih maju, mundur pelan bila sudah berhenti
     next = v > STOP_EPS ? v - cfg.brake * -input.pedal * dt : v + cfg.reverseAccel * input.pedal * dt;
   }
-  if (input.pedal <= 0) next -= cfg.drag * (next > 0 ? Math.max(0, next - glide) : next) * dt; // drag saat meluncur/rem
+  if (input.pedal <= 0) {
+    next -= cfg.drag * (next > 0 ? Math.max(0, next - glide) : next) * dt; // hambatan udara (sebanding laju)
+    if (next > glide) next = Math.max(glide, next - (cfg.rollDecel ?? 0) * dt); // hambatan gulir (tetap): benar-benar berhenti
+  }
   const holding = Math.abs(v) < STOP_EPS && input.pedal === 0 && Math.abs(grade) < (cfg.holdGrade ?? 0);
   if (!holding) next -= GRAVITY * grade * (cfg.kSlope ?? 0) * dt;
   if (input.pedal >= 0 && v > STOP_EPS && next < 0) next = 0; // rem/drag tidak membalik arah
