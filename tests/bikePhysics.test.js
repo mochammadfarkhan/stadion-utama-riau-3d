@@ -150,6 +150,15 @@ describe('akselerasi (R13)', () => {
   });
 });
 
+describe('pedal (R13)', () => {
+  it('pedal tidak berputar saat meluncur atau mengerem; roda tetap berputar', () => {
+    const moving = run(createBikeState(), { pedal: 1, steer: 0, sprint: false }, 3);
+    const coast = run(moving, { pedal: 0, steer: 0, sprint: false }, 1);
+    expect(coast.pedalAngle).toBe(moving.pedalAngle);
+    expect(coast.wheelSpin).toBeGreaterThan(moving.wheelSpin);
+  });
+});
+
 describe('stepBike dengan grade (tanjakan, M1)', () => {
   const PEDAL = { pedal: 1, steer: 0, sprint: false };
   const COAST = { pedal: 0, steer: 0, sprint: false };

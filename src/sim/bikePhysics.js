@@ -111,7 +111,7 @@ export function stepBike(state, input, dt, { grade = 0, cfg = BIKE } = {}) {
     steer,
     lean: updateLean(s.lean, v, yawRate, h, cfg),
     wheelSpin: s.wheelSpin + spin,
-    pedalAngle: s.pedalAngle + Math.max(0, spin) * cfg.pedalRatio,
+    pedalAngle: s.pedalAngle + (inp.pedal > 0 ? Math.max(0, spin) * cfg.pedalRatio : 0), // diam saat meluncur/rem
   };
 }
 
