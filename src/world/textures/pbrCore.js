@@ -11,6 +11,7 @@ export { TERRAIN_QUALITIES, TERRAIN_SETTING, autoTerrainQuality, effectiveTerrai
 export const TILE_M = Object.freeze({
   grass: 1.4, soilMoist: 1.4, soilDry: 3.5, gravel: 1.5, moss: 1.5, plaster: 2, concrete: 2.2,
   paving: 1.15, asphalt: 2.5, roofSteel: 1.2, wood: 1.4, tile: 2.1, bark: 1,
+  kain: 0.5, catBesi: 1, plastik: 0.6, kayuHalus: 1, // perabot interior sekre
 });
 
 /** Tier ukuran tekstur dari tingkat kualitas: tinggi/sedang 512, rendah 256 (1024 hanya diminta eksplisit). */

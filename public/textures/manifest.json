@@ -21,10 +21,7 @@
    "sourceName": "Grass 004",
    "sourceUrl": "https://ambientcg.com/view?id=Grass004",
    "license": "CC0-1.0",
-   "bytes": 371152,
-   "ktx2": [
-    512
-   ]
+   "bytes": 371152
   },
   {
    "name": "soilMoist",
@@ -40,10 +37,7 @@
    "sourceName": "Ground 048",
    "sourceUrl": "https://ambientcg.com/view?id=Ground048",
    "license": "CC0-1.0",
-   "bytes": 294036,
-   "ktx2": [
-    512
-   ]
+   "bytes": 294036
   },
   {
    "name": "soilDry",
@@ -59,10 +53,7 @@
    "sourceName": "Ground 054",
    "sourceUrl": "https://ambientcg.com/view?id=Ground054",
    "license": "CC0-1.0",
-   "bytes": 153928,
-   "ktx2": [
-    512
-   ]
+   "bytes": 153928
   },
   {
    "name": "gravel",
@@ -78,10 +69,7 @@
    "sourceName": "Gravel 023",
    "sourceUrl": "https://ambientcg.com/view?id=Gravel023",
    "license": "CC0-1.0",
-   "bytes": 385764,
-   "ktx2": [
-    512
-   ]
+   "bytes": 385764
   },
   {
    "name": "moss",
@@ -97,10 +85,7 @@
    "sourceName": "Moss 002",
    "sourceUrl": "https://ambientcg.com/view?id=Moss002",
    "license": "CC0-1.0",
-   "bytes": 313886,
-   "ktx2": [
-    512
-   ]
+   "bytes": 313886
   },
   {
    "name": "plaster",
@@ -117,11 +102,7 @@
    "sourceName": "Plaster 001",
    "sourceUrl": "https://ambientcg.com/view?id=Plaster001",
    "license": "CC0-1.0",
-   "bytes": 573390,
-   "ktx2": [
-    1024,
-    512
-   ]
+   "bytes": 573390
   },
   {
    "name": "concrete",
@@ -137,10 +118,7 @@
    "sourceName": "Concrete 034",
    "sourceUrl": "https://ambientcg.com/view?id=Concrete034",
    "license": "CC0-1.0",
-   "bytes": 88706,
-   "ktx2": [
-    512
-   ]
+   "bytes": 88706
   },
   {
    "name": "paving",
@@ -156,10 +134,7 @@
    "sourceName": "Paving Stones 070",
    "sourceUrl": "https://ambientcg.com/view?id=PavingStones070",
    "license": "CC0-1.0",
-   "bytes": 258492,
-   "ktx2": [
-    512
-   ]
+   "bytes": 258492
   },
   {
    "name": "asphalt",
@@ -175,10 +150,7 @@
    "sourceName": "Asphalt 031",
    "sourceUrl": "https://ambientcg.com/view?id=Asphalt031",
    "license": "CC0-1.0",
-   "bytes": 226792,
-   "ktx2": [
-    512
-   ]
+   "bytes": 226792
   },
   {
    "name": "roofSteel",
@@ -195,11 +167,7 @@
    "sourceName": "Corrugated Steel 005",
    "sourceUrl": "https://ambientcg.com/view?id=CorrugatedSteel005",
    "license": "CC0-1.0",
-   "bytes": 319832,
-   "ktx2": [
-    1024,
-    512
-   ]
+   "bytes": 319832
   },
   {
    "name": "wood",
@@ -216,11 +184,7 @@
    "sourceName": "Planks 021",
    "sourceUrl": "https://ambientcg.com/view?id=Planks021",
    "license": "CC0-1.0",
-   "bytes": 445950,
-   "ktx2": [
-    1024,
-    512
-   ]
+   "bytes": 445950
   },
   {
    "name": "tile",
@@ -236,10 +200,7 @@
    "sourceName": "Tiles 074",
    "sourceUrl": "https://ambientcg.com/view?id=Tiles074",
    "license": "CC0-1.0",
-   "bytes": 47864,
-   "ktx2": [
-    512
-   ]
+   "bytes": 47864
   },
   {
    "name": "bark",
@@ -256,11 +217,71 @@
    "sourceName": "Bark 001",
    "sourceUrl": "https://ambientcg.com/view?id=Bark001",
    "license": "CC0-1.0",
-   "bytes": 1125992,
-   "ktx2": [
-    1024,
-    512
-   ]
+   "bytes": 1125992
+  },
+  {
+   "name": "kain",
+   "category": "kain-tenun",
+   "tileM": 0.5,
+   "sizes": [
+    512,
+    256
+   ],
+   "avg": "#bababa",
+   "hasAo": true,
+   "sourceId": "Fabric036",
+   "sourceName": "Fabric 036",
+   "sourceUrl": "https://ambientcg.com/view?id=Fabric036",
+   "license": "CC0-1.0",
+   "bytes": 280076
+  },
+  {
+   "name": "catBesi",
+   "category": "besi-cat-bubuk",
+   "tileM": 1,
+   "sizes": [
+    512,
+    256
+   ],
+   "avg": "#1d2120",
+   "hasAo": false,
+   "sourceId": "Metal028",
+   "sourceName": "Metal 028",
+   "sourceUrl": "https://ambientcg.com/view?id=Metal028",
+   "license": "CC0-1.0",
+   "bytes": 33106
+  },
+  {
+   "name": "plastik",
+   "category": "plastik-doff",
+   "tileM": 0.6,
+   "sizes": [
+    512,
+    256
+   ],
+   "avg": "#7e7e7e",
+   "hasAo": false,
+   "sourceId": "Plastic018A",
+   "sourceName": "Plastic 018 A",
+   "sourceUrl": "https://ambientcg.com/view?id=Plastic018A",
+   "license": "CC0-1.0",
+   "bytes": 13428
+  },
+  {
+   "name": "kayuHalus",
+   "category": "kayu-halus",
+   "tileM": 1,
+   "sizes": [
+    512,
+    256
+   ],
+   "avg": "#b0733f",
+   "hasAo": false,
+   "sourceId": "Wood092",
+   "sourceName": "Wood 092",
+   "sourceUrl": "https://ambientcg.com/view?id=Wood092",
+   "license": "CC0-1.0",
+   "bytes": 23844
   }
  ],
  "atlases": [
