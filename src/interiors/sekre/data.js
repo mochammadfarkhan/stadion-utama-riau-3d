@@ -229,6 +229,23 @@ export const EKSTRA = freeze({
   kertas: freeze([atRaw(-2.35, 0.752, -2.75, 0.3), atRaw(-1.75, 0.752, -2.72, -0.2), at(-0.7, 0.014, 0.4, 0.8)]),
 });
 
+/**
+ * Model realistis CC0 Poly Haven khusus preset Tinggi (tools/sekrehq/build.mjs, keputusan user 2026-11-15). Kunci =
+ * barang prosedural yang disembunyikan setelah model termuat; items = penempatan (alas y = 0, depan −Z lokal).
+ * Barang di meja & toolbox [INFERENSI] (suasana rujukan visual user).
+ */
+export const HQ_ASET = freeze({
+  meja: freeze({ glb: 'models/sekre-hq/meja.glb', items: ASET.S16.items }),
+  kursi: freeze({ glb: 'models/sekre-hq/kursi.glb', items: freeze([EKSTRA.kursiLipat]) }),
+  kursiUkir: freeze({ glb: 'models/sekre-hq/kursi-ukir.glb', items: EKSTRA.kursiUkir }),
+  kardus: freeze({ glb: 'models/sekre-hq/kardus.glb', items: ASET.S11.items }),
+  tanaman: freeze({ glb: 'models/sekre-hq/tanaman.glb', items: freeze([atRaw(-2.82, 0.75, -2.74, 0)]) }),
+  buku: freeze({ glb: 'models/sekre-hq/buku.glb', items: freeze([atRaw(-1.38, 0.75, -2.8, 0)]) }),
+  map: freeze({ glb: 'models/sekre-hq/map.glb', items: freeze([atRaw(-1.55, 0.752, -2.48, 0.25)]) }),
+  lampuMeja: freeze({ glb: 'models/sekre-hq/lampu-meja.glb', items: freeze([atRaw(-2.6, 0.75, -2.82, 0.5)]) }),
+  toolbox: freeze({ glb: 'models/sekre-hq/toolbox.glb', items: freeze([atRaw(-2.78, 0.91, -1.05, PI / 2)]) }),
+});
+
 /** Model GLB final per ID aset (path relatif public/). Diisi di Task 22 setelah ekspor Blender berhasil. */
 export const GLB_ASET = freeze({
   S07: 'models/unri/s07-piala.glb',

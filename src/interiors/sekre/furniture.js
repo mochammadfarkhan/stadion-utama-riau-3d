@@ -13,7 +13,7 @@ import { instantiateModel } from '../../world/assets/models.js';
 import { loadPbr } from '../../world/textures/pbr.js';
 import { TILE_M, tierForQuality } from '../../world/textures/pbrCore.js';
 import { styleState } from '../../engine/styleState.js';
-import { ASET, EKSTRA, GLB_ASET, GUITAR_HOLD } from './data.js';
+import { ASET, EKSTRA, GLB_ASET, HQ_ASET, GUITAR_HOLD } from './data.js';
 import { makeCanvas, canvasTexture, tint } from './canvas.js';
 import { drawKarpet } from './room.js';
 import { PI, propRy, TMP_V, cyl, piece, placed } from './perabot/bentuk.js';
@@ -106,9 +106,10 @@ export function createSekreMaterials(renderer = null) {
 }
 
 /**
- * @param {{materials: ReturnType<typeof createSekreMaterials>}} opts
+ * @param {{materials: ReturnType<typeof createSekreMaterials>, hq?: boolean}} opts hq = preset Tinggi: barang di HQ_ASET
+ *   diganti model realistis (versi prosedural jadi cadangan sampai model termuat)
  */
-export function buildFurniture({ materials }) {
+export function buildFurniture({ materials, hq = false }) {
   const m = materials;
   const staticGroup = new THREE.Group();
   staticGroup.name = 'sekre-perabot';
@@ -128,18 +129,27 @@ export function buildFurniture({ materials }) {
     return c;
   };
 
+  /** kunci HQ_ASET → objek prosedural yang disembunyikan saat model realistisnya termuat. */
+  const hqProc = new Map();
+  const proc = (key, obj) => {
+    if (!hq) return staticGroup.add(obj);
+    dynamicGroup.add(obj);
+    hqProc.set(key, [...(hqProc.get(key) ?? []), obj]);
+    return obj;
+  };
+
   // statis: posisi dari data.js
-  staticGroup.add(placed(buildMeja(m), ASET.S16.items[0]));
-  staticGroup.add(placed(buildKursi(m), EKSTRA.kursiLipat));
-  for (const it of EKSTRA.kursiUkir) staticGroup.add(placed(buildKursiUkir(m), it));
+  proc('meja', placed(buildMeja(m), ASET.S16.items[0]));
+  proc('kursi', placed(buildKursi(m), EKSTRA.kursiLipat));
+  for (const it of EKSTRA.kursiUkir) proc('kursiUkir', placed(buildKursiUkir(m), it));
   staticGroup.add(placed(buildPermadani(), EKSTRA.permadani));
   staticGroup.add(placed(buildJasHujan(m), EKSTRA.jasHujan));
   staticGroup.add(placed(buildRakSiku(m), EKSTRA.rakSiku));
-  staticGroup.add(placed(buildMejaDetail(m), EKSTRA.mejaDetail));
+  proc('buku', placed(buildMejaDetail(m), EKSTRA.mejaDetail));
   staticGroup.add(placed(buildLemari(m), ASET.S09.items[0]));
   staticGroup.add(buildOrdner(m));
   staticGroup.add(placed(buildBenderaStand(m), ASET.S08.items[0]));
-  ASET.S11.items.forEach((it) => staticGroup.add(placed(buildKardus(m), it)));
+  ASET.S11.items.forEach((it) => proc('kardus', placed(buildKardus(m), it)));
   ASET.S12.items.forEach((it) => {
     const s = placed(buildSpanduk(m), it);
     s.rotation.set(it.miring, propRy(it.hadap), 0, 'YXZ');
@@ -235,6 +245,15 @@ export function buildFurniture({ materials }) {
           if (ph) ph.visible = false;
           if (id === 'S14') bindFanModel(model);
           if (id === 'S17') model.traverse((o) => { if (o.material?.name === 'unri:layar-emisif') o.material = m.screen; });
+        }));
+      }
+    }
+    if (hq) {
+      for (const [key, spec] of Object.entries(HQ_ASET)) {
+        jobs.push(Promise.all(spec.items.map(() => instantiateModel(spec.glb))).then((models) => {
+          if (isCancelled()) return;
+          models.forEach((model, k) => dynamicGroup.add(placed(model, spec.items[k])));
+          for (const o of hqProc.get(key) ?? []) o.visible = false;
         }));
       }
     }
