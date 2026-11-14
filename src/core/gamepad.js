@@ -1,19 +1,19 @@
 /**
  * Dukungan gamepad (layout "standard" W3C): stick kiri / D-pad = kayuh & belok, stick kanan = lihat,
- * RT/RB = sprint, LT = rem, A = bel, X = interaksi (E), Y = siklus kamera (orang ketiga → pertama → 3/4), B = Esc, Start = jurnal, Back = panel,
- * LB = perjalanan cepat (G).
+ * RT/RB = sprint, LT = rem, A = bel, X = interaksi (E), Y = siklus kamera (orang ketiga → pertama → 3/4), B = Esc, Start = jurnal, Back = panel (PanelToggle),
+ * LB = perjalanan cepat (G), stik kanan ditekan = ganti mode (F), stik kiri ditekan = tas (I).
  * Pemeta murni (`padToIntents`) dipisah dari poller agar mudah dites tanpa navigator.
  */
 export const DEADZONE = 0.25;
 const TRIGGER_THRESHOLD = 0.4;
 const LOOK_PX_PER_SEC = 900; // setara ±2 rad/dtk pada sensitivitas mouse 1 (0,0022 rad/px)
 
-const BTN = Object.freeze({ A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, BACK: 8, START: 9, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 });
+const BTN = Object.freeze({ A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, BACK: 8, START: 9, LS: 10, RS: 11, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 });
 
 /** Tombol aksi (sekali per penekanan) → kode tombol keyboard yang setara. */
 const ACTIONS = Object.freeze([
-  [BTN.A, 'Space'], [BTN.X, 'KeyE'], [BTN.Y, 'CameraCycle'], [BTN.B, 'Escape'], [BTN.START, 'KeyJ'], [BTN.BACK, 'KeyH'],
-  [BTN.LB, 'KeyG'],
+  [BTN.A, 'Space'], [BTN.X, 'KeyE'], [BTN.Y, 'CameraCycle'], [BTN.B, 'Escape'], [BTN.START, 'KeyJ'], [BTN.BACK, 'PanelToggle'],
+  [BTN.LB, 'KeyG'], [BTN.RS, 'KeyF'], [BTN.LS, 'KeyI'],
 ]);
 const HELD_CODES = Object.freeze(['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ShiftLeft']);
 

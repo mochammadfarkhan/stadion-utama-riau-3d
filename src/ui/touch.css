@@ -20,34 +20,35 @@ body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
 
 .touch-actions {
   position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom));
-  display: grid; grid-auto-flow: column; gap: 10px; pointer-events: none;
+  /* 2 baris × 4 (urutan BUTTONS: Kamera, Jurnal, Mode, Tas / Bel, E, Lari, Ganti) */
+  display: grid; grid-auto-flow: row; grid-template-columns: repeat(4, 60px); gap: 8px; pointer-events: none;
 }
 .touch-btn {
-  pointer-events: auto; touch-action: none; width: 64px; height: 64px; border-radius: 50%;
+  pointer-events: auto; touch-action: none; width: 60px; height: 60px; border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.3); background: rgba(10, 18, 28, 0.55); color: #fff;
   font: 600 13px var(--font); padding: 0;
 }
 .touch-btn.active { background: rgba(242, 183, 5, 0.85); color: #10161d; }
 .touch-btn-aksi { background: rgba(31, 122, 58, 0.7); font-size: 18px; }
+.touch-btn[hidden] { display: none; }
 
-/* Layar sempit (ponsel potret): tombol 3 kolom di atas-kanan joystick, HUD lebih ringkas. */
-@media (max-width: 640px) {
-  .touch-actions { grid-auto-flow: row; grid-template-columns: repeat(3, 56px); gap: 8px; }
-  .touch-btn { width: 56px; height: 56px; font-size: 12px; }
+/* Layar kecil (HP landscape = tinggi pendek; potret diblokir layar putar): HUD lebih ringkas. */
+@media (max-height: 480px), (max-width: 640px) {
   .touch-stick { width: 120px; height: 120px; }
   #hud-top-left, #hud-top-right { min-width: 0; padding: 6px 10px; top: 10px; }
   #hud-top-left { left: 10px; max-width: 42vw; }
   #hud-top-right { max-width: 34vw; }
   #hud .big { font-size: 22px; }
   .pill { font-size: 12px; padding: 5px 12px; }
-  #hud-score { top: 104px; }
   #hud-prompt { bottom: 180px; }
-  #story-card { left: 10px; top: 142px; width: min(260px, 56vw); padding: 8px 10px; }
   #overlay .panel { max-width: 92vw; padding: 20px 18px; }
 }
 
 /* Pointer kasar: dialog cerita dinaikkan agar tidak tertutup tombol layar. */
 @media (pointer: coarse) {
   #story-dialog { bottom: 180px; }
-  #hud-toast { top: 64px; }
+  #hud-toast { top: 96px; } /* di bawah tombol perjalanan cepat (#hud-travel top 60) */
 }
+
+/* HP landscape: dialog di atas tombol layar (2 baris), di bawah kartu misi. */
+@media (pointer: coarse) and (max-height: 480px) { #story-dialog { bottom: 150px; } }

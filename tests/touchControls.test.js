@@ -77,6 +77,20 @@ describe('TouchControls', () => {
     }
   });
 
+  it('tujuh tombol tampil + Mode=F, Tas=I; benih tersembunyi sampai diminta', () => {
+    ctx.ui.setVisible(true);
+    const shown = Object.entries(ctx.ui.buttons).filter(([, b]) => !b.hidden).map(([id]) => id);
+    expect(shown).toEqual(['kamera', 'jurnal', 'mode', 'tas', 'bel', 'aksi', 'sprint']);
+    expect(ctx.ui.buttons.aksi.getAttribute('aria-label')).toBe('Interaksi');
+    for (const [name, code] of [['mode', 'KeyF'], ['tas', 'KeyI']]) {
+      ptr('pointerdown', ctx.ui.buttons[name], {});
+      ptr('pointerup', ctx.ui.buttons[name], {});
+      expect(ctx.input.consumePress(code)).toBe(true);
+    }
+    ctx.ui.setButtonVisible('benih', true);
+    expect(ctx.ui.buttons.benih.hidden).toBe(false);
+  });
+
   it('tombol sprint ditahan selama disentuh', () => {
     ctx.ui.setVisible(true);
     ptr('pointerdown', ctx.ui.buttons.sprint, {});

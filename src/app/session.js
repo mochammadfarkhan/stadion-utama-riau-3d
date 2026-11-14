@@ -11,7 +11,7 @@ export const session = { started: false };
  * Menu utama: Mulai/Lanjutkan, Mulai dari awal, Pengaturan; klik kanvas mengunci pointer sesudah mulai.
  * @returns {Promise<{panel: object|null, dispose(): void}>} hasil mountSettingsPanel
  */
-export function setupMenu({ app, rig, hud, store, touchUi, touch, menu, story }) {
+export function setupMenu({ app, rig, hud, store, touchUi, touch, menu, story, input = null }) {
   let panel = null;
   let started = false;
   const begin = () => {
@@ -33,7 +33,7 @@ export function setupMenu({ app, rig, hud, store, touchUi, touch, menu, story })
   });
   // Kembalikan hasil pemasangan panel agar composition root dapat memanggil dispose()-nya.
   return mountSettingsPanel({
-    store, app, rig, hud,
+    store, app, rig, hud, input,
     onPanelToggle: (open) => { if (!open && !started) menu.away(false); }, // panel ditutup sebelum mulai: menu muncul lagi
   }).then((mounted) => {
     panel = mounted.panel;
