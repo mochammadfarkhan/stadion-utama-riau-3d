@@ -59,7 +59,7 @@ Akar keterbatasan sekarang: `BUILDING_CLASS` melebur masjid/sekolah/RS/pemerinta
 
 **Tingkat A — hero buatan tangan (urut prioritas)**
 - ⬜ A1 **Proxy stadion lebih rinci**: rangka/lengkung atap, tingkat tribun, papan nama, menara lampu (sekarang donat polos) — [stadion-proxy](stadion-proxy/README.md)
-- ⬜ A2 Masjid Raya An-Nur (kubah + menara + halaman) — proxy sederhana → model Blender
+- ✅ A2 Masjid Raya An-Nur (2026-11-14): model Blender 3 LOD (2,9 rb / 1 rb / 330 segitiga) di mode Kota — [landmark](landmark/README.md); halaman/plaza belum
 - ⬜ A3 Rektorat UNRI + gerbang: proxy LOD untuk mode Kota
 - ⬜ A4 Jembatan (Siak) — rentang + pilar
 - ⬜ A5 Bandara (landasan + terminal)
@@ -114,3 +114,4 @@ Lihat [ganti-model](ganti-model/README.md).
 | 2026-11-13 | Cincin menengah: 4 strip (`tools/citybake --area cincin`) | +92 tile, 157 tile, 22,7 MB; bake 36 menit (Overpass 502, strip timur 5 percobaan; Overture ±5 mnt/area) |
 | 2026-11-13 | Lampu malam (`nightGlow.js`, `glow.webp`, lampu sorot proxy) | `glow.webp` ±4 KB; kekuatan jalan 0,38 (tile) / 0,55 (jauh) setelah dicek terlalu terang di 0,6/0,9, peta 2,0, jendela ×2,6 |
 | 2026-11-13 | Awan disembunyikan di mode Kota (penyebab kerudung putih); fasad di bangunan jauh | browser uji 20–30 fps (software) |
+| 2026-11-14 | Landmark hero An-Nur: `assets-src/blender/landmark/an_nur.py` → 3 GLB LOD, `src/city/landmarks.js` (LOD menurut jarak kamera, 1 draw call), `tools/shots/landmarkKota.mjs` | 4 tes murni (`tests/city/landmarks.test.js`); 279 tes kota hijau; dilihat di mode Kota zoom 0,4–3 (LOD0→2 berganti benar); batas LOD awal 260/900 m salah (jarak kamera ≈ 1300 m × zoom) → 1300/2800 |
