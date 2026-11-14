@@ -33,13 +33,13 @@ body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
 /* Layar sempit (ponsel potret): tombol 3 kolom di atas-kanan joystick, HUD lebih ringkas. */
 @media (max-width: 640px) {
   .touch-actions { grid-auto-flow: row; grid-template-columns: repeat(3, 56px); gap: 8px; }
-  .touch-btn { width: 56px; height: 56px; font-size: 12px; }
+  .touch-btn { width: 56px; height: 56px; font-size: calc(13px * var(--ui-text-scale, 1)); }
   .touch-stick { width: 120px; height: 120px; }
   #hud-top-left, #hud-top-right { min-width: 0; padding: 6px 10px; top: 10px; }
   #hud-top-left { left: 10px; max-width: 42vw; }
   #hud-top-right { right: 56px; max-width: 34vw; }
   #hud .big { font-size: 22px; }
-  .pill { font-size: 12px; padding: 5px 12px; }
+  .pill { font-size: calc(13px * var(--ui-text-scale, 1)); padding: 5px 12px; }
   #hud-score { top: 104px; }
   #hud-prompt { bottom: 180px; }
   #story-card { left: 10px; top: 142px; width: min(260px, 56vw); padding: 8px 10px; }

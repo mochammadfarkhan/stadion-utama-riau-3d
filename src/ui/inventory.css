@@ -18,8 +18,8 @@
 }
 .inv-slot[data-kind='seed'] .inv-icon { font-size: 15px; }
 .inv-icon { position: relative; font-size: 22px; line-height: 42px; }
-.inv-count { position: absolute; right: 3px; bottom: 1px; font-size: 12px; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.inv-key { position: absolute; left: 3px; top: 1px; font-size: 10px; opacity: 0.65; }
+.inv-count { position: absolute; right: 3px; bottom: 1px; font-size: calc(13px * var(--ui-text-scale, 1)); font-weight: 700; text-shadow: 0 1px 2px #000; }
+.inv-key { position: absolute; left: 3px; top: 1px; font-size: calc(13px * var(--ui-text-scale, 1)); opacity: 0.65; }
 .inv-held {
   padding: 3px 10px; border-radius: 8px; background: rgba(10, 18, 28, 0.8); color: var(--hud-fg, #eee);
   font-size: 13px; font-weight: 600;
@@ -31,9 +31,9 @@
   pointer-events: auto; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 #inventory-panel h2 { margin: 0 0 10px; font-size: 18px; color: var(--hud-accent, #f5a623); }
-.inv-sep { margin: 10px 0 6px; font-size: 12px; color: var(--hud-muted, #9ab); }
+.inv-sep { margin: 10px 0 6px; font-size: calc(13px * var(--ui-text-scale, 1)); color: var(--hud-muted, #9ab); }
 .inv-info { margin: 10px 0 2px; font-size: 14px; }
-.inv-hint { margin: 0 0 10px; font-size: 12px; color: var(--hud-muted, #9ab); }
+.inv-hint { margin: 0 0 10px; font-size: calc(13px * var(--ui-text-scale, 1)); color: var(--hud-muted, #9ab); }
 .inv-close { padding: 8px 14px; border: 0; border-radius: 8px; background: var(--hud-accent, #f5a623); color: #fff; font: inherit; cursor: pointer; }
 
 /* Hotbar menempati bawah layar: prompt & dialog cerita naik sedikit. */

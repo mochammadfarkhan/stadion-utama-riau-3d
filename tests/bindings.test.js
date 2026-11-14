@@ -6,6 +6,7 @@ import { bindGraphics, applyShadowQuality, SHADOW_MAP_SIZES } from '../src/ui/bi
 import { bindCamera } from '../src/ui/bindings/bindCamera.js';
 import { bindAudio } from '../src/ui/bindings/bindAudio.js';
 import { bindPerformance } from '../src/ui/bindings/bindPerformance.js';
+import { bindAccessibility } from '../src/ui/bindings/bindAccessibility.js';
 import { bindAll } from '../src/ui/bindings/index.js';
 import { createAudioBus } from '../src/core/AudioBus.js';
 import { screenshotFilename } from '../src/ui/Screenshot.js';
@@ -211,5 +212,21 @@ describe('bindAll', () => {
 describe('screenshotFilename', () => {
   it('format YYYYMMDD-HHMM', () => {
     expect(screenshotFilename(new Date(2026, 9, 13, 7, 5))).toBe('stadion-utama-riau-20261013-0705.png');
+  });
+});
+
+describe('bindAccessibility', () => {
+  it('skala teks dan kurangi gerakan dipasang di <html>', () => {
+    const store = createSettingsStore();
+    const props = {};
+    const attrs = new Set();
+    const root = { style: { setProperty: (k, v) => { props[k] = v; } }, toggleAttribute: (k, on) => (on ? attrs.add(k) : attrs.delete(k)) };
+    const off = bindAccessibility(store, { root });
+    expect(props['--ui-text-scale']).toBe('1');
+    store.set('aksesibilitas.textScale', 1.25);
+    expect(props['--ui-text-scale']).toBe('1.25');
+    store.set('aksesibilitas.reduceMotion', true);
+    expect(attrs.has('data-kurangi-gerak')).toBe(true);
+    off();
   });
 });

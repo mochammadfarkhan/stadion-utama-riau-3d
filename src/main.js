@@ -149,6 +149,10 @@ async function main() {
   const store = createSettingsStore({ storage });
   const touch = isTouchPrimary();
   if (touch && firstRun) store.set('performance.minimap', false); // layar kecil: minimap menutupi tombol layar
+  if (firstRun && globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { // sistem minta kurangi gerakan
+    store.set('aksesibilitas.reduceMotion', true);
+    store.set('camera.kotaIntro', false);
+  }
   // Perubahan terakhir tidak boleh hilang saat tab ditutup/disembunyikan (debounce 150 ms).
   window.addEventListener('pagehide', () => store.flush(), { signal: listeners.signal });
   document.addEventListener('visibilitychange', () => { if (document.hidden) store.flush(); }, { signal: listeners.signal });
