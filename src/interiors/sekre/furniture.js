@@ -46,6 +46,7 @@ import { buildSofaProyektor } from './perabot/sofaProyektor.js';
 import { buildRuangBelakang } from './perabot/ruangBelakang.js';
 import { buildKertas } from './perabot/kertas.js';
 import { buildKursiUkir } from './perabot/kursiUkir.js';
+import { buildRakSiku } from './perabot/rakSiku.js';
 import { buildPermadani, buildJasHujan } from './perabot/permadaniJas.js';
 
 /**
@@ -132,6 +133,7 @@ export function buildFurniture({ materials }) {
   for (const it of EKSTRA.kursiUkir) staticGroup.add(placed(buildKursiUkir(m), it));
   staticGroup.add(placed(buildPermadani(), EKSTRA.permadani));
   staticGroup.add(placed(buildJasHujan(m), EKSTRA.jasHujan));
+  staticGroup.add(placed(buildRakSiku(m), EKSTRA.rakSiku));
   staticGroup.add(placed(buildLemari(m), ASET.S09.items[0]));
   staticGroup.add(buildOrdner(m));
   staticGroup.add(placed(buildBenderaStand(m), ASET.S08.items[0]));

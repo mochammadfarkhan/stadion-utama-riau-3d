@@ -181,7 +181,7 @@ export const ASET = freeze({
   S11: aset('kardus-properti', 0.5, 0.4, 0.35, [atRaw(-2.62, 0, -1.75, 0.1), atRaw(-2.6, 0.35, -1.73, -0.15), at(-0.75, 0, 2.76, 0.05)]),
   S12: aset('spanduk-tergulung', 0.1, 0.1, 2, [atRaw(2.87, 0, -2.85, -PI / 2, { miring: 0.12 }), atRaw(2.76, 0, -2.9, -PI / 2, { miring: 0.08 })]),
   S13: aset('dispenser-galon', 0.32, 0.32, 1.25, [atRaw(1.06, 0, -2.82, 0)]),
-  S14: aset('kipas-berdiri', 0.45, 0.45, 1.3, [at(-1.8, 0, -1.0, 0.69)]),
+  S14: aset('kipas-berdiri', 0.45, 0.45, 1.3, [at(-1.2, 0, -1.0, 0.69)]), // di depan rak siku
   S15: aset('printer-tua', 0.45, 0.4, 0.25, [atRaw(-2.7, 0.75, -2.65, 0)]),
   S16: aset('meja-lipat-panjang', 1.8, 0.6, 0.75, [atRaw(-2.05, 0, -2.6, 0)]), // meja hitam di depan tirai kiri (foto)
   S17: aset('laptop', 0.34, 0.24, 0.23, [atRaw(-2.1, 0.75, -2.55, 0), atRaw(-1.65, 0.75, -2.5, 0.3)]),
@@ -223,6 +223,8 @@ export const EKSTRA = freeze({
   kursiUkir: freeze([atRaw(1.55, 0, -2.05, 0), atRaw(2.35, 0, -2.08, -0.2)]),
   permadani: atRaw(1.95, 0.002, -1.25, 0),
   jasHujan: atRaw(-2.99, 2.0, -0.45, PI / 2),
+  /** Rak besi siku hitam di dinding kiri, antara kardus dan sofa (foto 8–9). */
+  rakSiku: atRaw(-2.78, 0, -1.05, PI / 2),
   kertas: freeze([atRaw(-2.35, 0.752, -2.75, 0.3), atRaw(-1.75, 0.752, -2.72, -0.2), at(-0.7, 0.014, 0.4, 0.8)]),
 });
 
@@ -258,12 +260,13 @@ export const SOLIDS = freeze([
   rectRaw('meja', -2.95, -1.15, -2.9, -2.3),
   rect('lemari', 1.05, 1.95, 2.55, 3.0),
   rectRaw('dispenser', 0.9, 1.22, -3.0, -2.64),
-  rect('kipas', -2.0, -1.6, -1.2, -0.8),
+  rect('kipas', -1.4, -1.0, -1.2, -0.8),
   rectRaw('kardus-depan', -2.87, -2.35, -2.0, -1.5),
   rect('kardus-belakang', -1.0, -0.5, 2.54, 3.0),
   rectRaw('spanduk', 2.65, 3.0, -3.0, -2.65),
   rectRaw('kursi', -2.28, -1.82, -2.18, -1.72),
   rectRaw('kursi-ukir', 1.2, 2.7, -2.4, -1.72),
+  rectRaw('rak-siku', -3.0, -2.55, -1.47, -0.63),
   rectRaw('daun-pintu', -0.91, -0.72, -3.0, -2.12),
   rect('tas', 1.75, 2.1, -2.05, -1.45),
   rect('sofa', -2.1, -1.2, -0.6, 1.6),
@@ -345,7 +348,7 @@ export const INTERAKSI = freeze([
   item('lemari-arsip', 'Lemari arsip', [1.5, 1.1, 2.5], 1.5, 'Buka lemari arsip'),
   item('gitar', 'Gitar akustik', [-1.8, 0.55, 1.95], 1.4, 'Genjreng gitar'),
   itemRaw('dispenser', 'Dispenser galon', [1.06, 0.95, -2.7], 1.3, 'Isi segelas air'),
-  item('kipas', 'Kipas berdiri', [-1.8, 1.05, -1.0], 1.4, 'Nyalakan / matikan kipas'),
+  item('kipas', 'Kipas berdiri', [-1.2, 1.05, -1.0], 1.4, 'Nyalakan / matikan kipas'),
   itemRaw('saklar', 'Saklar lampu', [-1.05, 1.35, -2.98], 1.1, 'Nyalakan / matikan lampu'),
   itemRaw('jendela', 'Jendela', [1.95, 1.5, -2.98], 1.4, 'Intip selasar'),
   item('whiteboard', 'Papan tulis', [2.05, 1.45, -1.2], 1.6, 'Baca catatan rapat'),

@@ -11,11 +11,12 @@
  * peta bayangan tidak diperbarui saat tidak ada sinar (shadow.autoUpdate = false).
  */
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { sunFromHour } from '../../sim/dayCycle.js';
 import { directionFromAngles } from '../../world/Lighting.js';
 import { makeRng } from '../../entities/util.js';
-import { SELASAR, WINDOW, WINDOW_CENTER, DOOR, TL_POS } from './data.js';
+import { SELASAR, WINDOW, WINDOW_CENTER, DOOR, TL_POS, ROOM } from './data.js';
 
 export const TL_ON_FROM = 17.5;
 export const TL_ON_UNTIL = 6;
@@ -26,6 +27,20 @@ const FLICKER_S = 0.6;
 const MOTES = 80;
 const UP = new THREE.Vector3(0, 1, 0);
 const WHITE = new THREE.Color(0xffffff);
+const LED_COLOR = 0x8a3cff;
+const LED_INTENSITY = 16;
+
+/** Empat batang tipis menempel di sudut dinding-plafon (persegi hw × hd), satu geometri. */
+function mergeStrips(hw, hd, y) {
+  const g = [];
+  for (const s of [-1, 1]) {
+    g.push(new THREE.BoxGeometry(hw * 2, 0.025, 0.025).translate(0, y, s * hd));
+    g.push(new THREE.BoxGeometry(0.025, 0.025, hd * 2).translate(s * hw, y, 0));
+  }
+  const out = mergeGeometries(g, false);
+  for (const x of g) x.dispose();
+  return out;
+}
 
 const wrapHour = (h) => (Number.isFinite(h) ? ((h % 24) + 24) % 24 : 0);
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
@@ -106,7 +121,17 @@ export function createSekreLighting({ renderer = null, scene }) {
   const laptopGlow = new THREE.PointLight(0x9cc4ff, 0, 3, 2);
   laptopGlow.position.set(1.5, 1.05, 1.2);
   const motes = createMotes();
-  group.add(hemi, ...tl, windowSpot, windowSpot.target, doorSpot, doorSpot.target, sun, sun.target, laptopGlow, motes);
+  // LED ungu suasana malam (foto 2, 3): strip emisif keliling plafon ruang utama + satu PointLight ungu
+  const ledMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  ledMat.name = 'sekre:led-ungu';
+  const hw = ROOM.w / 2 - 0.03;
+  const hd = ROOM.d / 2 - 0.03;
+  const ledY = ROOM.h - 0.06;
+  const led = new THREE.Mesh(mergeStrips(hw, hd, ledY), ledMat);
+  led.name = 'led-ungu';
+  const ledLight = new THREE.PointLight(LED_COLOR, 0, 0, 2);
+  ledLight.position.set(0, ROOM.h - 0.4, 0);
+  group.add(hemi, ...tl, windowSpot, windowSpot.target, doorSpot, doorSpot.target, sun, sun.target, laptopGlow, motes, led, ledLight);
 
   let envRT = null;
   if (renderer) {
@@ -179,6 +204,9 @@ export function createSekreLighting({ renderer = null, scene }) {
 
       motes.material.opacity = (0.15 + 0.5 * beam) * day * wet;
       motes.position.y = 0.04 * Math.sin(t * 0.3);
+      const night = 1 - day;
+      ledLight.intensity = LED_INTENSITY * night;
+      ledMat.color.setHex(LED_COLOR).multiplyScalar(0.15 + 0.85 * night);
       const laptop = Boolean(s.laptopActive);
       laptopGlow.intensity = laptop ? (level > 0.5 ? 0.25 : 0.9) : 0;
       if (s.screenMaterial) s.screenMaterial.emissiveIntensity = laptop ? 1.4 : 0;
