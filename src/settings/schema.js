@@ -114,6 +114,7 @@ export const SETTINGS_SCHEMA = Object.freeze({
       mix: Object.freeze({
         title: 'Volume',
         fields: Object.freeze({
+          muted: toggle('Bisukan semua', false),
           master: range('Utama', 0.8, 0, 1, 0.01, { format: 'percent' }),
           bell: range('Bel sepeda', 1, 0, 1, 0.01, { format: 'percent' }),
           ambience: range('Suasana', 0.6, 0, 1, 0.01, { format: 'percent' }),

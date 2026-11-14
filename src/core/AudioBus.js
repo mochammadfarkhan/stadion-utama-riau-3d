@@ -8,7 +8,7 @@
  * kanal dibuat, sehingga settings dapat di-bind sebelum ada gesture.
  */
 
-import { karplusStrong, fanHumBuffer, rainOnTinBuffer, murmurBuffer, cityHumBuffer, windBuffer } from './audioSynth.js';
+import { karplusStrong, fanHumBuffer, rainOnTinBuffer, murmurBuffer, cityHumBuffer, windBuffer, rainHissBuffer } from './audioSynth.js';
 
 const DEFAULT_MASTER = 0.8;
 
@@ -27,11 +27,13 @@ function getAudioCtor() {
 const clamp01 = (v) => Math.min(1, Math.max(0, Number(v) || 0));
 
 /**
- * @param {{ master?: number, target?: EventTarget|null }} opts
+ * @param {{ master?: number, target?: EventTarget|null, createContext?: (() => AudioContext)|null }} opts
+ *   createContext: pabrik konteks (tes); default AudioContext browser.
  * @returns {AudioBus}
  */
-export function createAudioBus({ master = DEFAULT_MASTER, target = null } = {}) {
+export function createAudioBus({ master = DEFAULT_MASTER, target = null, createContext = null } = {}) {
   const Ctor = getAudioCtor();
+  const makeContext = createContext ?? (Ctor ? () => new Ctor() : null);
   let ctx = null;
   let masterGain = null;
   let masterLevel = clamp01(master);
@@ -40,17 +42,22 @@ export function createAudioBus({ master = DEFAULT_MASTER, target = null } = {}) 
   let resuming = false;
 
   const resume = () => {
-    if (!ctx || ctx.state !== 'suspended' || resuming) return;
+    if (!ctx || ctx.state === 'running' || ctx.state === 'closed' || resuming) return; // iOS: 'interrupted' juga dilanjutkan
     resuming = true;
     ctx.resume().catch(() => {}).finally(() => { resuming = false; });
+  };
+
+  /** Tab disembunyikan: hentikan semua bunyi (resume() saat kembali). */
+  const suspend = () => {
+    if (ctx && ctx.state === 'running') ctx.suspend?.().catch?.(() => {});
   };
 
   /** Buat konteks bila belum ada; null bila Web Audio tidak tersedia. */
   const ensure = () => {
     if (ctx) return ctx;
-    if (!Ctor) return null;
+    if (!makeContext) return null;
     try {
-      ctx = new Ctor();
+      ctx = makeContext();
       masterGain = ctx.createGain();
       masterGain.gain.value = masterLevel;
       masterGain.connect(ctx.destination);
@@ -162,15 +169,20 @@ export function createAudioBus({ master = DEFAULT_MASTER, target = null } = {}) 
   const startMurmur = (opts) => loop('murmur', (sr) => murmurBuffer(sr), opts);
   const startCityHum = (opts) => loop('cityHum', (sr) => cityHumBuffer(sr), opts); // pratinjau Kota
   const startWind = (opts) => loop('wind', (sr) => windBuffer(sr), opts);
+  const startRainHiss = (opts) => loop('rainHiss', (sr) => rainHissBuffer(sr), opts); // hujan luar (Weather)
 
   const onGesture = () => resume();
   const evTarget = target ?? (typeof window !== 'undefined' ? window : null);
   evTarget?.addEventListener?.('pointerdown', onGesture, { passive: true });
   evTarget?.addEventListener?.('keydown', onGesture, { passive: true });
+  evTarget?.addEventListener?.('touchend', onGesture, { passive: true }); // iOS: konteks hanya bisa dimulai dari touchend/click
+  evTarget?.addEventListener?.('click', onGesture, { passive: true });
 
   const dispose = () => {
     evTarget?.removeEventListener?.('pointerdown', onGesture);
     evTarget?.removeEventListener?.('keydown', onGesture);
+    evTarget?.removeEventListener?.('touchend', onGesture);
+    evTarget?.removeEventListener?.('click', onGesture);
     for (const h of [...loops]) h.stop();
     buffers.clear();
     ctx?.close?.().catch?.(() => {});
@@ -180,7 +192,7 @@ export function createAudioBus({ master = DEFAULT_MASTER, target = null } = {}) 
   };
 
   return {
-    ensure, resume, channel, setMaster, setChannel, dispose, play, loop, pluck, startFanHum, startRainOnTin, startMurmur, startCityHum, startWind,
+    ensure, resume, suspend, channel, setMaster, setChannel, dispose, play, loop, pluck, startFanHum, startRainOnTin, startMurmur, startCityHum, startWind, startRainHiss,
     get master() { return masterLevel; },
     get context() { return ctx; },
   };

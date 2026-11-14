@@ -130,7 +130,11 @@ async function main() {
   if (touch && firstRun) store.set('performance.minimap', false); // layar kecil: minimap menutupi tombol layar
   // Perubahan terakhir tidak boleh hilang saat tab ditutup/disembunyikan (debounce 150 ms).
   window.addEventListener('pagehide', () => store.flush(), { signal: listeners.signal });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) store.flush(); }, { signal: listeners.signal });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) store.flush();
+    if (document.hidden) audioBus.suspend(); // tab tersembunyi: senyap
+    else audioBus.resume();
+  }, { signal: listeners.signal });
 
   await procTextures; // sebelum lighting/dunia: keduanya memanggil fillCanvas
   await loading.step(0.12, 'Menyiapkan langit, pencahayaan, waktu, dan cuaca…');
