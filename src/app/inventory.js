@@ -5,6 +5,7 @@
  * localStorage; tas baru berisi perlengkapan awal (cangkul, gembor, 5 benih cabai).
  */
 import { ITEMS, INVENTORY, INVENTORY_SIZE, STARTER_KIT } from '../config/items.js';
+import { SAVE_KEYS } from '../config/saveKeys.js';
 import {
   createInventory, putInSlot, addItem, takeFromSlot, removeItem, moveSlot, shipInto, shipValue, inventoryToJson, inventoryFromJson,
 } from '../sim/inventory.js';
@@ -12,7 +13,7 @@ import { createInventoryUI } from '../ui/InventoryUI.js';
 import { loadJsonWithBackup } from '../settings/jsonBackup.js';
 import { safeLocalStorage } from '../settings/safeStorage.js';
 
-const STORAGE_KEY = 'stadion.inventory.v1';
+const STORAGE_KEY = SAVE_KEYS.inventory;
 const DIGITS = Array.from({ length: INVENTORY.hotbar }, (_, i) => `Digit${i + 1}`);
 
 function starter() {

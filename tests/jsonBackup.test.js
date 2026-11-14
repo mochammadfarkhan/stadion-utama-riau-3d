@@ -26,3 +26,15 @@ describe('loadJsonWithBackup', () => {
     expect(loadJsonWithBackup(null, 'k', parse)).toBeNull();
   });
 });
+
+describe('SAVE_KEYS (nilai tidak boleh berubah: simpanan pemain hilang)', () => {
+  it('nilai kunci tetap', async () => {
+    const { SAVE_KEYS } = await import('../src/config/saveKeys.js');
+    expect(SAVE_KEYS).toEqual({
+      story: 'sur3d.story.v1', storyBackup: 'sur3d.story.v1.bak', settings: 'sur3d.settings.v1',
+      quality: 'sur3d.quality.v1', farm: 'stadion.kebun.v1', inventory: 'stadion.inventory.v1',
+    });
+    const { STORY_BACKUP_KEY } = await import('../src/story/storage.js');
+    expect(STORY_BACKUP_KEY).toBe(SAVE_KEYS.storyBackup);
+  });
+});

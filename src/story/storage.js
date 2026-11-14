@@ -1,3 +1,4 @@
+import { SAVE_KEYS } from '../config/saveKeys.js';
 /**
  * Simpan/muat progres cerita di localStorage (kunci tetap; versi di dalam data). Data dari storage
  * tidak dipercaya: dibersihkan terhadap batas chapter/langkah, id yang dikenal, dompet yang sah, dan
@@ -6,7 +7,7 @@
  * story/points.js; null bila belum tercatat). Data rusak atau versi tak dikenal dicadangkan ke
  * STORY_BACKUP_KEY sebelum mulai baru (tidak dibuang diam-diam).
  */
-export const STORY_KEY = 'sur3d.story.v1';
+export const STORY_KEY = SAVE_KEYS.story;
 export const STORY_BACKUP_KEY = `${STORY_KEY}.bak`;
 export const SAVE_VERSION = 3;
 const V2 = 2;

@@ -20,8 +20,9 @@ import { loadModel } from '../world/assets/models.js';
 import { KEBUN_MODELS, buildTractorModel, createFarmView } from '../world/props/unri/kebun.js';
 import { HELD_MODELS, createHeldItemFactory } from '../world/props/unri/heldItems.js';
 import { createFarmFx } from '../world/props/unri/kebunFx.js';
+import { SAVE_KEYS } from '../config/saveKeys.js';
 
-const STORAGE_KEY = 'stadion.kebun.v1';
+const STORAGE_KEY = SAVE_KEYS.farm;
 const TILE_COUNT = KEBUN.cols * KEBUN.rows;
 const DOOR_RADIUS = 2;
 const NEED_LABEL = Object.freeze({ cangkul: 'cangkul', benih: 'benih', gembor: 'gembor' });
