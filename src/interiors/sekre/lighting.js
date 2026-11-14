@@ -11,11 +11,12 @@
  * peta bayangan tidak diperbarui saat tidak ada sinar (shadow.autoUpdate = false).
  */
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { sunFromHour } from '../../sim/dayCycle.js';
 import { directionFromAngles } from '../../world/Lighting.js';
 import { makeRng } from '../../entities/util.js';
-import { SELASAR, WINDOW, WINDOW_CENTER, DOOR, TL_POS } from './data.js';
+import { SELASAR, WINDOW, WINDOW_CENTER, DOOR, TL_POS, ROOM } from './data.js';
 
 export const TL_ON_FROM = 17.5;
 export const TL_ON_UNTIL = 6;
@@ -26,6 +27,52 @@ const FLICKER_S = 0.6;
 const MOTES = 80;
 const UP = new THREE.Vector3(0, 1, 0);
 const WHITE = new THREE.Color(0xffffff);
+const LED_COLOR = 0x8a3cff;
+const HANGAT = new THREE.Color(0xffc896);
+/**
+ * Sinar sore artistik [INFERENSI] (rujukan visual user, bukan fisika): selasar beratap menghalangi matahari langsung
+ * di hampir semua jam, jadi 15:00–17:30 sebuah SpotLight hangat dari selasar (di bawah atap) menyorot masuk lewat
+ * jendela & pintu dengan cookie bergaris bilah tirai dan bayangan asli: garis cahaya jatuh di lantai, meja, dinding,
+ * dan orang. Ruangan diredupkan agar kontras.
+ */
+export const SOROT_SORE = Object.freeze({ pos: [-1.6, 3.35, -4.6], target: [-2.1, 0.4, -2.0], intensity: 140 });
+function createSorotSore() {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 64;
+  const g = c.getContext('2d');
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, 512, 64);
+  g.fillStyle = '#fff';
+  for (let x = 0; x < 512; x += 16) g.fillRect(x + 5, 0, 9, 64); // bilah tirai vertikal → garis cahaya
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const spot = new THREE.SpotLight(0xffc48a, 0, 14, Math.PI / 5, 0.4, 2);
+  spot.name = 'sorot-sore';
+  spot.map = tex;
+  spot.position.set(...SOROT_SORE.pos);
+  spot.target.position.set(...SOROT_SORE.target);
+  spot.castShadow = true;
+  spot.shadow.mapSize.set(1024, 1024);
+  spot.shadow.bias = -0.0008;
+  spot.shadow.camera.near = 0.5;
+  spot.shadow.camera.far = 14;
+  return spot;
+}
+export const soreFactor = (h) => smoothstep(14.6, 15.4, wrapHour(h)) * (1 - smoothstep(17.1, 17.7, wrapHour(h)));
+const LED_INTENSITY = 16;
+
+/** Empat batang tipis menempel di sudut dinding-plafon (persegi hw × hd), satu geometri. */
+function mergeStrips(hw, hd, y) {
+  const g = [];
+  for (const s of [-1, 1]) {
+    g.push(new THREE.BoxGeometry(hw * 2, 0.025, 0.025).translate(0, y, s * hd));
+    g.push(new THREE.BoxGeometry(0.025, 0.025, hd * 2).translate(s * hw, y, 0));
+  }
+  const out = mergeGeometries(g, false);
+  for (const x of g) x.dispose();
+  return out;
+}
 
 const wrapHour = (h) => (Number.isFinite(h) ? ((h % 24) + 24) % 24 : 0);
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
@@ -106,7 +153,18 @@ export function createSekreLighting({ renderer = null, scene }) {
   const laptopGlow = new THREE.PointLight(0x9cc4ff, 0, 3, 2);
   laptopGlow.position.set(1.5, 1.05, 1.2);
   const motes = createMotes();
-  group.add(hemi, ...tl, windowSpot, windowSpot.target, doorSpot, doorSpot.target, sun, sun.target, laptopGlow, motes);
+  const sorot = createSorotSore();
+  // LED ungu suasana malam (foto 2, 3): strip emisif keliling plafon ruang utama + satu PointLight ungu
+  const ledMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  ledMat.name = 'sekre:led-ungu';
+  const hw = ROOM.w / 2 - 0.03;
+  const hd = ROOM.d / 2 - 0.03;
+  const ledY = ROOM.h - 0.06;
+  const led = new THREE.Mesh(mergeStrips(hw, hd, ledY), ledMat);
+  led.name = 'led-ungu';
+  const ledLight = new THREE.PointLight(LED_COLOR, 0, 0, 2);
+  ledLight.position.set(0, ROOM.h - 0.4, 0);
+  group.add(hemi, ...tl, windowSpot, windowSpot.target, doorSpot, doorSpot.target, sun, sun.target, laptopGlow, motes, led, ledLight, sorot, sorot.target);
 
   let envRT = null;
   if (renderer) {
@@ -171,7 +229,15 @@ export function createSekreLighting({ renderer = null, scene }) {
       doorSpot.intensity = DOOR_SPOT * day * wet;
 
       sunLocalDirection(s.hour, { azimuthOffsetDeg: s.azimuthOffsetDeg ?? 0, roomYaw: s.roomYaw ?? 0 }, dir);
+      const sore = soreFactor(s.hour) * (1 - clamp01(rain * 2));
       const beam = windowSunFactor(dir) * day * (1 - clamp01(rain * 2));
+      sorot.intensity = SOROT_SORE.intensity * sore * day;
+      sorot.shadow.autoUpdate = sorot.intensity > 0.01;
+      const redup = 1 - 0.85 * sore;
+      hemi.intensity *= redup;
+      hemi.color.lerp(HANGAT, 0.6 * sore); // grading hangat sore
+      windowSpot.intensity *= redup;
+      doorSpot.intensity *= redup;
       sun.intensity = p.sunIntensity * 0.9 * beam;
       sun.color.setHex(p.sunColor);
       sun.position.copy(sun.target.position).addScaledVector(dir, 12);
@@ -179,16 +245,21 @@ export function createSekreLighting({ renderer = null, scene }) {
 
       motes.material.opacity = (0.15 + 0.5 * beam) * day * wet;
       motes.position.y = 0.04 * Math.sin(t * 0.3);
+      const night = 1 - day;
+      ledLight.intensity = LED_INTENSITY * night;
+      ledMat.color.setHex(LED_COLOR).multiplyScalar(0.15 + 0.85 * night);
       const laptop = Boolean(s.laptopActive);
       laptopGlow.intensity = laptop ? (level > 0.5 ? 0.25 : 0.9) : 0;
       if (s.screenMaterial) s.screenMaterial.emissiveIntensity = laptop ? 1.4 : 0;
       if (scene.background?.isColor) scene.background.setHex(p.fogColor).multiplyScalar(0.6 + 0.4 * wet);
-      scene.environmentIntensity = 0.08 + 0.25 * day * wet + 0.12 * level;
+      scene.environmentIntensity = (0.08 + 0.25 * day * wet + 0.12 * level) * (1 - 0.8 * sore);
       s.setExposure?.(0.92 + 0.08 * day * (1 - level));
     },
     /** Lepas sumber daya di luar pohon scene: peta bayangan & env map. */
     dispose() {
       sun.shadow.dispose();
+      sorot.shadow.dispose();
+      sorot.map?.dispose();
       if (envRT && scene.environment === envRT.texture) scene.environment = null;
       envRT?.dispose();
     },

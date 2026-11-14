@@ -1,25 +1,30 @@
 import { PI, box, cyl, piece, groupOf } from './bentuk.js';
 import { ASET } from '../data.js';
 
-/** S29 jendela nako (kusen aluminium, 8 bilah kaca terbuka, teralis luar). Koordinat ruang. */
+/** S29 jendela kiri & kanan pintu (kusen aluminium, bilah kaca nako, teralis luar). Koordinat ruang. */
 export function buildJendela(m) {
-  const it = ASET.S29.items[0];
+  return groupOf('S29', ...ASET.S29.items.map((it) => buildSatuJendela(m, it)));
+}
+
+function buildSatuJendela(m, it) {
   const cx = it.x;
   const y0 = it.y;
   const zc = -3.075;
   const AL = '#c9ccd0';
+  const W = ASET.S29.dim.w;
+  const H = ASET.S29.dim.h;
   const frame = [
-    box(0.04, 1.2, 0.1, AL, { x: cx - 0.58, y: y0 + 0.6, z: zc }),
-    box(0.04, 1.2, 0.1, AL, { x: cx + 0.58, y: y0 + 0.6, z: zc }),
-    box(1.2, 0.04, 0.1, AL, { x: cx, y: y0 + 1.18, z: zc }),
-    box(1.2, 0.04, 0.1, AL, { x: cx, y: y0 + 0.02, z: zc }),
-    box(0.02, 1.12, 0.03, AL, { x: cx - 0.555, y: y0 + 0.6, z: -3.04 }),
-    box(0.02, 1.12, 0.03, AL, { x: cx + 0.555, y: y0 + 0.6, z: -3.04 }),
+    box(0.04, H, 0.1, AL, { x: cx - W / 2 + 0.02, y: y0 + H / 2, z: zc }),
+    box(0.04, H, 0.1, AL, { x: cx + W / 2 - 0.02, y: y0 + H / 2, z: zc }),
+    box(W, 0.04, 0.1, AL, { x: cx, y: y0 + H - 0.02, z: zc }),
+    box(W, 0.04, 0.1, AL, { x: cx, y: y0 + 0.02, z: zc }),
   ];
-  for (let k = 0; k < 5; k += 1) frame.push(cyl(0.008, 0.008, 1.2, '#37474f', { x: cx - 0.52 + k * 0.26, y: y0 + 0.6, z: -3.17 }));
-  for (const yy of [0.3, 0.9]) frame.push(cyl(0.008, 0.008, 1.16, '#37474f', { x: cx, y: y0 + yy, z: -3.17, rz: PI / 2 }));
-  const sill = piece([box(1.3, 0.03, 0.12, '#d9d4c7', { x: cx, y: y0 - 0.015, z: -2.96 })], m.prop, 'ambang');
+  const bars = Math.round(W / 0.26);
+  for (let k = 0; k <= bars; k += 1) frame.push(cyl(0.008, 0.008, H, '#37474f', { x: cx - W / 2 + 0.08 + k * ((W - 0.16) / bars), y: y0 + H / 2, z: -3.17 }));
+  for (const f of [0.25, 0.75]) frame.push(cyl(0.008, 0.008, W - 0.04, '#37474f', { x: cx, y: y0 + H * f, z: -3.17, rz: PI / 2 }));
+  const sill = piece([box(W + 0.1, 0.03, 0.12, '#d9d4c7', { x: cx, y: y0 - 0.015, z: -2.96 })], m.prop, 'ambang');
   const glass = [];
-  for (let i = 0; i < 8; i += 1) glass.push(box(1.1, 0.004, 0.155, '#ffffff', { x: cx, y: y0 + 0.075 + i * 0.15, z: -3.05, rx: 0.35 }));
-  return groupOf('S29', piece(frame, m.metal, 'kusen'), sill, piece(glass, m.glass, 'bilah-kaca', false));
+  const slats = Math.floor(H / 0.15);
+  for (let i = 0; i < slats; i += 1) glass.push(box(W - 0.1, 0.004, 0.155, '#ffffff', { x: cx, y: y0 + 0.075 + i * 0.15, z: -3.05, rx: 0.35 }));
+  return groupOf('S29-jendela', piece(frame, m.metal, 'kusen'), sill, piece(glass, m.glass, 'bilah-kaca', false));
 }

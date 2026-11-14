@@ -10,7 +10,10 @@
  */
 import * as THREE from 'three';
 import { instantiateModel } from '../../world/assets/models.js';
-import { ASET, EKSTRA, GLB_ASET, GUITAR_HOLD } from './data.js';
+import { loadPbr } from '../../world/textures/pbr.js';
+import { TILE_M, tierForQuality } from '../../world/textures/pbrCore.js';
+import { styleState } from '../../engine/styleState.js';
+import { ASET, EKSTRA, GLB_ASET, HQ_ASET, GUITAR_HOLD } from './data.js';
 import { makeCanvas, canvasTexture, tint } from './canvas.js';
 import { drawKarpet } from './room.js';
 import { PI, propRy, TMP_V, cyl, piece, placed } from './perabot/bentuk.js';
@@ -42,6 +45,45 @@ import { buildPerlengkapanErc } from './perabot/perlengkapanErc.js';
 import { buildSofaProyektor } from './perabot/sofaProyektor.js';
 import { buildRuangBelakang } from './perabot/ruangBelakang.js';
 import { buildKertas } from './perabot/kertas.js';
+import { buildKursiUkir } from './perabot/kursiUkir.js';
+import { buildRakSiku } from './perabot/rakSiku.js';
+import { buildMejaDetail } from './perabot/mejaDetail.js';
+import { buildPermadani, buildJasHujan } from './perabot/permadaniJas.js';
+
+/**
+ * Bahan perabot bertekstur (ambientCG CC0, public/textures): warna tetap dari warna verteks model, tekstur memberi serat/tenun/
+ * kekasaran. Albedo dinormalkan ke warna rata-ratanya (color = 1/avg) sehingga warna verteks tidak ikut menggelap.
+ * Besi cat: hanya normal + roughness (albedo bubuk hitam tidak dipakai). Harus dibuat di dalam withScope interior.
+ */
+const BAHAN = Object.freeze({
+  kayuHalus: { avg: '#b0733f', albedo: true, roughness: 1, normalScale: 0.6 },
+  kain: { avg: '#bababa', albedo: true, roughness: 1, normalScale: 0.9 },
+  plastik: { avg: '#7e7e7e', albedo: true, roughness: 1, normalScale: 0.4 },
+  catBesi: { albedo: false, roughness: 1, metalness: 0.35, normalScale: 0.5 },
+  kulit: { albedo: false, roughness: 0.85, normalScale: 1 }, // kulit sintetis sofa (Leather026): pori & kilap saja, warna tan dari verteks
+});
+
+function bahanMaterial(name) {
+  const cfg = BAHAN[name];
+  const tier = tierForQuality(styleState.terrainQuality);
+  const kinds = cfg.albedo ? ['albedo', 'normal', 'orm'] : ['normal', 'orm'];
+  const set = loadPbr(name, { tier, anisotropy: 4, kinds });
+  const r = 1 / TILE_M[name];
+  for (const t of [set.map, set.normalMap, set.roughnessMap]) t?.repeat.set(r, r);
+  const mat = new THREE.MeshStandardMaterial({
+    vertexColors: true, roughness: cfg.roughness, metalness: cfg.metalness ?? 0,
+    normalMap: set.normalMap ?? null, roughnessMap: set.roughnessMap ?? null,
+    normalScale: new THREE.Vector2(cfg.normalScale, cfg.normalScale),
+  });
+  if (cfg.albedo && set.map) {
+    mat.map = set.map;
+    const avg = new THREE.Color(cfg.avg); // linear
+    mat.color.setRGB(1 / Math.max(0.05, avg.r), 1 / Math.max(0.05, avg.g), 1 / Math.max(0.05, avg.b));
+  }
+  mat.name = `sekre:${name}`;
+  mat.userData.metricUv = true;
+  return mat;
+}
 
 /** Material bersama interior (dibuat sekali per build; dilepas lewat disposeTree scene). */
 export function createSekreMaterials(renderer = null) {
@@ -57,13 +99,19 @@ export function createSekreMaterials(renderer = null) {
     screen: new THREE.MeshStandardMaterial({ name: 'unri:layar-emisif', color: 0x0b0f14, emissive: 0x9cc4ff, emissiveIntensity: 0, roughness: 0.25 }),
     paper: new THREE.MeshStandardMaterial({ color: 0xf7f5ee, roughness: 0.9, side: THREE.DoubleSide }),
     karpet: new THREE.MeshStandardMaterial({ map: canvasTexture(karpetCanvas, renderer), roughness: 1 }),
+    kayuHalus: bahanMaterial('kayuHalus'),
+    kain: bahanMaterial('kain'),
+    plastik: bahanMaterial('plastik'),
+    catBesi: bahanMaterial('catBesi'),
+    kulit: bahanMaterial('kulit'),
   };
 }
 
 /**
- * @param {{materials: ReturnType<typeof createSekreMaterials>}} opts
+ * @param {{materials: ReturnType<typeof createSekreMaterials>, hq?: boolean}} opts hq = preset Tinggi: barang di HQ_ASET
+ *   diganti model realistis (versi prosedural jadi cadangan sampai model termuat)
  */
-export function buildFurniture({ materials }) {
+export function buildFurniture({ materials, hq = false }) {
   const m = materials;
   const staticGroup = new THREE.Group();
   staticGroup.name = 'sekre-perabot';
@@ -83,13 +131,27 @@ export function buildFurniture({ materials }) {
     return c;
   };
 
+  /** kunci HQ_ASET → objek prosedural yang disembunyikan saat model realistisnya termuat. */
+  const hqProc = new Map();
+  const proc = (key, obj) => {
+    if (!hq) return staticGroup.add(obj);
+    dynamicGroup.add(obj);
+    hqProc.set(key, [...(hqProc.get(key) ?? []), obj]);
+    return obj;
+  };
+
   // statis: posisi dari data.js
-  staticGroup.add(placed(buildMeja(m), ASET.S16.items[0]));
-  staticGroup.add(placed(buildKursi(m), EKSTRA.kursiLipat));
+  proc('meja', placed(buildMeja(m), ASET.S16.items[0]));
+  proc('kursi', placed(buildKursi(m), EKSTRA.kursiLipat));
+  for (const it of EKSTRA.kursiUkir) proc('kursiUkir', placed(buildKursiUkir(m), it));
+  staticGroup.add(placed(buildPermadani(), EKSTRA.permadani));
+  staticGroup.add(placed(buildJasHujan(m), EKSTRA.jasHujan));
+  proc('rakSiku', placed(buildRakSiku(m), EKSTRA.rakSiku));
+  proc('buku', placed(buildMejaDetail(m), EKSTRA.mejaDetail));
   staticGroup.add(placed(buildLemari(m), ASET.S09.items[0]));
   staticGroup.add(buildOrdner(m));
   staticGroup.add(placed(buildBenderaStand(m), ASET.S08.items[0]));
-  ASET.S11.items.forEach((it) => staticGroup.add(placed(buildKardus(m), it)));
+  ASET.S11.items.forEach((it) => proc('kardus', placed(buildKardus(m), it)));
   ASET.S12.items.forEach((it) => {
     const s = placed(buildSpanduk(m), it);
     s.rotation.set(it.miring, propRy(it.hadap), 0, 'YXZ');
@@ -185,6 +247,15 @@ export function buildFurniture({ materials }) {
           if (ph) ph.visible = false;
           if (id === 'S14') bindFanModel(model);
           if (id === 'S17') model.traverse((o) => { if (o.material?.name === 'unri:layar-emisif') o.material = m.screen; });
+        }));
+      }
+    }
+    if (hq) {
+      for (const [key, spec] of Object.entries(HQ_ASET)) {
+        jobs.push(Promise.all(spec.items.map(() => instantiateModel(spec.glb))).then((models) => {
+          if (isCancelled()) return;
+          models.forEach((model, k) => dynamicGroup.add(placed(model, spec.items[k])));
+          for (const o of hqProc.get(key) ?? []) o.visible = false;
         }));
       }
     }

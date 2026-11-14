@@ -58,7 +58,7 @@ export function buildRuangBelakang(m) {
     cyl(0.07, 0.06, 0.1, '#e53935', { x: 2.1, y: 0.33, z: 5.55 }, 10),
   ];
   return groupOf('ruang-belakang',
-    piece(rak, m.metal, 'rak-besi'), piece(stuff, m.prop, 'komponen-robot'), piece(meja, m.prop, 'meja-kerja'),
+    piece(rak, m.catBesi, 'rak-besi'), piece(stuff, m.prop, 'komponen-robot'), piece(meja, m.kayuHalus, 'meja-kerja'),
     piece(robot, m.prop, 'robot-mini'), piece(kursi, m.prop, 'kursi-kerja'), piece(kardus, m.prop, 'kardus-belakang'),
     piece(wc, m.prop, 'wc'),
     buildPintuDalam(m, REAR.doorRoom2, 'pintu-ruang-kedua', 3.075),

@@ -41,7 +41,7 @@ describe('data sekre: aset katalog', () => {
     expect(D.ASET.S14.dim).toEqual({ w: 0.45, d: 0.45, h: 1.3 });
     expect(D.ASET.S16.dim).toEqual({ w: 1.8, d: 0.6, h: 0.75 });
     expect(D.ASET.S22.dim).toEqual({ w: 3, d: 4, h: 0.01 });
-    expect(D.ASET.S30.dim).toEqual({ w: 0.9, d: 0.05, h: 2.1 });
+    expect(D.ASET.S30.dim).toEqual({ w: 0.85, d: 0.05, h: 2.2 });
   });
 
   it('jumlah instans sesuai katalog (×2, ×3, ×4)', () => {

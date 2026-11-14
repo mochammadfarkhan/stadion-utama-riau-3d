@@ -26,16 +26,26 @@ const at = (x, y, z, hadap = 0, extra = {}) => freeze({ x: kx(x), y, z, hadap, .
 const aset = (nama, w, d, h, items, extra = {}) => freeze({ nama, dim: freeze({ w, d, h }), items: freeze(items), ...extra });
 const rect = (id, x0, x1, z0, z1) => freeze({ id, x0: kx(x0), x1: kx(x1), z0, z1 });
 const rectRaw = (id, x0, x1, z0, z1) => freeze({ id, x0, x1, z0, z1 });
+/** Penempatan dalam meter ruang apa adanya (tanpa kx): dipakai denah depan dari foto asli (pintu ganda di tengah). */
+const atRaw = (x, y, z, hadap = 0, extra = {}) => freeze({ x, y, z, hadap, ...extra });
 
 export const DATA_CONTOH = true;
 export const SCHEDULE_SEED = 2026;
 
 // ---------- Ruang (spec §8.2: 4,2 × 6,0 × 3,2 m dalam) ----------
 export const ROOM = freeze({ w: 6.0, d: 6.0, h: 4.0, wall: 0.15 });
-export const WINDOW = freeze({ x: kx(-0.9), w: 1.2, sill: 0.9, h: 1.2, z: -3.0 });
+/**
+ * Dinding depan menurut foto asli sekre ERC (docs/research/sekre-erc-foto.md): pintu ganda biru di TENGAH, diapit dua jendela
+ * bertirai vertikal krem (kiri & kanan), deret lubang angin di atasnya. WINDOW = jendela kiri (dipakai cahaya matahari).
+ */
+export const WINDOWS = freeze([
+  freeze({ x: -1.95, w: 1.4, sill: 0.8, h: 1.5, z: -3.0 }),
+  freeze({ x: 1.95, w: 1.4, sill: 0.8, h: 1.5, z: -3.0 }),
+]);
+export const WINDOW = WINDOWS[0];
 export const WINDOW_CENTER = freeze({ x: WINDOW.x, y: WINDOW.sill + WINDOW.h / 2, z: WINDOW.z });
-/** Pintu 0,9 × 2,1 m; daun pintu berengsel di x0, terbuka 85° ke dalam ruang (merapat ke kusen kiri). */
-export const DOOR = freeze({ x0: kx(0.9), x1: kx(0.9) + 0.9, h: 2.1, z: -3.0, openRad: -1.48 });
+/** Pintu ganda 2 × 0,85 m × 2,2 m di tengah; daun kiri berengsel di x0 terbuka ±85° ke dalam, daun kanan tertutup (engsel x1). */
+export const DOOR = freeze({ x0: -0.85, x1: 0.85, h: 2.2, z: -3.0, openRad: -1.48, leaf: 0.85 });
 /**
  * Selasar di luar ruang ERC (pintu D5 gedung UKM blok biru, sayap utara–selatan; ruang utama diperlebar jadi 6 × 6 m
  * [INFERENSI denah dalam]). Jendela mengintip selasar; panjang & papan nama deret seberang = label ruang lain di gedung.
@@ -43,7 +53,7 @@ export const DOOR = freeze({ x0: kx(0.9), x1: kx(0.9) + 0.9, h: 2.1, z: -3.0, op
 export const SELASAR = freeze({ zDekat: -3.15, zSeberang: -6.85, ujungKiri: -6.3, ujungKanan: 10.5, tinggiAtap: 3.4, beratap: true });
 /** Papan nama ruang tetangga di selasar (label sekreUkm.data.js: D1, D2, D3, D4; tes menjaga kesamaan). */
 export const SELASAR_SEBERANG = freeze(['KSR PMI', 'KOPMA UNRI', 'SEKRETARIAT', 'SEKRETARIAT']);
-export const SPAWN = freeze({ x: kx(1.5), z: -2.4, yaw: 0 });
+export const SPAWN = freeze({ x: 0.4, z: -2.4, yaw: 0 });
 /** yaw dunia sumbu +Z ruang = yaw pintu M4 (menghadap selasar) + offset ini. */
 export const ROOM_YAW_OFFSET = PI;
 /**
@@ -165,18 +175,18 @@ export const ASET = freeze({
   S07: aset('piala', 0.15, 0.15, 0.45, [
     at(1.25, 1.8, 2.8, PI, { skala: 0.85 }), at(1.5, 1.8, 2.82, PI, { skala: 1.15 }), at(1.75, 1.8, 2.8, PI - 0.3, { skala: 1 }),
   ]),
-  S08: aset('bendera-meja', 0.3, 0.3, 0.6, [at(1.85, 0.75, 0.52, -PI / 2)], { bendera: freeze(['organisasi', 'unri', 'merah-putih']) }),
+  S08: aset('bendera-meja', 0.3, 0.3, 0.6, [atRaw(-1.4, 0.75, -2.78, 0)], { bendera: freeze(['organisasi', 'unri', 'merah-putih']) }),
   S09: aset('lemari-arsip-besi', 0.9, 0.45, 1.8, [at(1.5, 0, 2.775, PI)]),
   S10: aset('map-ordner', 0.08, 0.3, 0.32, []),
-  S11: aset('kardus-properti', 0.5, 0.4, 0.35, [at(-1.82, 0, -2.1, 0.1), at(-1.8, 0.35, -2.08, -0.15), at(-0.75, 0, 2.76, 0.05)]),
-  S12: aset('spanduk-tergulung', 0.1, 0.1, 2, [at(-1.97, 0, -2.85, PI / 2, { miring: 0.12 }), at(-1.86, 0, -2.9, PI / 2, { miring: 0.08 })]),
-  S13: aset('dispenser-galon', 0.32, 0.32, 1.25, [at(0.35, 0, -2.82, 0)]),
-  S14: aset('kipas-berdiri', 0.45, 0.45, 1.3, [at(-1.8, 0, -1.0, 0.69)]),
-  S15: aset('printer-tua', 0.45, 0.4, 0.25, [at(1.78, 0.75, 1.9, -PI / 2)]),
-  S16: aset('meja-lipat-panjang', 1.8, 0.6, 0.75, [at(1.75, 0, 1.2, -PI / 2)]),
-  S17: aset('laptop', 0.34, 0.24, 0.23, [at(1.72, 0.75, 1.2, -PI / 2), at(1.78, 0.75, 0.82, -PI / 2 + 0.35)]),
+  S11: aset('kardus-properti', 0.5, 0.4, 0.35, [atRaw(-2.62, 0, -1.75, 0.1), atRaw(-2.6, 0.35, -1.73, -0.15), at(-0.75, 0, 2.76, 0.05)]),
+  S12: aset('spanduk-tergulung', 0.1, 0.1, 2, [atRaw(2.87, 0, -2.85, -PI / 2, { miring: 0.12 }), atRaw(2.76, 0, -2.9, -PI / 2, { miring: 0.08 })]),
+  S13: aset('dispenser-galon', 0.32, 0.32, 1.25, [atRaw(1.06, 0, -2.82, 0)]),
+  S14: aset('kipas-berdiri', 0.45, 0.45, 1.3, [at(-1.2, 0, -1.0, 0.69)]), // di depan rak siku
+  S15: aset('printer-tua', 0.45, 0.4, 0.25, [atRaw(-2.7, 0.75, -2.65, 0)]),
+  S16: aset('meja-lipat-panjang', 1.8, 0.6, 0.75, [atRaw(-2.05, 0, -2.6, 0)]), // meja hitam di depan tirai kiri (foto)
+  S17: aset('laptop', 0.34, 0.24, 0.23, [atRaw(-2.1, 0.75, -2.55, 0), atRaw(-1.65, 0.75, -2.5, 0.3)]),
   S18: aset('gelas-kopi', 0.08, 0.08, 0.1, [
-    at(1.55, 0.75, 1.5, 0, { isi: 'kopi' }), at(1.62, 0.75, 0.95, 0, { isi: 'plastik' }), at(-0.1, 0.012, 0.75, 0, { isi: 'kopi' }),
+    atRaw(-2.45, 0.75, -2.42, 0, { isi: 'kopi' }), atRaw(-1.85, 0.75, -2.38, 0, { isi: 'plastik' }), at(-0.1, 0.012, 0.75, 0, { isi: 'kopi' }),
   ]),
   S19: aset('gitar-akustik', 0.38, 0.1, 1.0, [at(-1.8, 0, 1.95, PI / 2, { miring: 0.2 })]),
   S20: aset('tas-ransel', 0.3, 0.2, 0.45, [
@@ -184,8 +194,8 @@ export const ASET = freeze({
     at(0.95, 0.012, 2.55, 2.5, { warna: '#7a1f2b' }),
   ]),
   S21: aset('sepatu-pasang', 0.3, 0.12, 0.1, [
-    at(1.55, 0, -2.85, 0.2, { warna: '#212121' }), at(1.8, 0, -2.83, -0.3, { warna: '#1565c0' }),
-    at(2.0, 0, -2.62, 1.4, { warna: '#6d4c41' }), at(1.28, 0, -2.9, 0.05, { warna: '#e0e0e0' }),
+    atRaw(1.45, 0, -2.8, 0.2, { warna: '#212121' }), atRaw(1.75, 0, -2.78, -0.3, { warna: '#1565c0' }),
+    atRaw(2.05, 0, -2.6, 1.4, { warna: '#6d4c41' }), atRaw(2.35, 0, -2.85, 0.05, { warna: '#e0e0e0' }),
   ]),
   S22: aset('karpet-ambal-marun', 3, 4, 0.01, [at(-0.4, 0, 0.7, 0)]),
   S23: aset('bantal-tikar', 0.5, 0.35, 0.1, [
@@ -193,23 +203,48 @@ export const ASET = freeze({
     at(0.7, 0.012, -0.55, -0.3, { warna: '#e9c46a' }),
   ]),
   S24: aset('lampu-tl-plafon', 1.2, 0.1, 0.08, TL_POS.map((t) => at(t.x, t.y, t.z, 0))),
-  S25: aset('stopkontak-sambungan', 0.3, 0.06, 0.04, [at(1.42, 0, 0.92, 0.3)], { stopDinding: freeze({ x: 2.995, y: 0.35, z: 0.25 }) }),
+  S25: aset('stopkontak-sambungan', 0.3, 0.06, 0.04, [atRaw(-1.55, 0, -2.15, 0.3)], { stopDinding: freeze({ x: -1.05, y: 0.35, z: -2.995 }) }),
   S26: aset('poster-acara', 0.42, 0.01, 0.6, [
     at(0.68, 1.7, 2.992, PI, { poster: 0 }), at(2.093, 1.75, -2.35, -PI / 2, { poster: 1 }),
-    at(0.45, 2.3, -2.993, 0, { poster: 2 }), at(-2.093, 1.75, 2.45, PI / 2, { poster: 3 }),
+    atRaw(2.093, 1.75, 0.3, -PI / 2, { poster: 2 }), at(-2.093, 1.75, 2.45, PI / 2, { poster: 3 }),
   ]),
-  S27: aset('saklar-lampu', 0.08, 0.02, 0.12, [at(0.75, 1.35, -2.99, 0)]),
+  S27: aset('saklar-lampu', 0.08, 0.02, 0.12, [atRaw(-1.05, 1.35, -2.99, 0)]),
   S28: aset('stiker', 0.1, 0.002, 0.1, [
-    at(1.3, 1.25, 2.548, PI, { stiker: 0 }), at(1.72, 0.55, 2.548, PI, { stiker: 3 }), at(0.35, 0.6, -2.655, 0, { stiker: 5 }),
+    at(1.3, 1.25, 2.548, PI, { stiker: 0 }), at(1.72, 0.55, 2.548, PI, { stiker: 3 }), atRaw(1.06, 0.6, -2.655, 0, { stiker: 5 }),
   ]),
-  S29: aset('jendela-nako-interior', 1.2, 0.1, 1.2, [at(WINDOW.x, WINDOW.sill, WINDOW.z, 0)]),
-  S30: aset('pintu-sekre', 0.9, 0.05, 2.1, [at(DOOR.x0, 0, DOOR.z, 0, { buka: DOOR.openRad })]),
+  S29: aset('jendela-nako-interior', 1.4, 0.1, 1.5, WINDOWS.map((w) => atRaw(w.x, w.sill, w.z, 0))),
+  S30: aset('pintu-sekre', 0.85, 0.05, 2.2, [atRaw(DOOR.x0, 0, DOOR.z, 0, { buka: DOOR.openRad }), atRaw(DOOR.x1, 0, DOOR.z, 0, { buka: 0, cermin: true })]),
 });
 
 /** Barang tambahan tanpa ID katalog (dicatat di katalog oleh M7). */
 export const EKSTRA = freeze({
-  kursiLipat: at(1.12, 0, 1.2, PI / 2),
-  kertas: freeze([at(1.6, 0.752, 1.62, 0.3), at(1.5, 0.752, 0.95, -0.2), at(-0.7, 0.014, 0.4, 0.8)]),
+  kursiLipat: atRaw(-2.05, 0, -1.95, PI), // menghadap meja di dinding depan
+  /** Kursi tamu kayu ukir di depan tirai kanan + permadani motif di depannya, jas hujan di paku dinding kiri (foto). */
+  kursiUkir: freeze([atRaw(1.55, 0, -2.05, 0), atRaw(2.35, 0, -2.08, -0.2)]),
+  permadani: atRaw(1.95, 0.002, -1.25, 0),
+  jasHujan: atRaw(-2.99, 2.0, -0.45, PI / 2),
+  /** Rak besi siku hitam di dinding kiri, antara kardus dan sofa (foto 8–9). */
+  rakSiku: atRaw(-2.78, 0, -1.05, PI / 2),
+  mejaDetail: atRaw(-2.05, 0.75, -2.6, 0), // buku, mug, tanaman di meja hitam [INFERENSI]
+  kertas: freeze([atRaw(-2.35, 0.752, -2.75, 0.3), atRaw(-1.75, 0.752, -2.72, -0.2), at(-0.7, 0.014, 0.4, 0.8)]),
+});
+
+/**
+ * Model realistis CC0 Poly Haven khusus preset Tinggi (tools/sekrehq/build.mjs, keputusan user 2026-11-15). Kunci =
+ * barang prosedural yang disembunyikan setelah model termuat; items = penempatan (alas y = 0, depan −Z lokal).
+ * Barang di meja & toolbox [INFERENSI] (suasana rujukan visual user).
+ */
+export const HQ_ASET = freeze({
+  meja: freeze({ glb: 'models/sekre-hq/meja.glb', items: ASET.S16.items }),
+  kursi: freeze({ glb: 'models/sekre-hq/kursi.glb', items: freeze([EKSTRA.kursiLipat]) }),
+  kursiUkir: freeze({ glb: 'models/sekre-hq/kursi-ukir.glb', items: EKSTRA.kursiUkir }),
+  kardus: freeze({ glb: 'models/sekre-hq/kardus.glb', items: ASET.S11.items }),
+  tanaman: freeze({ glb: 'models/sekre-hq/tanaman.glb', items: freeze([atRaw(-2.82, 0.75, -2.74, 0)]) }),
+  buku: freeze({ glb: 'models/sekre-hq/buku.glb', items: freeze([atRaw(-1.38, 0.75, -2.8, 0)]) }),
+  map: freeze({ glb: 'models/sekre-hq/map.glb', items: freeze([atRaw(-1.55, 0.752, -2.48, 0.25)]) }),
+  lampuMeja: freeze({ glb: 'models/sekre-hq/lampu-meja.glb', items: freeze([atRaw(-2.6, 0.75, -2.82, 0.5)]) }),
+  rakSiku: freeze({ glb: 'models/sekre-hq/rak-siku.glb', items: freeze([EKSTRA.rakSiku]) }),
+  toolbox: freeze({ glb: 'models/sekre-hq/toolbox.glb', items: freeze([atRaw(-2.78, 1.6, -1.05, PI / 2)]) }), // di atas rak (Tinggi)
 });
 
 /** Model GLB final per ID aset (path relatif public/). Diisi di Task 22 setelah ekspor Blender berhasil. */
@@ -241,15 +276,17 @@ export function ordnerSlots() {
 
 // ---------- Tabrakan (persegi panjang ruang-lokal, sebelum diperluas radius pemain) ----------
 export const SOLIDS = freeze([
-  rect('meja', 1.45, 2.1, 0.3, 2.1),
+  rectRaw('meja', -2.95, -1.15, -2.9, -2.3),
   rect('lemari', 1.05, 1.95, 2.55, 3.0),
-  rect('dispenser', 0.17, 0.53, -3.0, -2.64),
-  rect('kipas', -2.0, -1.6, -1.2, -0.8),
-  rect('kardus-depan', -2.1, -1.55, -2.35, -1.85),
+  rectRaw('dispenser', 0.9, 1.22, -3.0, -2.64),
+  rect('kipas', -1.4, -1.0, -1.2, -0.8),
+  rectRaw('kardus-depan', -2.87, -2.35, -2.0, -1.5),
   rect('kardus-belakang', -1.0, -0.5, 2.54, 3.0),
-  rect('spanduk', -2.1, -1.78, -3.0, -2.6),
-  rect('kursi', 0.9, 1.35, 0.98, 1.42),
-  rect('daun-pintu', 0.86, 1.05, -3.0, -2.08),
+  rectRaw('spanduk', 2.65, 3.0, -3.0, -2.65),
+  rectRaw('kursi', -2.28, -1.82, -2.18, -1.72),
+  rectRaw('kursi-ukir', 1.2, 2.7, -2.4, -1.72),
+  rectRaw('rak-siku', -3.0, -2.55, -1.47, -0.63),
+  rectRaw('daun-pintu', -0.91, -0.72, -3.0, -2.12),
   rect('tas', 1.75, 2.1, -2.05, -1.45),
   rect('sofa', -2.1, -1.2, -0.6, 1.6),
 ]);
@@ -309,30 +346,31 @@ export const SLOTS = freeze([
   slot('rapat-2', 0.5, 0.7, -PI / 2, 'sitCrossLegged', 0.35),
   slot('rapat-3', -0.4, 1.65, PI, 'sitCrossLegged', 0.35),
   slot('rapat-4', -0.85, 0.7, PI / 2, 'sitCrossLegged', 0.35),
-  slot('laptop', 1.12, 1.2, PI / 2, 'sitChairTyping', 0.4),
+  freeze({ id: 'laptop', x: -2.05, z: -1.95, yaw: PI, poseId: 'sitChairTyping', block: 0.4 }),
   slot('gitar', -1.35, 2.2, 2.58, 'guitarStrum', 0.4),
   slot('rebahan', -0.1, 2.35, -PI / 2, 'lieDown', 0.85),
   slot('whiteboard', 1.55, -1.2, PI / 2, 'writeBoard', 0.3),
   slot('ngobrol-1', 0.15, -1.85, PI / 2, 'standTalk', 0.3),
-  slot('ngobrol-2', 0.95, -1.85, -PI / 2, 'standTalk', 0.3),
-  slot('minum', 0.35, -2.2, 0, 'drinkCup', 0.3),
+  freeze({ id: 'ngobrol-2', x: 1.05, z: -1.45, yaw: -PI / 2, poseId: 'standTalk', block: 0.3 }), // kursi ukir menempati tempat lama
+  freeze({ id: 'minum', x: 1.06, z: -2.2, yaw: 0, poseId: 'drinkCup', block: 0.3 }),
 ]);
 /** Slot yang menyumbang gumaman obrolan. */
 export const TALK_SLOTS = freeze(['rapat-1', 'rapat-2', 'rapat-3', 'rapat-4', 'whiteboard', 'ngobrol-1', 'ngobrol-2']);
 
 // ---------- Barang interaktif (spec §8.2: ≥ 10) ----------
 const item = (id, label, [x, y, z], radius, prompt) => freeze({ id, label, pos: freeze({ x: kx(x), y, z }), radius, prompt });
+const itemRaw = (id, label, [x, y, z], radius, prompt) => freeze({ id, label, pos: freeze({ x, y, z }), radius, prompt });
 export const INTERAKSI = freeze([
   item('papan-struktur', 'Papan struktur kabinet', [-0.6, 1.75, 2.95], 2.0, 'Lihat struktur pengurus'),
   item('papan-proker', 'Papan program kerja', [-2.05, 1.65, 0.9], 1.8, 'Baca program kerja'),
   item('piagam', 'Piagam & piala', [-2.05, 2.45, 0.9], 1.9, 'Lihat piagam & piala'),
   item('lemari-arsip', 'Lemari arsip', [1.5, 1.1, 2.5], 1.5, 'Buka lemari arsip'),
   item('gitar', 'Gitar akustik', [-1.8, 0.55, 1.95], 1.4, 'Genjreng gitar'),
-  item('dispenser', 'Dispenser galon', [0.35, 0.95, -2.7], 1.3, 'Isi segelas air'),
-  item('kipas', 'Kipas berdiri', [-1.8, 1.05, -1.0], 1.4, 'Nyalakan / matikan kipas'),
-  item('saklar', 'Saklar lampu', [0.75, 1.35, -2.98], 1.1, 'Nyalakan / matikan lampu'),
-  item('jendela', 'Jendela nako', [-0.9, 1.5, -2.98], 1.4, 'Intip selasar'),
+  itemRaw('dispenser', 'Dispenser galon', [1.06, 0.95, -2.7], 1.3, 'Isi segelas air'),
+  item('kipas', 'Kipas berdiri', [-1.2, 1.05, -1.0], 1.4, 'Nyalakan / matikan kipas'),
+  itemRaw('saklar', 'Saklar lampu', [-1.05, 1.35, -2.98], 1.1, 'Nyalakan / matikan lampu'),
+  itemRaw('jendela', 'Jendela', [1.95, 1.5, -2.98], 1.4, 'Intip selasar'),
   item('whiteboard', 'Papan tulis', [2.05, 1.45, -1.2], 1.6, 'Baca catatan rapat'),
-  item('pintu', 'Pintu sekre', [1.35, 1.1, -2.98], 1.2, 'Keluar sekre'),
+  itemRaw('pintu', 'Pintu sekre', [0, 1.1, -2.98], 1.3, 'Keluar sekre'),
   item('kalender', 'Kalender', [-2.05, 1.6, -1.6], 1.3, 'Lihat kalender'),
 ]);

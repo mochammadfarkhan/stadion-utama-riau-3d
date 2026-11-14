@@ -24,6 +24,12 @@ export const SETS = Object.freeze([
   { name: 'wood', id: 'Planks021', category: 'kayu', tileM: 1.4, big: true },
   { name: 'tile', id: 'Tiles074', category: 'ubin', tileM: 2.1 },
   { name: 'bark', id: 'Bark001', category: 'kulit-pohon', tileM: 1, big: true },
+  // Interior sekre (perabot): detail bahan; warna dasar tetap dari warna verteks model (albedo dinormalkan ke rata-ratanya).
+  { name: 'kain', id: 'Fabric036', category: 'kain-tenun', tileM: 0.5 },
+  { name: 'catBesi', id: 'Metal028', category: 'besi-cat-bubuk', tileM: 1 },
+  { name: 'plastik', id: 'Plastic018A', category: 'plastik-doff', tileM: 0.6 },
+  { name: 'kayuHalus', id: 'Wood092', category: 'kayu-halus', tileM: 1 },
+  { name: 'kulit', id: 'Leather026', category: 'kulit-sintetis', tileM: 0.5 },
 ]);
 
 export const TIER_SIZES = Object.freeze([512, 256]);

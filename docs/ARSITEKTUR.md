@@ -93,6 +93,7 @@ Aturan praktis untuk sistem baru:
 
 | Tanggal | Keputusan | Alasan / rujukan |
 |---|---|---|
+| 2026-11-15 | Sekre: model realistis CC0 Poly Haven (`HQ_ASET`, `tools/sekrehq/build.mjs`) + sorot sore ber-cookie hanya di preset Tinggi; Rendah tetap low poly | permintaan user (rujukan foto meja bersinar sore); laptop iGPU tetap di Rendah |
 | 2026-11-14 | Rampingkan berkas gemuk tanpa ubah perilaku: `main.js` → `app/*`, perabot sekre satu model satu berkas, ESLint `max-lines` 400 (peringatan) | permintaan user: kode dirapikan dulu sebelum kartu R01–R25 dikerjakan model kecil; enam kartu menyentuh `main.js` |
 | 2026-11-13 | Pratinjau kota memuat seluruh Pekanbaru lewat lapisan "jauh" instans (bukan tile bake penuh) | 380 rb bangunan = 3 MB biner (8 B/bangunan) vs ±130 MB bila di-bake sebagai tile GLB; peta tanah WebP karena hanya dilihat dari jauh |
 | 2026-10-27 | Dokumen ini jadi titik masuk; plan/spec lama tetap arsip | konteks proyek terlalu besar untuk dibaca ulang tiap sesi |
