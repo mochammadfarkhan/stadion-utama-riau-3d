@@ -99,6 +99,13 @@ export function setupInventory({ app, input, rig, ents, isActive }) {
 
   return {
     get open() { return ui.open; },
+    /** Mulai dari awal: perlengkapan awal, kotak kiriman kosong (tersimpan). */
+    reset() {
+      inv = starter();
+      box = Object.freeze({});
+      save();
+      render();
+    },
     /** Definisi item di tangan (null = kosong). */
     get held() { const s = inv.slots[selected]; return s ? ITEMS[s.id] : null; },
     get heldId() { return inv.slots[selected]?.id ?? null; },

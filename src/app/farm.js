@@ -281,6 +281,8 @@ export function setupFarm({
 
   return {
     get farm() { return farm; },
+    /** Mulai dari awal: semua petak kembali rumput (tersimpan). */
+    reset() { commit(createFarm(TILE_COUNT)); },
     /** Panggil SETELAH sistem 'hud' terdaftar. */
     installPrompt() {
       app.addSystem({ id: 'kebun.prompt', phase: 'ui', update: () => { if (target) hud.setPrompt(promptOf(target)); } });

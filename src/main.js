@@ -18,7 +18,7 @@ import { createLighting } from './world/Lighting.js';
 import { createTimeOfDay } from './world/TimeOfDay.js';
 import { createWeather } from './world/Weather.js';
 import { MainMenu } from './ui/MainMenu.js';
-import { hasStoryProgress } from './ui/menuModel.js';
+import { hasAnyProgress } from './ui/menuModel.js';
 import { createRotatePrompt } from './ui/orientation.js';
 import { updateWind } from './world/shaders/windState.js';
 import { buildEntities } from './entities/index.js';
@@ -230,7 +230,7 @@ async function main() {
   // bayangan kontak untuk semua humanoid ber-LOD (NPC cerita, mahasiswa, satpam, pedagang) dalam 30 m dari fokus
   lifecycle.add(registerContactSource((emit, focus) => ents.lod.forEachNear(focus, 30, (x, z) => emit(x, z, 0.55))));
   const travelRef = { current: null }; // perjalanan cepat dibuat sesudah cerita
-  const story = setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle, terrain, isTravelling: () => Boolean(travelRef.current?.busy) });
+  const story = setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle, terrain, isTravelling: () => Boolean(travelRef.current?.busy), onReset: () => resetGame() });
   const shop = setupShop(hud, ents, story);
   const minimap = setupMinimap(app, ents, story, frame, regions);
   if (city) minimap.setTileLayer(city.minimap);
@@ -318,8 +318,14 @@ async function main() {
   const menu = new MainMenu();
   const rotatePrompt = createRotatePrompt(document.body, { isTouch: touch });
   lifecycle.add(() => rotatePrompt.dispose());
+  /** Satu jalur "mulai dari awal" (menu dan jurnal): cerita + dompet + kebun + tas. */
+  function resetGame() {
+    story.reset();
+    farm.reset();
+    inventory.reset();
+  }
   setupMenu({
-    app, rig, hud, store, touchUi, touch, menu, story,
+    app, rig, hud, store, touchUi, touch, menu, story, resetGame,
     restore: () => restorePlace({ story, regions, travel, ents }).catch((err) => console.error('Tempat terakhir gagal dipulihkan:', err)),
   })
     .then((mounted) => {
@@ -345,7 +351,7 @@ async function main() {
   releaseBaked(); // bitmap tekstur bake tidak dibutuhkan lagi (pemasangan ulang = prosedural)
   await loading.step(1, 'Siap!');
   loading.done();
-  menu.ready({ hasProgress: hasStoryProgress(story.state), touch });
+  menu.ready({ hasProgress: hasAnyProgress({ storyState: story.state, storage }), touch });
   if (perfProbe) {
     perfProbe.attach({
       app, store, quality,

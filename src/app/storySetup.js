@@ -11,7 +11,7 @@ import { session } from './session.js';
  * Cerita: NPC (region-lokal stadion, di bawah jangkar) dan penanda tujuan (DUNIA: tujuan bisa di region mana
  * pun), HUD, jurnal; progres dimuat dari localStorage (save v3 menyimpan tempat pemain sebagai titik ber-region).
  */
-export function setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle, terrain, isTravelling = () => false }) {
+export function setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle, terrain, isTravelling = () => false, onReset = null }) {
   const root = document.getElementById('hud');
   const npcs = new StoryNpcs();
   const markers = createStoryMarkers({ ground: terrain.heightAt }); // penanda di koordinat dunia (M0), di atas tanah (M1)
@@ -31,7 +31,7 @@ export function setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, l
   const frameOf = (id) => regions.frameOf(id);
   let story = null;
   const storyHud = new StoryHUD(root, { onAdvance: () => story.advanceDialog() });
-  const journal = new StoryJournal(root, { onReset: () => story.reset(), onClose: () => story.toggleJournal() });
+  const journal = new StoryJournal(root, { onReset: () => (onReset ? onReset() : story.reset()), onClose: () => story.toggleJournal() });
   const pointerLock = { release: () => document.exitPointerLock?.(), request: () => rig.requestLock() };
   story = new StoryDirector({
     storage: safeLocalStorage(), vendors: ents.vendors, storyHud, journal, markers, pointerLock,
