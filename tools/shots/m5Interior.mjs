@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Pengambil screenshot interior sekre (M5) untuk tinjauan visual — TIDAK ikut vitest.
- *   node tools/shots/m5Interior.mjs --spec shots.json [--gpu d3d11|swiftshader] [--prefix m5-] [--out dir]
+ *   node tools/shots/m5Interior.mjs --spec shots.json [--preset tinggi] [--gpu d3d11|swiftshader] [--prefix m5-] [--out dir]
  * shots.json: [{ name, hour, rain, pose: { position:[x,y,z], target:[x,y,z], fov }, walk?: {x,z,yaw}, wait? }]
  * Pose = koordinat ruang-lokal sekre; kamera foto bebas dipakai (body.is-photo) sehingga UI tersembunyi.
  * Selain gambar: mencetak galat konsol + renderer.info pass utama & total.
@@ -20,7 +20,7 @@ const GPU_ARGS = {
   d3d11: ['--use-angle=d3d11', '--ignore-gpu-blocklist', '--enable-gpu'],
 };
 const { values: o } = parseArgs({ options: {
-  spec: { type: 'string' }, gpu: { type: 'string', default: 'd3d11' }, prefix: { type: 'string', default: 'm5-' },
+  spec: { type: 'string' }, gpu: { type: 'string', default: 'd3d11' }, prefix: { type: 'string', default: 'm5-' }, preset: { type: 'string' },
   out: { type: 'string', default: join(ROOT, 'docs', 'screenshots', 'unri') }, width: { type: 'string', default: '1280' }, height: { type: 'string', default: '720' },
 } });
 
@@ -97,6 +97,7 @@ async function main() {
     page.on('console', (m) => { if (['error', 'warning'].includes(m.type())) errors.push(`${m.type()}: ${m.text()}`); });
     await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'load', timeout: 180000 });
     await page.waitForFunction(() => window.__sim?.app && window.__sim.fastTravel && window.__sim.portal, null, { timeout: 240000 });
+    if (o.preset) await page.evaluate((p) => window.__sim.store.set('graphics.preset', p), o.preset); // rendah|sedang|tinggi
     await page.getByText('Mulai Petualangan').click().catch(() => {});
     await new Promise((r) => setTimeout(r, 1500));
     console.log('state', await page.evaluate(PAGE.enter));

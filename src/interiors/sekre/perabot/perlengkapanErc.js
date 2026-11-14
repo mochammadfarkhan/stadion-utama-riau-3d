@@ -7,7 +7,7 @@ export function buildPerlengkapanErc(m) {
   const { w: WW, h: WH } = ASET.S29.dim;
   for (const it of ASET.S29.items) {
     const n = Math.round((WW + 0.1) / 0.1);
-    for (let k = 0; k < n; k += 1) blinds.push(box(0.09, WH + 0.35, 0.012, k % 2 ? '#e8e1c9' : '#f1ecda', { x: it.x - (WW + 0.1) / 2 + 0.05 + k * 0.1, y: it.y + (WH + 0.35) / 2 - 0.3, z: -2.93, ry: k % 2 ? 0.25 : -0.25 }));
+    for (let k = 0; k < n; k += 1) blinds.push(box(0.09, WH + 0.35, 0.012, k % 2 ? '#e8e1c9' : '#f1ecda', { x: it.x - (WW + 0.1) / 2 + 0.05 + k * 0.1, y: it.y + (WH + 0.35) / 2 - 0.3, z: -2.93, ry: -1.1 })); // bilah setengah terbuka: sinar sore lolos bergaris (rujukan user)
     blinds.push(box(WW + 0.2, 0.06, 0.05, '#cfc8b0', { x: it.x, y: it.y + WH + 0.08, z: -2.93 }));
   }
   const vents = [];
