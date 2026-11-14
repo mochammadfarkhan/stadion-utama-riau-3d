@@ -104,6 +104,16 @@ describe('farm: simpanan JSON', () => {
     expect(farmFromJson('[[1,0,2,0]]', 1, CROP_ORDER).tiles[0].crop).toMatchObject({ type: 'cabai', stage: 2 });
     expect(farmFromJson('[[1,0,2,0,99]]', 1, CROP_ORDER).tiles[0].crop.type).toBe('cabai');
   });
+
+  it('ukuran kebun berubah: petak lama disalin, sisanya petak baru', () => {
+    let f = createFarm(40);
+    f = plow(f, 39);
+    const back = farmFromJson(farmToJson(f, CROP_ORDER), 48, CROP_ORDER);
+    expect(back.tiles).toHaveLength(48);
+    expect(back.tiles[39].tilled).toBe(true);
+    expect(back.tiles.slice(40).every((t) => !t.tilled && !t.crop)).toBe(true);
+    expect(farmFromJson(farmToJson(f, CROP_ORDER), 10, CROP_ORDER).tiles).toHaveLength(10);
+  });
 });
 
 describe('kebun: geometri lahan', () => {

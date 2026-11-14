@@ -13,6 +13,8 @@
 import * as THREE from 'three';
 import { KEBUN, CROPS, CROP_ORDER, tileIndexAt, tileCenter, MODE_LABEL } from '../config/kebun.js';
 import { ITEMS } from '../config/items.js';
+import { loadJsonWithBackup } from '../settings/jsonBackup.js';
+import { safeLocalStorage } from '../settings/safeStorage.js';
 import { createFarm, actOn, planAction, plow, growFarm, farmToJson, farmFromJson } from '../sim/farm.js';
 import { loadModel } from '../world/assets/models.js';
 import { KEBUN_MODELS, buildTractorModel, createFarmView } from '../world/props/unri/kebun.js';
@@ -32,12 +34,8 @@ const rp = (n) => `Rp ${n.toLocaleString('id-ID')}`;
 const lower = (type) => CROPS[type]?.label.toLowerCase() ?? '';
 
 function loadFarm() {
-  try {
-    const text = localStorage.getItem(STORAGE_KEY);
-    return text ? farmFromJson(text, TILE_COUNT, CROP_ORDER) : createFarm(TILE_COUNT);
-  } catch {
-    return createFarm(TILE_COUNT);
-  }
+  const parse = (text) => (Array.isArray(JSON.parse(text)) ? farmFromJson(text, TILE_COUNT, CROP_ORDER) : null);
+  return loadJsonWithBackup(safeLocalStorage(), STORAGE_KEY, parse) ?? createFarm(TILE_COUNT); // rusak → .bak + kebun baru
 }
 
 function saveFarm(farm) {

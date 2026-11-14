@@ -9,6 +9,8 @@ import {
   createInventory, putInSlot, addItem, takeFromSlot, removeItem, moveSlot, shipInto, shipValue, inventoryToJson, inventoryFromJson,
 } from '../sim/inventory.js';
 import { createInventoryUI } from '../ui/InventoryUI.js';
+import { loadJsonWithBackup } from '../settings/jsonBackup.js';
+import { safeLocalStorage } from '../settings/safeStorage.js';
 
 const STORAGE_KEY = 'stadion.inventory.v1';
 const DIGITS = Array.from({ length: INVENTORY.hotbar }, (_, i) => `Digit${i + 1}`);
@@ -18,12 +20,8 @@ function starter() {
 }
 
 function load() {
-  try {
-    const text = localStorage.getItem(STORAGE_KEY);
-    const saved = text ? inventoryFromJson(text, INVENTORY_SIZE, ITEMS) : null;
-    if (saved) return saved;
-  } catch { /* penyimpanan diblokir: mulai dari perlengkapan awal */ }
-  return { inv: starter(), box: Object.freeze({}) };
+  const saved = loadJsonWithBackup(safeLocalStorage(), STORAGE_KEY, (text) => inventoryFromJson(text, INVENTORY_SIZE, ITEMS)); // rusak → .bak
+  return saved ?? { inv: starter(), box: Object.freeze({}) };
 }
 
 /**

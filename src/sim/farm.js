@@ -107,14 +107,17 @@ export function farmToJson(farm, order) {
 }
 
 /**
- * Pulihkan dari JSON (tidak percaya data: salah bentuk/ukuran → kebun baru; indeks jenis tak dikenal → order[0]).
- * Simpanan lama 4 kolom (sebelum ada jenis) dibaca sebagai order[0].
+ * Pulihkan dari JSON (tidak percaya data: salah bentuk → kebun baru; indeks jenis tak dikenal → order[0]).
+ * Ukuran berubah: petak yang tumpang-tindih (0…min−1) disalin, sisanya petak baru. Simpanan lama 4 kolom dibaca sebagai order[0].
  */
 export function farmFromJson(text, count, order) {
   try {
     const rows = JSON.parse(text);
-    if (!Array.isArray(rows) || rows.length !== count) return createFarm(count);
-    const tiles = rows.map((r) => {
+    if (!Array.isArray(rows)) return createFarm(count);
+    const fresh = createFarm(count).tiles;
+    const tiles = fresh.map((blank, i) => {
+      if (i >= rows.length) return blank;
+      const r = rows[i];
       const [tilled, watered, stage, growth, typeIdx] = Array.isArray(r) ? r : [];
       const st = Number.isInteger(stage) && stage >= 1 && stage <= MAX_STAGE ? stage : 0;
       const g = Number.isFinite(growth) && growth >= 0 ? growth : 0;
