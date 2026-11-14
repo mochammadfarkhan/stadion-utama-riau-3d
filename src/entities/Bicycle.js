@@ -31,14 +31,20 @@ const PITCH_SMOOTHING = 8;       // 1/s, pitch rangka mengikuti lereng
 const USE_DURATION = Object.freeze({ cangkul: 0.65, gembor: 0.9, raih: 0.55 }); // detik animasi pakai item
 const USE_HIT = Object.freeze({ cangkul: 0.62, gembor: 0.45, raih: 0.5 });        // fraksi durasi saat efek terjadi
 
-/** Baca keyboard menjadi perintah sim {pedal, steer, sprint}. */
-function readCommand(input) {
+/** Baca keyboard + sumbu analog (gamepad/joystick layar) menjadi perintah sim {pedal, steer, sprint}. steer positif = kiri. */
+export function readCommand(input) {
   if (!input) return { pedal: 0, steer: 0, sprint: false };
   const down = (c) => input.isDown(c);
   const pedal = (down('KeyW') || down('ArrowUp') ? 1 : 0) - (down('KeyS') || down('ArrowDown') ? 1 : 0);
   const steer = (down('KeyA') || down('ArrowLeft') ? 1 : 0) - (down('KeyD') || down('ArrowRight') ? 1 : 0);
   const sprint = down('ShiftLeft') || down('ShiftRight');
-  return { pedal, steer, sprint };
+  const ay = input.axis?.('moveY') ?? 0;
+  const ax = input.axis?.('moveX') ?? 0;
+  return {
+    pedal: clamp(ay !== 0 ? ay : pedal, -1, 1),
+    steer: clamp(ax !== 0 ? -ax : steer, -1, 1), // moveX positif = kanan
+    sprint,
+  };
 }
 
 function isStateFinite(s) {
