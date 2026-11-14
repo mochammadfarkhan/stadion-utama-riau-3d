@@ -47,6 +47,7 @@ export async function openSim({ port = Number(process.env.SIM_PORT) || 5176, gpu
   await page.waitForFunction(() => window.__sim?.app && window.__sim.district, null, { timeout: 240000 });
   await page.evaluate(() => {
     document.getElementById('overlay')?.classList.add('hidden');
+    document.body.classList.remove('is-menu'); // MainMenu.hide() tidak dipanggil: HUD harus tetap tampil di bidikan
     const s = window.__sim;
     s.rig.exitPov();
     s.store.set('sky.advanceTime', false);

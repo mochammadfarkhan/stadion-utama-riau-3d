@@ -21,6 +21,7 @@ try {
   const eggs = () => page.evaluate(() => [...window.__sim.story.state.eggs]);
   await page.evaluate(() => {
     document.getElementById('overlay')?.classList.add('hidden');
+    document.body.classList.remove('is-menu'); // MainMenu.hide() tidak dipanggil: HUD harus tetap tampil di bidikan
     const st = window.__sim.story;
     for (let i = 0; i < 6 && st.state.dialog; i += 1) st.advanceDialog(); // dialog pembuka chapter 1 menahan event
   });
