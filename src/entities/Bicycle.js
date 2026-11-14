@@ -16,7 +16,7 @@
  */
 import * as THREE from 'three';
 import { BIKE } from '../config/constants.js';
-import { createBikeState, stepBike, slideResponse } from '../sim/bikePhysics.js';
+import { createBikeState, stepBike, slideResponse, canSwitchMode } from '../sim/bikePhysics.js';
 import { createHumanoid, animateCycling, animateWalk, animateIdle, animateUseItem, useItemTilt } from './Humanoid.js';
 import { stepOnFoot } from '../sim/farm.js';
 import { PLAYER_MODES, WALK, TRACTOR } from '../config/kebun.js';
@@ -115,8 +115,9 @@ export class Bicycle {
     return mode;
   }
 
-  /** Mode berikutnya dalam urutan PLAYER_MODES (lewati traktor bila belum dimuat). */
+  /** Mode berikutnya dalam urutan PLAYER_MODES (lewati traktor bila belum dimuat). Masih melaju (> 1,5 m/s): mode tetap. */
   cycleMode() {
+    if (!canSwitchMode(this.state.v)) return this.#mode;
     const order = PLAYER_MODES.filter((m) => m !== 'traktor' || this.#tractor);
     return this.setMode(order[(order.indexOf(this.#mode) + 1) % order.length]);
   }
