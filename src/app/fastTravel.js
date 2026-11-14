@@ -10,6 +10,9 @@ import { regionContains } from '../regions/Region.js';
 /** Area manifest untuk An-Nur (tools/citybake/config.js AREAS.pusat; pusat area = node OSM masjid). */
 import { START_POINT } from '../config/startPoint.js';
 
+/** Tanda waktu tahap perjalanan (tools/shots/waktuMuat.mjs); tanpa Performance API → diam. */
+const mark = (name) => { try { globalThis.performance?.mark?.(name); } catch { /* */ } };
+
 export const ANNUR_AREA_ID = 'pusat';
 
 /** Tujuan kampus (dunia; spec §8.4, titik ukur §9.2 sekre-luar & rektorat), menghadap gedung (yaw π = utara). */
@@ -155,8 +158,12 @@ export function createFastTravel({
     try {
       if (rig?.povId) rig.exitPov({ instant: true }); // fokus streamer kembali ke sepeda; tanpa terbang ke tujuan
       place(x, z, yaw); // fokus streamer pindah ke tujuan
-      const cityOk = city ? await city.whenSettled(x, z, settleRadius) : true;
-      const extraOk = settle ? await settle(x, z) : true; // M7: distrik + region hero
+      mark('tujuan:mulai');
+      // Kota, distrik, dan region dimuat BERSAMAAN (dulu kota ditunggu dulu); settle menunggu kota sebelum prekompilasi shader.
+      const cityP = Promise.resolve(city ? city.whenSettled(x, z, settleRadius) : true).then((ok) => { mark('tujuan:kota'); return ok; });
+      const extraOk = settle ? await settle(x, z, cityP) : true; // M7: distrik + region hero
+      const cityOk = await cityP;
+      mark('tujuan:settle');
       const spot = findSpawnNear(x, z, { isWalkable: colliders.isWalkable, isCameraClear, fallbackYaw: yaw }) ?? { x, z, yaw };
       place(spot.x, spot.z, spot.yaw); // collider tile sudah ada: titik walkable dengan ruang kamera
       return cityOk && extraOk ? 'ok' : 'timeout';
