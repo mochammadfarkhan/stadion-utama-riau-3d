@@ -149,6 +149,12 @@ describe('SettingsPanel + buildSettingsPanel', () => {
     expect(document.body.classList.contains('is-photo')).toBe(true);
     press('Escape');
     expect(ctx.panel.isPhotoMode).toBe(false);
+    ctx.panel.setPhotoMode(true);
+    const exit = ctx.panel.root.querySelector('.ui-photo-exit');
+    expect(exit.hidden).toBe(false);
+    exit.click(); // layar sentuh: tanpa P/Esc
+    expect(ctx.panel.isPhotoMode).toBe(false);
+    expect(exit.hidden).toBe(true);
     const input = h('input');
     document.body.append(input);
     press('h', input);
