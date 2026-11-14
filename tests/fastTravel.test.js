@@ -56,6 +56,16 @@ describe('createFastTravel', () => {
     expect(ft.busy).toBe(false);
   });
 
+  it('goTo titik bebas: teks label, tiba di titik walkable terdekat, menghadap yaw tersimpan; kedua saat sibuk = busy', async () => {
+    const { log, bike, ft } = setup();
+    const p = ft.goTo({ x: 10, z: 20, yaw: 1, label: 'Uji' });
+    expect(await ft.goTo({ x: 0, z: 0, label: 'Lain' })).toBe('busy');
+    expect(await p).toBe('ok');
+    expect(log[0]).toBe('show:Menuju Uji…');
+    expect(bike.state).toMatchObject({ x: 10, z: 20, yaw: 1, v: 0 });
+    expect(ft.busy).toBe(false);
+  });
+
   it("status terpisah: 'unknown' / 'busy' / 'timeout' (timeout streamer tetap menutup layar)", async () => {
     const { log, ft } = setup(false);
     expect(await ft.go('tidak-ada')).toBe('unknown');

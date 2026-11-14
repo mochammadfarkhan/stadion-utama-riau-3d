@@ -33,6 +33,7 @@ import { createLoadingScreen } from './ui/LoadingScreen.js';
 import { disposeTree } from './engine/disposeTree.js';
 import { stadionRegion, STADION_ID } from './regions/stadion/index.js';
 import { session, setupMenu } from './app/session.js';
+import { setupAutosave, restorePlace } from './app/savePlace.js';
 import { setupShop } from './app/shop.js';
 import { exposeDevTools, parsePlacementParam, parseFlagParam } from './app/devtools.js';
 import { preloadProcTextures, releaseBaked } from './world/textures/procBake.js';
@@ -228,7 +229,8 @@ async function main() {
   hud.setCameraMode(rig.mode);
   // bayangan kontak untuk semua humanoid ber-LOD (NPC cerita, mahasiswa, satpam, pedagang) dalam 30 m dari fokus
   lifecycle.add(registerContactSource((emit, focus) => ents.lod.forEachNear(focus, 30, (x, z) => emit(x, z, 0.55))));
-  const story = setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle, terrain });
+  const travelRef = { current: null }; // perjalanan cepat dibuat sesudah cerita
+  const story = setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle, terrain, isTravelling: () => Boolean(travelRef.current?.busy) });
   const shop = setupShop(hud, ents, story);
   const minimap = setupMinimap(app, ents, story, frame, regions);
   if (city) minimap.setTileLayer(city.minimap);
@@ -252,6 +254,8 @@ async function main() {
   lifecycle.add(() => heroOrnaments.dispose());
   app.addSystem({ id: 'heroOrnaments', phase: 'world', update: (dt, ctx) => heroOrnaments.update(ctx.focus) });
   const travel = setupFastTravel({ app, lifecycle, hud, rig, ents, colliders, city, frame, spawn: region.layout.spawn, touch, unri, regions });
+  travelRef.current = travel;
+  setupAutosave({ app, story, ents, travel, signal: listeners.signal });
   const panelRef = { current: null }; // SettingsPanel (diisi saat panel selesai dipasang)
   /** Tas pemain (setupInventory): dibaca sistem frame & portal untuk membekukan input saat panel tas terbuka. */
   let inventory = null;
@@ -314,7 +318,10 @@ async function main() {
   const menu = new MainMenu();
   const rotatePrompt = createRotatePrompt(document.body, { isTouch: touch });
   lifecycle.add(() => rotatePrompt.dispose());
-  setupMenu({ app, rig, hud, store, touchUi, touch, menu, story })
+  setupMenu({
+    app, rig, hud, store, touchUi, touch, menu, story,
+    restore: () => restorePlace({ story, regions, travel, ents }).catch((err) => console.error('Tempat terakhir gagal dipulihkan:', err)),
+  })
     .then((mounted) => {
       panelRef.current = mounted.panel;
       lifecycle.add(() => mounted.dispose());

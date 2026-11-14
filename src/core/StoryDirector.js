@@ -117,9 +117,10 @@ export class StoryDirector {
     });
   }
 
+  /** Tempat sekarang; placeOf null (mis. menu utama masih terbuka) → tempat tersimpan dipertahankan, bukan dihapus. */
   #placeNow() {
     const p = this.placeOf();
-    return p ? { ...p, mode: this.modeOf() } : null;
+    return p ? { ...p, mode: this.modeOf() } : this.savedPlace;
   }
 
   /** Simpan sekarang (dompet, progres, tempat + kendaraan): dipakai transaksi kebun, simpan berkala, dan saat tab ditutup. */
@@ -282,6 +283,7 @@ export class StoryDirector {
     this.fundedStep = null; // uang saku per langkah boleh diberikan lagi setelah mulai ulang
     this.fundsTimer = 0;
     this.vendors.setWallet(createWallet()); // "Mulai dari awal" = dompet awal juga
+    this.savedPlace = null; // tempat lama tidak dipulihkan lagi
     this.onWalletChange(this.vendors.wallet);
     this.#persist();
     this.journal.hide();

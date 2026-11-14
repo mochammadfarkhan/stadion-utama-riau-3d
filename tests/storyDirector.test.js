@@ -266,6 +266,17 @@ describe('StoryDirector: koordinat dunia multi-region (M0)', () => {
     expect(d.promptFor(w)).toMatch(/Pak Satpam/);
   });
 
+  it('placeOf null (menu masih terbuka) mempertahankan tempat tersimpan; reset menghapusnya', () => {
+    const place = { region: 'stadion', x: 1, z: 2, yaw: 0.5, mode: 'jalan' };
+    const m = makeDeps({ save: { version: 3, chapter: 0, step: 0, badges: [], eggs: [], bestLap: null, rupiah: 0, finished: false, wallet: { balance: 1000, items: [] }, place } });
+    const d = new StoryDirector({ ...m.deps, frameOf, placeOf: () => null });
+    d.start();
+    d.saveNow();
+    expect(JSON.parse(m.store.get(STORY_KEY)).place).toEqual(place);
+    d.reset();
+    expect(JSON.parse(m.store.get(STORY_KEY)).place).toBeNull();
+  });
+
   it('saveNow menulis saldo terkini ke penyimpanan', () => {
     const { d, deps, store } = started();
     deps.vendors.credit(1234);

@@ -5,12 +5,13 @@ import { StoryHUD } from '../ui/StoryHUD.js';
 import { StoryJournal } from '../ui/StoryJournal.js';
 import { localizePoint } from '../story/points.js';
 import { safeLocalStorage } from '../settings/safeStorage.js';
+import { session } from './session.js';
 
 /**
  * Cerita: NPC (region-lokal stadion, di bawah jangkar) dan penanda tujuan (DUNIA: tujuan bisa di region mana
  * pun), HUD, jurnal; progres dimuat dari localStorage (save v3 menyimpan tempat pemain sebagai titik ber-region).
  */
-export function setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle, terrain }) {
+export function setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle, terrain, isTravelling = () => false }) {
   const root = document.getElementById('hud');
   const npcs = new StoryNpcs();
   const markers = createStoryMarkers({ ground: terrain.heightAt }); // penanda di koordinat dunia (M0), di atas tanah (M1)
@@ -39,6 +40,7 @@ export function setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, l
     frameOf,
     modeOf: () => ents.bike.mode,
     placeOf: () => {
+      if (!session.started || isTravelling()) return null; // menu/perjalanan: sepeda belum di tempat pemain → pertahankan simpanan
       const b = ents.bike.state;
       return localizePoint(b, regions.regionAt(b.x, b.z), frameOf);
     },

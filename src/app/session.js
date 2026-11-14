@@ -11,7 +11,7 @@ export const session = { started: false };
  * Menu utama: Mulai/Lanjutkan, Mulai dari awal, Pengaturan; klik kanvas mengunci pointer sesudah mulai.
  * @returns {Promise<{panel: object|null, dispose(): void}>} hasil mountSettingsPanel
  */
-export function setupMenu({ app, rig, hud, store, touchUi, touch, menu, story }) {
+export function setupMenu({ app, rig, hud, store, touchUi, touch, menu, story, restore = null }) {
   let panel = null;
   let started = false;
   const begin = () => {
@@ -27,7 +27,7 @@ export function setupMenu({ app, rig, hud, store, touchUi, touch, menu, story })
     }
   };
   menu.on({
-    start: begin,
+    start: () => { begin(); restore?.(); }, // Lanjutkan: kembali ke tempat + kendaraan terakhir (layar perjalanan menutupi)
     newGame: () => { story.reset(); begin(); },
     settings: () => { menu.away(true); panel?.togglePanel?.(true); },
   });
