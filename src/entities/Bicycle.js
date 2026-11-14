@@ -18,8 +18,8 @@ import * as THREE from 'three';
 import { BIKE } from '../config/constants.js';
 import { createBikeState, stepBike, slideResponse, canSwitchMode } from '../sim/bikePhysics.js';
 import { createHumanoid, animateCycling, animateWalk, animateIdle, animateUseItem, useItemTilt } from './Humanoid.js';
-import { stepOnFoot } from '../sim/farm.js';
-import { PLAYER_MODES, WALK, TRACTOR } from '../config/kebun.js';
+import { stepWalk } from '../sim/walkPhysics.js';
+import { PLAYER_MODES, FOOT, TRACTOR } from '../config/kebun.js';
 import { BIKE_GEO, createBicycleMesh } from './Bicycle.mesh.js';
 import { createBell } from './Bicycle.bell.js';
 import { clamp } from './util.js';
@@ -27,6 +27,8 @@ import { clamp } from './util.js';
 const STEER_VISUAL_RAD = BIKE.steerMax ?? 0.6; // batas visual sudut setang (rad)
 const RIDER_SEAT_LIFT = 0.03;    // pinggul sedikit di atas sadel
 const MAX_DT = 0.05;
+const FOOT_TURN_RATE = 10;  // rad/s: badan berputar ke arah gerak
+const FOOT_FACE_MIN_V = 0.2; // m/s: di bawah ini badan tidak diputar
 const SUBSTEP_DT = 0.033;   // fps rendah: fisika dibagi sub-langkah ≤ 33 ms
 const MAX_SUBSTEPS = 4;     // batas total 4 × 0,05 = 0,2 s per frame
 const PITCH_SMOOTHING = 8;       // 1/s, pitch rangka mengikuti lereng
@@ -111,7 +113,7 @@ export class Bicycle {
   setMode(mode) {
     if (!PLAYER_MODES.includes(mode) || (mode === 'traktor' && !this.#tractor)) return this.#mode;
     this.#mode = mode;
-    this.state = { ...this.state, v: 0, steer: 0, lean: 0 };
+    this.state = { ...this.state, v: 0, vx: 0, vz: 0, steer: 0, lean: 0 };
     this.#applyMode();
     this.#applyVisual();
     return mode;
@@ -249,7 +251,7 @@ export class Bicycle {
     for (let i = 0; i < n && sub > 0; i += 1) { // sub-langkah: laju dunia benar walau fps < 20
       const grade = t ? t.gradeAlong(this.state.x, this.state.z, this.state.yaw) : 0;
       const next = this.#mode === 'jalan'
-        ? stepOnFoot(this.state, cmd, sub, WALK)
+        ? this.#stepFoot(cmd, sub, ctx.cameraYaw)
         : stepBike(this.state, cmd, sub, { grade, cfg: this.#mode === 'traktor' ? TRACTOR : this.#cfg });
       const prev = this.state;
       this.state = isStateFinite(next) ? this.#resolveCollision(next, prev, sub) : this.state;
@@ -264,6 +266,20 @@ export class Bicycle {
       if (u.t >= u.dur) this.#use = null;
     }
     this.#applyVisual();
+  }
+
+  /** Jalan kaki relatif kamera (stepWalk, sama dengan interior): W searah kamera, A/D menyamping; badan menghadap arah gerak. */
+  #stepFoot(cmd, dt, cameraYaw) {
+    const s = this.state;
+    const w = stepWalk({ x: s.x, z: s.z, yaw: s.yaw, vx: s.vx ?? 0, vz: s.vz ?? 0 },
+      { forward: cmd.pedal, strafe: -cmd.steer, run: cmd.sprint, yaw: Number.isFinite(cameraYaw) ? cameraYaw : s.yaw }, dt, null, FOOT);
+    const v = Math.hypot(w.vx, w.vz);
+    let yaw = s.yaw;
+    if (v > FOOT_FACE_MIN_V) {
+      const diff = Math.atan2(Math.sin(Math.atan2(w.vx, w.vz) - yaw), Math.cos(Math.atan2(w.vx, w.vz) - yaw));
+      yaw += clamp(diff, -FOOT_TURN_RATE * dt, FOOT_TURN_RATE * dt);
+    }
+    return { ...s, x: w.x, z: w.z, vx: w.vx, vz: w.vz, v, yaw, steer: 0, lean: 0 };
   }
 
   /** Terapkan collider eksternal; bila posisi digeser: menyusur dinding (slideResponse), bukan berhenti. */

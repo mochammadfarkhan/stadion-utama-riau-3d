@@ -321,10 +321,11 @@ async function main() {
   const precompiled = precompile(); // mulai paralel sekarang; dunia yang sudah ada tidak menunggu streaming
   app.start((dt, t, rawDt) => {
     bikePos.set(ents.bike.state.x, ents.bike.groundY, ents.bike.state.z);
+    rig.setFreeYaw(ents.bike.mode === 'jalan'); // jalan kaki: kamera memegang yaw sendiri (gerak relatif kamera)
     // focus = titik pusat tampilan (sepeda, atau titik pandang saat POV); sepeda beku di POV tanpa kendali.
     // heightAt/terrain (M1): tanah dunia untuk entitas, lampu, cuaca (ctx region-lokal membungkus heightAt).
     return {
-      dt, rawDt, time: t, bikePos, focus: rig.focus, heightAt: terrain.heightAt, terrain,
+      dt, rawDt, time: t, bikePos, focus: rig.focus, heightAt: terrain.heightAt, terrain, cameraYaw: rig.cameraYaw,
       input: hud.shopOpen || inventory?.open || rig.freezesBike || travel.blocksInput || portalKit.portal.busy || portalKit.portal.inside ? null : input,
     };
   });

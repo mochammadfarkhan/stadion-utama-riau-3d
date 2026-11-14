@@ -127,19 +127,3 @@ export function farmFromJson(text, count, order) {
   }
 }
 
-/**
- * Langkah jalan kaki (MURNI): A/D memutar badan di tempat, W/S maju/mundur, Shift lari; laju menuju target dengan accel.
- * State kompatibel dengan state sepeda ({x,z,yaw,v,...}); field lain disalin.
- * @param {{x:number,z:number,yaw:number,v:number}} s
- * @param {{pedal:number, steer:number, sprint:boolean}} cmd
- * @param {number} dt
- * @param {{walk:number, run:number, back:number, accel:number, turnRate:number}} cfg
- */
-export function stepOnFoot(s, cmd, dt, cfg) {
-  if (!(dt > 0)) return s;
-  const target = cmd.pedal > 0 ? (cmd.sprint ? cfg.run : cfg.walk) * cmd.pedal : cmd.pedal < 0 ? -cfg.back : 0;
-  const dv = target - s.v;
-  const v = s.v + Math.sign(dv) * Math.min(Math.abs(dv), cfg.accel * dt);
-  const yaw = s.yaw + cmd.steer * cfg.turnRate * dt;
-  return { ...s, yaw, v, steer: 0, lean: 0, x: s.x + v * Math.sin(yaw) * dt, z: s.z + v * Math.cos(yaw) * dt };
-}
