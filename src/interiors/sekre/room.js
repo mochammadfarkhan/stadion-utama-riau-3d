@@ -9,7 +9,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { makeRng } from '../../entities/util.js';
-import { ROOM, WINDOW, DOOR, REAR, SELASAR, SELASAR_SEBERANG } from './data.js';
+import { ROOM, WINDOWS, DOOR, REAR, SELASAR, SELASAR_SEBERANG } from './data.js';
 import { makeCanvas, canvasTexture, fitFont, tint, FONT } from './canvas.js';
 import { styleState } from '../../engine/styleState.js';
 import { loadPbr } from '../../world/textures/pbr.js';
@@ -287,9 +287,10 @@ function wallGeometry() {
   const { w, d, h, wall: t } = ROOM;
   const hw = w / 2;
   const hd = d / 2;
-  const top = WINDOW.sill + WINDOW.h;
-  const wx0 = WINDOW.x - WINDOW.w / 2;
-  const wx1 = WINDOW.x + WINDOW.w / 2;
+  const [L, R] = WINDOWS; // jendela kiri & kanan pintu ganda (urut x)
+  const span = (win) => [win.x - win.w / 2, win.x + win.w / 2, win.sill + win.h];
+  const [lx0, lx1, ltop] = span(L);
+  const [rx0, rx1, rtop] = span(R);
   const front = (x0, x1, y0, y1) => slab(x0, x1, y0, y1, -hd - t, -hd);
   const zb = REAR.zBack;
   const part = (x0, x1, y0, y1) => slab(x0, x1, y0, y1, hd, hd + t); // dinding pemisah ruang utama | ruang belakang
@@ -303,12 +304,15 @@ function wallGeometry() {
     slab(wc.x0 - t / 2, wc.x0 + t / 2, 0, h, wc.z0 + t, zb), // sisi barat WC
     wcPart(wc.x0 - t / 2, wc.door.x0, 0, h), wcPart(wc.door.x0, wc.door.x1, wc.door.h, h), wcPart(wc.door.x1, hw, 0, h),
     part(-hw, dw.x0, 0, h), part(dw.x0, dw.x1, dw.h, h), part(dw.x1, dr.x0, 0, h), part(dr.x0, dr.x1, dr.h, h), part(dr.x1, hw, 0, h),
-    front(-hw, wx0, 0, h),
-    front(wx0, wx1, 0, WINDOW.sill),
-    front(wx0, wx1, top, h),
-    front(wx1, DOOR.x0, 0, h),
+    front(-hw, lx0, 0, h),
+    front(lx0, lx1, 0, L.sill),
+    front(lx0, lx1, ltop, h),
+    front(lx1, DOOR.x0, 0, h),
     front(DOOR.x0, DOOR.x1, DOOR.h, h),
-    front(DOOR.x1, hw, 0, h),
+    front(DOOR.x1, rx0, 0, h),
+    front(rx0, rx1, 0, R.sill),
+    front(rx0, rx1, rtop, h),
+    front(rx1, hw, 0, h),
     slab(SELASAR.ujungKiri, -hw - t, 0, SELASAR.tinggiAtap, -hd - t, -hd),  // dinding ruang tetangga kiri
     slab(hw + t, SELASAR.ujungKanan, 0, SELASAR.tinggiAtap, -hd - t, -hd),  // tetangga kanan (BEM, dst.)
     slab(-hw - t, hw + t, h, SELASAR.tinggiAtap, -hd - t, -hd),             // balok di atas dinding depan

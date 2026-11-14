@@ -2,9 +2,9 @@ import { PI, box, cyl, piece, groupOf } from './bentuk.js';
 
 export function buildMeja(m) {
   const top = piece([
-    box(1.8, 0.03, 0.6, '#d8cbb0', { y: 0.735 }),
-    box(1.8, 0.035, 0.012, '#7a6f5d', { y: 0.72, z: -0.3 }),
-    box(1.8, 0.035, 0.012, '#7a6f5d', { y: 0.72, z: 0.3 }),
+    box(1.8, 0.03, 0.6, '#2b2b2e', { y: 0.735 }), // meja hitam (foto sekre ERC)
+    box(1.8, 0.035, 0.012, '#1c1c1e', { y: 0.72, z: -0.3 }),
+    box(1.8, 0.035, 0.012, '#1c1c1e', { y: 0.72, z: 0.3 }),
   ], m.kayuHalus, 'meja');
   const legs = [];
   for (const x of [-0.8, 0.8]) {
