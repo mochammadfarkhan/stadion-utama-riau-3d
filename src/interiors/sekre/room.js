@@ -16,7 +16,7 @@ import { loadPbr } from '../../world/textures/pbr.js';
 import { TILE_M, tierForQuality } from '../../world/textures/pbrCore.js';
 
 const PLESTER_M = 2.0; // meter per ulangan tekstur plester
-const KERAMIK_M = 0.8; // 2 × 2 ubin 40 cm
+const KERAMIK_M = 1.2; // 2 × 2 ubin 60 cm (foto: keramik putih besar)
 const PLAFON_M = 1.2;  // panel gipsum 1,2 m
 const PLINT_H = 0.1;
 const RAIN_DROPS = 320;
@@ -102,7 +102,7 @@ export function drawKeramik(c, w, h, seed = 21) {
       c.fillStyle = `rgb(${243 + v},${243 + v},${240 + v})`;
       c.fillRect(i * tw, j * th, tw, th);
       for (let k = 0; k < 900; k += 1) {
-        c.fillStyle = `rgba(${rnd() < 0.5 ? '150,130,100' : '255,250,235'},${0.05 + rnd() * 0.08})`;
+        c.fillStyle = `rgba(${rnd() < 0.5 ? '170,165,155' : '255,255,250'},${0.03 + rnd() * 0.05})`; // putih bersih, bintik tipis
         c.fillRect(i * tw + rnd() * tw, j * th + rnd() * th, 1 + rnd() * 2, 1 + rnd() * 2);
       }
       const g = c.createLinearGradient(i * tw, j * th, (i + 1) * tw, (j + 1) * th);
@@ -400,7 +400,7 @@ export function buildRoom({ renderer = null } = {}) {
     return canvasTexture(canvas, renderer, { repeat: true });
   };
   const plester = new THREE.MeshStandardMaterial({ map: tex(drawPlester, 512, 512, 11), roughness: 0.92 });
-  const keramik = new THREE.MeshStandardMaterial({ map: tex(drawKeramik, 512, 512, 21), roughness: 0.32, envMapIntensity: 0.6 });
+  const keramik = new THREE.MeshStandardMaterial({ map: tex(drawKeramik, 512, 512, 21), roughness: 0.16, envMapIntensity: 0.9 }); // mengilap (foto)
   const plafon = new THREE.MeshStandardMaterial({ map: tex(drawPlafon, 512, 512, 31), roughness: 0.95 });
   upgradeWallWithPbr(plester, PLESTER_M);
   const facadeCanvas = makeCanvas(1024, 256);

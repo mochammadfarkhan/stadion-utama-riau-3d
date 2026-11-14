@@ -219,6 +219,10 @@ export const ASET = freeze({
 /** Barang tambahan tanpa ID katalog (dicatat di katalog oleh M7). */
 export const EKSTRA = freeze({
   kursiLipat: atRaw(-2.05, 0, -1.95, PI), // menghadap meja di dinding depan
+  /** Kursi tamu kayu ukir di depan tirai kanan + permadani motif di depannya, jas hujan di paku dinding kiri (foto). */
+  kursiUkir: freeze([atRaw(1.55, 0, -2.05, 0), atRaw(2.35, 0, -2.08, -0.2)]),
+  permadani: atRaw(1.95, 0.002, -1.25, 0),
+  jasHujan: atRaw(-2.99, 2.0, -0.45, PI / 2),
   kertas: freeze([atRaw(-2.35, 0.752, -2.75, 0.3), atRaw(-1.75, 0.752, -2.72, -0.2), at(-0.7, 0.014, 0.4, 0.8)]),
 });
 
@@ -259,6 +263,7 @@ export const SOLIDS = freeze([
   rect('kardus-belakang', -1.0, -0.5, 2.54, 3.0),
   rectRaw('spanduk', 2.65, 3.0, -3.0, -2.65),
   rectRaw('kursi', -2.28, -1.82, -2.18, -1.72),
+  rectRaw('kursi-ukir', 1.2, 2.7, -2.4, -1.72),
   rectRaw('daun-pintu', -0.91, -0.72, -3.0, -2.12),
   rect('tas', 1.75, 2.1, -2.05, -1.45),
   rect('sofa', -2.1, -1.2, -0.6, 1.6),
@@ -324,7 +329,7 @@ export const SLOTS = freeze([
   slot('rebahan', -0.1, 2.35, -PI / 2, 'lieDown', 0.85),
   slot('whiteboard', 1.55, -1.2, PI / 2, 'writeBoard', 0.3),
   slot('ngobrol-1', 0.15, -1.85, PI / 2, 'standTalk', 0.3),
-  slot('ngobrol-2', 0.95, -1.85, -PI / 2, 'standTalk', 0.3),
+  freeze({ id: 'ngobrol-2', x: 1.05, z: -1.45, yaw: -PI / 2, poseId: 'standTalk', block: 0.3 }), // kursi ukir menempati tempat lama
   freeze({ id: 'minum', x: 1.06, z: -2.2, yaw: 0, poseId: 'drinkCup', block: 0.3 }),
 ]);
 /** Slot yang menyumbang gumaman obrolan. */

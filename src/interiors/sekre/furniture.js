@@ -45,6 +45,8 @@ import { buildPerlengkapanErc } from './perabot/perlengkapanErc.js';
 import { buildSofaProyektor } from './perabot/sofaProyektor.js';
 import { buildRuangBelakang } from './perabot/ruangBelakang.js';
 import { buildKertas } from './perabot/kertas.js';
+import { buildKursiUkir } from './perabot/kursiUkir.js';
+import { buildPermadani, buildJasHujan } from './perabot/permadaniJas.js';
 
 /**
  * Bahan perabot bertekstur (ambientCG CC0, public/textures): warna tetap dari warna verteks model, tekstur memberi serat/tenun/
@@ -127,6 +129,9 @@ export function buildFurniture({ materials }) {
   // statis: posisi dari data.js
   staticGroup.add(placed(buildMeja(m), ASET.S16.items[0]));
   staticGroup.add(placed(buildKursi(m), EKSTRA.kursiLipat));
+  for (const it of EKSTRA.kursiUkir) staticGroup.add(placed(buildKursiUkir(m), it));
+  staticGroup.add(placed(buildPermadani(), EKSTRA.permadani));
+  staticGroup.add(placed(buildJasHujan(m), EKSTRA.jasHujan));
   staticGroup.add(placed(buildLemari(m), ASET.S09.items[0]));
   staticGroup.add(buildOrdner(m));
   staticGroup.add(placed(buildBenderaStand(m), ASET.S08.items[0]));
