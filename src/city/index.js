@@ -16,6 +16,17 @@ import { applyGroundHole } from './groundHole.js';
 import { FACADE_UNIFORMS, nightFactor } from './facade.js';
 import { addTileDetail } from './tileDetail.js';
 import { createFarCity } from './farCity.js';
+
+/** Nama grup detail kecil di dalam tile (tileDetail.js) yang tak terlihat dari kamera pratinjau jauh. */
+const TILE_FINE_DETAIL = new Set(['pohon', 'marka', 'tiangLampu', 'kepalaLampu']);
+/** Jarak kamera → fokus (m): sembunyikan di atas hideAt, tampil lagi di bawah showAt (histeresis). */
+export const TILE_DETAIL_FAR = Object.freeze({ hideAt: 6000, showAt: 5000 });
+
+/** Murni: status sembunyi detail tile berikutnya. */
+export function nextTileDetailHidden(hidden, distance, { hideAt, showAt } = TILE_DETAIL_FAR) {
+  if (!Number.isFinite(distance)) return hidden;
+  return hidden ? distance > showAt : distance > hideAt;
+}
 import { GROUND_UNIFORMS } from './groundDetail.js';
 import { SWAY_UNIFORMS } from './treeSway.js';
 
@@ -93,6 +104,14 @@ export async function createCity({
   let previewOn = false;
   let far = null; // objek kota jauh setelah dimuat (update per frame)
   let farPromise = null; // lapisan kota jauh (farCity.js), dimuat malas saat pratinjau pertama
+  let tileDetailHidden = false;
+  let tileDetailCheck = 0;
+  /** Detail kecil tile (pohon, marka, tiang & kepala lampu) disembunyikan saat pratinjau di-zoom jauh: < 1 px, ±470 draw call. */
+  const setTileDetail = (hidden) => {
+    for (const tile of group.children) {
+      for (const c of tile.children) if (TILE_FINE_DETAIL.has(c.name)) c.visible = !hidden;
+    }
+  };
   /** Selesaikan penunggu sekali dan bersihkan timer habis-waktunya. */
   const settle = (w, value) => {
     if (!waiters.delete(w)) return;
@@ -111,7 +130,14 @@ export async function createCity({
       }
       const focus = ctx.focus ?? ctx.bikePos;
       if (!focus) return;
-      if (previewOn && far && time) far.update({ time: ctx.time ?? 0, focus, distance: app.camera?.position.distanceTo(focus) ?? 1000, hour: time.hour });
+      const camDist = app.camera?.position.distanceTo(focus) ?? 1000;
+      if (previewOn && far && time) far.update({ time: ctx.time ?? 0, focus, distance: camDist, hour: time.hour });
+      const wantHidden = previewOn && nextTileDetailHidden(tileDetailHidden, camDist);
+      tileDetailCheck = (tileDetailCheck + 1) % 30;
+      if (wantHidden !== tileDetailHidden || (wantHidden && tileDetailCheck === 0)) { // ulang berkala: tile baru termuat
+        tileDetailHidden = wantHidden;
+        setTileDetail(wantHidden);
+      }
       const a = groundAnchor(focus);
       ground.position.set(a.x, CITY_GROUND.y, a.z);
       for (const action of streamer.update(focus)) {
