@@ -1,6 +1,6 @@
 /**
  * Bidikan landmark hero mode Kota di beberapa zoom (cek LOD).
- *   node tools/shots/landmarkKota.mjs --out <folder> [--id an-nur] [--zoom 0.9,2,5,9] [--hour 11] [--yaw 0]
+ *   node tools/shots/landmarkKota.mjs --out <folder> [--id an-nur] [--zoom 0.9,2,5,9] [--hour 11] [--sembunyi] [--yaw 0]
  */
 import { mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -8,7 +8,7 @@ import { parseArgs } from 'node:util';
 import { openSim, settleAt } from '../../tests/e2e/harness.unri.mjs';
 import { LANDMARKS } from '../../src/city/landmarks.js';
 
-const { values: v } = parseArgs({ options: { out: { type: 'string', default: 'renders/landmark' }, id: { type: 'string', default: 'an-nur' }, zoom: { type: 'string', default: '0.9,2,5,9' }, hour: { type: 'string', default: '11' } } });
+const { values: v } = parseArgs({ options: { out: { type: 'string', default: 'renders/landmark' }, id: { type: 'string', default: 'an-nur' }, zoom: { type: 'string', default: '0.9,2,5,9' }, hour: { type: 'string', default: '11' }, sembunyi: { type: 'boolean', default: false } } });
 const OUT = resolve(v.out);
 mkdirSync(OUT, { recursive: true });
 const lm = LANDMARKS.find((l) => l.id === v.id);
@@ -19,8 +19,10 @@ try {
   await settleAt(page, { x: 150, z: -260, yaw: 0, hour: Number(v.hour) });
   await page.evaluate(() => window.__sim.rig.handlePovKey('KeyK'));
   await page.waitForTimeout(25000);
+  await page.evaluate((h) => window.__sim.time.setHour(h), Number(v.hour)); // mode Kota memaksa 16:45; atur ulang
   for (const z of v.zoom.split(',').map(Number)) {
     await page.evaluate(({ x, zz, zoom }) => window.__sim.rig.director.flyTo(x, zz, zoom), { x: lm.x, zz: lm.z, zoom: z });
+    if (v.sembunyi) await page.evaluate((id) => { const r = window.__sim.app.scene.getObjectByName(`landmark:${id}`); if (r) r.visible = false; }, v.id);
     await page.waitForTimeout(9000);
     await page.screenshot({ path: join(OUT, `${v.id}-zoom${z}.jpg`), type: 'jpeg', quality: 85 });
     const info = await page.evaluate((id) => {

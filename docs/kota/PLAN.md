@@ -59,7 +59,7 @@ Akar keterbatasan sekarang: `BUILDING_CLASS` melebur masjid/sekolah/RS/pemerinta
 
 **Tingkat A — hero buatan tangan (urut prioritas)**
 - ⬜ A1 **Proxy stadion lebih rinci**: rangka/lengkung atap, tingkat tribun, papan nama, menara lampu (sekarang donat polos) — [stadion-proxy](stadion-proxy/README.md)
-- ✅ A2 Masjid Raya An-Nur (2026-11-14): model Blender 3 LOD (2,9 rb / 1 rb / 330 segitiga) di mode Kota — [landmark](landmark/README.md); halaman/plaza belum
+- ✅ A2 Masjid Raya An-Nur (2026-11-14): model Blender 3 LOD (3,0 rb / 1,2 rb / 340 segitiga) + plaza + lampu malam di mode Kota — [landmark](landmark/README.md); plaza dari citra satelit
 - ⬜ A3 Rektorat UNRI + gerbang: proxy LOD untuk mode Kota
 - ⬜ A4 Jembatan (Siak) — rentang + pilar
 - ⬜ A5 Bandara (landasan + terminal)

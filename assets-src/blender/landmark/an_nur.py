@@ -23,7 +23,7 @@ OUT_DIR = os.path.join(REPO, "public", "models", "landmark")
 OUT_BLEND = os.path.join(REPO, "assets-src", "blender", "landmark", "an_nur.blend")
 
 C = {
-    "plinth": "#b9b09a", "wall": "#e6dcc3", "trim": "#d3c39a", "frame": "#c9b57a", "dark": "#2a3b3a",
+    "plinth": "#b9b09a", "wall": "#dcd1b6", "trim": "#c9d1b0", "plaza": "#e7e4d9", "kolam": "#b4b0a0", "frame": "#c9b57a", "dark": "#2a3b3a",
     "dome": "#3aa391", "dome2": "#2f8f80", "drum": "#ece5d2", "gold": "#d8aa2e", "shaft": "#e2d08e",
     "band": "#3a9a88", "roof": "#9d9a92", "step": "#cfc7b2",
 }
@@ -144,6 +144,12 @@ def build_lod(lod):
     PX, PY = 61.0, 73.0      # alas (plinth): 61 m melintang x 73 m ke arah depan (OSM, sumbu pendek = lebar fasad)
     Z0, ZT = 1.2, 14.5       # lantai badan & atap datar
     m.box(0, 0, 0, PX, PY, Z0, C["plinth"])
+    # plaza putih di depan (citra satelit: ±120 m lebar x ±110 m, 4 kolam bintang 2x2)
+    m.box(0, -PY / 2 - 55.0, 0, 120.0, 110.0, 0.12, C["plaza"])
+    if lod < 2:
+        for px in (-28.0, 28.0):
+            for py in (-PY / 2 - 28.0, -PY / 2 - 82.0):
+                m.revolve(px, py, 0.12, [(9.0, 0), (9.0, 0.1)], 8, C["kolam"], cap_top=True)
     m.box(0, 0, Z0, BX, BY, ZT - Z0 - 1.0, C["wall"])
     m.box(0, 0, ZT - 1.0, BX + 1.0, BY + 1.0, 1.0, C["trim"])
     # tangga depan

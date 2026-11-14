@@ -4,8 +4,31 @@
  * Data posisi dari OSM (jejak), yaw = pencocokan arah jejak [INFERENSI sisi depan].
  */
 import * as THREE from 'three';
+import { FACADE_UNIFORMS } from './facade.js';
 
 export const LANDMARK_Y = -0.05;
+
+/**
+ * Malam: ceruk/jendela gelap (luminans < 0,05) menyala hangat, seluruh permukaan disorot lembut (masjid biasa diterangi lampu sorot).
+ * Memakai `uNight` bersama fasad kota (facade.js), diperbarui sistem city.stream tiap frame.
+ */
+export function applyLandmarkNight(material) {
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uNight = FACADE_UNIFORMS.uNight;
+    shader.fragmentShader = `uniform float uNight;
+${shader.fragmentShader}`.replace(
+      '#include <emissivemap_fragment>',
+      `#include <emissivemap_fragment>
+      #ifdef USE_COLOR
+        float lmLum = dot(vColor.rgb, vec3(0.299, 0.587, 0.114));
+        float lmWin = 1.0 - smoothstep(0.03, 0.06, lmLum);
+        totalEmissiveRadiance += uNight * (lmWin * vec3(1.0, 0.78, 0.4) * 0.95 + (1.0 - lmWin) * vColor.rgb * 0.2);
+      #endif`,
+    );
+  };
+  material.customProgramCacheKey = () => 'landmarkNight';
+  return material;
+}
 
 /** `lod`: batas jarak (m) ke LOD1 dan LOD2. `files`: GLB di public/models/landmark/ (LOD0 terdetail dulu). */
 export const LANDMARKS = Object.freeze([
@@ -43,7 +66,7 @@ export function createLandmarks({ parent, baseUrl = '/', loadGltf, logger = cons
   group.name = 'landmark';
   group.visible = false;
   parent.add(group);
-  const material = new THREE.MeshLambertMaterial({ vertexColors: true });
+  const material = applyLandmarkNight(new THREE.MeshLambertMaterial({ vertexColors: true }));
   material.name = 'landmark:warna';
   const entries = list.map((def) => ({ def, lods: [], lod: 0, root: new THREE.Group() }));
   const owned = [material];

@@ -13,10 +13,11 @@ Daftar kandidat + sumber: [../DAFTAR-IKON.md](../DAFTAR-IKON.md). Rujukan foto l
 Jarak kamera → landmark ≈ **1300 m × zoom kota** (zoom 0,4–9). Satu draw call per landmark (hanya satu tingkat yang tampil), histeresis 12%.
 | Tingkat | Dipakai | An-Nur |
 |---|---|---|
-| LOD0 | dist ≤ 1300 m (zoom ≲ 1) | 2.918 segitiga, 200 KB |
-| LOD1 | ≤ 2800 m (zoom ≲ 2,1) | 1.051, 78 KB |
-| LOD2 | lebih jauh | 330, 25 KB |
+| LOD0 | dist ≤ 1300 m (zoom ≲ 1) | 3.024 segitiga, 209 KB |
+| LOD1 | ≤ 2800 m (zoom ≲ 2,1) | 1.157, 86 KB |
+| LOD2 | lebih jauh | 340, 26 KB |
 
 ## Status
 - ✅ An-Nur (2026-11-14): jejak 61×73 m dari OSM `way 465323008`, pusat (6823,0; −4760,1), depan ke plaza ESE (citra satelit). Bentuk detail `[INFERENSI]`: tinggi kubah ±38 m, menara ±54 m, 10 kubah = 1 utama + 1 depan + 4 samping + 4 puncak menara.
-- Belum: bangunan tile/jauh di bawah jejak masih ada (tertutup model; tidak terlihat z-fighting di bidikan siang); malam belum dicek; warna dinding/atap belum dicocokkan dengan foto.
+- Poles (2026-11-14): plaza putih ±120×110 m + 4 kolam bintang di depan (dari citra satelit); malam: ceruk/jendela menyala hangat + sorot lembut lewat `applyLandmarkNight` (memakai `uNight` fasad kota). Bangunan tile di bawah masjid = satu poligon U (masjid + sayap) berbentuk kompleks; model menutup bagian tengahnya, tidak dihapus.
+- Belum: warna dinding/atap belum dicocokkan ketat dengan foto; ukuran/ketinggian detail masih `[INFERENSI]`; plaza dibuat sebagai bagian model (bukan data OSM).
