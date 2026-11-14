@@ -76,8 +76,11 @@ Aturan praktis untuk sistem baru:
 
 ## Titik lemah yang diketahui (jujur)
 
-1. **`main.js` terlalu gemuk** — 569 baris, 81 impor. Semua fitur baru menambah baris di sini.
-   Arah: pindahkan perakitan per fitur ke `app/<fitur>.js` (pola `setupShop`, `setupInventory` sudah benar).
+1. **Berkas panjang** — `main.js` sudah dirampingkan (2026-11-14: 599 → ±370 baris; perakitan cerita, minimap, portal, perjalanan cepat,
+   sistem frame, dan lapisan region pindah ke `app/*Setup.js`, `app/frameSystems.js`, `app/regionLayer.js`, `app/heroRegions.js`).
+   Fitur baru tetap dirakit di `app/<fitur>.js`; `main.js` hanya memanggilnya. ESLint `max-lines` (400 baris kode) memperingatkan
+   berkas yang masih melewati batas: `core/App.js`, `interiors/sekre/boards.js`, `interiors/sekre/room.js`, `world/kit/atlasPaint.openings.js` —
+   pecah saat berkas itu disentuh kartu kerja, bukan sebagai pekerjaan terpisah. Perabot sekre: satu model = satu berkas di `interiors/sekre/perabot/`.
 2. **GPU terintegrasi masih berat** — di laptop user (AMD Radeon terintegrasi) titik kebun: preset Rendah 27 FPS,
    Tinggi 2 FPS. Penyebab spesifik di kebun belum diprofil. Lihat `plans/2026-10-26-performa-open-world.md` Fase 2–4.
 3. **Lag sesaat saat streaming** — terukur (Fase 2) penyebab utamanya kompilasi shader, bukan parsing (< 0,7 s);
@@ -90,6 +93,7 @@ Aturan praktis untuk sistem baru:
 
 | Tanggal | Keputusan | Alasan / rujukan |
 |---|---|---|
+| 2026-11-14 | Rampingkan berkas gemuk tanpa ubah perilaku: `main.js` → `app/*`, perabot sekre satu model satu berkas, ESLint `max-lines` 400 (peringatan) | permintaan user: kode dirapikan dulu sebelum kartu R01–R25 dikerjakan model kecil; enam kartu menyentuh `main.js` |
 | 2026-11-13 | Pratinjau kota memuat seluruh Pekanbaru lewat lapisan "jauh" instans (bukan tile bake penuh) | 380 rb bangunan = 3 MB biner (8 B/bangunan) vs ±130 MB bila di-bake sebagai tile GLB; peta tanah WebP karena hanya dilihat dari jauh |
 | 2026-10-27 | Dokumen ini jadi titik masuk; plan/spec lama tetap arsip | konteks proyek terlalu besar untuk dibaca ulang tiap sesi |
 | 2026-10-26 | Batas FPS default 60 + preset kualitas Otomatis | laptop panas & GPU terintegrasi; `engine/frameCap.js`, `config/quality.js` |
