@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { createFarm, actOn, planAction, plow, growFarm, nextAction, farmToJson, farmFromJson, stepOnFoot } from '../src/sim/farm.js';
+import {
+  createFarm, actOn, planAction, plow, growFarm, nextAction, farmToJson, farmFromJson, stepOnFoot, canSleep, sleepNight, describeTile,
+} from '../src/sim/farm.js';
 import { ITEMS } from '../src/config/items.js';
 import { KEBUN, CROPS, CROP_ORDER, tileIndexAt, tileCenter, houseRing, WALK } from '../src/config/kebun.js';
 
 const opts = (seed) => ({ seed, crops: CROPS });
-const sleep = (f) => growFarm(f, KEBUN.sleepHours, CROPS);
+const sleep = (f) => sleepNight(f, CROPS);
 
 /** Tanam `seed` di petak 0 lalu siram + tidur sampai bisa dipanen; kembalikan {farm, nights}. */
 function growToHarvest(f0, seed) {
@@ -54,16 +56,19 @@ describe('farm: siklus cangkul → tanam → siram → tumbuh → panen', () => 
 });
 
 describe('farm: jenis tanaman berbeda', () => {
-  it('cabai & terong siap dalam 2 malam, jagung 4 malam (8 jam/tahap > 6 jam tidur)', () => {
+  it('cabai & terong siap dalam 2 malam, jagung 4 malam (2 malam per tahap)', () => {
     expect(growToHarvest(createFarm(1), 'cabai').nights).toBe(2);
     expect(growToHarvest(createFarm(1), 'terong').nights).toBe(2);
     expect(growToHarvest(createFarm(1), 'jagung').nights).toBe(4);
   });
 
-  it('terong tumbuh lagi ke tahap 2 setelah dipanen; jagung harus tanam ulang', () => {
+  it('terong tumbuh lagi (tahap 1, panen lagi 2 malam) setelah dipanen; jagung harus tanam ulang', () => {
     const t = actOn(growToHarvest(createFarm(1), 'terong').farm, 0, opts('terong'));
     expect(t.harvest).toBe('terong');
-    expect(t.farm.tiles[0].crop).toMatchObject({ type: 'terong', stage: 2 });
+    expect(t.farm.tiles[0].crop).toMatchObject({ type: 'terong', stage: 1 });
+    let f = t.farm;
+    for (let n = 0; n < 2; n += 1) f = sleep(actOn(f, 0, opts('terong')).farm); // siram + tidur
+    expect(nextAction(f.tiles[0])).toBe('panen');
     const j = actOn(growToHarvest(createFarm(1), 'jagung').farm, 0, opts('jagung'));
     expect(j.harvest).toBe('jagung');
     expect(nextAction(j.farm.tiles[0])).toBe('tanam');
@@ -132,7 +137,11 @@ describe('kebun: geometri lahan', () => {
   });
 
   it('setiap jenis di CROP_ORDER punya data', () => {
-    for (const t of CROP_ORDER) expect(CROPS[t]).toMatchObject({ seed: expect.any(Number), price: expect.any(Number), growHours: expect.any(Number) });
+    for (const t of CROP_ORDER) {
+      expect(CROPS[t]).toMatchObject({ seed: expect.any(Number), price: expect.any(Number), nights: expect.any(Number), vendorBonus: 1.25 });
+      expect(['kantin', 'buah', 'minuman']).toContain(CROPS[t].vendorKind);
+      expect(CROPS[t].price).toBeGreaterThan(CROPS[t].seed); // panen selalu untung
+    }
   });
 });
 
@@ -146,5 +155,42 @@ describe('stepOnFoot', () => {
     for (let i = 0; i < 60; i += 1) s = stepOnFoot(s, { pedal: 1, steer: 0, sprint: true }, 0.05, WALK);
     expect(s.v).toBeCloseTo(WALK.run);
     expect(s.z).toBeGreaterThan(5);
+  });
+});
+
+describe('kebun: tidur hanya malam, sekali per malam', () => {
+  it('canSleep: jam dan hari', () => {
+    expect(canSleep(20, null, 0).ok).toBe(true);
+    expect(canSleep(12, null, 0)).toEqual({ ok: false, reason: 'Belum mengantuk. Tidur bisa mulai pukul 18.00.' });
+    expect(canSleep(2, 0, 0)).toEqual({ ok: false, reason: 'Sudah tidur malam ini.' });
+    expect(canSleep(19, 0, 1).ok).toBe(true);
+  });
+
+  it('sleepNight menaikkan hari dan mencatat malam; petak kering setelahnya', () => {
+    let f = actOn(actOn(plow(createFarm(2), 0), 0, opts('jagung')).farm, 0, opts('jagung')).farm; // tanam + siram
+    f = sleepNight(f, CROPS);
+    expect(f).toMatchObject({ day: 1, lastSleepDay: 0 });
+    expect(f.tiles[0]).toMatchObject({ watered: false, crop: { stage: 1, growth: 1 } }); // jagung: 2 malam per tahap
+    expect(canSleep(22, f.lastSleepDay, f.day).ok).toBe(true); // malam berikutnya
+  });
+
+  it('format simpanan baru membawa hari; format lama (array polos) tetap terbaca', () => {
+    const f = sleepNight(createFarm(2), CROPS);
+    expect(farmFromJson(farmToJson(f, CROP_ORDER), 2, CROP_ORDER)).toMatchObject({ day: 1, lastSleepDay: 0 });
+    expect(farmFromJson('[[1,0,2,0,1],[0,0,0,0,0]]', 2, CROP_ORDER)).toMatchObject({ day: 0, lastSleepDay: null });
+  });
+});
+
+describe('kebun: keadaan petak terbaca', () => {
+  it('describeTile lima kasus', () => {
+    const rumput = createFarm(1);
+    expect(describeTile(rumput.tiles[0], CROPS)).toBeNull();
+    const garap = plow(rumput, 0);
+    expect(describeTile(garap.tiles[0], CROPS)).toBe('Tanah siap tanam');
+    const tanam = actOn(garap, 0, opts('cabai')).farm;
+    expect(describeTile(tanam.tiles[0], CROPS)).toBe('Cabai · tahap 1/3 · perlu disiram');
+    const basah = actOn(tanam, 0, opts('cabai')).farm;
+    expect(describeTile(basah.tiles[0], CROPS)).toBe('Cabai · tahap 1/3 · tumbuh saat tidur');
+    expect(describeTile(growToHarvest(createFarm(1), 'cabai').farm.tiles[0], CROPS)).toBe('Cabai · siap panen');
   });
 });
