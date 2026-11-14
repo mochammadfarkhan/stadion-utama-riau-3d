@@ -54,8 +54,8 @@ function updateSpeed(v, input, dt, cfg, grade) {
   const holding = Math.abs(v) < STOP_EPS && input.pedal === 0 && Math.abs(grade) < (cfg.holdGrade ?? 0);
   if (!holding) next -= GRAVITY * grade * (cfg.kSlope ?? 0) * dt;
   if (input.pedal >= 0 && v > STOP_EPS && next < 0) next = 0; // rem/drag tidak membalik arah
-  // Di atas batas: datar → dipotong seketika (perilaku lama, mis. lepas sprint); menanjak → melambat halus.
-  if (next > top) next = grade > 0 ? Math.max(top, Math.min(next, v) - (cfg.overspeedDecel ?? Infinity) * dt) : top;
+  // Di atas batas (lepas sprint, masuk tanjakan): melambat halus overspeedDecel, tidak pernah di bawah batas.
+  if (next > top) next = Math.max(top, Math.min(next, v) - (cfg.overspeedDecel ?? Infinity) * dt);
   return Math.max(-cfg.reverseSpeed, next);
 }
 

@@ -133,9 +133,14 @@ describe('stepBike dengan grade (tanjakan, M1)', () => {
     expect(BIKE.kSlope).toBe(0.55);
   });
 
-  it('paritas jalan datar: grade 0 = tanpa opsi; lepas sprint di datar tetap dipotong seketika ke maxSpeed', () => {
+  it('paritas jalan datar: grade 0 = tanpa opsi; lepas sprint di datar melambat 2,5 m/s²', () => {
     expect(runG(createBikeState(), PEDAL, 4, 0)).toEqual(run(createBikeState(), PEDAL, 4));
-    expect(stepBike(moving(13), PEDAL, DT).v).toBe(BIKE.maxSpeed);
+    expect(stepBike(moving(13), PEDAL, DT).v).toBeCloseTo(13 - BIKE.overspeedDecel * DT, 9);
+  });
+
+  it('lepas sprint: dari 13 m/s turun ke maxSpeed dalam ±1,6 detik, tidak pernah di bawahnya', () => {
+    expect(runG(moving(13), PEDAL, 1, 0).v).toBeCloseTo(10.5, 1);
+    expect(runG(moving(13), PEDAL, 3, 0).v).toBeCloseTo(BIKE.maxSpeed, 6);
   });
 
   it('tanjakan 6%: laju puncak 9 × (1 − 0,06 × 3) = 7,38 m/s, tercapai < 5 s tanpa sprint', () => {
