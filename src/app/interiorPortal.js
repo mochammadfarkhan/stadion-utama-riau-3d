@@ -353,8 +353,8 @@ export function createInteriorPortal({
     enter,
     exit,
     /** Router lihat (mouse/sentuh/gamepad) saat di dalam. */
-    lookBy(dx, dy, scale = 1) {
-      if (state === 'inside' && current) current.rig.lookBy(dx, dy, scale);
+    lookBy(dx, dy, scale = 1, source = 'mouse') {
+      if (state === 'inside' && current) current.rig.lookBy(dx, dy, scale, source);
     },
     dispose() {
       if (current) {

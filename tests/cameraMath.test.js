@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  THIRD, wrapAngle, thirdPersonOffset, pullInOffset, sweepOffset, decayLook, shouldSnap, firstPersonDirection,
-} from '../src/core/cameraMath.js';
+  THIRD, wrapAngle, thirdPersonOffset, pullInOffset, sweepOffset, decayLook, shouldSnap, firstPersonDirection, followYaw, speedFov, lookAhead } from '../src/core/cameraMath.js';
 
 const len = (o) => Math.hypot(o.x, o.y, o.z);
 
@@ -131,5 +130,27 @@ describe('sweepOffset', () => {
   });
   it('semua sudut terhalang: null (pemanggil memakai pull-in)', () => {
     expect(sweepOffset(target, 0, 0, () => false)).toBeNull();
+  });
+});
+
+describe('followYaw (R15)', () => {
+  it('63% dalam settleSec; lewat ±π lewat jalur terpendek', () => {
+    expect(followYaw(0, 1, 0.35, 0.35)).toBeCloseTo(1 - 1 / Math.E, 6);
+    const r = followYaw(3.1, -3.1, 1, 0.01);
+    expect(Math.abs(Math.atan2(Math.sin(r), Math.cos(r)) - -3.1)).toBeLessThan(1e-3);
+    expect(Math.abs(r)).toBeGreaterThan(3);
+  });
+});
+
+describe('speedFov dan lookAhead (R15)', () => {
+  it('FOV melebar dengan laju, dibatasi', () => {
+    expect(speedFov(60, 0)).toBe(60);
+    expect(speedFov(60, 9)).toBe(65);
+    expect(speedFov(60, 30)).toBe(70);
+  });
+  it('titik pandang maju dengan laju, dibatasi', () => {
+    expect(lookAhead(0)).toBe(0);
+    expect(lookAhead(9)).toBeCloseTo(1.62, 6);
+    expect(lookAhead(50)).toBe(2.2);
   });
 });

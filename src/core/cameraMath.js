@@ -23,6 +23,7 @@ export const THIRD = Object.freeze({
   snapDistance: 25,
   lookIdleDelay: 1.2,           // detik tanpa input lihat sebelum kamera kembali ke belakang sepeda
   lookReturnRate: 1.5,
+  yawSettleSec: 0.35,           // arah kamera menyusul arah sepeda (63% dalam 0,35 s), tidak dikunci
 });
 
 /** Normalisasi sudut ke (−π, π]; non-hingga → 0. */
@@ -71,13 +72,13 @@ export function pullInOffset(target, offset, isClear, minScale = THIRD.minScale,
  * pada radius PENUH, daripada menarik kamera sampai menempel di kepala rider.
  * @returns {{x:number,y:number,z:number,swept:number}|null} null bila semua sudut terhalang
  */
-export function sweepOffset(target, yaw, pitch, isClear, { stepDeg = 15, maxDeg = 90 } = {}) {
+export function sweepOffset(target, yaw, pitch, isClear, { stepDeg = 15, maxDeg = 90, cfg = THIRD } = {}) {
   const step = (stepDeg * Math.PI) / 180;
   const steps = Math.round(maxDeg / stepDeg);
   for (let i = 0; i <= steps; i += 1) {
     for (const sign of i === 0 ? [1] : [1, -1]) {
       const swept = sign * i * step;
-      const o = thirdPersonOffset(fin(yaw) + swept, pitch);
+      const o = thirdPersonOffset(fin(yaw) + swept, pitch, cfg);
       if (isClear(target.x + o.x, target.z + o.z)) return { ...o, swept };
     }
   }
@@ -109,4 +110,20 @@ export function firstPersonDirection(yaw, pitch) {
   const y = fin(yaw);
   const p = fin(pitch);
   return { x: Math.sin(y) * Math.cos(p), y: -Math.sin(p), z: Math.cos(y) * Math.cos(p) };
+}
+
+/** Arah kamera menyusul target secara eksponensial lewat jalur sudut terpendek. */
+export function followYaw(current, target, dt, settleSec = THIRD.yawSettleSec) {
+  if (!Number.isFinite(current)) return fin(target);
+  return current + wrapAngle(fin(target) - current) * (1 - Math.exp(-Math.max(0, fin(dt)) / Math.max(1e-3, settleSec)));
+}
+
+/** FOV kecepatan (derajat): base + gain·(|v| − from), dibatasi max. 9 m/s → +5°, 13 m/s → +9°. */
+export function speedFov(baseFov, v, { from = 4, gain = 1.0, max = 10 } = {}) {
+  return baseFov + Math.min(max, gain * Math.max(0, Math.abs(fin(v)) - from));
+}
+
+/** Titik pandang digeser ke depan sepeda (m) sebanding laju maju. */
+export function lookAhead(v, { perSpeed = 0.18, max = 2.2 } = {}) {
+  return Math.min(max, perSpeed * Math.max(0, fin(v)));
 }
