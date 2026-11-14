@@ -9,9 +9,9 @@ export function hasStoryProgress(state) {
 /** Kunci simpanan di luar cerita yang juga berarti "sudah pernah main" (kebun, tas). */
 export const OTHER_PROGRESS_KEYS = Object.freeze([SAVE_KEYS.farm, SAVE_KEYS.inventory]);
 
-/** Progres apa pun: cerita maju, atau kebun/tas pernah tersimpan. */
-export function hasAnyProgress({ storyState, storage }) {
-  if (hasStoryProgress(storyState)) return true;
+/** Progres apa pun: cerita maju, ada tempat tersimpan, atau kebun/tas pernah tersimpan. */
+export function hasAnyProgress({ storyState, storage, savedPlace = null }) {
+  if (hasStoryProgress(storyState) || savedPlace) return true;
   try {
     return OTHER_PROGRESS_KEYS.some((k) => storage?.getItem(k) != null);
   } catch {

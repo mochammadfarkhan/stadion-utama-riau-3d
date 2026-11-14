@@ -351,7 +351,7 @@ async function main() {
   releaseBaked(); // bitmap tekstur bake tidak dibutuhkan lagi (pemasangan ulang = prosedural)
   await loading.step(1, 'Siap!');
   loading.done();
-  menu.ready({ hasProgress: hasAnyProgress({ storyState: story.state, storage }), touch });
+  menu.ready({ hasProgress: hasAnyProgress({ storyState: story.state, storage, savedPlace: story.savedPlace }), touch });
   if (perfProbe) {
     perfProbe.attach({
       app, store, quality,

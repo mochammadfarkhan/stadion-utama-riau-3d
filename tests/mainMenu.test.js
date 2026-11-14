@@ -108,5 +108,6 @@ describe('hasAnyProgress', () => {
     expect(hasAnyProgress({ storyState: { chapter: 0, step: 0 }, storage: storage(['stadion.kebun.v1']) })).toBe(true);
     expect(hasAnyProgress({ storyState: { chapter: 0, step: 0 }, storage: storage([]) })).toBe(false);
     expect(hasAnyProgress({ storyState: null, storage: null })).toBe(false);
+    expect(hasAnyProgress({ storyState: null, storage: null, savedPlace: { region: 'world', x: 0, z: 0, yaw: 0 } })).toBe(true);
   });
 });
