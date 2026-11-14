@@ -174,8 +174,8 @@
 /* ---------- Rail (panel tertutup) ---------- */
 .ui-rail {
   position: absolute;
-  top: calc(var(--ui-u) * 3);
-  right: calc(var(--ui-u) * 3);
+  top: max(calc(var(--ui-u) * 3), env(safe-area-inset-top));
+  right: max(calc(var(--ui-u) * 3), env(safe-area-inset-right));
   display: flex;
   flex-direction: column;
   gap: calc(var(--ui-u) * 0.75);
@@ -313,3 +313,10 @@ body.is-photo .ui-rail {
 }
 .ui-photo-exit:hover, .ui-photo-exit:focus-visible { opacity: 1; }
 .ui-photo-exit[hidden] { display: none; }
+
+/* Layar sentuh: rail hanya tombol buka panel (tab menutupi tombol layar), target sentuh ≥ 44 px.
+   Di sini, bukan touch.css: panel.css dimuat belakangan dan akan menimpanya. */
+@media (pointer: coarse) {
+  .ui-rail__tabs, .ui-rail__sep { display: none; }
+  .ui-iconbtn, .ui-rail__btn { min-width: 44px; min-height: 44px; }
+}
