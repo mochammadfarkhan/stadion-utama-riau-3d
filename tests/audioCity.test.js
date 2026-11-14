@@ -67,3 +67,33 @@ describe('AudioBus: tab tersembunyi', () => {
     expect(ios.suspend).toHaveBeenCalledTimes(1);
   });
 });
+
+import * as SYNTH from '../src/core/audioSynth.js';
+
+describe('suara dunia R18: loop', () => {
+  for (const [name, seconds] of [['tyreRollBuffer', 4], ['chainTickBuffer', 1], ['birdsBuffer', 10], ['crowdRoarBuffer', 8], ['trafficBuffer', 10], ['riverBuffer', 8]]) {
+    it(`${name}: panjang, puncak, deterministik, sambungan halus`, () => {
+      const a = SYNTH[name](SR);
+      expect(a.length).toBe(SR * seconds);
+      let peak = 0;
+      for (const v of a) { expect(Number.isFinite(v)).toBe(true); peak = Math.max(peak, Math.abs(v)); }
+      expect(peak).toBeLessThanOrEqual(0.7 + 1e-6);
+      expect(peak).toBeGreaterThan(0.2);
+      expect(SYNTH[name](SR)).toEqual(a);
+      expect(Math.abs(a[a.length - 1] - a[0])).toBeLessThan(0.15);
+    });
+  }
+});
+
+describe('suara dunia R18: bunyi aksi', () => {
+  for (const name of ['thudBuffer', 'splashBuffer', 'popBuffer', 'tickBuffer']) {
+    it(`${name}: ≤ 0,3 s, puncak 0,8, deterministik`, () => {
+      const a = SYNTH[name](SR);
+      expect(a.length).toBeLessThanOrEqual(SR * 0.3);
+      let peak = 0;
+      for (const v of a) peak = Math.max(peak, Math.abs(v));
+      expect(peak).toBeCloseTo(0.8, 3);
+      expect(SYNTH[name](SR)).toEqual(a);
+    });
+  }
+});
