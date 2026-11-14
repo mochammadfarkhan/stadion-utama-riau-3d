@@ -56,10 +56,19 @@ function updateSpeed(v, input, dt, cfg, grade) {
   return Math.max(-cfg.reverseSpeed, next);
 }
 
-/** Sudut setang di-smooth dan dikurangi pada kecepatan tinggi. */
+/**
+ * Batas sudut setang (rad, ≥ 0): yang terkecil dari batas lama (mengecil dengan laju) dan batas percepatan samping
+ * atan(wheelBase·latAccelMax / v²). Tanpa cfg.latAccelMax → batas lama saja.
+ */
+export function steerLimit(v, cfg = BIKE) {
+  const old = cfg.steerMax / (1 + cfg.steerSpeedFactor * Math.abs(v));
+  if (!(cfg.latAccelMax > 0)) return old;
+  return Math.min(old, Math.atan((cfg.wheelBase * cfg.latAccelMax) / Math.max(v * v, 1e-3)));
+}
+
+/** Sudut setang di-smooth dan dibatasi steerLimit. */
 function updateSteer(steer, input, v, dt, cfg) {
-  const speedFactor = 1 / (1 + cfg.steerSpeedFactor * Math.abs(v));
-  const target = input.steer * cfg.steerMax * speedFactor;
+  const target = input.steer * steerLimit(v, cfg);
   return steer + (target - steer) * Math.min(1, cfg.steerRate * dt);
 }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createBikeState, stepBike } from '../src/sim/bikePhysics.js';
+import { createBikeState, stepBike, steerLimit, slideResponse } from '../src/sim/bikePhysics.js';
 import { BIKE } from '../src/config/constants.js';
 import { deepFreeze, hasNaN } from './helpers.js';
 
@@ -91,6 +91,21 @@ describe('stepBike', () => {
     const s = createBikeState();
     expect(hasNaN(stepBike(s, {}, DT))).toBe(false);
     expect(hasNaN(stepBike(s, { pedal: NaN, steer: undefined }, DT))).toBe(false);
+  });
+});
+
+describe('rasa kendali (R13)', () => {
+  it('steerLimit: kecepatan rendah memakai batas lama, kecepatan tinggi dibatasi percepatan samping', () => {
+    expect(steerLimit(2, BIKE)).toBeCloseTo(0.6 / (1 + 0.08 * 2), 9);
+    expect(steerLimit(9, BIKE)).toBeCloseTo(Math.atan((1.05 * 9) / 81), 9);
+    expect(steerLimit(-9, BIKE)).toBeCloseTo(steerLimit(9, BIKE), 9);
+  });
+  it('belok penuh di laju puncak: percepatan samping tidak melewati latAccelMax', () => {
+    const cruising = run(createBikeState(), { pedal: 1, steer: 0, sprint: false }, 6);
+    const s = run(cruising, { pedal: 1, steer: 1, sprint: false }, 2);
+    const yawRate = (s.v / BIKE.wheelBase) * Math.tan(s.steer);
+    expect(s.v * yawRate).toBeLessThanOrEqual(BIKE.latAccelMax + 0.01);
+    expect(s.v * yawRate).toBeGreaterThan(BIKE.latAccelMax * 0.8);
   });
 });
 
