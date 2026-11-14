@@ -1,6 +1,7 @@
 import { createToastQueue } from './toastQueue.js';
 
 const FPS_SAMPLE_INTERVAL = 0.5;
+const CAMERA_LABEL = Object.freeze({ first: 'Kamera: orang pertama', third: 'Kamera: orang ketiga', angled: 'Kamera: 3/4 dari atas' });
 
 const rupiah = (n) => 'Rp ' + Math.round(n).toLocaleString('id-ID');
 
@@ -56,20 +57,37 @@ export class HUD {
 
   setScore(score) { this.#set('score', `PSPS ${score.a} – ${score.b} TAMU`); }
 
+  /** Pil skor hanya di kawasan stadion; DOM ditulis hanya saat berubah. */
+  setScoreVisible(visible) {
+    const v = Boolean(visible);
+    if (this._scoreVisible === v) return;
+    this._scoreVisible = v;
+    this.el.score.classList.toggle('hidden', !v);
+  }
+
   /** Indikator jam & cuaca, mis. "16:30 · Sore · Cerah". */
   setTime(hourText, presetName, weatherName) {
     const preset = presetName ? presetName.charAt(0).toUpperCase() + presetName.slice(1) : '';
     this.#set('time', [hourText, preset, weatherName].filter(Boolean).join(' · '));
   }
 
+  /** Mode kamera pemain: tanpa baris tetap di HUD; toast sekali saat mode BERUBAH (bukan panggilan pertama). */
   setCameraMode(mode) {
-    const text = { first: 'Kamera: orang pertama (V)', angled: 'Kamera: 3/4 dari atas (C)' };
-    this.#set('cam', text[mode] ?? 'Kamera: orang ketiga (V)');
+    if (this._camHidden !== true) {
+      this.el.cam.classList.add('hidden');
+      this._camHidden = true;
+    }
+    if (this._camMode !== undefined && this._camMode !== mode) this.toast(CAMERA_LABEL[mode] ?? CAMERA_LABEL.third, true);
+    this._camMode = mode;
   }
 
   /** Teks kamera: nama POV aktif (dengan petunjuk keluar) atau mode kamera pemain. */
   setCameraView(mode, povLabel = null, freezesBike = false) {
     if (!povLabel) return this.setCameraMode(mode);
+    if (this._camHidden !== false) {
+      this.el.cam.classList.remove('hidden');
+      this._camHidden = false;
+    }
     const hint = freezesBike ? 'sepeda dibekukan · V/0 kembali' : 'sepeda aktif · V/0 kembali';
     return this.#set('cam', `POV: ${povLabel} (${hint})`);
   }
@@ -137,7 +155,7 @@ function countItems(items = []) {
 
 function buildLayout(root) {
   const speed = el('div', { id: 'hud-speed', className: 'big' }, '0 km/j');
-  const cam = el('div', { id: 'hud-cam', className: 'muted' }, 'Kamera: orang ketiga (V)');
+  const cam = el('div', { id: 'hud-cam', className: 'muted hidden' }, '');
   const fps = el('div', { id: 'hud-fps', className: 'muted' }, '– fps');
   const time = el('div', { id: 'hud-time' }, '16:30 · Sore · Cerah');
   const wallet = el('div', { id: 'hud-wallet', className: 'big' }, 'Rp 0');

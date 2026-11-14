@@ -268,7 +268,8 @@ async function main() {
     isBlocked: () => hud.shopOpen || inventory.open || rig.freezesBike || portalKit.portal.state !== 'outside',
   });
   lifecycle.add(() => farm.dispose());
-  addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel, portal: portalKit.portal, isInventoryOpen });
+  const inStadion = () => regionContains(stadionDef, ents.bike.state.x, ents.bike.state.z); // skor pertandingan hanya di kawasan stadion
+  addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel, portal: portalKit.portal, isInventoryOpen, inStadion });
   // K: pratinjau kota isometrik; isi berat (stadion, region, penonton) diganti bentuk dasar selama aktif.
   const cityPreview = createCityPreview({
     app, rig, regions, time, store, hud, city, lighting, audioBus, tier: () => quality?.tier ?? null, landmarks: travel.destinations.map((d) => (d.id === 'stadion' ? { ...d, ...frame.toWorld(0, 0) } : d)), stadionId: STADION_ID, stadionPlacement: frame.placement, hide: [ents.group, anchor],
