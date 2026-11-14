@@ -34,6 +34,7 @@ import { disposeTree } from './engine/disposeTree.js';
 import { stadionRegion, STADION_ID } from './regions/stadion/index.js';
 import { session, setupMenu } from './app/session.js';
 import { setupAutosave, restorePlace } from './app/savePlace.js';
+import { START_POINT } from './config/startPoint.js';
 import { setupShop } from './app/shop.js';
 import { exposeDevTools, parsePlacementParam, parseFlagParam } from './app/devtools.js';
 import { preloadProcTextures, releaseBaked } from './world/textures/procBake.js';
@@ -326,7 +327,9 @@ async function main() {
   }
   setupMenu({
     app, rig, hud, store, touchUi, touch, menu, story, resetGame,
-    restore: () => restorePlace({ story, regions, travel, ents }).catch((err) => console.error('Tempat terakhir gagal dipulihkan:', err)),
+    restore: () => restorePlace({ story, regions, travel, ents }).catch((err) => { console.error('Tempat terakhir gagal dipulihkan:', err); return true; }),
+    // Permainan baru mulai di depan sekre ERC (D1); distrik UNRI gagal → tetap di titik stadion lama.
+    startFresh: unri ? () => travel.goTo(START_POINT).catch((err) => console.error('Gagal menuju titik mulai:', err)) : null,
   })
     .then((mounted) => {
       panelRef.current = mounted.panel;

@@ -8,12 +8,14 @@ import { thirdPersonOffset } from '../core/cameraMath.js';
 import { regionContains } from '../regions/Region.js';
 
 /** Area manifest untuk An-Nur (tools/citybake/config.js AREAS.pusat; pusat area = node OSM masjid). */
+import { START_POINT } from '../config/startPoint.js';
+
 export const ANNUR_AREA_ID = 'pusat';
 
 /** Tujuan kampus (dunia; spec §8.4, titik ukur §9.2 sekre-luar & rektorat), menghadap gedung (yaw π = utara). */
 export const CAMPUS_DESTINATIONS = Object.freeze([
   // Sekre UKM blok biru (ERC, pintu D5): 3 m di depan pintu, halaman beton, menghadap timur ke gedung (yaw π/2).
-  Object.freeze({ id: 'unri-sekre-ukm', label: 'Kampus UNRI — Sekre UKM (ERC)', x: -96.65, z: 1005.5, yaw: Math.PI / 2 }),
+  Object.freeze({ id: 'unri-sekre-ukm', label: 'Kampus UNRI — Sekre UKM (ERC)', x: START_POINT.x, z: START_POINT.z, yaw: START_POINT.yaw }), // = titik mulai
   Object.freeze({ id: 'unri-sekre', label: 'Kampus UNRI — Sekretariat Lembaga', x: -219, z: 1130, yaw: Math.PI }),
   Object.freeze({ id: 'unri-rektorat', label: 'Kampus UNRI — Rektorat', x: -979, z: 860, yaw: Math.PI }),
 ]);
