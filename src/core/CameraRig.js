@@ -5,7 +5,8 @@ import {
   ANGLED, angledOffset, clampDistance, decayYawOffset, shouldSnapAngled, stepPosition, stepYaw, wrap as wrapYaw, zoomDistance,
 } from './cameraAngled.js';
 import {
-  THIRD, cameraFloor, decayLook, firstPersonDirection, pullInOffset, shouldSnap, sweepOffset, thirdPersonOffset, wrapAngle,
+  THIRD, cameraFloor, decayLook, firstPersonDirection, followYaw, lookAhead, pullInOffset, shouldSnap, speedFov, sweepOffset,
+  thirdPersonOffset, wrapAngle,
 } from './cameraMath.js';
 
 const FIRST_PERSON_EYE = new THREE.Vector3(0, 1.55, 0.15);
@@ -15,6 +16,10 @@ const CAMERA_MODES = Object.freeze(['third', 'first', 'angled']);
 const ANGLED_ZOOM_RATE = 8; // 1/s: jarak tampil mengejar jarak yang diminta
 const PITCH_LIMIT = Math.PI / 2.4;
 const FLAT = () => 0;
+const FOLLOW_MIN_V = 0.3;   // m/s: sepeda diam → arah kamera tidak dipaksa menyusul
+const FOV_RATE = 4;         // 1/s: FOV kecepatan dihaluskan
+const FOV_EPS = 0.05;       // derajat: proyeksi diperbarui hanya bila berubah lebih dari ini
+const FIRST_ROLL = 0.5;     // orang pertama: cakrawala miring setengah lean
 
 /**
  * CameraRig: kamera pemain third-person (default) atau first-person, ditambah sudut
@@ -38,6 +43,15 @@ export class CameraRig {
     this.sensitivity = 1;                    // pengali MOUSE_SENSITIVITY (settings camera.sensitivity)
     this.followSmoothing = FOLLOW_SMOOTHING; // 1/s (settings camera.followSmoothing)
     this.distanceScale = 1; // pengali jarak orang ketiga (mis. traktor lebih besar dari sepeda)
+    this._thirdCfg = THIRD;  // THIRD dengan radius × distanceScale (dibuat ulang hanya saat skala berubah)
+    this._thirdCfgScale = 1;
+    this._followYaw = null;  // arah kamera orang ketiga: menyusul arah sepeda (followYaw), tidak dikunci
+    this._fovShown = null;   // FOV kecepatan yang sedang tampil
+    /** Kurangi gerakan (aksesibilitas): FOV kecepatan & titik pandang ke depan mati. */
+    this.reduceMotion = false;
+    this.invertY = false;    // balik sumbu Y (settings camera.invertY)
+    this.touchSensitivity = 1;
+    this.padSensitivity = 1;
     this.userFov = camera.fov;               // FOV pengaturan; mode angled memakai ANGLED.fov
     this.angledDistance = ANGLED.defaultDistance; // jarak kamera 3/4 (m), diminta pemain/pengaturan
     this.angledLockYaw = false;              // true: yaw hanya berubah lewat input pemain (settings camera.angledLockYaw)
@@ -92,9 +106,11 @@ export class CameraRig {
    * dan stick kanan gamepad. Di POV diteruskan ke PovDirector.
    * @param {number} dx @param {number} dy @param {number} [scale=1] pengali kepekaan (sentuh > mouse)
    */
-  lookBy(dx, dy, scale = 1) {
+  lookBy(dx, dy, scale = 1, source = 'mouse') {
     if (!Number.isFinite(dx) || !Number.isFinite(dy)) return;
-    const k = MOUSE_SENSITIVITY * this.sensitivity * scale;
+    if (this.invertY) dy = -dy;
+    const device = source === 'touch' ? this.touchSensitivity : source === 'pad' ? this.padSensitivity : this.sensitivity;
+    const k = MOUSE_SENSITIVITY * device * scale;
     if (this.director.isCity) { // piksel layar → meter di titik pandang
       const h = Math.max(1, this.dom.clientHeight || 720);
       this.director.panDrag(dx * scale, dy * scale, (2 * this.director.cityDistance * Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2)) / h);
@@ -201,6 +217,7 @@ export class CameraRig {
   #applyBaseFov() {
     const fov = this.mode === 'angled' ? ANGLED.fov : this.userFov;
     this.director.setBaseFov(fov);
+    this._fovShown = fov;
     if (this.director.active) return;
     this.camera.fov = fov;
     this.camera.updateProjectionMatrix();
@@ -270,7 +287,7 @@ export class CameraRig {
       if (this.director.active) this.focus.set(f.x, this._heightAt(f.x, f.z), f.z);
       if (handled) { this.#syncLodPoint(); return; }
     }
-    if (this.mode === 'first') this.#updateFirst(bike);
+    if (this.mode === 'first') { this._followYaw = bike.yaw; this.#updateFirst(bike, dt); }
     else if (this.mode === 'angled') this.#updateAngled(bike, dt);
     else this.#updateThird(bike, dt);
     this.#syncLodPoint();
@@ -298,7 +315,7 @@ export class CameraRig {
   }
 
   /** Yaw kamera dunia (arah "maju" untuk jalan kaki). */
-  get cameraYaw() { return this.freeYaw ?? (this._bike?.yaw ?? 0) + this.yawOffset; }
+  get cameraYaw() { return this.freeYaw ?? (this._followYaw ?? this._bike?.yaw ?? 0) + this.yawOffset; }
 
   /** Pose pemain ideal (tanpa smoothing) untuk transisi kembali dari POV. */
   #writePlayerPose(out) {
@@ -312,6 +329,7 @@ export class CameraRig {
 
   #poseFirst(bike, outPos, outTarget) {
     const eye = this._eye.copy(FIRST_PERSON_EYE).applyAxisAngle(THREE.Object3D.DEFAULT_UP, bike.yaw);
+    if (Number.isFinite(bike.eyeHeight)) eye.y = bike.eyeHeight; // traktor: mata lebih tinggi
     outPos.set(bike.x + eye.x, this._heightAt(bike.x, bike.z) + eye.y, bike.z + eye.z);
     const d = firstPersonDirection(this.freeYaw ?? bike.yaw + this.yawOffset, this.pitch);
     outTarget.set(outPos.x + d.x, outPos.y + d.y, outPos.z + d.z);
@@ -319,13 +337,14 @@ export class CameraRig {
 
   /** Pose orang ketiga ideal: orbit konstan di sekitar titik pandang, sudah ditarik dari dinding. */
   #poseThird(bike, outPos, outTarget) {
-    outTarget.set(bike.x, this._heightAt(bike.x, bike.z) + THIRD.lookHeight, bike.z);
-    const yaw = this.freeYaw ?? bike.yaw + this.yawOffset;
+    const ahead = this.reduceMotion ? 0 : lookAhead(bike.v ?? 0); // titik pandang sedikit di depan saat melaju
+    outTarget.set(bike.x + Math.sin(bike.yaw) * ahead, this._heightAt(bike.x, bike.z) + THIRD.lookHeight, bike.z + Math.cos(bike.yaw) * ahead);
+    const yaw = this.freeYaw ?? (this._followYaw ?? bike.yaw) + this.yawOffset;
+    const cfg = this.#thirdCfg(); // jarak traktor dihitung SEBELUM uji dinding (dulu dikalikan sesudahnya → masuk dinding)
     // Terhalang dinding: geser sudut orbit ke posisi bebas terdekat; bila semua terhalang, tarik mendekat.
-    const safe = (this.obstacleTest && sweepOffset(outTarget, yaw, this.pitch, this.obstacleTest))
-      || this.#pullIn(outTarget, thirdPersonOffset(yaw, this.pitch));
-    const k = this.distanceScale;
-    outPos.set(outTarget.x + safe.x * k, outTarget.y + safe.y * k, outTarget.z + safe.z * k);
+    const safe = (this.obstacleTest && sweepOffset(outTarget, yaw, this.pitch, this.obstacleTest, { cfg }))
+      || this.#pullIn(outTarget, thirdPersonOffset(yaw, this.pitch, cfg));
+    outPos.set(outTarget.x + safe.x, outTarget.y + safe.y, outTarget.z + safe.z);
   }
 
   /** Pose 3/4 ideal (tanpa smoothing): titik pandang = pemain, kamera di belakang yaw tampil. Tanpa pull-in dinding. */
@@ -362,17 +381,48 @@ export class CameraRig {
     this.camera.lookAt(this._angledTarget);
   }
 
+  /** THIRD dengan radius × distanceScale; objek baru hanya saat skala berubah. */
+  #thirdCfg() {
+    if (this._thirdCfgScale !== this.distanceScale) {
+      this._thirdCfgScale = this.distanceScale;
+      this._thirdCfg = this.distanceScale === 1 ? THIRD : Object.freeze({ ...THIRD, radius: THIRD.radius * this.distanceScale });
+    }
+    return this._thirdCfg;
+  }
+
+  /** FOV pengaturan + FOV kecepatan (dihaluskan); proyeksi diperbarui hanya bila berubah > FOV_EPS. */
+  #applySpeedFov(v, dt) {
+    const goal = this.reduceMotion ? this.userFov : speedFov(this.userFov, v ?? 0);
+    const shown = this._fovShown ?? this.camera.fov;
+    const next = shown + (goal - shown) * (1 - Math.exp(-FOV_RATE * Math.max(0, dt)));
+    this._fovShown = next;
+    if (Math.abs(this.camera.fov - next) > FOV_EPS) {
+      this.camera.fov = next;
+      this.camera.updateProjectionMatrix();
+    }
+  }
+
+  /** Arah orang ketiga menyusul arah sepeda; loncat saat snap; diam → tidak dipaksa. */
+  #updateFollowYaw(bike, dt) {
+    if (this._followYaw === null || this._snap || this.mode !== 'third') this._followYaw = bike.yaw;
+    else if (Math.abs(bike.v ?? 1) >= FOLLOW_MIN_V) this._followYaw = followYaw(this._followYaw, bike.yaw, dt);
+  }
+
   #pullIn(target, offset) {
     return this.obstacleTest ? pullInOffset(target, offset, this.obstacleTest) : offset;
   }
 
-  #updateFirst(bike) {
+  #updateFirst(bike, dt = 0) {
     this.#poseFirst(bike, this.camera.position, this._target);
     this.camera.lookAt(this._target);
+    if (Number.isFinite(bike.lean) && bike.lean !== 0) this.camera.rotateZ(-bike.lean * FIRST_ROLL); // cakrawala miring saat belok
+    this.#applySpeedFov(bike.v, dt);
     this._snap = false;
   }
 
   #updateThird(bike, dt) {
+    this.#updateFollowYaw(bike, dt);
+    this.#applySpeedFov(bike.v, dt);
     // Kamera kembali ke belakang sepeda hanya setelah input lihat berhenti (tidak melawan mouse/jari/stick).
     this._idle += dt;
     if (this.freeYaw === null) this.yawOffset = decayLook(this.yawOffset, dt, this._idle);

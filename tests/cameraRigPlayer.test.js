@@ -104,3 +104,34 @@ describe('CameraRig orang pertama', () => {
     expect(rig.yawOffset).toBeCloseTo(0.8, 6);
   });
 });
+
+describe('CameraRig rasa (R15)', () => {
+  it('arah kamera menyusul lompatan yaw sepeda, tidak dikunci', () => {
+    const rig = make();
+    run(rig, { x: 0, z: 0, yaw: 0, v: 8 }, 1);
+    rig.update({ x: 0, z: 0, yaw: 1, v: 8 }, 1 / 60, 0);
+    expect(Math.abs(rig.cameraYaw - 0)).toBeLessThan(0.1);
+    run(rig, { x: 0, z: 0, yaw: 1, v: 8 }, 2);
+    expect(Math.abs(rig.cameraYaw - 1)).toBeLessThan(0.01);
+  });
+
+  it('traktor (distanceScale 1,4) dengan rintangan di belakang: kamera tidak menembus dinding', () => {
+    const rig = make();
+    rig.distanceScale = 1.4;
+    rig.setObstacleTest((x, z) => z > -3);
+    let minZ = Infinity;
+    for (let i = 0; i < 120; i += 1) { rig.update(bike(0, 0, 0), 1 / 60, i / 60); minZ = Math.min(minZ, rig.camera.position.z); }
+    expect(minZ).toBeGreaterThan(-3);
+  });
+
+  it('FOV melebar saat melaju dan kembali saat berhenti', () => {
+    const rig = make();
+    run(rig, { x: 0, z: 0, yaw: 0, v: 13 }, 3);
+    expect(rig.camera.fov).toBeGreaterThan(68);
+    run(rig, { x: 0, z: 0, yaw: 0, v: 0 }, 3);
+    expect(rig.camera.fov).toBeLessThan(60.2);
+    rig.reduceMotion = true;
+    run(rig, { x: 0, z: 0, yaw: 0, v: 13 }, 3);
+    expect(rig.camera.fov).toBeLessThan(60.2);
+  });
+});
