@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createBikeState, stepBike } from '../src/sim/bikePhysics.js';
+import { createBikeState, stepBike, steerLimit, slideResponse } from '../src/sim/bikePhysics.js';
 import { BIKE } from '../src/config/constants.js';
 import { deepFreeze, hasNaN } from './helpers.js';
 
@@ -94,6 +94,71 @@ describe('stepBike', () => {
   });
 });
 
+describe('rasa kendali (R13)', () => {
+  it('steerLimit: kecepatan rendah memakai batas lama, kecepatan tinggi dibatasi percepatan samping', () => {
+    expect(steerLimit(2, BIKE)).toBeCloseTo(0.6 / (1 + 0.08 * 2), 9);
+    expect(steerLimit(9, BIKE)).toBeCloseTo(Math.atan((1.05 * 9) / 81), 9);
+    expect(steerLimit(-9, BIKE)).toBeCloseTo(steerLimit(9, BIKE), 9);
+  });
+  it('belok penuh di laju puncak: percepatan samping tidak melewati latAccelMax', () => {
+    const cruising = run(createBikeState(), { pedal: 1, steer: 0, sprint: false }, 6);
+    const s = run(cruising, { pedal: 1, steer: 1, sprint: false }, 2);
+    const yawRate = (s.v / BIKE.wheelBase) * Math.tan(s.steer);
+    expect(s.v * yawRate).toBeLessThanOrEqual(BIKE.latAccelMax + 0.01);
+    expect(s.v * yawRate).toBeGreaterThan(BIKE.latAccelMax * 0.8);
+  });
+});
+
+describe('meluncur (R13)', () => {
+  const COAST = { pedal: 0, steer: 0, sprint: false };
+  const moving = (v) => ({ ...createBikeState(), v });
+  const runG = (state, input, seconds, grade) => { let s = state; for (let i = 0; i < seconds * 60; i += 1) s = stepBike(s, input, DT, { grade }); return s; };
+  it('meluncur di datar: dari 9 m/s masih di atas 4,5 m/s setelah 3 detik, berhenti total sebelum 13 detik', () => {
+    expect(runG(moving(9), COAST, 3, 0).v).toBeGreaterThan(4.5);
+    expect(runG(moving(9), COAST, 13, 0).v).toBeLessThan(0.001);
+  });
+});
+
+describe('slideResponse', () => {
+  const D = 1 / 60;
+  it('langkah tidak dipotong: tidak ada perubahan', () => {
+    expect(slideResponse(8, 0.3, { dx: 1, dz: 2 }, { dx: 1, dz: 2 }, D)).toEqual({ v: 8, yaw: 0.3 });
+  });
+  it('geser 45° sepanjang dinding: kehilangan 5% per frame, arah hadap memutar 0,1 rad ke arah geser', () => {
+    const r = slideResponse(8, Math.PI / 4, { dx: 1, dz: 1 }, { dx: 1, dz: 0 }, D);
+    expect(r.v).toBeCloseTo(8 * (1 - 0.5 * 0.1), 9);
+    expect(r.yaw).toBeCloseTo(Math.PI / 4 + 0.1, 9);
+  });
+  it('mentok tegak lurus: laju turun 10% per frame, arah hadap tetap', () => {
+    const r = slideResponse(8, 0, { dx: 0, dz: 1 }, { dx: 0, dz: 0 }, D);
+    expect(r.v).toBeCloseTo(7.2, 9);
+    expect(r.yaw).toBe(0);
+  });
+  it('setelah sejajar dinding, laju tidak berkurang lagi', () => {
+    expect(slideResponse(6, Math.PI / 2, { dx: 1, dz: 0 }, { dx: 1, dz: 0 }, D).v).toBe(6);
+  });
+});
+
+describe('akselerasi (R13)', () => {
+  it('akselerasi melandai: detik pertama menambah laju lebih banyak daripada detik ketiga', () => {
+    const P = { pedal: 1, steer: 0, sprint: false };
+    const a = run(createBikeState(), P, 1).v;
+    const b = run(createBikeState(), P, 2).v;
+    const c = run(createBikeState(), P, 3).v;
+    expect(a).toBeGreaterThan(4);
+    expect(c - b).toBeLessThan(a * 0.5);
+  });
+});
+
+describe('pedal (R13)', () => {
+  it('pedal tidak berputar saat meluncur atau mengerem; roda tetap berputar', () => {
+    const moving = run(createBikeState(), { pedal: 1, steer: 0, sprint: false }, 3);
+    const coast = run(moving, { pedal: 0, steer: 0, sprint: false }, 1);
+    expect(coast.pedalAngle).toBe(moving.pedalAngle);
+    expect(coast.wheelSpin).toBeGreaterThan(moving.wheelSpin);
+  });
+});
+
 describe('stepBike dengan grade (tanjakan, M1)', () => {
   const PEDAL = { pedal: 1, steer: 0, sprint: false };
   const COAST = { pedal: 0, steer: 0, sprint: false };
@@ -108,9 +173,14 @@ describe('stepBike dengan grade (tanjakan, M1)', () => {
     expect(BIKE.kSlope).toBe(0.55);
   });
 
-  it('paritas jalan datar: grade 0 = tanpa opsi; lepas sprint di datar tetap dipotong seketika ke maxSpeed', () => {
+  it('paritas jalan datar: grade 0 = tanpa opsi; lepas sprint di datar melambat 2,5 m/s²', () => {
     expect(runG(createBikeState(), PEDAL, 4, 0)).toEqual(run(createBikeState(), PEDAL, 4));
-    expect(stepBike(moving(13), PEDAL, DT).v).toBe(BIKE.maxSpeed);
+    expect(stepBike(moving(13), PEDAL, DT).v).toBeCloseTo(13 - BIKE.overspeedDecel * DT, 9);
+  });
+
+  it('lepas sprint: dari 13 m/s turun ke maxSpeed dalam ±1,6 detik, tidak pernah di bawahnya', () => {
+    expect(runG(moving(13), PEDAL, 1, 0).v).toBeCloseTo(10.5, 1);
+    expect(runG(moving(13), PEDAL, 3, 0).v).toBeCloseTo(BIKE.maxSpeed, 6);
   });
 
   it('tanjakan 6%: laju puncak 9 × (1 − 0,06 × 3) = 7,38 m/s, tercapai < 5 s tanpa sprint', () => {
@@ -123,8 +193,8 @@ describe('stepBike dengan grade (tanjakan, M1)', () => {
     expect(runG(moving(9), PEDAL, 3, 0.06).v).toBeCloseTo(7.38, 2);
   });
 
-  it('turunan 6% tanpa kayuh: meluncur stabil ±6,54 m/s (datar: berhenti)', () => {
-    expect(runG(moving(9), COAST, 20, -0.06).v).toBeCloseTo(6.54, 1);
+  it('turunan 6% tanpa kayuh: meluncur stabil ±6,16 m/s (datar: berhenti)', () => {
+    expect(runG(moving(9), COAST, 40, -0.06).v).toBeCloseTo(6.16, 1);
     expect(runG(moving(9), COAST, 20, 0).v).toBeLessThan(0.01);
   });
 

@@ -69,5 +69,5 @@ export const TRACTOR = Object.freeze({
   ...BIKE,
   maxSpeed: 4.2, sprintSpeed: 6, accel: 1.8, brake: 5, drag: 0.9,
   wheelRadius: 0.62, leanMax: 0, wheelBase: 1.7, steerMax: 0.6, steerRate: 3, steerSpeedFactor: 0.05,
-  reverseSpeed: 2, reverseAccel: 1.5, pedalRatio: 0, kSlope: 0.3, climbLoss: 1,
+  reverseSpeed: 2, reverseAccel: 1.5, pedalRatio: 0, kSlope: 0.3, climbLoss: 1, latAccelMax: 3,
 });

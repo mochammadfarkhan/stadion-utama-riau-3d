@@ -90,12 +90,12 @@ export const RENDER = Object.freeze({
 export const BIKE = Object.freeze({
   maxSpeed: 9,       // m/s (~32 km/h)
   sprintSpeed: 13,
-  accel: 3.5,
+  accel: 5,           // m/s² dari diam; melandai menjelang laju puncak (bikePhysics.updateSpeed)
   brake: 7,
-  drag: 0.6,
-  turnRate: 1.6,     // rad/s pada kecepatan rendah
+  drag: 0.15,          // hambatan udara (sebanding laju) saat meluncur
+  rollDecel: 0.3,      // m/s² hambatan gulir tetap: sepeda benar-benar berhenti
   wheelRadius: 0.34,
-  leanMax: 0.35,
+  leanMax: 0.6,
   wheelBase: 1.05,     // jarak sumbu roda (m) untuk model kinematik
   steerMax: 0.6,       // sudut setang maksimum (rad)
   steerRate: 4,        // kecepatan smoothing setang (1/s)
@@ -110,6 +110,7 @@ export const BIKE = Object.freeze({
   climbLoss: 3,        // laju puncak × (1 − grade·climbLoss) saat menanjak (6% → 82%)
   glidePerGrade: 100,  // laju luncur (m/s) per satuan grade turunan tanpa kayuh (6% → 6 m/s)
   holdGrade: 0.08,     // sepeda diam tanpa kayuh tidak menggelinding di lereng < 8%
+  latAccelMax: 9,      // m/s² percepatan samping maksimum saat belok (±0,9 g)
   overspeedDecel: 2.5, // m/s² perlambatan halus bila laju > batas (mis. masuk tanjakan)
 });
 
