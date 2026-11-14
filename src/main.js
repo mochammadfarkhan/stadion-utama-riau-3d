@@ -316,7 +316,7 @@ async function main() {
   const menu = new MainMenu();
   const rotatePrompt = createRotatePrompt(document.body, { isTouch: touch });
   lifecycle.add(() => rotatePrompt.dispose());
-  setupMenu({ app, rig, hud, store, touchUi, touch, menu, story })
+  setupMenu({ app, rig, hud, store, touchUi, touch, menu, story, input })
     .then((mounted) => {
       panelRef.current = mounted.panel;
       lifecycle.add(() => mounted.dispose());

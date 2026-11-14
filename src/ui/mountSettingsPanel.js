@@ -115,7 +115,7 @@ function addPerfFolder(tabs, infos) {
  * @param {{ store: object, app: object, rig?: object, hud?: object }} ctx
  * @returns {Promise<{ panel: object|null, dispose(): void }>}
  */
-export async function mountSettingsPanel({ store, app, rig = null, hud = null, onPanelToggle = null }) {
+export async function mountSettingsPanel({ store, app, rig = null, hud = null, input = null, onPanelToggle = null }) {
   const noop = { panel: null, dispose() {} };
   const mods = await loadPanelModules();
   if (!mods) return noop;
@@ -153,6 +153,8 @@ export async function mountSettingsPanel({ store, app, rig = null, hud = null, o
     if (!panel.isPointerOverUI && !hud?.shopOpen) rig?.requestLock?.();
   };
   app.renderer.domElement.addEventListener('click', onCanvasClick);
+  // Gamepad Back = PanelToggle (kode virtual; keyboard H ditangani Panel sendiri lewat keydown).
+  if (input) app.addSystem?.({ id: 'panel.gamepad', phase: 'input', update: () => { if (input.consumePress('PanelToggle')) panel.togglePanel(); } });
   return {
     panel,
     dispose() {
