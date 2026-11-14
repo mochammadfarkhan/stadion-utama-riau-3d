@@ -61,7 +61,7 @@ Akar keterbatasan sekarang: `BUILDING_CLASS` melebur masjid/sekolah/RS/pemerinta
 - ⬜ A1 **Proxy stadion lebih rinci**: rangka/lengkung atap, tingkat tribun, papan nama, menara lampu (sekarang donat polos) — [stadion-proxy](stadion-proxy/README.md)
 - ✅ A2 Masjid Raya An-Nur (2026-11-14): model Blender 3 LOD (3,0 rb / 1,2 rb / 340 segitiga) + plaza + lampu malam di mode Kota — [landmark](landmark/README.md); plaza dari citra satelit
 - ⬜ A3 Rektorat UNRI + gerbang: proxy LOD untuk mode Kota
-- ⬜ A4 Jembatan (Siak) — rentang + pilar
+- ✅ A4 Jembatan Siak I/III/IV (2026-11-14): generator Blender 3 LOD tiap jembatan (balok / busur baja / kabel), garis dari OSM, pilar di sungai — [landmark](landmark/README.md)
 - ⬜ A5 Bandara (landasan + terminal)
 - ⬜ A6 1–2 gedung ikonik pusat kota — kandidat dari data tinggi Overture + nama OSM (cek dulu)
 - ⬜ Identifikasi bangunan bundar berkubah di selatan stadion (tag OSM) sebelum diberi label
@@ -79,7 +79,7 @@ Akar keterbatasan sekarang: `BUILDING_CLASS` melebur masjid/sekolah/RS/pemerinta
 - ⬜ Kartu kecepatan diganti nama kawasan + skala selama mode Kota
 
 **Tingkat D — kandidat hias dari riset web (usul, belum diputuskan)** — daftar lengkap + sumber: [DAFTAR-IKON.md](DAFTAR-IKON.md)
-- ⬜ D1 Generator jembatan berparameter (Siak I/III/IV) — gabung dengan A4
+- ✅ D1 Generator jembatan (Siak I/III/IV) — selesai bersama A4
 - ⬜ D2 Tugu Selais Tiga Sepadan (Jl. Sudirman), model kecil
 - ⬜ D3 Perpustakaan Soeman HS + Kantor Gubernur Riau (butuh foto rujukan dulu)
 - ⬜ D4 Mal SKA/Living World/Ciputra Seraya/Transmart lewat arketipe mal + papan nama
@@ -115,3 +115,4 @@ Lihat [ganti-model](ganti-model/README.md).
 | 2026-11-13 | Lampu malam (`nightGlow.js`, `glow.webp`, lampu sorot proxy) | `glow.webp` ±4 KB; kekuatan jalan 0,38 (tile) / 0,55 (jauh) setelah dicek terlalu terang di 0,6/0,9, peta 2,0, jendela ×2,6 |
 | 2026-11-13 | Awan disembunyikan di mode Kota (penyebab kerudung putih); fasad di bangunan jauh | browser uji 20–30 fps (software) |
 | 2026-11-14 | Landmark hero An-Nur: `assets-src/blender/landmark/an_nur.py` → 3 GLB LOD, `src/city/landmarks.js` (LOD menurut jarak kamera, 1 draw call), `tools/shots/landmarkKota.mjs` | 4 tes murni (`tests/city/landmarks.test.js`); 279 tes kota hijau; dilihat di mode Kota zoom 0,4–3 (LOD0→2 berganti benar); batas LOD awal 260/900 m salah (jarak kamera ≈ 1300 m × zoom) → 1300/2800 |
+| 2026-11-14 | Jembatan Siak I/III/IV: `assets-src/blender/landmark/jembatan.py` → 9 GLB (garis OSM, struktur menurut foto Commons), terdaftar di `landmarks.js` | dilihat di mode Kota zoom 0,4/1,2; pilon Siak IV digeser 400→450 m setelah garis tengah sungai (`rivers.bin`) memotong di 454 m; koreksi: angka "Siak III 1.196 m" milik jembatan Latifah di Kab. Siak |

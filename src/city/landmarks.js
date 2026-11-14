@@ -37,6 +37,19 @@ export const LANDMARKS = Object.freeze([
     // jarak kamera ≈ 1300 m × zoom kota (zoom 0,4–9): LOD0 sampai zoom ±1, LOD1 sampai ±2,1, sisanya LOD2
     files: ['an-nur-lod0.glb', 'an-nur-lod1.glb', 'an-nur-lod2.glb'], lod: [1300, 2800],
   },
+  // Jembatan: model memakai koordinat dunia relatif ke titik tengah garis OSM (yaw 0); lihat assets-src/blender/landmark/jembatan.py
+  {
+    id: 'jembatan-siak-1', name: 'Jembatan Siak I (Leighton)', x: 5294.0, z: -6345.0, yaw: 0,
+    files: ['jembatan-siak-1-lod0.glb', 'jembatan-siak-1-lod1.glb', 'jembatan-siak-1-lod2.glb'], lod: [1300, 2800],
+  },
+  {
+    id: 'jembatan-siak-3', name: 'Jembatan Siak III', x: 5535.0, z: -6441.0, yaw: 0,
+    files: ['jembatan-siak-3-lod0.glb', 'jembatan-siak-3-lod1.glb', 'jembatan-siak-3-lod2.glb'], lod: [1300, 2800],
+  },
+  {
+    id: 'jembatan-siak-4', name: 'Jembatan Siak IV', x: 6467.2, z: -6184.0, yaw: 0,
+    files: ['jembatan-siak-4-lod0.glb', 'jembatan-siak-4-lod1.glb', 'jembatan-siak-4-lod2.glb'], lod: [1300, 2800],
+  },
 ]);
 
 /**

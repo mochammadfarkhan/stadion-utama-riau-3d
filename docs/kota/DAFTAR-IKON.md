@@ -11,11 +11,13 @@ Tiga teratas menurut survei: Masjid Agung An-Nur, Perpustakaan Soeman HS, Kantor
 | 1 | Masjid Agung An-Nur (Riau Park) | masjid | dibangun 1968, 10 kubah toska, 4 menara, ±4.500 jamaah, julukan "Taj Mahal Riau" | = A2 |
 | 2 | Perpustakaan Soeman HS (Jl. Sudirman) | gedung budaya | berdiri megah di pusat kota; bentuk detail belum ditemukan | baru |
 | 3 | Kantor Gubernur Riau | pemerintahan | belum ada detail bentuk `[INFERENSI]` atap Melayu | baru |
-| 4 | Jembatan Siak III (Tengku Agung Sultanah Latifah) | jembatan | total 1.196 m, lebar 16,95 m, bentang utama 300 m; punya lift | = A4 |
-| 5 | Jembatan Siak IV (Sultan Abdul Jalil Alamuddin Syah) | jembatan | ±800–834 m, lebar 18,5 m, Sudirman–Rumbai (sumber beda angka) | = A4 |
-| 6 | Jembatan Siak I "Leighton" (1977) | jembatan | jembatan lama, nadi kota | = A4 |
+| 4 | Jembatan Siak III | jembatan busur baja | ✅ dibuat 2026-11-14. OSM ±372 m (way 465906574 + 2 lain); foto: dua busur baja oranye miring ke dalam, palang silang, penggantung vertikal, pagar biru | A4 selesai |
+| 5 | Jembatan Siak IV (Sultan Abdul Jalil Alamuddin Syah) | jembatan kabel | ✅ dibuat. OSM ±830 m (dua jalur Jl. Jenderal Sudirman), lebar 18,5 m; foto: pilon beton putih bentuk A, kabel kuning | A4 selesai |
+| 6 | Jembatan Siak I "Leighton" (1977) | jembatan balok | ✅ dibuat. OSM `beam`, 402 m; foto: geladak datar berpagar kuning | A4 selesai |
 | 7 | Tugu Selais Tiga Sepadan (Jl. Sudirman) | tugu | tiga ikan selais warna tembaga saling berpelukan di atas kolam, diresmikan 14 Juli 2011 | baru, murah (1 model kecil) |
 | 8 | Stadion Utama Riau | stadion | sudah ada | A1 |
+
+> **Koreksi 2026-11-14:** angka "1.196 m, bentang utama 300 m, punya lift" di versi awal tabel ini milik Jembatan Tengku Agung Sultanah Latifah di **Siak Sri Indrapura (Kabupaten Siak)**, bukan Siak III Pekanbaru. Pencarian web awal menyamakan keduanya; foto Commons dan data OSM menunjukkan Siak III Pekanbaru = busur baja ±372 m. Jembatan Latifah (kabel, pilon-H, kabel oranye) bukan bagian kota ini.
 
 ## Prioritas 2 — mal & komersial
 | Tempat | Catatan |

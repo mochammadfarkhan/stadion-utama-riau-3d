@@ -17,6 +17,15 @@ Jarak kamera → landmark ≈ **1300 m × zoom kota** (zoom 0,4–9). Satu draw 
 | LOD1 | ≤ 2800 m (zoom ≲ 2,1) | 1.157, 86 KB |
 | LOD2 | lebih jauh | 340, 26 KB |
 
+## Jembatan Siak (✅ 2026-11-14)
+Skrip: `assets-src/blender/landmark/jembatan.py` → 9 GLB (3 jembatan × 3 LOD). Beda dengan An-Nur: model memakai **koordinat dunia relatif ke titik tengah garis OSM** (yaw 0), garis geladak dari way OSM (Siak I `71286129`; Siak III `465906574`+`1529638955`+`1529638956`, berbelok; Siak IV = sumbu tengah dua jalur Jl. Jenderal Sudirman `313965178`/`38659704`). Posisi sungai dari titik potong garis tengah `public/far/rivers.bin` dengan geladak (s = 241 / 279 / 454 m). Permukaan geladak 6 cm di atas jalan agar mobil kota tetap terlihat berjalan di atasnya.
+| Jembatan | Struktur (foto Commons) | LOD0 / LOD1 / LOD2 (segitiga) |
+|---|---|---|
+| Siak I, 401 m | balok datar, pagar kuning, pilar | 1.260 / 520 / 36 |
+| Siak III, 372 m | dua busur baja oranye miring ke dalam, 3 palang, penggantung, pagar biru | 1.684 / 812 / 188 |
+| Siak IV, 830 m | pilon beton putih bentuk A + palang, 40 kabel kuning, pagar abu | 2.804 / 1.220 / 196 |
+`[INFERENSI]`: lebar geladak (Siak I 12 m, Siak III 16 m), tinggi busur 26 m, tinggi pilon 62 m, posisi pilon (450 m), jarak pilar. Foto "Tengku Agung Sultanah Latifah" di folder `jembatan-siak-3` (rujukan lokal) milik jembatan di Kabupaten Siak, bukan Pekanbaru.
+
 ## Status
 - ✅ An-Nur (2026-11-14): jejak 61×73 m dari OSM `way 465323008`, pusat (6823,0; −4760,1), depan ke plaza ESE (citra satelit). Bentuk detail `[INFERENSI]`: tinggi kubah ±38 m, menara ±54 m, 10 kubah = 1 utama + 1 depan + 4 samping + 4 puncak menara.
 - Poles (2026-11-14): plaza putih ±120×110 m + 4 kolam bintang di depan (dari citra satelit); malam: ceruk/jendela menyala hangat + sorot lembut lewat `applyLandmarkNight` (memakai `uNight` fasad kota). Bangunan tile di bawah masjid = satu poligon U (masjid + sayap) berbentuk kompleks; model menutup bagian tengahnya, tidak dihapus.
