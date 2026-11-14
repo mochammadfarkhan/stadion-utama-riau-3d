@@ -20,7 +20,12 @@ describe('PORTAL_DOORS (pintu pemain = D5 gedung UKM blok biru, ERC)', () => {
     expect(d.yaw).toBeCloseTo(-Math.PI / 2, 6); // konvensi entitas: maju = (sin yaw, cos yaw) → (−1, 0)
   });
 
-  it('sekreExitTo = depan pintu, yaw keluar, region unri-lembaga', () => {
-    expect(sekreExitTo()).toEqual({ region: 'unri-lembaga', x: PORTAL_DOORS[0].pos.lx, z: PORTAL_DOORS[0].pos.lz, yaw: PORTAL_DOORS[0].yaw });
+  it('sekreExitTo = depan pintu di luar radius pemicu, yaw keluar, region unri-lembaga', () => {
+    const e = sekreExitTo();
+    const d = PORTAL_DOORS[0];
+    expect(e.region).toBe('unri-lembaga');
+    expect(e.yaw).toBe(d.yaw);
+    expect(Math.hypot(e.x - d.pos.lx, e.z - d.pos.lz)).toBeCloseTo(d.radius + 0.4, 6); // di luar radius pemicu (searah normal)
+    expect(Math.hypot(e.x - d.pos.lx, e.z - d.pos.lz)).toBeGreaterThanOrEqual(d.radius - 1e-9);
   });
 });

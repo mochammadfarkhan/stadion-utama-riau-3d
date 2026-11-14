@@ -11,7 +11,7 @@ export const session = { started: false };
  * Menu utama: Mulai/Lanjutkan, Mulai dari awal, Pengaturan; klik kanvas mengunci pointer sesudah mulai.
  * @returns {Promise<{panel: object|null, dispose(): void}>} hasil mountSettingsPanel
  */
-export function setupMenu({ app, rig, hud, store, touchUi, touch, menu, story, restore = null, resetGame = () => story.reset() }) {
+export function setupMenu({ app, rig, hud, store, touchUi, touch, menu, story, restore = null, startFresh = null, resetGame = () => story.reset() }) {
   let panel = null;
   let started = false;
   const begin = () => {
@@ -27,8 +27,9 @@ export function setupMenu({ app, rig, hud, store, touchUi, touch, menu, story, r
     }
   };
   menu.on({
-    start: () => { begin(); restore?.(); }, // Lanjutkan: kembali ke tempat + kendaraan terakhir (layar perjalanan menutupi)
-    newGame: () => { resetGame(); begin(); }, // cerita + dompet + kebun + tas
+    // Lanjutkan: kembali ke tempat + kendaraan terakhir; tanpa simpanan tempat → titik mulai (sekre). Layar perjalanan menutupi.
+    start: () => { begin(); Promise.resolve(restore?.()).then((moved) => { if (!moved) startFresh?.(); }); },
+    newGame: () => { resetGame(); begin(); startFresh?.(); }, // cerita + dompet + kebun + tas; mulai di depan sekre ERC
     settings: () => { menu.away(true); panel?.togglePanel?.(true); },
   });
   // Kembalikan hasil pemasangan panel agar composition root dapat memanggil dispose()-nya.

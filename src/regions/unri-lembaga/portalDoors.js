@@ -29,7 +29,11 @@ function ukmDoor(id, interiorId, prompt) {
 
 export const PORTAL_DOORS = Object.freeze([ukmDoor(PLAYER_DOOR_ID, 'sekre', 'Masuk sekre ERC')]);
 
-/** `exitTo` interior sekre (spec §4.8): depan pintu, region-lokal, yaw keluar. */
-export function sekreExitTo(door = PORTAL_DOORS[0]) {
-  return Object.freeze({ region: UNRI_LEMBAGA_ID, x: door.pos.lx, z: door.pos.lz, yaw: door.yaw });
+/** Jarak titik keluar dari muka pintu (m): di luar radius pemicu (1 + 1,6 + jarak aman 0,4), jadi keluar tidak langsung menawarkan masuk lagi. */
+export const EXIT_STEP_OUT = PORTAL_STEP_OUT + PORTAL_RADIUS + 0.4; // 3 m: = titik mulai/tujuan perjalanan cepat
+
+/** `exitTo` interior sekre (spec §4.8): depan pintu di luar radius pemicu, region-lokal, yaw keluar. */
+export function sekreExitTo() {
+  const f = doorFront(UKM_DOORS.find((v) => v.id === PLAYER_DOOR_ID), EXIT_STEP_OUT);
+  return Object.freeze({ region: UNRI_LEMBAGA_ID, x: f.lx, z: f.lz, yaw: f.yaw });
 }

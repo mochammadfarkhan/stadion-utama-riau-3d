@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { travelDestinations, findWalkableNear, findSpawnNear, createFastTravel, waitForRegion } from '../src/app/fastTravel.js';
+import { travelDestinations, findWalkableNear, findSpawnNear, createFastTravel, waitForRegion, CAMPUS_DESTINATIONS } from '../src/app/fastTravel.js';
 import { thirdPersonOffset } from '../src/core/cameraMath.js';
 import { createRegionFrame, IDENTITY_FRAME } from '../src/geo/regionTransform.js';
 import { LAYOUT } from '../src/regions/stadion/layout.js';
@@ -165,5 +165,13 @@ describe('waitForRegion', () => {
     let t = 0;
     const opts = { timeoutMs: 300, pollMs: 100, sleep: async (ms) => { t += ms; }, now: () => t };
     expect(await waitForRegion({ active: () => [] }, [def], 0, 0, opts)).toBe(false);
+  });
+});
+
+describe('titik mulai (R03)', () => {
+  it('tujuan unri-sekre-ukm = START_POINT (satu sumber)', async () => {
+    const { START_POINT } = await import('../src/config/startPoint.js');
+    const d = CAMPUS_DESTINATIONS.find((c) => c.id === 'unri-sekre-ukm');
+    expect([d.x, d.z, d.yaw]).toEqual([START_POINT.x, START_POINT.z, START_POINT.yaw]);
   });
 });
