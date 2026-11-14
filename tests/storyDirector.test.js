@@ -266,6 +266,13 @@ describe('StoryDirector: koordinat dunia multi-region (M0)', () => {
     expect(d.promptFor(w)).toMatch(/Pak Satpam/);
   });
 
+  it('saveNow menulis saldo terkini ke penyimpanan', () => {
+    const { d, deps, store } = started();
+    deps.vendors.credit(1234);
+    d.saveNow();
+    expect(JSON.parse(store.get(STORY_KEY)).wallet.balance).toBe(51234);
+  });
+
   it('save v3 menyimpan tempat dari placeOf; tempat tersimpan dibaca sebagai savedPlace', () => {
     const place = { region: 'stadion', x: 1, z: 2, yaw: 0.5 };
     const m = makeDeps();
@@ -274,11 +281,11 @@ describe('StoryDirector: koordinat dunia multi-region (M0)', () => {
     expect(d.savedPlace).toBeNull();
     d.vendors.wallet = { balance: 45000, items: [] };
     d.onBought('es-teh');
-    expect(JSON.parse(m.store.get(STORY_KEY))).toMatchObject({ version: 3, place });
+    expect(JSON.parse(m.store.get(STORY_KEY))).toMatchObject({ version: 3, place: { ...place, mode: 'sepeda' } });
     const reload = makeDeps({ store: m.store });
     const d2 = new StoryDirector({ ...reload.deps, frameOf });
     d2.start();
-    expect(d2.savedPlace).toEqual(place);
+    expect(d2.savedPlace).toEqual({ ...place, mode: 'sepeda' });
   });
 });
 

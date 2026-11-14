@@ -55,14 +55,14 @@ export class StoryDirector {
    */
   constructor({
     storage, vendors, storyHud, journal, markers, onToast = () => {}, onWalletChange = () => {}, pointerLock = null,
-    frameOf = () => IDENTITY_FRAME, placeOf = () => null,
+    frameOf = () => IDENTITY_FRAME, placeOf = () => null, modeOf = () => 'sepeda',
   }) {
     this.chapters = resolveChapters(CHAPTERS, frameOf);
     this.npcs = resolveNpcs(STORY_NPCS, frameOf);
     this.eggs = resolveEggs(EASTER_EGGS, frameOf);
     this.anchors = resolveAnchors(EGG_ANCHORS, frameOf);
     this.story = createStory({ chapters: this.chapters, eggs: this.eggs });
-    Object.assign(this, { storage, vendors, storyHud, journal, markers, onToast, onWalletChange, pointerLock, frameOf, placeOf });
+    Object.assign(this, { storage, vendors, storyHud, journal, markers, onToast, onWalletChange, pointerLock, frameOf, placeOf, modeOf });
     this.state = this.story.initial();
     this.eggState = createEggState();
     this.checkpoints = lapCheckpoints(frameOf);
@@ -113,8 +113,18 @@ export class StoryDirector {
       version: SAVE_VERSION,
       ...Object.fromEntries(PROGRESS_KEYS.map((k) => [k, this.state[k]])),
       wallet: this.vendors.wallet,
-      place: this.placeOf() ?? null,
+      place: this.#placeNow(),
     });
+  }
+
+  #placeNow() {
+    const p = this.placeOf();
+    return p ? { ...p, mode: this.modeOf() } : null;
+  }
+
+  /** Simpan sekarang (dompet, progres, tempat + kendaraan): dipakai transaksi kebun, simpan berkala, dan saat tab ditutup. */
+  saveNow() {
+    this.#persist();
   }
 
   dispatch(event) {

@@ -37,6 +37,7 @@ export function setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, l
     onToast: (text, ok) => hud.toast(text, ok),
     onWalletChange: (wallet) => hud.setWallet(wallet),
     frameOf,
+    modeOf: () => ents.bike.mode,
     placeOf: () => {
       const b = ents.bike.state;
       return localizePoint(b, regions.regionAt(b.x, b.z), frameOf);

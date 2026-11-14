@@ -61,7 +61,9 @@ const near = (b, p, r) => Math.hypot(b.x - p.x, b.z - p.z) < r;
  *   terrain:{heightAt(x:number,z:number):number}, time:{hour:number}, store:{set(k:string,v:unknown):void},
  *   isBlocked?:() => boolean, logger?:{error:Function}}} opts
  */
-export function setupFarm({ app, input, hud, ents, inventory, terrain, time, store, isBlocked = () => false, logger = console }) {
+export function setupFarm({
+  app, input, hud, ents, inventory, terrain, time, store, isBlocked = () => false, logger = console, onWalletChanged = () => {},
+}) {
   let farm = loadFarm();
   let view = null;
   let held = null; // pabrik model item di tangan
@@ -118,7 +120,10 @@ export function setupFarm({ app, input, hud, ents, inventory, terrain, time, sto
     view?.update(farm);
     saveFarm(farm);
   };
-  const walletChanged = () => hud.setWallet(ents.vendors.wallet);
+  const walletChanged = () => {
+    hud.setWallet(ents.vendors.wallet);
+    onWalletChanged(); // simpan sekarang: tanpa ini benih gratis / bayaran tidur hilang saat muat ulang
+  };
 
   function buySeed() {
     const id = `benih-${buyType}`;

@@ -264,7 +264,7 @@ async function main() {
   });
   lifecycle.add(() => inventory.dispose());
   const farm = setupFarm({ // kebun dekat sekre ERC; juga sebelum 'keymap' (E kebun lebih dulu dari cerita/toko)
-    app, input, hud, ents, inventory, terrain, time, store,
+    app, input, hud, ents, inventory, terrain, time, store, onWalletChanged: () => story.saveNow(),
     isBlocked: () => hud.shopOpen || inventory.open || rig.freezesBike || portalKit.portal.state !== 'outside',
   });
   lifecycle.add(() => farm.dispose());
