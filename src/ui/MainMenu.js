@@ -12,6 +12,8 @@ export class MainMenu {
     this.newBtn = doc.getElementById('menu-new');
     this.settingsBtn = doc.getElementById('menu-settings');
     this.hint = doc.getElementById('menu-hint');
+    this.body = doc.body;
+    this.body.classList.add('is-menu'); // HUD disembunyikan sampai hide() (bukan away())
     this.handlers = { start: () => {}, newGame: () => {}, settings: () => {} };
     this.startBtn.addEventListener('click', () => this.handlers.start());
     this.newBtn.addEventListener('click', () => this.handlers.newGame());
@@ -33,7 +35,10 @@ export class MainMenu {
   }
 
   /** Sembunyikan menu sepenuhnya (game dimulai). */
-  hide() { this.overlay.classList.add('hidden'); }
+  hide() {
+    this.overlay.classList.add('hidden');
+    this.body.classList.remove('is-menu');
+  }
 
   /** Menu menyingkir sementara (mis. panel pengaturan terbuka) tanpa menutup overlay. */
   away(on) { this.overlay.classList.toggle('menu-away', Boolean(on)); }

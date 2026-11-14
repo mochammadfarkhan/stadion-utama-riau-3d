@@ -4,6 +4,7 @@ import { MainMenu } from '../src/ui/MainMenu.js';
 import { createRotatePrompt } from '../src/ui/orientation.js';
 
 function dom() {
+  document.body.className = '';
   document.body.innerHTML = `<div id="overlay"><div class="panel"><button id="start" disabled>Memuat aset…</button>
     <button id="menu-new" class="hidden" disabled></button><button id="menu-settings" disabled></button><p id="menu-hint"></p></div></div>`;
 }
@@ -69,5 +70,17 @@ describe('createRotatePrompt', () => {
     document.body.replaceChildren();
     const p = createRotatePrompt(document.body, { isTouch: false, win: win(500, 900) });
     expect(p.el.classList.contains('hidden')).toBe(true);
+  });
+});
+
+describe('MainMenu: HUD tersembunyi selama menu', () => {
+  it('body.is-menu terpasang selama menu tampil, bertahan saat away(), dilepas oleh hide()', () => {
+    dom();
+    const m = new MainMenu();
+    expect(document.body.classList.contains('is-menu')).toBe(true);
+    m.away(true);
+    expect(document.body.classList.contains('is-menu')).toBe(true);
+    m.hide();
+    expect(document.body.classList.contains('is-menu')).toBe(false);
   });
 });

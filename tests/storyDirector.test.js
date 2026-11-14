@@ -329,3 +329,11 @@ describe('StoryDirector: chapter baru untuk save tamat (M7)', () => {
     expect(JSON.parse(store.get(STORY_KEY)).chapter).toBe(5);
   });
 });
+
+describe('StoryDirector: prompt saat dialog', () => {
+  it('selagi dialog terbuka, promptFor mengembalikan null (petunjuk sudah ada di kotak dialog)', () => {
+    const { d } = started();
+    expect(d.state.dialog).not.toBeNull();
+    expect(d.promptFor({ x: 0, z: 0 })).toBeNull();
+  });
+});

@@ -129,7 +129,7 @@ export const SETTINGS_SCHEMA = Object.freeze({
         title: 'Statistik',
         fields: Object.freeze({
           fpsCap: select('Batas FPS (hemat panas & baterai)', '60', ['30', '60', 'tanpa batas']),
-          showStats: toggle('Tampilkan FPS & draw call', true),
+          showStats: toggle('Tampilkan FPS & draw call', false),
           minimap: toggle('Minimap', true),
           labels: toggle('Label pedagang', true),
         }),

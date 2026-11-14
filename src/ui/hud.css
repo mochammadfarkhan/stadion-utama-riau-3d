@@ -22,7 +22,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1016; fon
 }
 #hud-top-left { left: 16px; }
 #hud-time { font-size: 13px; font-weight: 600; color: var(--hud-accent); margin: 2px 0 4px; letter-spacing: 0.3px; }
-#hud-top-right { right: 16px; text-align: right; }
+/* 16u = tepi kiri rail pengaturan (14u, lihat .ui-rail di panel.css) + jarak 2u */
+#hud-top-right { right: calc(var(--ui-u) * 16); text-align: right; }
 
 .pill {
   position: absolute; left: 50%; transform: translateX(-50%);
@@ -143,6 +144,13 @@ body.is-photo .vendor-label { display: none !important; }
 #menu-controls summary { cursor: pointer; color: var(--hud-accent); font-weight: 600; }
 #menu-controls ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.6; font-size: 13px; }
 .menu-credit { margin: 14px 0 0 !important; font-size: 11px; opacity: 0.6; }
+
+/* Selama menu utama: HUD, dialog cerita, hotbar, minimap, tombol layar disembunyikan (atribusi peta tetap tampil). */
+body.is-menu #hud,
+body.is-menu #minimap2d,
+body.is-menu #touch-ui,
+body.is-menu #hotbar-wrap,
+body.is-menu #hud-travel { visibility: hidden !important; }
 
 /* Ajakan memutar ponsel ke landscape */
 #rotate-prompt {

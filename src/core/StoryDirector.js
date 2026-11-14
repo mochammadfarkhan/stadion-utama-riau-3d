@@ -234,7 +234,7 @@ export class StoryDirector {
 
   /** Teks prompt E untuk NPC/dialog (null bila tidak ada). `pos` dunia. */
   promptFor(pos) {
-    if (this.state.dialog) return 'Tekan E — lanjut';
+    if (this.state.dialog) return null; // petunjuk "E / klik" ada di kotak dialog (StoryHUD)
     const npc = this.#nearNpc(pos);
     return npc ? `Tekan E — bicara dengan ${npc.name}` : null;
   }
