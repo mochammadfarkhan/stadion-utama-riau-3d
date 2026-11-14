@@ -6,6 +6,7 @@ import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { FXAAPass } from 'three/addons/postprocessing/FXAAPass.js';
 import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
 import { RENDER, RENDER_LAYERS } from '../config/constants.js';
 import { DepthRenderPass, OutlinePass } from './postprocessing/OutlinePass.js';
@@ -272,6 +273,17 @@ export class App {
     return this.post.outlinePass.enabled;
   }
 
+  /** Penghalus tepi FXAA; benar-benar aktif hanya bila rasio render ≤ 1 (di atas 1 supersampling sudah menghaluskan). */
+  setFxaa(enabled) {
+    this.fxaaWanted = Boolean(enabled);
+    this.#updateFxaa();
+    return this.post.fxaaPass.enabled;
+  }
+
+  #updateFxaa() {
+    this.post.fxaaPass.enabled = Boolean(this.fxaaWanted) && this.pixelRatio <= 1;
+  }
+
   get outlineEnabled() {
     return this.post.outlinePass.enabled;
   }
@@ -349,6 +361,7 @@ export class App {
     this.renderer.setPixelRatio(r);
     this.post.composer.setPixelRatio(r); // resize() di bawah memakai rasio baru
     this.resize();
+    this.#updateFxaa(); // rasio adaptif berubah-ubah
   }
 
   get pixelRatio() {
@@ -725,7 +738,10 @@ function createComposer(renderer, scene, camera) {
   gradingPass.uniforms.tBloom.value = bloomPass.texture;
   composer.addPass(gradingPass);
   composer.addPass(new OutputPass());
-  return { composer, gtaoPass: null, scenePass, outlinePass, vignettePass, tiltPass, bloomPass, gradingPass }; // gtaoPass dibuat malas (App.setAO)
+  const fxaaPass = new FXAAPass(); // sesudah OutputPass: FXAA bekerja pada warna akhir sRGB
+  fxaaPass.enabled = false;
+  composer.addPass(fxaaPass);
+  return { composer, gtaoPass: null, scenePass, outlinePass, vignettePass, tiltPass, bloomPass, gradingPass, fxaaPass }; // gtaoPass dibuat malas (App.setAO)
 }
 
 /** Render target HDR composer + DepthTexture (ukuran fisik; diperbarui composer.setSize). */
