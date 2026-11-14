@@ -90,7 +90,7 @@ export const RENDER = Object.freeze({
 export const BIKE = Object.freeze({
   maxSpeed: 9,       // m/s (~32 km/h)
   sprintSpeed: 13,
-  accel: 3.5,
+  accel: 5,           // m/s² dari diam; melandai menjelang laju puncak (bikePhysics.updateSpeed)
   brake: 7,
   drag: 0.15,          // hambatan udara (sebanding laju) saat meluncur
   rollDecel: 0.3,      // m/s² hambatan gulir tetap: sepeda benar-benar berhenti

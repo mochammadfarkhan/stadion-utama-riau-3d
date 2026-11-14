@@ -139,6 +139,17 @@ describe('slideResponse', () => {
   });
 });
 
+describe('akselerasi (R13)', () => {
+  it('akselerasi melandai: detik pertama menambah laju lebih banyak daripada detik ketiga', () => {
+    const P = { pedal: 1, steer: 0, sprint: false };
+    const a = run(createBikeState(), P, 1).v;
+    const b = run(createBikeState(), P, 2).v;
+    const c = run(createBikeState(), P, 3).v;
+    expect(a).toBeGreaterThan(4);
+    expect(c - b).toBeLessThan(a * 0.5);
+  });
+});
+
 describe('stepBike dengan grade (tanjakan, M1)', () => {
   const PEDAL = { pedal: 1, steer: 0, sprint: false };
   const COAST = { pedal: 0, steer: 0, sprint: false };

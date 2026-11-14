@@ -42,7 +42,7 @@ function updateSpeed(v, input, dt, cfg, grade) {
   const glide = Math.min(top, Math.max(0, -grade) * (cfg.glidePerGrade ?? 0));
   let next = v;
   if (input.pedal > 0) {
-    next += cfg.accel * input.pedal * dt;
+    next += cfg.accel * input.pedal * Math.max(0.15, 1 - (Math.max(0, v) / top) ** 2) * dt; // melandai; lantai 0,15 agar tetap mencapai puncak
   } else if (input.pedal < 0) {
     // rem bila masih maju, mundur pelan bila sudah berhenti
     next = v > STOP_EPS ? v - cfg.brake * -input.pedal * dt : v + cfg.reverseAccel * input.pedal * dt;
