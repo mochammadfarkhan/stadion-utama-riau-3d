@@ -4,7 +4,7 @@
   --hud-muted: #b7c2cc;
   --hud-accent: #f2b705;
   --hud-green: #1f7a3a;
-  --hud-red: #d62828;
+  --hud-red: #b71f1f; /* teks putih ≥ 4,5 : 1 */
   --font: system-ui, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -12,9 +12,9 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1016; fon
 #app canvas { display: block; }
 
 #hud { position: fixed; inset: 0; pointer-events: none; color: var(--hud-fg); z-index: 5; }
-#hud .big { font-size: 28px; font-weight: 700; letter-spacing: 0.5px; }
-#hud .muted { font-size: 12px; color: var(--hud-muted); }
-#hud .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--hud-muted); }
+#hud .big { font-size: calc(28px * var(--ui-text-scale, 1)); font-weight: 700; letter-spacing: 0.5px; }
+#hud .muted { font-size: calc(13px * var(--ui-text-scale, 1)); color: var(--hud-muted); }
+#hud .label { font-size: calc(13px * var(--ui-text-scale, 1)); text-transform: uppercase; letter-spacing: 1.5px; color: var(--hud-muted); }
 
 #hud-top-left, #hud-top-right {
   position: absolute; top: 16px; padding: 10px 14px; border-radius: 10px;
@@ -38,6 +38,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1016; fon
 #hud-toast {
   position: absolute; left: 50%; top: 96px; transform: translateX(-50%); max-width: min(520px, 90vw);
   padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; text-align: center;
+  color: #f4f6f8; /* di atas hijau/merah: tidak mewarisi teks perkamen gelap */
 }
 #hud-toast.ok { background: var(--hud-green); }
 #hud-toast.err { background: var(--hud-red); }
@@ -78,13 +79,13 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1016; fon
 #loading .loading-bar { height: 8px; border-radius: 99px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
 #loading-fill { height: 100%; width: 0; border-radius: 99px; background: var(--hud-accent); transition: width 0.25s ease; }
 #loading-fill.failed { background: #e5484d; }
-#loading .loading-note { margin: 8px 0 0; font-size: 12px; }
+#loading .loading-note { margin: 8px 0 0; font-size: calc(13px * var(--ui-text-scale, 1)); }
 #overlay button:disabled { opacity: 0.45; cursor: progress; filter: none; }
 #overlay .loading { font-size: 13px; color: var(--hud-muted); margin-top: 10px; }
 
 .vendor-label {
   padding: 3px 8px; border-radius: 6px; background: rgba(10, 18, 28, 0.7); color: #fff;
-  font-size: 12px; font-weight: 600; white-space: nowrap;
+  font-size: calc(13px * var(--ui-text-scale, 1)); font-weight: 600; white-space: nowrap;
 }
 
 /* Mode foto (screenshot): sembunyikan label pedagang CSS2D. */
@@ -97,7 +98,7 @@ body.is-photo .vendor-label { display: none !important; }
   border-left: 4px solid var(--hud-accent);
 }
 #story-card .story-title { font-weight: 700; color: var(--hud-accent); }
-#story-card .story-rank { font-size: 12px; color: var(--hud-muted); margin: 2px 0 8px; }
+#story-card .story-rank { font-size: calc(13px * var(--ui-text-scale, 1)); color: var(--hud-muted); margin: 2px 0 8px; }
 #story-card .story-goal { font-size: 14px; line-height: 1.4; }
 #story-card .story-timer { margin-top: 8px; font-weight: 700; font-variant-numeric: tabular-nums; }
 #story-dialog {
@@ -106,7 +107,7 @@ body.is-photo .vendor-label { display: none !important; }
   border: 1px solid var(--hud-accent); z-index: 9; cursor: pointer; font-size: 16px; line-height: 1.5;
 }
 #story-dialog, #story-journal { pointer-events: auto; } /* #hud mewariskan pointer-events:none */
-#story-dialog .story-dialog-hint { margin-top: 8px; font-size: 12px; color: var(--hud-muted); text-align: right; }
+#story-dialog .story-dialog-hint { margin-top: 8px; font-size: calc(13px * var(--ui-text-scale, 1)); color: var(--hud-muted); text-align: right; }
 #story-journal {
   position: fixed; inset: 0; margin: auto; width: min(560px, 92vw); height: fit-content; max-height: 80vh; overflow: auto;
   padding: 20px 24px; border-radius: 16px; background: rgba(10, 18, 28, 0.96); color: var(--hud-fg); z-index: 11;
@@ -138,11 +139,11 @@ body.is-photo .vendor-label { display: none !important; }
 #overlay button.menu-btn { padding: 13px; background: rgba(255, 255, 255, 0.1); color: var(--hud-fg); font-size: 15px; font-weight: 600; border: 1px solid rgba(255, 255, 255, 0.18); }
 #overlay button.menu-btn.primary { background: var(--hud-accent); color: #1a1a1a; border: 0; font-size: 17px; font-weight: 700; }
 #overlay button.menu-btn:disabled { opacity: 0.45; }
-.menu-hint { font-size: 12px; margin: 6px 0 10px; color: var(--hud-muted); }
+.menu-hint { font-size: calc(13px * var(--ui-text-scale, 1)); margin: 6px 0 10px; color: var(--hud-muted); }
 #menu-controls { margin-top: 4px; font-size: 13px; }
 #menu-controls summary { cursor: pointer; color: var(--hud-accent); font-weight: 600; }
 #menu-controls ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.6; font-size: 13px; }
-.menu-credit { margin: 14px 0 0 !important; font-size: 11px; opacity: 0.6; }
+.menu-credit { margin: 14px 0 0 !important; font-size: calc(13px * var(--ui-text-scale, 1)); opacity: 0.6; }
 
 /* Ajakan memutar ponsel ke landscape */
 #rotate-prompt {
@@ -163,7 +164,7 @@ body.is-photo .vendor-label { display: none !important; }
   #story-card { top: 78px; width: 220px; padding: 7px 10px; }
   #story-card .story-rank { display: none; }
   #story-dialog { bottom: 12px; width: min(560px, 60vw); font-size: 14px; padding: 10px 14px; }
-  #hud-score { top: 8px; font-size: 12px; padding: 5px 12px; }
+  #hud-score { top: 8px; font-size: calc(13px * var(--ui-text-scale, 1)); padding: 5px 12px; }
   #overlay .panel.menu { padding: 14px 16px; }
   #overlay h1 { font-size: 22px; }
 }
@@ -202,3 +203,17 @@ body.is-photo .vendor-label { display: none !important; }
   position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
   background: rgba(8, 12, 18, 0.88); color: #fff; font: 600 18px/1.4 system-ui, sans-serif;
 }
+
+/* Cincin fokus keyboard (R21). */
+#overlay button:focus-visible, #story-journal button:focus-visible, #hud-shop-list button:focus-visible,
+.inv-slot:focus-visible, .touch-btn:focus-visible { outline: 3px solid var(--hud-accent); outline-offset: 2px; }
+
+/* Kurangi gerakan: preferensi sistem ATAU setelan aksesibilitas.reduceMotion (data-kurangi-gerak). Isi dua blok sama. */
+@media (prefers-reduced-motion: reduce) {
+  .ui-ctl.is-flash, [class*='ui-tod-'], #hud-prompt, .rotate-icon { animation: none !important; }
+  #loading-fill { transition: none; }
+}
+html[data-kurangi-gerak] .ui-ctl.is-flash, html[data-kurangi-gerak] [class*='ui-tod-'],
+html[data-kurangi-gerak] #hud-prompt, html[data-kurangi-gerak] .rotate-icon { animation: none !important; }
+html[data-kurangi-gerak] #loading-fill { transition: none; }
+html[data-kurangi-gerak] { --ui-dur: 1ms; --ui-dur-slow: 1ms; }

@@ -10,6 +10,9 @@ function el(tag, attrs = {}, ...children) {
   if (attrs.id) node.id = attrs.id;
   if (attrs.className) node.className = attrs.className;
   if (attrs.dataset) Object.assign(node.dataset, attrs.dataset);
+  for (const [k, v] of Object.entries(attrs)) { // role, aria-*, dst. (dulu terbuang diam-diam)
+    if (k !== 'id' && k !== 'className' && k !== 'dataset' && v != null) node.setAttribute(k, String(v));
+  }
   for (const c of children) node.append(c);
   return node;
 }
@@ -143,12 +146,12 @@ function buildLayout(root) {
   const wallet = el('div', { id: 'hud-wallet', className: 'big' }, 'Rp 0');
   const items = el('div', { id: 'hud-items', className: 'muted' }, 'Belum beli apa-apa');
   const score = el('div', { id: 'hud-score', className: 'pill' }, 'PSPS 0 – 0 TAMU');
-  const prompt = el('div', { id: 'hud-prompt', className: 'pill hidden' });
+  const prompt = el('div', { id: 'hud-prompt', className: 'pill hidden', 'aria-live': 'polite' });
   const toast = el('div', { id: 'hud-toast', className: 'hidden', role: 'status', 'aria-live': 'polite' });
   const shopTitle = el('h2', { id: 'hud-shop-title' });
   const shopList = el('div', { id: 'hud-shop-list' });
   const shopHint = el('p', { className: 'muted' }, 'Klik item untuk membeli · Esc / E untuk tutup');
-  const shop = el('div', { id: 'hud-shop', className: 'hidden' }, shopTitle, shopList, shopHint);
+  const shop = el('div', { id: 'hud-shop', className: 'hidden', role: 'dialog', 'aria-labelledby': 'hud-shop-title' }, shopTitle, shopList, shopHint);
 
   root.replaceChildren(
     el('div', { id: 'hud-top-left' }, speed, time, cam, fps),

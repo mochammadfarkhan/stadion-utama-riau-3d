@@ -136,6 +136,19 @@ export const SETTINGS_SCHEMA = Object.freeze({
       }),
     }),
   }),
+  aksesibilitas: Object.freeze({
+    title: 'Aksesibilitas',
+    icon: 'eye',
+    sections: Object.freeze({
+      tampilan: Object.freeze({
+        title: 'Tampilan',
+        fields: Object.freeze({
+          textScale: range('Ukuran teks', 1, 0.85, 1.5, 0.05, { unit: '×' }),
+          reduceMotion: toggle('Kurangi gerakan', false),
+        }),
+      }),
+    }),
+  }),
 });
 
 /** Daftar datar [key, field] untuk semua field: key = "grup.field". */
