@@ -11,7 +11,7 @@
 
   --ui-fg: #eef3f6;
   --ui-muted: #9fb0bd;
-  --ui-dim: #66798a;
+  --ui-dim: #7d90a1; /* ≥ 4,5 : 1 di latar gelap */
   --ui-bg: rgba(9, 15, 22, 0.78);
   --ui-bg-2: rgba(17, 26, 36, 0.92);
   --ui-bg-3: rgba(255, 255, 255, 0.045);

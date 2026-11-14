@@ -4,7 +4,7 @@
   --hud-muted: #b7c2cc;
   --hud-accent: #f2b705;
   --hud-green: #1f7a3a;
-  --hud-red: #d62828;
+  --hud-red: #b71f1f; /* teks putih ≥ 4,5 : 1 */
   --font: system-ui, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -38,6 +38,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1016; fon
 #hud-toast {
   position: absolute; left: 50%; top: 96px; transform: translateX(-50%); max-width: min(520px, 90vw);
   padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; text-align: center;
+  color: #f4f6f8; /* di atas hijau/merah: tidak mewarisi teks perkamen gelap */
 }
 #hud-toast.ok { background: var(--hud-green); }
 #hud-toast.err { background: var(--hud-red); }
@@ -202,3 +203,7 @@ body.is-photo .vendor-label { display: none !important; }
   position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
   background: rgba(8, 12, 18, 0.88); color: #fff; font: 600 18px/1.4 system-ui, sans-serif;
 }
+
+/* Cincin fokus keyboard (R21). */
+#overlay button:focus-visible, #story-journal button:focus-visible, #hud-shop-list button:focus-visible,
+.inv-slot:focus-visible, .touch-btn:focus-visible { outline: 3px solid var(--hud-accent); outline-offset: 2px; }
