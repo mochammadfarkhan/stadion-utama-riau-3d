@@ -3,6 +3,7 @@
  * Mulai dari awal, Pengaturan, petunjuk kontrol). Teks ditentukan menuModel (murni, dites).
  */
 import { menuModel } from './menuModel.js';
+import { CONTROL_HELP, CONTROL_HELP_EXTRA } from '../config/controlsHelp.js';
 
 export class MainMenu {
   /** @param {Document} [doc] */
@@ -12,6 +13,7 @@ export class MainMenu {
     this.newBtn = doc.getElementById('menu-new');
     this.settingsBtn = doc.getElementById('menu-settings');
     this.hint = doc.getElementById('menu-hint');
+    this.#fillControls(doc);
     this.handlers = { start: () => {}, newGame: () => {}, settings: () => {} };
     this.startBtn.addEventListener('click', () => this.handlers.start());
     this.newBtn.addEventListener('click', () => this.handlers.newGame());
@@ -30,6 +32,25 @@ export class MainMenu {
     this.newBtn.disabled = false;
     this.newBtn.classList.toggle('hidden', !m.showNewGame);
     this.hint.textContent = m.hint;
+  }
+
+  /** Ringkasan kontrol menu dibangun dari CONTROL_HELP (bukan ditulis tangan di index.html). */
+  #fillControls(doc) {
+    const list = doc.querySelector('#menu-controls ul');
+    if (!list) return;
+    list.replaceChildren();
+    for (const item of CONTROL_HELP.filter((c) => c.menu)) {
+      const li = doc.createElement('li');
+      const b = doc.createElement('b');
+      b.textContent = item.keys.join(' / ');
+      li.append(b, ` ${item.text}`);
+      list.append(li);
+    }
+    for (const text of CONTROL_HELP_EXTRA) {
+      const li = doc.createElement('li');
+      li.textContent = text;
+      list.append(li);
+    }
   }
 
   /** Sembunyikan menu sepenuhnya (game dimulai). */
