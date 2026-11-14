@@ -173,6 +173,12 @@ describe('bindAudio + AudioBus (tanpa AudioContext)', () => {
     bindAudio(store, { audioBus: bus });
     store.set('audio.master', 0.3);
     expect(bus.master).toBe(0.3);
+    store.set('audio.muted', true);
+    expect(bus.master).toBe(0); // bisukan semua
+    store.set('audio.master', 0.5);
+    expect(bus.master).toBe(0); // tetap bisu walau volume digeser
+    store.set('audio.muted', false);
+    expect(bus.master).toBe(0.5);
     expect(bindAudio(store, { audioBus: null })).toBeTypeOf('function');
     bus.dispose();
   });

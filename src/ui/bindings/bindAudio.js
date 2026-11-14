@@ -1,5 +1,5 @@
 /**
- * Binding grup "audio" (store -> AudioBus): master, bel sepeda, suasana (hujan).
+ * Binding grup "audio" (store -> AudioBus): bisukan semua, master, bel sepeda, suasana (hujan).
  */
 
 export const AUDIO_CHANNELS = Object.freeze({ bell: 'bell', ambience: 'ambience' });
@@ -12,7 +12,8 @@ export const AUDIO_CHANNELS = Object.freeze({ bell: 'bell', ambience: 'ambience'
 export function bindAudio(store, { audioBus = null }) {
   if (!audioBus) return () => {};
   const unsubs = [
-    store.bind('audio.master', (v) => audioBus.setMaster(v)),
+    store.bind('audio.master', (v) => audioBus.setMaster(store.get('audio.muted') ? 0 : v)),
+    store.bind('audio.muted', (m) => audioBus.setMaster(m ? 0 : store.get('audio.master'))),
     store.bind('audio.bell', (v) => audioBus.setChannel(AUDIO_CHANNELS.bell, v)),
     store.bind('audio.ambience', (v) => audioBus.setChannel(AUDIO_CHANNELS.ambience, v)),
   ];
