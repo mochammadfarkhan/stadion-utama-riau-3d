@@ -119,6 +119,26 @@ describe('meluncur (R13)', () => {
   });
 });
 
+describe('slideResponse', () => {
+  const D = 1 / 60;
+  it('langkah tidak dipotong: tidak ada perubahan', () => {
+    expect(slideResponse(8, 0.3, { dx: 1, dz: 2 }, { dx: 1, dz: 2 }, D)).toEqual({ v: 8, yaw: 0.3 });
+  });
+  it('geser 45° sepanjang dinding: kehilangan 5% per frame, arah hadap memutar 0,1 rad ke arah geser', () => {
+    const r = slideResponse(8, Math.PI / 4, { dx: 1, dz: 1 }, { dx: 1, dz: 0 }, D);
+    expect(r.v).toBeCloseTo(8 * (1 - 0.5 * 0.1), 9);
+    expect(r.yaw).toBeCloseTo(Math.PI / 4 + 0.1, 9);
+  });
+  it('mentok tegak lurus: laju turun 10% per frame, arah hadap tetap', () => {
+    const r = slideResponse(8, 0, { dx: 0, dz: 1 }, { dx: 0, dz: 0 }, D);
+    expect(r.v).toBeCloseTo(7.2, 9);
+    expect(r.yaw).toBe(0);
+  });
+  it('setelah sejajar dinding, laju tidak berkurang lagi', () => {
+    expect(slideResponse(6, Math.PI / 2, { dx: 1, dz: 0 }, { dx: 1, dz: 0 }, D).v).toBe(6);
+  });
+});
+
 describe('stepBike dengan grade (tanjakan, M1)', () => {
   const PEDAL = { pedal: 1, steer: 0, sprint: false };
   const COAST = { pedal: 0, steer: 0, sprint: false };

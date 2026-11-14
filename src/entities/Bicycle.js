@@ -16,7 +16,7 @@
  */
 import * as THREE from 'three';
 import { BIKE } from '../config/constants.js';
-import { createBikeState, stepBike } from '../sim/bikePhysics.js';
+import { createBikeState, stepBike, slideResponse } from '../sim/bikePhysics.js';
 import { createHumanoid, animateCycling, animateWalk, animateIdle, animateUseItem, useItemTilt } from './Humanoid.js';
 import { stepOnFoot } from '../sim/farm.js';
 import { PLAYER_MODES, WALK, TRACTOR } from '../config/kebun.js';
@@ -26,7 +26,6 @@ import { clamp } from './util.js';
 
 const STEER_VISUAL_RAD = BIKE.steerMax ?? 0.6; // batas visual sudut setang (rad)
 const RIDER_SEAT_LIFT = 0.03;    // pinggul sedikit di atas sadel
-const COLLISION_DAMPING = 0.5;   // laju dikurangi saat collider menggeser posisi
 const MAX_DT = 0.05;
 const PITCH_SMOOTHING = 8;       // 1/s, pitch rangka mengikuti lereng
 const USE_DURATION = Object.freeze({ cangkul: 0.65, gembor: 0.9, raih: 0.55 }); // detik animasi pakai item
@@ -239,7 +238,8 @@ export class Bicycle {
     const next = this.#mode === 'jalan'
       ? stepOnFoot(this.state, cmd, step, WALK)
       : stepBike(this.state, cmd, step, { grade, cfg: this.#mode === 'traktor' ? TRACTOR : this.#cfg });
-    this.state = isStateFinite(next) ? this.#resolveCollision(next) : this.state;
+    const prev = this.state;
+    this.state = isStateFinite(next) ? this.#resolveCollision(next, prev, step) : this.state;
     this.#updateGround(step);
     this.#walkPhase += step * (this.state.v ?? 0) / 1.4;
     this.#idleT += step;
@@ -252,13 +252,14 @@ export class Bicycle {
     this.#applyVisual();
   }
 
-  /** Terapkan collider eksternal; bila posisi digeser, redam laju. */
-  #resolveCollision(s) {
+  /** Terapkan collider eksternal; bila posisi digeser: menyusur dinding (slideResponse), bukan berhenti. */
+  #resolveCollision(s, prev, dt) {
     if (!this.#collider) return s;
     const c = this.#collider(s.x, s.z);
     if (!c || !Number.isFinite(c.x) || !Number.isFinite(c.z)) return s;
     if (c.x === s.x && c.z === s.z) return s;
-    return { ...s, x: c.x, z: c.z, v: s.v * COLLISION_DAMPING };
+    const r = slideResponse(s.v, s.yaw, { dx: s.x - prev.x, dz: s.z - prev.z }, { dx: c.x - prev.x, dz: c.z - prev.z }, dt);
+    return { ...s, x: c.x, z: c.z, v: r.v, yaw: r.yaw };
   }
 
   /** Tinggi tanah & pitch rangka (−atan(grade), dihaluskan) dari terrain di posisi baru. */

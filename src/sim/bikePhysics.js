@@ -114,3 +114,23 @@ export function stepBike(state, input, dt, { grade = 0, cfg = BIKE } = {}) {
     pedalAngle: s.pedalAngle + Math.max(0, spin) * cfg.pedalRatio,
   };
 }
+
+/**
+ * Respons geser saat collider memindahkan posisi. intended = langkah yang diminta, actual = langkah yang diizinkan.
+ * Laju berkurang sebanding bagian langkah yang hilang, arah hadap berputar pelan ke arah geser.
+ * @returns {{v:number, yaw:number}}
+ */
+export function slideResponse(v, yaw, intended, actual, dt, { alignRate = 6, friction = 6 } = {}) {
+  const i2 = intended.dx * intended.dx + intended.dz * intended.dz;
+  const lx = intended.dx - actual.dx;
+  const lz = intended.dz - actual.dz;
+  if (!(i2 > 1e-12) || !(lx * lx + lz * lz > 1e-12)) return { v, yaw }; // tidak bergerak, atau langkah tidak dipotong
+  const kept = clamp((actual.dx * intended.dx + actual.dz * intended.dz) / i2, 0, 1);
+  const nextV = v * (1 - (1 - kept) * Math.min(1, friction * dt));
+  if (!(actual.dx * actual.dx + actual.dz * actual.dz > 1e-12)) return { v: nextV, yaw };
+  const dir = v >= 0 ? 1 : -1;
+  const want = Math.atan2(actual.dx * dir, actual.dz * dir);
+  const diff = Math.atan2(Math.sin(want - yaw), Math.cos(want - yaw));
+  const turn = clamp(diff, -alignRate * dt, alignRate * dt);
+  return { v: nextV, yaw: yaw + turn };
+}
