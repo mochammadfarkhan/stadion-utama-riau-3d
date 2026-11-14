@@ -53,11 +53,19 @@ function createBackingMaterial(w, h) {
   return mat;
 }
 
+/** Huruf papan nama: emas siang, menyala putih-hangat malam (userData.nightEmissive dibaca TimeOfDay.lights). */
+function nameLetterMaterial() {
+  const mat = new MeshStandardMaterial({ color: COLORS.gold, roughness: 0.35, metalness: 0.6, emissive: 0xffe6b0, emissiveIntensity: 0 });
+  mat.name = 'hurufPapanNama';
+  mat.userData.nightEmissive = { on: 1.6, off: 0 };
+  return mat;
+}
+
 /** @returns {Group} papan nama (huruf balok emas) dengan pelat latar navy bertekstur ACP */
 export function createNameBoard({ text = NAME_TEXT, u = NAME_U, y = NAME_Y } = {}) {
   const group = new Group();
   group.name = 'name-board';
-  const letters = createBlockText(text, { cell: NAME_CELL, depth: NAME_DEPTH });
+  const letters = createBlockText(text, { cell: NAME_CELL, depth: NAME_DEPTH, material: nameLetterMaterial() });
   const { width, height } = letters.userData;
   const bw = width + BACKING_PAD * 2;
   const bh = height + BACKING_PAD * 2;
