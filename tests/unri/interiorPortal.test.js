@@ -306,7 +306,7 @@ describe('createInteriorPortal: pintu, interaksi, tombol', () => {
     expect(() => t.portal.lookBy(1, 2)).not.toThrow();
     await t.portal.enter('sekre');
     t.portal.lookBy(3, 4, 1.8);
-    expect(t.portal.current.rig.lookBy).toHaveBeenCalledWith(3, 4, 1.8);
+    expect(t.portal.current.rig.lookBy).toHaveBeenCalledWith(3, 4, 1.8, 'mouse');
   });
 });
 
