@@ -9,5 +9,5 @@ export function buildPrinter(m) {
     box(0.28, 0.002, 0.12, '#ffffff', { y: 0.21, z: -0.24, rx: -0.3 }),
     box(0.1, 0.03, 0.005, '#424242', { x: 0.14, y: 0.15, z: -0.191 }),
     box(0.015, 0.015, 0.004, '#ff9800', { x: 0.17, y: 0.15, z: -0.194 }),
-  ], m.prop, 'printer'));
+  ], m.plastik, 'printer'));
 }

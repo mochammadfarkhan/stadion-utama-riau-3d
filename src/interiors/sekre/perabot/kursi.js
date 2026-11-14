@@ -6,7 +6,7 @@ export function buildKursi(m) {
     box(0.42, 0.34, 0.03, '#8a5a2b', { y: 0.78, z: 0.2 }),
     box(0.03, 0.2, 0.36, '#7a4c22', { x: -0.22, y: 0.58 }),
     box(0.03, 0.2, 0.36, '#7a4c22', { x: 0.22, y: 0.58 }),
-  ], m.prop, 'dudukan');
+  ], m.kayuHalus, 'dudukan');
   const legs = [];
   for (const x of [-0.19, 0.19]) {
     legs.push(cyl(0.011, 0.011, 0.45, '#9ea7ad', { x, y: 0.225, z: -0.17 }));

@@ -32,6 +32,6 @@ export function buildPerlengkapanErc(m) {
   const ballG = [ball(0.11, '#ef6c1a', { x: kx(-1.7), y: 0.11, z: 0.15 })];
   return groupOf('perlengkapan-erc',
     piece(blinds, m.prop, 'tirai-vertikal', false), piece(vents, m.tl, 'ventilasi-kotak', false),
-    piece(ventFrames, m.prop, 'bingkai-ventilasi', false), piece(ac, m.prop, 'ac-split', false),
-    piece(bins, m.prop, 'boks-plastik'), piece(ballG, m.prop, 'bola', false));
+    piece(ventFrames, m.prop, 'bingkai-ventilasi', false), piece(ac, m.plastik, 'ac-split', false),
+    piece(bins, m.plastik, 'boks-plastik'), piece(ballG, m.prop, 'bola', false));
 }

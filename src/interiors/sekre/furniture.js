@@ -10,6 +10,9 @@
  */
 import * as THREE from 'three';
 import { instantiateModel } from '../../world/assets/models.js';
+import { loadPbr } from '../../world/textures/pbr.js';
+import { TILE_M, tierForQuality } from '../../world/textures/pbrCore.js';
+import { styleState } from '../../engine/styleState.js';
 import { ASET, EKSTRA, GLB_ASET, GUITAR_HOLD } from './data.js';
 import { makeCanvas, canvasTexture, tint } from './canvas.js';
 import { drawKarpet } from './room.js';
@@ -43,6 +46,40 @@ import { buildSofaProyektor } from './perabot/sofaProyektor.js';
 import { buildRuangBelakang } from './perabot/ruangBelakang.js';
 import { buildKertas } from './perabot/kertas.js';
 
+/**
+ * Bahan perabot bertekstur (ambientCG CC0, public/textures): warna tetap dari warna verteks model, tekstur memberi serat/tenun/
+ * kekasaran. Albedo dinormalkan ke warna rata-ratanya (color = 1/avg) sehingga warna verteks tidak ikut menggelap.
+ * Besi cat: hanya normal + roughness (albedo bubuk hitam tidak dipakai). Harus dibuat di dalam withScope interior.
+ */
+const BAHAN = Object.freeze({
+  kayuHalus: { avg: '#b0733f', albedo: true, roughness: 1, normalScale: 0.6 },
+  kain: { avg: '#bababa', albedo: true, roughness: 1, normalScale: 0.9 },
+  plastik: { avg: '#7e7e7e', albedo: true, roughness: 1, normalScale: 0.4 },
+  catBesi: { albedo: false, roughness: 1, metalness: 0.35, normalScale: 0.5 },
+});
+
+function bahanMaterial(name) {
+  const cfg = BAHAN[name];
+  const tier = tierForQuality(styleState.terrainQuality);
+  const kinds = cfg.albedo ? ['albedo', 'normal', 'orm'] : ['normal', 'orm'];
+  const set = loadPbr(name, { tier, anisotropy: 4, kinds });
+  const r = 1 / TILE_M[name];
+  for (const t of [set.map, set.normalMap, set.roughnessMap]) t?.repeat.set(r, r);
+  const mat = new THREE.MeshStandardMaterial({
+    vertexColors: true, roughness: cfg.roughness, metalness: cfg.metalness ?? 0,
+    normalMap: set.normalMap ?? null, roughnessMap: set.roughnessMap ?? null,
+    normalScale: new THREE.Vector2(cfg.normalScale, cfg.normalScale),
+  });
+  if (cfg.albedo && set.map) {
+    mat.map = set.map;
+    const avg = new THREE.Color(cfg.avg); // linear
+    mat.color.setRGB(1 / Math.max(0.05, avg.r), 1 / Math.max(0.05, avg.g), 1 / Math.max(0.05, avg.b));
+  }
+  mat.name = `sekre:${name}`;
+  mat.userData.metricUv = true;
+  return mat;
+}
+
 /** Material bersama interior (dibuat sekali per build; dilepas lewat disposeTree scene). */
 export function createSekreMaterials(renderer = null) {
   const karpetCanvas = makeCanvas(768, 1024);
@@ -57,6 +94,10 @@ export function createSekreMaterials(renderer = null) {
     screen: new THREE.MeshStandardMaterial({ name: 'unri:layar-emisif', color: 0x0b0f14, emissive: 0x9cc4ff, emissiveIntensity: 0, roughness: 0.25 }),
     paper: new THREE.MeshStandardMaterial({ color: 0xf7f5ee, roughness: 0.9, side: THREE.DoubleSide }),
     karpet: new THREE.MeshStandardMaterial({ map: canvasTexture(karpetCanvas, renderer), roughness: 1 }),
+    kayuHalus: bahanMaterial('kayuHalus'),
+    kain: bahanMaterial('kain'),
+    plastik: bahanMaterial('plastik'),
+    catBesi: bahanMaterial('catBesi'),
   };
 }
 

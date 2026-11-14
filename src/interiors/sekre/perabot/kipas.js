@@ -10,7 +10,7 @@ export function buildKipas(m) {
     box(0.06, 0.08, 0.05, '#e8e8e8', { y: 0.32, z: -0.03 }),
     box(0.012, 0.012, 0.012, '#2e7d32', { x: -0.015, y: 0.34, z: -0.058 }),
     box(0.012, 0.012, 0.012, '#c62828', { x: 0.015, y: 0.34, z: -0.058 }),
-  ], m.prop, 'badan');
+  ], m.plastik, 'badan');
   const head = new THREE.Group();
   head.name = 'kepala';
   head.position.y = 1.05;
@@ -24,12 +24,12 @@ export function buildKipas(m) {
     const a = (i / 8) * PI * 2;
     cage.push(box(0.005, 0.21, 0.005, '#d0d0d0', { x: Math.cos(a) * 0.105, y: Math.sin(a) * 0.105, z: -0.1, rz: a - PI / 2 }));
   }
-  head.add(piece(cage, m.prop, 'kepala-ph'));
+  head.add(piece(cage, m.plastik, 'kepala-ph'));
   const bladeGeos = [cyl(0.03, 0.03, 0.03, '#4fc3f7', { rx: PI / 2 })];
   for (let i = 0; i < 3; i += 1) {
     bladeGeos.push(tint(new THREE.BoxGeometry(0.075, 0.17, 0.008).rotateY(0.3).translate(0, 0.1, 0).rotateZ((i * 2 * PI) / 3), '#4fc3f7'));
   }
-  const blades = piece(bladeGeos, m.prop, 'baling');
+  const blades = piece(bladeGeos, m.plastik, 'baling');
   blades.position.z = -0.065;
   head.add(blades);
   return { group: groupOf('S14-ph', base, head), head, blades };
