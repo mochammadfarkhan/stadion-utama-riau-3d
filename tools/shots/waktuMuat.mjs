@@ -59,6 +59,8 @@ for (let r = 0; r < ROUNDS; r += 1) {
   await page.waitForTimeout(200); // goTo memasang layar perjalanan secara sinkron setelah klik
   await page.waitForFunction(() => document.getElementById('travel-screen')?.classList.contains('hidden'), null, { timeout: 120000, polling: 100 });
   const arrive = await page.evaluate((t) => Math.round(performance.now() - t), t0);
+  const legs = await page.evaluate((t) => performance.getEntriesByType('mark').filter((m) => m.name.startsWith('tujuan:')).map((m) => `${m.name.slice(7)} +${Math.round(m.startTime - t)}`).join(' · '), t0);
+  console.log('  perjalanan:', legs);
   runs.push({ marks, ready, arrive, menuGap, errors: errors.length });
   console.log(`putaran ${r + 1}: Mulai aktif ${ready} ms, frame terpanjang 4 s setelahnya ${menuGap} ms, Mulai→tiba ${arrive} ms, galat ${errors.length}`);
   await page.close();
