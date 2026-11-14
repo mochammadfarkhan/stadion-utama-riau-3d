@@ -326,11 +326,17 @@ async function main() {
     farm.reset();
     inventory.reset();
   }
+  // Region hero di titik mulai (Lembaga, sekre ERC) dipasang selama menu: Mulai tidak menunggu pemasangannya lagi.
+  const startRegion = unri ? HERO_REGIONS.find((r) => regionContains(r, START_POINT.x, START_POINT.z)) : null;
+  if (startRegion) regions.pin(startRegion.id, true);
+  const unpinStart = () => { if (startRegion) regions.pin(startRegion.id, false); };
   setupMenu({
     app, rig, hud, store, touchUi, touch, menu, story, resetGame,
-    restore: () => restorePlace({ story, regions, travel, ents }).catch((err) => { console.error('Tempat terakhir gagal dipulihkan:', err); return true; }),
+    restore: () => restorePlace({ story, regions, travel, ents })
+      .catch((err) => { console.error('Tempat terakhir gagal dipulihkan:', err); return true; })
+      .then((moved) => { if (moved) unpinStart(); return moved; }),
     // Permainan baru mulai di depan sekre ERC (D1); distrik UNRI gagal → tetap di titik stadion lama.
-    startFresh: unri ? () => travel.goTo(START_POINT).catch((err) => console.error('Gagal menuju titik mulai:', err)) : null,
+    startFresh: unri ? () => travel.goTo(START_POINT).catch((err) => console.error('Gagal menuju titik mulai:', err)).finally(unpinStart) : null,
   })
     .then((mounted) => {
       panelRef.current = mounted.panel;

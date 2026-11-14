@@ -11,8 +11,13 @@ export function setupFastTravel({ app, lifecycle, hud, rig, ents, colliders, cit
   lifecycle.add(() => screen.dispose());
   const travel = createFastTravel({
     destinations: travelDestinations({ manifest: city?.manifest ?? null, frame, spawn, campus: Boolean(unri) }), bike: ents.bike, colliders, city, screen,
-    settle: async (x, z) => { // distrik (terrain/ground/gedung) + region hero yang menaungi tujuan harus siap
-      const [districtOk, regionOk] = await Promise.all([unri ? unri.whenSettled(x, z) : true, waitForRegion(regions, HERO_REGIONS, x, z)]);
+    settle: async (x, z, cityReady = true) => { // distrik (terrain/ground/gedung) + region hero yang menaungi tujuan harus siap
+      const tag = (name) => (v) => { globalThis.performance?.mark?.(`tujuan:${name}`); return v; };
+      const [districtOk, regionOk] = await Promise.all([
+        Promise.resolve(unri ? unri.whenSettled(x, z) : true).then(tag('distrik')),
+        waitForRegion(regions, HERO_REGIONS, x, z).then(tag('region')),
+        cityReady, // tile kota tujuan juga harus ada sebelum prekompilasi
+      ]);
       // Layar perjalanan masih menutupi: kompilasi shader semua konten yang baru dimuat (chunk distrik, tile, region)
       await app.precompile().catch((err) => console.error('Prekompilasi shader tujuan gagal:', err));
       return districtOk !== false && regionOk;
