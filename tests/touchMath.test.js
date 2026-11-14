@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clampToRadius, joystickKeys, isTouchPrimary } from '../src/ui/touchMath.js';
+import { clampToRadius, joystickKeys, isTouchPrimary, touchAxes } from '../src/ui/touchMath.js';
 
 describe('clampToRadius', () => {
   it('di dalam radius tidak berubah; di luar dijepit ke tepi dengan arah sama', () => {
@@ -43,5 +43,11 @@ describe('isTouchPrimary', () => {
     expect(isTouchPrimary({ maxTouchPoints: 5, matchMedia: () => ({ matches: false }) })).toBe(false); // laptop layar sentuh + mouse
     expect(isTouchPrimary({ maxTouchPoints: 0, matchMedia: () => ({ matches: true }) })).toBe(false);
     expect(isTouchPrimary(null)).toBe(false);
+  });
+});
+
+describe('touchAxes (R14)', () => {
+  it('jempol ke atas penuh = maju 1', () => {
+    expect(touchAxes(0, -70, 70)).toEqual({ x: 0, y: 1 });
   });
 });
