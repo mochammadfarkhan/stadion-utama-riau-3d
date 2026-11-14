@@ -225,6 +225,7 @@ export const EKSTRA = freeze({
   jasHujan: atRaw(-2.99, 2.0, -0.45, PI / 2),
   /** Rak besi siku hitam di dinding kiri, antara kardus dan sofa (foto 8–9). */
   rakSiku: atRaw(-2.78, 0, -1.05, PI / 2),
+  mejaDetail: atRaw(-2.05, 0.75, -2.6, 0), // buku, mug, tanaman di meja hitam [INFERENSI]
   kertas: freeze([atRaw(-2.35, 0.752, -2.75, 0.3), atRaw(-1.75, 0.752, -2.72, -0.2), at(-0.7, 0.014, 0.4, 0.8)]),
 });
 
