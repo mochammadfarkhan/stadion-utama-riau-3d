@@ -243,8 +243,16 @@ export const HQ_ASET = freeze({
   buku: freeze({ glb: 'models/sekre-hq/buku.glb', items: freeze([atRaw(-1.38, 0.75, -2.8, 0)]) }),
   map: freeze({ glb: 'models/sekre-hq/map.glb', items: freeze([atRaw(-1.55, 0.752, -2.48, 0.25)]) }),
   lampuMeja: freeze({ glb: 'models/sekre-hq/lampu-meja.glb', items: freeze([atRaw(-2.6, 0.75, -2.82, 0.5)]) }),
+  lemari: freeze({ glb: 'models/sekre-hq/lemari.glb', items: ASET.S09.items }), // assets-src/blender/unri/sekre_hq.py
   rakSiku: freeze({ glb: 'models/sekre-hq/rak-siku.glb', items: freeze([EKSTRA.rakSiku]) }),
   toolbox: freeze({ glb: 'models/sekre-hq/toolbox.glb', items: freeze([atRaw(-2.78, 1.6, -1.05, PI / 2)]) }), // di atas rak (Tinggi)
+});
+
+/** Versi detail tinggi GLB_ASET untuk preset Tinggi (assets-src/blender/unri/sekre_hq.py; nama material runtime sama). */
+export const GLB_ASET_HQ = freeze({
+  S13: 'models/sekre-hq/dispenser.glb',
+  S14: 'models/sekre-hq/kipas.glb',
+  S17: 'models/sekre-hq/laptop.glb',
 });
 
 /** Model GLB final per ID aset (path relatif public/). Diisi di Task 22 setelah ekspor Blender berhasil. */

@@ -13,7 +13,7 @@ import { instantiateModel } from '../../world/assets/models.js';
 import { loadPbr } from '../../world/textures/pbr.js';
 import { TILE_M, tierForQuality } from '../../world/textures/pbrCore.js';
 import { styleState } from '../../engine/styleState.js';
-import { ASET, EKSTRA, GLB_ASET, HQ_ASET, GUITAR_HOLD } from './data.js';
+import { ASET, EKSTRA, GLB_ASET, GLB_ASET_HQ, HQ_ASET, GUITAR_HOLD } from './data.js';
 import { makeCanvas, canvasTexture, tint } from './canvas.js';
 import { drawKarpet } from './room.js';
 import { PI, propRy, TMP_V, cyl, piece, placed } from './perabot/bentuk.js';
@@ -148,7 +148,7 @@ export function buildFurniture({ materials, hq = false }) {
   staticGroup.add(placed(buildJasHujan(m), EKSTRA.jasHujan));
   proc('rakSiku', placed(buildRakSiku(m), EKSTRA.rakSiku));
   proc('buku', placed(buildMejaDetail(m), EKSTRA.mejaDetail));
-  staticGroup.add(placed(buildLemari(m), ASET.S09.items[0]));
+  proc('lemari', placed(buildLemari(m), ASET.S09.items[0]));
   staticGroup.add(buildOrdner(m));
   staticGroup.add(placed(buildBenderaStand(m), ASET.S08.items[0]));
   ASET.S11.items.forEach((it) => proc('kardus', placed(buildKardus(m), it)));
@@ -240,7 +240,7 @@ export function buildFurniture({ materials, hq = false }) {
     const jobs = [];
     for (const [id, path] of Object.entries(GLB_ASET)) {
       for (const container of containers.get(id) ?? []) {
-        jobs.push(instantiateModel(path).then((model) => {
+        jobs.push(instantiateModel(hq && GLB_ASET_HQ[id] ? GLB_ASET_HQ[id] : path).then((model) => {
           if (isCancelled()) return;
           container.add(model);
           const ph = container.getObjectByName(`${id}-ph`);
