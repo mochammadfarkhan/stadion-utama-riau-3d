@@ -3,7 +3,7 @@
  * menggabung per material (mergeByMaterial) sekali di akhir. Transform opsional = sub-frame bangunan.
  */
 import * as THREE from 'three';
-import { mergeByMaterial } from '../../world/util/merge.js';
+import { mergeByMaterial } from '../../engine/mergeByMaterial.js';
 
 /**
  * @param {string} name
