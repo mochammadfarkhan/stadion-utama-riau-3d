@@ -8,6 +8,7 @@
  * dengan kepingan prosedural (kacamata/kumis) dan dibakar ke LOD / SkinnedMesh.
  */
 import * as THREE from 'three';
+import { PRESET_IDS, addHumanoidPreset, presetPath } from './Humanoid.preset.js';
 
 export const HUMANOID_KIT_PATH = 'models/karakter/chibi-kit.glb';
 /**
@@ -148,7 +149,14 @@ export async function loadHumanoidKits(load) {
     console.warn(`Kit karakter ${p} gagal dimuat:`, err);
     return null;
   })));
-  return roots.filter(Boolean).flatMap((root) => addHumanoidKit(root));
+  const added = roots.filter(Boolean).flatMap((root) => addHumanoidKit(root));
+  const presets = await Promise.all(PRESET_IDS.map((id) => load(presetPath(id))
+    .then((root) => (addHumanoidPreset(id, root) ? [`preset:${id}`] : []))
+    .catch((err) => {
+      console.warn(`Karakter jadi ${id} gagal dimuat:`, err);
+      return [];
+    })));
+  return [...added, ...presets.flat()];
 }
 
 /** Lepas kit (dipakai tes; Humanoid kembali ke bentuk prosedural). */

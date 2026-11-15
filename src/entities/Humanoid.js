@@ -20,6 +20,7 @@ import { ALL_HAIR_STYLES, HAIR_STYLES, createHair, createHat, styleUnderHat } fr
 import { kitGeometry, kitRig } from './Humanoid.kit.js';
 import { buildManekin, resolveGender } from './Humanoid.manekin.js';
 import { buildStaticLodMesh } from './Humanoid.lod.js';
+import { createPresetHumanoid, hasPreset } from './Humanoid.preset.js';
 import { makeRng, matFor, pick } from './util.js';
 
 export { BASE_HEIGHT, BODY_BUILDS, DIM };
@@ -75,9 +76,11 @@ function resolveHair(o) {
  *   glasses?:boolean, mustache?:boolean, build?:'slim'|'average'|'chubby'|'child', pantsFit?:'wide'|'slim',
  *   rng?:() => number}} opts
  * bottom 'longskirt' = rok panjang/gamis sampai mata kaki.
+ * preset = id karakter jadi (Humanoid.preset.js); bila termuat, opsi pakaian lain diabaikan kecuali height.
  * @returns {{group: THREE.Group, parts: Record<string, THREE.Object3D>, height: number}}
  */
 export function createHumanoid(opts = {}) {
+  if (opts.preset && hasPreset(opts.preset)) return createPresetHumanoid(opts.preset, { height: opts.height });
   const o = {
     skin: 0xc68642, shirt: 0x3366cc, pants: 0x2b2b44, hair: undefined, hairColor: undefined,
     height: BASE_HEIGHT, hat: null, hijab: null, apron: null, vest: null, badge: null, backpack: null,

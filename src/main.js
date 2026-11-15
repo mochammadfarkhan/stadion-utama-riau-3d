@@ -26,6 +26,7 @@ import { createRotatePrompt } from './ui/orientation.js';
 import { updateWind } from './world/shaders/windState.js';
 import { buildEntities } from './entities/index.js';
 import { HUMANOID_KIT_PATHS, addHumanoidKit, setAvatarStyle } from './entities/Humanoid.kit.js';
+import { PRESET_IDS, addHumanoidPreset, presetPath } from './entities/Humanoid.preset.js';
 import { loadModel } from './world/assets/models.js';
 import { HUD } from './ui/HUD.js';
 import { createWallet } from './sim/vendorSim.js';
@@ -104,7 +105,10 @@ async function main() {
   setAvatarStyle(new URLSearchParams(window.location.search).get('avatar'));
   const humanoidKit = Promise.all(HUMANOID_KIT_PATHS.map((path) => loadModel(path)
     .then(addHumanoidKit)
-    .catch((err) => console.error(`Kit karakter ${path} gagal dimuat; memakai bentuk cadangan:`, err))));
+    .catch((err) => console.error(`Kit karakter ${path} gagal dimuat; memakai bentuk cadangan:`, err)))
+    .concat(PRESET_IDS.map((id) => loadModel(presetPath(id))
+      .then((root) => addHumanoidPreset(id, root))
+      .catch((err) => console.error(`Karakter jadi ${id} gagal dimuat; memakai manekin:`, err)))));
 
   // Pack orang (warga low poly ber-skin, 1 draw call/orang) dimuat paralel; dipakai kit NPC distrik bila termuat.
   const orangAssets = loadOrangAssets(loadModel, import.meta.env.BASE_URL);

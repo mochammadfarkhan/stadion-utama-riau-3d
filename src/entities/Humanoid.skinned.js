@@ -55,6 +55,8 @@ function bakePiece(mesh, boneIndex) {
  */
 export function bakeSkinnedHumanoid(humanoid) {
   const { group, parts } = humanoid;
+  const preset = group.userData.presetSkin; // karakter jadi: sudah SkinnedMesh, tulang = pivot (tanpa sync)
+  if (preset) return { mesh: preset.mesh, skeleton: preset.skeleton, sync() {}, dispose() { preset.skeleton.dispose(); } };
   const lod = group.userData.humanoidLod;
   if (lod) {
     lod.mesh.removeFromParent();
