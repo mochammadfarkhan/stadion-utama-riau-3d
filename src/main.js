@@ -17,6 +17,9 @@ import { createAudioBus } from './core/AudioBus.js';
 import { createLighting } from './world/Lighting.js';
 import { createTimeOfDay } from './world/TimeOfDay.js';
 import { createWeather } from './world/Weather.js';
+import { createWorldSound } from './app/ambience.js';
+import { pointInPolygon } from './geo/polygon.js';
+import { UNRI_BOUNDARY } from './districts/unri/boundary.js';
 import { MainMenu } from './ui/MainMenu.js';
 import { hasAnyProgress } from './ui/menuModel.js';
 import { createRotatePrompt } from './ui/orientation.js';
@@ -136,7 +139,11 @@ async function main() {
   if (touch && firstRun) store.set('performance.minimap', false); // layar kecil: minimap menutupi tombol layar
   // Perubahan terakhir tidak boleh hilang saat tab ditutup/disembunyikan (debounce 150 ms).
   window.addEventListener('pagehide', () => store.flush(), { signal: listeners.signal });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) store.flush(); }, { signal: listeners.signal });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) store.flush();
+    if (document.hidden) audioBus.suspend(); // tab tersembunyi: senyap
+    else audioBus.resume();
+  }, { signal: listeners.signal });
 
   await procTextures; // sebelum lighting/dunia: keduanya memanggil fillCanvas
   await loading.step(0.12, 'Menyiapkan langit, pencahayaan, waktu, dan cuaca…');
@@ -240,7 +247,7 @@ async function main() {
   lifecycle.add(registerContactSource((emit, focus) => ents.lod.forEachNear(focus, 30, (x, z) => emit(x, z, 0.55))));
   const travelRef = { current: null }; // perjalanan cepat dibuat sesudah cerita
   const story = setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle, terrain, isTravelling: () => Boolean(travelRef.current?.busy), onReset: () => resetGame() });
-  const shop = setupShop(hud, ents, story);
+  const shop = setupShop(hud, ents, story, (n) => audioBus.sfx(n));
   const minimap = setupMinimap(app, ents, story, frame, regions);
   if (city) minimap.setTileLayer(city.minimap);
   // Region hero kampus punya isi sendiri (mis. motor rapat di teras sekre M4): distrik tidak menaruh instans di dalam mask-nya.
@@ -281,8 +288,16 @@ async function main() {
     app, input, rig, ents, isActive: () => session.started && portalKit.portal.state === 'outside',
   });
   lifecycle.add(() => inventory.dispose());
+  // R18: suasana per kawasan + suara sepeda (dijeda di mode Kota dan interior)
+  const worldSound = createWorldSound({
+    audioBus, store, time, bike: ents.bike, getFocus: () => ents.bike.state,
+    zoneAt: (x, z) => (regionContains(stadionDef, x, z) ? 'stadion' : pointInPolygon(x, z, UNRI_BOUNDARY) ? 'kampus' : 'kota'),
+    getInput: () => input, isPaused: () => !session.started || rig.povId === 'kota' || portalKit.portal.state !== 'outside',
+  });
+  app.addSystem({ id: 'worldSound', phase: 'ui', update: (dt) => worldSound.update(dt) });
+  lifecycle.add(() => worldSound.dispose());
   const farm = setupFarm({ // kebun dekat sekre ERC; juga sebelum 'keymap' (E kebun lebih dulu dari cerita/toko)
-    app, input, hud, ents, inventory, terrain, time, store, onWalletChanged: () => story.saveNow(),
+    app, input, hud, ents, inventory, terrain, time, store, sfx: (n) => audioBus.sfx(n), onWalletChanged: () => story.saveNow(),
     isBlocked: () => hud.shopOpen || inventory.open || rig.freezesBike || portalKit.portal.state !== 'outside',
     onSeedContext: (on) => touchUi.setButtonVisible('benih', on), // tombol layar "Ganti" (B) di kotak benih
   });
