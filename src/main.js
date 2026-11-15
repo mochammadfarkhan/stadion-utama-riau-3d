@@ -284,9 +284,11 @@ async function main() {
   const farm = setupFarm({ // kebun dekat sekre ERC; juga sebelum 'keymap' (E kebun lebih dulu dari cerita/toko)
     app, input, hud, ents, inventory, terrain, time, store, onWalletChanged: () => story.saveNow(),
     isBlocked: () => hud.shopOpen || inventory.open || rig.freezesBike || portalKit.portal.state !== 'outside',
+    onSeedContext: (on) => touchUi.setButtonVisible('benih', on), // tombol layar "Ganti" (B) di kotak benih
   });
   lifecycle.add(() => farm.dispose());
-  addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel, portal: portalKit.portal, isInventoryOpen });
+  const inStadion = () => regionContains(stadionDef, ents.bike.state.x, ents.bike.state.z); // skor pertandingan hanya di kawasan stadion
+  addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel, portal: portalKit.portal, isInventoryOpen, inStadion });
   // K: pratinjau kota isometrik; isi berat (stadion, region, penonton) diganti bentuk dasar selama aktif.
   const cityPreview = createCityPreview({
     app, rig, regions, time, store, hud, city, lighting, audioBus, tier: () => quality?.tier ?? null, landmarks: travel.destinations.map((d) => (d.id === 'stadion' ? { ...d, ...frame.toWorld(0, 0) } : d)), stadionId: STADION_ID, stadionPlacement: frame.placement, hide: [ents.group, anchor],
@@ -343,7 +345,7 @@ async function main() {
   if (startRegion) regions.pin(startRegion.id, true);
   const unpinStart = () => { if (startRegion) regions.pin(startRegion.id, false); };
   setupMenu({
-    app, rig, hud, store, touchUi, touch, menu, story, resetGame,
+    app, rig, hud, store, touchUi, touch, menu, story, input, resetGame,
     restore: () => restorePlace({ story, regions, travel, ents })
       .catch((err) => { console.error('Tempat terakhir gagal dipulihkan:', err); return true; })
       .then((moved) => { if (moved) unpinStart(); return moved; }),

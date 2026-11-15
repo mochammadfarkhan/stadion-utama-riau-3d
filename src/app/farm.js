@@ -63,8 +63,9 @@ const near = (b, p, r) => Math.hypot(b.x - p.x, b.z - p.z) < r;
  *   isBlocked?:() => boolean, logger?:{error:Function}}} opts
  */
 export function setupFarm({
-  app, input, hud, ents, inventory, terrain, time, store, isBlocked = () => false, logger = console, onWalletChanged = () => {},
+  app, input, hud, ents, inventory, terrain, time, store, isBlocked = () => false, onSeedContext = () => {}, logger = console, onWalletChanged = () => {},
 }) {
+  let seedContext = false; // pemain di kotak benih: tombol layar "Ganti" (B) ditampilkan
   let farm = loadFarm();
   let view = null;
   let held = null; // pabrik model item di tangan
@@ -224,19 +225,27 @@ export function setupFarm({
     phase: 'input',
     update: () => {
       target = null;
-      if (!view) return;
-      const b = ents.bike.state;
-      view.group.visible = Math.hypot(b.x - view.center.x, b.z - view.center.z) < KEBUN.visibleRadius;
-      if (!view.group.visible) return;
-      view.relayout(farm); // terrain ter-stream belakangan: tata ulang tinggi bila tanah di pusat lahan berubah
-      if (isBlocked()) return;
-      target = findTarget(b, ents.bike.mode);
+      updateTarget();
+      if ((target === 'beli') !== seedContext) { // juga saat keluar jangkauan / terblokir
+        seedContext = target === 'beli';
+        onSeedContext(seedContext);
+      }
       if (target === 'beli' && input.consumePress('KeyB')) {
         buyType = CROP_ORDER[(CROP_ORDER.indexOf(buyType) + 1) % CROP_ORDER.length];
       }
       if (target && input.consumePress('KeyE') && !ents.bike.busy) act(target); // E tetap dikonsumsi selama animasi
     },
   });
+  /** Isi `target` (null bila kebun tak terlihat / input terblokir). */
+  function updateTarget() {
+    if (!view) return;
+    const b = ents.bike.state;
+    view.group.visible = Math.hypot(b.x - view.center.x, b.z - view.center.z) < KEBUN.visibleRadius;
+    if (!view.group.visible) return;
+    view.relayout(farm); // terrain ter-stream belakangan: tata ulang tinggi bila tanah di pusat lahan berubah
+    if (isBlocked()) return;
+    target = findTarget(b, ents.bike.mode);
+  }
   app.addSystem({
     id: 'kebun.fx',
     phase: 'world',

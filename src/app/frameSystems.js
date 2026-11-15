@@ -10,7 +10,9 @@ import { updatePrompt } from './shop.js';
  * (efeknya terlihat satu frame lebih awal; tidak ada perbedaan visual), cerita di sim, kamera di camera,
  * HUD dan input.endFrame di ui (endFrame terdaftar terakhir di antara konsumen tombol).
  */
-export function addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel, portal, isInventoryOpen }) {
+export function addFrameSystems({
+  app, input, rig, hud, ents, shop, time, weather, store, story, travel, portal, isInventoryOpen, inStadion = () => true,
+}) {
   app.addSystem({
     id: 'keymap',
     phase: 'input',
@@ -44,6 +46,7 @@ export function addFrameSystems({ app, input, rig, hud, ents, shop, time, weathe
       hud.setSpeed(ents.bike.speedKmh);
       hud.setTime(formatHour(time.hour), time.presetName, weather.weatherName);
       hud.setScore(ents.match.score);
+      hud.setScoreVisible(inStadion());
       hud.tickFps(ctx.rawDt ?? dt); // FPS jujur: delta mentah, bukan yang di-clamp
       updatePrompt(hud, ents, story, ents.bike.state); // prompt NPC cerita di koordinat dunia
     },
