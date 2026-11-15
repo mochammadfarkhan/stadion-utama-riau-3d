@@ -25,6 +25,7 @@ function fakeApp() {
     setPixelRatio: (v) => calls.push(['pr', v]),
     setAO: (v) => calls.push(['ao', v]),
     setVignette: (v) => calls.push(['vig', v]),
+    setFxaa: (v) => calls.push(['fxaa', v]),
     tick(dt = 0.1) { for (const u of app.updatables) u.update(dt, {}); },
   };
   return { app, calls };
@@ -135,6 +136,8 @@ describe('bindGraphics', () => {
     store.set('graphics.ao', true);
     store.set('graphics.vignette', false);
     store.set('graphics.crowdDensity', 0.25);
+    store.set('graphics.fxaa', false);
+    expect(calls).toContainEqual(['fxaa', false]);
     expect(calls).toContainEqual(['pr', 1]);
     expect(calls).toContainEqual(['ao', true]);
     expect(calls).toContainEqual(['vig', false]);
@@ -174,6 +177,12 @@ describe('bindAudio + AudioBus (tanpa AudioContext)', () => {
     bindAudio(store, { audioBus: bus });
     store.set('audio.master', 0.3);
     expect(bus.master).toBe(0.3);
+    store.set('audio.muted', true);
+    expect(bus.master).toBe(0); // bisukan semua
+    store.set('audio.master', 0.5);
+    expect(bus.master).toBe(0); // tetap bisu walau volume digeser
+    store.set('audio.muted', false);
+    expect(bus.master).toBe(0.5);
     expect(bindAudio(store, { audioBus: null })).toBeTypeOf('function');
     bus.dispose();
   });

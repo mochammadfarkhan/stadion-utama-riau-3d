@@ -76,7 +76,7 @@ export const AUTO_QUALITY = Object.freeze({ lowFps: 45, highFps: 58, lowSecs: 3,
 /** Penonton tribun disembunyikan bila fokus > hideAt dari pusat stadion (histeresis showAt); selaras regions/stadion/farDetail. */
 export const CROWD_FAR = Object.freeze({ hideAt: 650, showAt: 560 });
 
-export const CONTACT_SHADOW = Object.freeze({ max: 192, opacity: 0.38, playerRadius: 1.0, y: 0.06 });
+export const CONTACT_SHADOW = Object.freeze({ max: 192, opacity: 0.45, playerRadius: 1.0, y: 0.06 });
 
 /** Nama material yang TIDAK di-flat-shade pada gaya 'facet' (kaca/air/kain halus tampak jelek bersegi). */
 export const LOWPOLY_EXCLUDE = Object.freeze(['glass', 'kaca', 'water', 'air', 'jendela', 'window', 'sky', 'cloud', 'awan']);

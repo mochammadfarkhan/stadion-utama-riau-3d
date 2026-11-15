@@ -11,6 +11,12 @@ Urutan = prioritas dampak ÷ usaha. Tiap item menunjuk folder fiturnya.
 | 2026-11-13 | Tambah pohon dan marka jalan | tile-detail |
 | 2026-11-13 | Tekstur belum merata, bisa dikompres karena dilihat dari jauh; belum seluruh Pekanbaru, bangunan kecil boleh di-instans | kota-jauh |
 | 2026-11-13 | Detail baru sekitar stadion; di luar itu bangunan masih putih, jalan belum jelas; minta rencana .md per folder per fitur yang terus diperbarui | semua folder, PLAN ini |
+| 2026-11-13 | Minta kritik ala kritikus game (grafis, manusia, UI, sistem) + peta harus lebih detail, gedung ikonik dibuat lebih rinci | [../KRITIK.md](../KRITIK.md), bagian Landmark di bawah |
+
+> **Keputusan user 2026-11-13 (D2):** Kota dan mode jalan dikerjakan **seimbang, selang-seling** (1 PR mode jalan : 1 PR Kota).
+> Urutan Kota: K4 proxy stadion → K1 bentuk atap → K2 + K3 landmark dan label → kinerja zoom penuh → K6 → K5.
+> Usul (belum diputuskan): cincin kedua ditahan sampai kinerja zoom penuh lulus. Gerbang visual diambil di preset Rendah (D3).
+> Rincian: [../KRITIK.md](../KRITIK.md) bagian Arah.
 
 ## Sekarang (sprint 1: "luar stadion tidak boleh putih")
 - ✅ Kota jauh v2: bangunan diputar mengikuti jejak asli, rumah kecil beratap pelana merah, atap datar abu, tint per kelas — [kota-jauh](kota-jauh/README.md)
@@ -43,14 +49,47 @@ Keputusan selera sudah dijawab (maket / 16:45 / suara otomatis); lihat vibes/REA
 6. 🔄 **Air**: perahu ✅ (rivers.bin + farLife); ⬜ shader air (riak + pantulan langit). [kota-jauh]
 
 ## Landmark (model Blender ringan, ganti lewat resep)
-Syarat: lokasi & nama dari OSM/Overture (jangan mengarang), model < 2 rb segitiga, 1 draw call per jenis.
-- ⬜ Masjid Raya An-Nur (kubah+menara) — proxy sederhana → model Blender
-- ⬜ Jembatan (Siak) — rentang + pilar
-- ⬜ Bandara, mal besar, gedung tertinggi — kandidat dari data tinggi Overture (cek dulu)
+Syarat: lokasi & nama dari OSM/Overture (jangan mengarang), 1 draw call per jenis.
+Anggaran (usul kritik 2026-11-13, belum diputuskan user): hero ≤ 5 rb segitiga untuk maksimal 6 model (sebelumnya < 2 rb).
+Rincian, akar masalah di kode, dan langkah K1–K8: [../KRITIK.md](../KRITIK.md) bagian 5.
+**Urutan kerja dari sisi kode:** K4 proxy stadion (`regions/stadion/proxy.js`) → K1 enum bentuk atap di byte ke-8 rekaman
+(`farbake.mjs` + `farCity.js`; bentuk langka = 1 InstancedMesh global) → K2 `far/landmarks.json` dari `names` Overture
+(`farFetch.mjs`) → K3 label bertingkat (`CityLabels.js`) → K6 warna kelas → K5 hero Blender menurut peringkat K2.
+Akar keterbatasan sekarang: `BUILDING_CLASS` melebur masjid/sekolah/RS/pemerintah ke satu kelas dan nama tidak diambil.
+
+**Tingkat A — hero buatan tangan (urut prioritas)**
+- ⬜ A1 **Proxy stadion lebih rinci**: rangka/lengkung atap, tingkat tribun, papan nama, menara lampu (sekarang donat polos) — [stadion-proxy](stadion-proxy/README.md)
+- ✅ A2 Masjid Raya An-Nur (2026-11-14): model Blender 3 LOD (3,0 rb / 1,2 rb / 340 segitiga) + plaza + lampu malam di mode Kota — [landmark](landmark/README.md); plaza dari citra satelit
+- ⬜ A3 Rektorat UNRI + gerbang: proxy LOD untuk mode Kota
+- ✅ A4 Jembatan Siak I/III/IV (2026-11-14): generator Blender 3 LOD tiap jembatan (balok / busur baja / kabel), garis dari OSM, pilar di sungai — [landmark](landmark/README.md)
+- ✅ A5 Bandara (2026-11-15): landasan 2,6 km + taxiway/apron/hangar, terminal + VVIP — [landmark](landmark/README.md)
+- ✅ A6 gedung ikonik pusat kota: Kantor Gubernur + Menara Lancang Kuning (9 lantai), Soeman Hs., Plaza Citra, Hotel Furaya, Swiss-Belinn (nama & jejak OSM)
+- ⬜ Identifikasi bangunan bundar berkubah di selatan stadion (tag OSM) sebelum diberi label
+
+**Tingkat B — arketipe otomatis dari tag OSM (generator + instancing)**
+- ⬜ Masjid/musala: kubah + menara instans di atas jejak
+- ⬜ Gedung tinggi (> ±20 m): podium + menara menyusut, mahkota atap, lampu puncak malam
+- ⬜ Mal/ruko besar: atap datar + kotak AC/skylight + papan nama menyala
+- ⬜ Sekolah/kampus, rumah sakit, SPBU, pasar: warna atap khas + 1 penanda
+- ⬜ Lapangan olahraga: garis lapangan di shader tanah
+
+**Tingkat C — keterbacaan**
+- ⬜ Label bertingkat (kawasan → landmark → jalan besar); sekarang hanya 2 label
+- ⬜ Warna kelas bangunan lebih berani; tutup tepi peta yang terlihat putih di zoom penuh
+- ⬜ Kartu kecepatan diganti nama kawasan + skala selama mode Kota
+
+**Tingkat D — kandidat hias dari riset web (usul, belum diputuskan)** — daftar lengkap + sumber: [DAFTAR-IKON.md](DAFTAR-IKON.md)
+- ✅ D1 Generator jembatan (Siak I/III/IV) — selesai bersama A4
+- ✅ D2 Tugu Selais Tiga Sepadan (+ Zapin, Keris, Perjuangan, Bambu Runcing, Skyhawk)
+- ✅ D3 Perpustakaan Soeman HS + Kantor Gubernur Riau (rujukan foto dari Maps, dilihat saja)
+- ✅ D4 Mal SKA, Living World, Ciputra Seraya, Mall Pekanbaru, Plaza Suka Ramai/Citra (Transmart tidak ada di OSM)
+- ◐ D5 Pasar Bawah + Masjid Raya Senapelan sudah model; warna atap kawasan + label belum
+- ◐ D6 Budaya: Balai Adat, Anjung Seni Idrus Tintin, Museum Sang Nila Utama ✅; TBRK (hanya poligon area), Bandar Serai, Tuan Kadi belum ada di OSM
+
 Lihat [ganti-model](ganti-model/README.md).
 
 ## Kinerja & kualitas (cek berkala)
-- ⬜ Ukur di GPU asli (`?perf`): draw call target ≤ 600 di pratinjau penuh, segitiga ≤ 3 jt, GPU texture ≤ 70 MB.
+- 🔄 Ukur di GPU asli (`?perf`): draw call target ≤ 600 di pratinjau penuh, segitiga ≤ 3 jt, GPU texture ≤ 70 MB. **Terukur 2026-11-13 (headless d3d11, zoom maksimum): 1.423 draw call, 4,98 jt segitiga, 12 fps → melewati target**; zoom dekat stadion 157 call / 0,43 jt / 30 fps. Tekstur belum diukur.
 - ⬜ LOD sel jauh: zoom jauh → sel > 6 km hanya footprint datar tanpa atap (kurangi segitiga).
 - ⬜ Frustum/occlusion: bangunan di balik cakrawala dibuang per sel (sudah per-sel via bounding sphere).
 
@@ -61,6 +100,7 @@ Lihat [ganti-model](ganti-model/README.md).
 ## Log kerja
 | Tanggal | Perubahan | Hasil ukur |
 |---|---|---|
+| 2026-11-13 | Putaran kritik 1 (tanpa perubahan kode): 10 bidikan GPU + barisan NPC, hasil di `docs/KRITIK.md` (tiap temuan: berkas + perubahan + cara cek, 12 paket kerja); bagian Landmark dipecah jadi tingkat A/B/C + urutan K1–K8 | zoom penuh 1.423 call / 4,98 jt segitiga / 12 fps; titik awal 466 call / 2,17 jt; humanoid 5.546 segitiga |
 | 2026-11-13 | Kota jauh v1 (bangunan kotak sejajar sumbu, jalan kelas ≤5, peta tanah) | 380 rb bangunan, 4,7 MB |
 | 2026-11-13 | Kota jauh v2 (rotasi, atap pelana, pohon, jalan semua kelas, peta pekat) | 7 MB, 185 rb pohon, 742 berkas |
 | 2026-11-13 | Bar kendali Kota: slider jam, Putar waktu (1,2 jam/dtk), Tur (rute tetangga-terdekat, 5,5 dtk/perhentian) | 5 tes murni (`cityTour`); dicek di browser uji, belum di GPU asli |
@@ -74,3 +114,6 @@ Lihat [ganti-model](ganti-model/README.md).
 | 2026-11-13 | Cincin menengah: 4 strip (`tools/citybake --area cincin`) | +92 tile, 157 tile, 22,7 MB; bake 36 menit (Overpass 502, strip timur 5 percobaan; Overture ±5 mnt/area) |
 | 2026-11-13 | Lampu malam (`nightGlow.js`, `glow.webp`, lampu sorot proxy) | `glow.webp` ±4 KB; kekuatan jalan 0,38 (tile) / 0,55 (jauh) setelah dicek terlalu terang di 0,6/0,9, peta 2,0, jendela ×2,6 |
 | 2026-11-13 | Awan disembunyikan di mode Kota (penyebab kerudung putih); fasad di bangunan jauh | browser uji 20–30 fps (software) |
+| 2026-11-14 | Landmark hero An-Nur: `assets-src/blender/landmark/an_nur.py` → 3 GLB LOD, `src/city/landmarks.js` (LOD menurut jarak kamera, 1 draw call), `tools/shots/landmarkKota.mjs` | 4 tes murni (`tests/city/landmarks.test.js`); 279 tes kota hijau; dilihat di mode Kota zoom 0,4–3 (LOD0→2 berganti benar); batas LOD awal 260/900 m salah (jarak kamera ≈ 1300 m × zoom) → 1300/2800 |
+| 2026-11-14 | Jembatan Siak I/III/IV: `assets-src/blender/landmark/jembatan.py` → 9 GLB (garis OSM, struktur menurut foto Commons), terdaftar di `landmarks.js` | dilihat di mode Kota zoom 0,4/1,2; pilon Siak IV digeser 400→450 m setelah garis tengah sungai (`rivers.bin`) memotong di 454 m; koreksi: angka "Siak III 1.196 m" milik jembatan Latifah di Kab. Siak |
+| 2026-11-15 | 23 landmark lain sekaligus: `bangunan.py` + `lm_common.py` → GLB 3 LOD dari jejak OSM (`osm/footprints.json`), daftar posisi dihasilkan `src/city/landmarks.data.js` | 280 tes kota hijau, `npm run build` ok; dilihat di mode Kota (Gubernur, Mal SKA, Selais, terminal, landasan, Senapelan); sebagian bentuk `[INFERENSI]` |

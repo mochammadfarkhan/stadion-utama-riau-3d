@@ -55,3 +55,14 @@ html[data-gaya='kartun'] #inventory-panel {
 html[data-gaya='kartun'] .inv-slot { background: #efe0bd; border-color: #b39463; color: var(--hud-fg); }
 html[data-gaya='kartun'] .inv-count { color: #fff7e6; text-shadow: 0 1px 2px #3b2a1a; }
 html[data-gaya='kartun'] .inv-close { color: #fff7e6; }
+
+/* Layar sentuh: hotbar di antara joystick dan tombol layar (9×36 + 8×4 + padding + border = 368 px).
+   Di sini, bukan touch.css: inventory.css dimuat belakangan. */
+@media (pointer: coarse) {
+  #hotbar-wrap {
+    left: max(162px, calc(env(safe-area-inset-left) + 152px)); /* joystick berakhir di 160; 162 + 368 = 530 < tombol 532 (812 px) */ transform: none;
+    bottom: max(8px, env(safe-area-inset-bottom));
+  }
+  #hotbar-wrap .inv-row { grid-template-columns: repeat(9, 36px); }
+  #hotbar-wrap .inv-slot { width: 36px; height: 36px; }
+}

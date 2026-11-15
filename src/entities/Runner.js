@@ -13,6 +13,11 @@ import { pointOnLane, laneLength } from '../sim/trackPath.js';
 import { createHumanoid, animateRun, animateWalk } from './Humanoid.js';
 import { randomRunnerOutfit, randomCasualOutfit } from './Humanoid.outfits.js';
 import { makeRng, range, isFiniteXZ, yawFromDir, clamp, flatGround, groundOf } from './util.js';
+import { createOrangRandom, orangPlay } from './Orang.js';
+
+/** Laju (m/s) klip pack orang: jalan 1,35, jogging ±2,6 (fase klip = waktu × laju / laju klip). */
+const ORANG_WALK = 1.35;
+const ORANG_JOG = 2.6;
 
 const SPEED_MIN = 2.5;
 const SPEED_MAX = 5.0;
@@ -48,7 +53,7 @@ export class RunnerGroup {
     const len = safeLaneLength(lane);
     const sim = createRunner({ id: `runner-${i}`, lane, speed, dist: rng() * len });
     const outfit = randomRunnerOutfit(rng, { forceHat: i === 2 || i === 6, forceHijab: i === 4 });
-    const h = createHumanoid(outfit);
+    const h = createOrangRandom(rng) ?? createHumanoid(outfit); // pack orang: klip jogging
     h.group.name = `runner-${i}`;
     this.group.add(h.group);
     this.#runners.push({ sim, h, speed });
@@ -62,7 +67,8 @@ export class RunnerGroup {
     if (!isFiniteXZ(p)) return;
     r.h.group.position.set(p.x, ground(p.x, p.z), p.z);
     r.h.group.rotation.y = p.yaw ?? 0;
-    animateRun(r.h, time + r.speed, speed || r.speed);
+    if (r.h.orang) orangPlay(r.h, `jogging-${r.h.g}`, (time * (speed || r.speed)) / ORANG_JOG + r.speed);
+    else animateRun(r.h, time + r.speed, speed || r.speed);
   }
 
   /** @param {number} dt @param {{time:number}} ctx */
@@ -114,7 +120,7 @@ export class LoopWalkers {
     const rng = makeRng(seed);
     for (let i = 0; i < count; i++) {
       const speed = range(rng, speedRange[0], speedRange[1]);
-      const h = createHumanoid(speed > 2.2 ? randomRunnerOutfit(rng) : randomCasualOutfit(rng));
+      const h = createOrangRandom(rng) ?? createHumanoid(speed > 2.2 ? randomRunnerOutfit(rng) : randomCasualOutfit(rng));
       this.group.add(h.group);
       this.#walkers.push({
         h, speed, dir: rng() < 0.6 ? 1 : -1, theta: rng() * Math.PI * 2,
@@ -135,7 +141,10 @@ export class LoopWalkers {
     const z = b * s + (nz / nl) * w.lateral;
     w.h.group.position.set(x, ground(x, z) + this.#yOffset, z);
     w.h.group.rotation.y = yawFromDir(tx, tz);
-    if (w.speed > 2.2) animateRun(w.h, time + w.phase, w.speed);
+    if (w.h.orang) {
+      if (w.speed > 2.2) orangPlay(w.h, `jogging-${w.h.g}`, (time * w.speed) / ORANG_JOG + w.phase);
+      else orangPlay(w.h, `jalan-${w.h.g}`, (time * w.speed) / ORANG_WALK + w.phase);
+    } else if (w.speed > 2.2) animateRun(w.h, time + w.phase, w.speed);
     else animateWalk(w.h, time + w.phase);
   }
 

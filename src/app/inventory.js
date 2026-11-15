@@ -5,12 +5,15 @@
  * localStorage; tas baru berisi perlengkapan awal (cangkul, gembor, 5 benih cabai).
  */
 import { ITEMS, INVENTORY, INVENTORY_SIZE, STARTER_KIT } from '../config/items.js';
+import { SAVE_KEYS } from '../config/saveKeys.js';
 import {
   createInventory, putInSlot, addItem, takeFromSlot, removeItem, moveSlot, shipInto, shipValue, inventoryToJson, inventoryFromJson,
 } from '../sim/inventory.js';
 import { createInventoryUI } from '../ui/InventoryUI.js';
+import { loadJsonWithBackup } from '../settings/jsonBackup.js';
+import { safeLocalStorage } from '../settings/safeStorage.js';
 
-const STORAGE_KEY = 'stadion.inventory.v1';
+const STORAGE_KEY = SAVE_KEYS.inventory;
 const DIGITS = Array.from({ length: INVENTORY.hotbar }, (_, i) => `Digit${i + 1}`);
 
 function starter() {
@@ -18,12 +21,8 @@ function starter() {
 }
 
 function load() {
-  try {
-    const text = localStorage.getItem(STORAGE_KEY);
-    const saved = text ? inventoryFromJson(text, INVENTORY_SIZE, ITEMS) : null;
-    if (saved) return saved;
-  } catch { /* penyimpanan diblokir: mulai dari perlengkapan awal */ }
-  return { inv: starter(), box: Object.freeze({}) };
+  const saved = loadJsonWithBackup(safeLocalStorage(), STORAGE_KEY, (text) => inventoryFromJson(text, INVENTORY_SIZE, ITEMS)); // rusak → .bak
+  return saved ?? { inv: starter(), box: Object.freeze({}) };
 }
 
 /**
@@ -99,6 +98,13 @@ export function setupInventory({ app, input, rig, ents, isActive }) {
 
   return {
     get open() { return ui.open; },
+    /** Mulai dari awal: perlengkapan awal, kotak kiriman kosong (tersimpan). */
+    reset() {
+      inv = starter();
+      box = Object.freeze({});
+      save();
+      render();
+    },
     /** Definisi item di tangan (null = kosong). */
     get held() { const s = inv.slots[selected]; return s ? ITEMS[s.id] : null; },
     get heldId() { return inv.slots[selected]?.id ?? null; },

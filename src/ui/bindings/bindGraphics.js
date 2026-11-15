@@ -37,6 +37,7 @@ export function bindGraphics(store, { app, lighting = null, crowd = null }) {
   on('graphics.ao', (v) => app.setAO?.(v && styleState.style === 'asli')); // kartun/facet: tanpa GTAO
   on('graphics.vignette', (v) => app.setVignette?.(v && styleState.style === 'asli'));
   on('graphics.outline', (v) => app.setOutline?.(v));
+  on('graphics.fxaa', (v) => app.setFxaa?.(v)); // aktif hanya bila rasio render ≤ 1 (App)
   on('graphics.gayaGrafis', (g) => { // tema UI mengikuti gaya (perkamen hanya di kartun)
     if (typeof document !== 'undefined') document.documentElement.dataset.gaya = g;
   });

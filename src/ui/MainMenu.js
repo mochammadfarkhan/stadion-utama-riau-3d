@@ -5,6 +5,9 @@
 import { menuModel } from './menuModel.js';
 import { CONTROL_HELP, CONTROL_HELP_EXTRA } from '../config/controlsHelp.js';
 
+/** Batas waktu klik kedua "Mulai dari awal" (ms). */
+export const CONFIRM_MS = 4000;
+
 export class MainMenu {
   /** @param {Document} [doc] */
   constructor(doc = document) {
@@ -13,11 +16,32 @@ export class MainMenu {
     this.newBtn = doc.getElementById('menu-new');
     this.settingsBtn = doc.getElementById('menu-settings');
     this.hint = doc.getElementById('menu-hint');
+    this.body = doc.body;
+    this.body.classList.add('is-menu'); // HUD disembunyikan sampai hide() (bukan away())
     this.#fillControls(doc);
     this.handlers = { start: () => {}, newGame: () => {}, settings: () => {} };
     this.startBtn.addEventListener('click', () => this.handlers.start());
-    this.newBtn.addEventListener('click', () => this.handlers.newGame());
+    this.newBtn.addEventListener('click', () => this.#confirmNew());
     this.settingsBtn.addEventListener('click', () => this.handlers.settings());
+  }
+
+  /** Dua klik dalam CONFIRM_MS: klik pertama hanya mengubah teks tombol (semua kemajuan akan dihapus). */
+  #confirmNew() {
+    if (!this.armed) {
+      this.armed = true;
+      this.newLabel = this.newBtn.textContent;
+      this.newBtn.textContent = 'Yakin? Semua kemajuan dihapus';
+      this.armTimer = setTimeout(() => this.#disarm(), CONFIRM_MS);
+      return;
+    }
+    this.#disarm();
+    this.handlers.newGame();
+  }
+
+  #disarm() {
+    clearTimeout(this.armTimer);
+    this.armed = false;
+    this.newBtn.textContent = this.newLabel ?? this.newBtn.textContent;
   }
 
   /** @param {{start?:Function, newGame?:Function, settings?:Function}} handlers */
@@ -54,7 +78,10 @@ export class MainMenu {
   }
 
   /** Sembunyikan menu sepenuhnya (game dimulai). */
-  hide() { this.overlay.classList.add('hidden'); }
+  hide() {
+    this.overlay.classList.add('hidden');
+    this.body.classList.remove('is-menu');
+  }
 
   /** Menu menyingkir sementara (mis. panel pengaturan terbuka) tanpa menutup overlay. */
   away(on) { this.overlay.classList.toggle('menu-away', Boolean(on)); }
