@@ -43,6 +43,7 @@ import { createCityPreview } from './app/cityPreview.js';
 import { mountDistrict } from './app/districtMount.js';
 import { unriDistrict } from './districts/unri/index.js';
 import { createStudentKit } from './entities/Student.js';
+import { loadOrangAssets, createOrangFactory, createOrangKit, setOrangFactory } from './entities/Orang.js';
 import { UNRI_VENDORS } from './story/chapters.unri.js';
 import { createLocalContext } from './app/regionContext.js';
 import { withPlacement, regionContains } from './regions/Region.js';
@@ -99,6 +100,9 @@ async function main() {
   const humanoidKit = Promise.all(HUMANOID_KIT_PATHS.map((path) => loadModel(path)
     .then(addHumanoidKit)
     .catch((err) => console.error(`Kit karakter ${path} gagal dimuat; memakai bentuk cadangan:`, err))));
+
+  // Pack orang (warga low poly ber-skin, 1 draw call/orang) dimuat paralel; dipakai kit NPC distrik bila termuat.
+  const orangAssets = loadOrangAssets(loadModel, import.meta.env.BASE_URL);
 
   // Pembongkaran berurutan terbalik (LIFO); dipakai __sim.teardown() di mode dev.
   const lifecycle = createDisposerStack();
@@ -193,6 +197,10 @@ async function main() {
 
   await loading.step(0.55, 'Menyiapkan pemain, pelari, pedagang, dan penonton…');
   await humanoidKit;
+  // Pack orang: satu factory (material palet bersama) untuk warga plaza (registri) dan mahasiswa (kit distrik).
+  const orangLoaded = await orangAssets;
+  const orangFactory = orangLoaded && store.get('graphics.orangPack') !== false ? createOrangFactory(orangLoaded) : null;
+  setOrangFactory(orangFactory);
   const wallet = createWallet();
   // Jangkar region: entitas & objek cerita region-lokal ditempel di bawah grup ber-placement.
   const anchor = applyPlacement(new THREE.Group(), frame.placement);
@@ -234,7 +242,11 @@ async function main() {
   if (city) minimap.setTileLayer(city.minimap);
   // Region hero kampus punya isi sendiri (mis. motor rapat di teras sekre M4): distrik tidak menaruh instans di dalam mask-nya.
   const districtServices = Object.freeze({
-    npc: createStudentKit(),
+    npc: createOrangKit({
+      factory: orangFactory,
+      fallback: createStudentKit(),
+      enabled: () => store.get('graphics.orangPack') !== false,
+    }),
     camera: lodView,
     hour: () => time.hour,
     excludeAt: (x, z) => regionIdAt(x, z) !== null,

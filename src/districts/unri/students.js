@@ -117,8 +117,16 @@ export function createStudents({ npc, terrain, scheduler, scope, hour, camera, g
 
   function seatMember(slot, cell, index, rng) {
     const s = cell.seats[index];
-    slot.h.group.position.set(s.x, terrain.heightAt(s.x, s.z) + SEAT_LIFT, s.z);
-    slot.h.group.rotation.y = s.yaw;
+    if (npc.canSit?.(slot.h) === false) {
+      // NPC tanpa pose duduk (pack orang): berdiri mengobrol 0,55 m di depan bangku, menghadap bangku
+      const x = s.x + Math.sin(s.yaw) * 0.55;
+      const z = s.z + Math.cos(s.yaw) * 0.55;
+      slot.h.group.position.set(x, terrain.heightAt(x, z), z);
+      slot.h.group.rotation.y = s.yaw + Math.PI;
+    } else {
+      slot.h.group.position.set(s.x, terrain.heightAt(s.x, s.z) + SEAT_LIFT, s.z);
+      slot.h.group.rotation.y = s.yaw;
+    }
     return { slot, seatIndex: index, pose: SIT_POSES[rng() < 0.5 ? 0 : 1], phase: rng() * 10 };
   }
 

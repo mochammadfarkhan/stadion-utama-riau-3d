@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ruang uji (dev)</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #2b2b2b; font: 13px system-ui, sans-serif; }
+      #panel { position: fixed; top: 8px; left: 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+        background: rgba(255, 255, 255, 0.88); padding: 6px 8px; border-radius: 8px; max-width: calc(100vw - 32px); }
+      #panel label { display: flex; gap: 4px; align-items: center; }
+      #info { position: fixed; bottom: 8px; left: 8px; background: rgba(0, 0, 0, 0.6); color: #fff; padding: 4px 8px;
+        border-radius: 6px; white-space: pre; font: 12px ui-monospace, monospace; }
+      body.bersih #panel, body.bersih #info { display: none; }
+    </style>
+  </head>
+  <body>
+    <div id="panel"></div>
+    <div id="info"></div>
+    <script type="module" src="/src/dev/ruangUji.js"></script>
+  </body>
+</html>
