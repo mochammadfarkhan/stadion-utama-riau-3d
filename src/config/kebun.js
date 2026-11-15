@@ -61,8 +61,8 @@ export function houseRing(k = KEBUN) {
 export const PLAYER_MODES = Object.freeze(['jalan', 'sepeda', 'traktor']);
 export const MODE_LABEL = Object.freeze({ jalan: 'Jalan kaki', sepeda: 'Sepeda', traktor: 'Traktor' });
 
-/** Jalan kaki: A/D memutar badan di tempat, W/S maju/mundur, Shift lari. */
-export const WALK = Object.freeze({ walk: 1.6, run: 4.2, back: 1.0, accel: 8, turnRate: 2.6 });
+/** Jalan kaki luar ruang (stepWalk, relatif kamera): W maju searah kamera, A/D menyamping, Shift lari. Lebih cepat dari dalam ruang. */
+export const FOOT = Object.freeze({ walkSpeed: 1.6, runSpeed: 4.2, accel: 8, maxStep: 0.05, maxDt: 0.1 });
 
 /** Traktor: sepeda kinematik yang lambat, berat, tanpa condong. */
 export const TRACTOR = Object.freeze({

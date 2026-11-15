@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { createFarm, actOn, planAction, plow, growFarm, nextAction, farmToJson, farmFromJson, stepOnFoot } from '../src/sim/farm.js';
+import { createFarm, actOn, planAction, plow, growFarm, nextAction, farmToJson, farmFromJson } from '../src/sim/farm.js';
 import { ITEMS } from '../src/config/items.js';
-import { KEBUN, CROPS, CROP_ORDER, tileIndexAt, tileCenter, houseRing, WALK } from '../src/config/kebun.js';
+import { KEBUN, CROPS, CROP_ORDER, tileIndexAt, tileCenter, houseRing } from '../src/config/kebun.js';
 
 const opts = (seed) => ({ seed, crops: CROPS });
 const sleep = (f) => growFarm(f, KEBUN.sleepHours, CROPS);
@@ -126,15 +126,3 @@ describe('kebun: geometri lahan', () => {
   });
 });
 
-describe('stepOnFoot', () => {
-  it('putar di tempat, maju ke arah hadap, lari dengan Shift', () => {
-    let s = { x: 0, z: 0, yaw: 0, v: 0 };
-    s = stepOnFoot(s, { pedal: 0, steer: 1, sprint: false }, 0.5, WALK);
-    expect(s.yaw).toBeCloseTo(WALK.turnRate * 0.5);
-    expect(s.x).toBe(0);
-    s = { x: 0, z: 0, yaw: 0, v: 0 };
-    for (let i = 0; i < 60; i += 1) s = stepOnFoot(s, { pedal: 1, steer: 0, sprint: true }, 0.05, WALK);
-    expect(s.v).toBeCloseTo(WALK.run);
-    expect(s.z).toBeGreaterThan(5);
-  });
-});

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createBikeState, stepBike, steerLimit, slideResponse } from '../src/sim/bikePhysics.js';
+import { createBikeState, stepBike, steerLimit, slideResponse, canSwitchMode } from '../src/sim/bikePhysics.js';
 import { BIKE } from '../src/config/constants.js';
 import { deepFreeze, hasNaN } from './helpers.js';
 
@@ -212,5 +212,13 @@ describe('stepBike dengan grade (tanjakan, M1)', () => {
   it('grade NaN = datar; grade di-clamp ±30%', () => {
     expect(runG(createBikeState(), PEDAL, 1, Number.NaN)).toEqual(runG(createBikeState(), PEDAL, 1, 0));
     expect(runG(createBikeState(), PEDAL, 1, 5)).toEqual(runG(createBikeState(), PEDAL, 1, 0.3));
+  });
+});
+
+describe('canSwitchMode (R14)', () => {
+  it('boleh ganti saat hampir berhenti, tidak saat melaju', () => {
+    expect(canSwitchMode(1.2)).toBe(true);
+    expect(canSwitchMode(-1)).toBe(true);
+    expect(canSwitchMode(6)).toBe(false);
   });
 });
