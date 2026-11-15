@@ -76,7 +76,7 @@ function crateGeometry(signColor) {
   return geo;
 }
 
-const SOIL_COLOR = Object.freeze({ rumput: 0x6f8c45, cangkul: 0x8a5a35, basah: 0x5b3a24 });
+const SOIL_COLOR = Object.freeze({ rumput: 0x6f8c45, cangkul: 0x8a5a35, basah: 0x3f2616 });
 const SOIL_H = Object.freeze({ rumput: 0.02, cangkul: 0.1, basah: 0.1 });
 
 /** InstancedMesh per mesh sumber tahap tanaman (kapasitas = semua petak; count diatur saat update). */

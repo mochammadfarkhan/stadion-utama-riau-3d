@@ -18,6 +18,7 @@ import { UKM_FRAME, UKM_LABELS, ukmSigns } from './sekreUkm.data.js';
 import { UKM_LAYOUT } from './ukmLayout.js';
 import { faceToward } from './layout.js';
 import { staged } from './staged.js';
+import { createPintuGandaD5 } from './pintuGandaD5.js';
 
 export const UKM_GROUP = 'ukm-gedung';
 export const UKM_GLB = 'models/unri/h09-sekre-ukm.glb';
@@ -85,6 +86,7 @@ export function createUkmHeroBuilder({ baseY, mats, labels = UKM_LABELS }) {
       }
       return g;
     },
+    () => createPintuGandaD5() ?? new THREE.Group(), // pintu ganda biru sekre ERC (D5), sama dengan interior & foto
   ], { x: UKM_FRAME.x, y: baseY, z: UKM_FRAME.z, yaw: 0 }, { merge: false });
 }
 

@@ -26,8 +26,11 @@ const BASE_CHAPTERS = [
     reward: { rupiah: 5000, badge: 'Tamu Bertuah' },
     steps: [
       {
-        id: 'ke-tugu', text: 'Kayuh ke Tugu Lancang Kuning di depan stadion',
-        say: ['Selamat datang di Stadion Utama Riau!', 'Mulailah dari tugu Lancang Kuning di plaza depan. Kayuh sepedamu ke sana.'],
+        id: 'ke-tugu', text: 'Kayuh dari sekre ke Tugu Lancang Kuning di depan Stadion Utama Riau',
+        say: [
+          'Kak Nisa: "Sore ini kita kumpul di stadion. Kamu duluan ya, naik sepeda."',
+          'Stadion ada di utara kampus: ikuti penanda kuning dan jarak di kartu misi, lalu cari Tugu Lancang Kuning di plaza depan.',
+        ],
         objective: { type: 'goto', target: TUGU, radius: 16 },
       },
     ],
