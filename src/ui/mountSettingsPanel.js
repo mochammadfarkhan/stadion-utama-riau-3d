@@ -6,53 +6,10 @@
  */
 import { captureScreenshot } from './Screenshot.js';
 import { EXIT_KEY, POVS } from '../core/cameraPresets.js';
+import { CONTROL_HELP } from '../config/controlsHelp.js';
 
-const SIM_HELP_ITEMS = Object.freeze([
-  { group: 'Sepeda' },
-  { keys: ['W', 'S'], text: 'Kayuh / rem' },
-  { keys: ['A', 'D'], text: 'Belok kiri / kanan' },
-  { keys: ['Shift'], text: 'Sprint' },
-  { keys: ['Space'], text: 'Bel' },
-  { keys: ['F'], text: 'Ganti mode: jalan kaki / sepeda / traktor' },
-  { group: 'Dunia' },
-  { keys: ['E'], text: 'Beli dari pedagang' },
-  { keys: ['V'], text: 'Ganti kamera / keluar dari POV' },
-  { keys: ['C'], text: 'Kamera 3/4 dari atas (nyala/mati)' },
-  { keys: ['Q', 'Z'], text: 'Putar kamera 3/4 (atau drag mouse; roda = zoom)' },
-  { keys: ['L'], text: 'Gaya grafis: asli / kartun / facet' },
-  { keys: ['J'], text: 'Jurnal cerita & misi' },
-  { group: 'Sudut pandang (POV)' },
-  { keys: ['1'], text: 'Udara' },
-  { keys: ['2'], text: 'Tribun' },
-  { keys: ['3'], text: 'Bola' },
-  { keys: ['4'], text: 'Pelari (tekan lagi: pelari berikutnya)' },
-  { keys: ['5'], text: 'Pedagang (tekan lagi: pedagang berikutnya)' },
-  { keys: ['6'], text: 'Orbit sinematik' },
-  { keys: ['7'], text: 'Top-down (sepeda tetap bisa dikendalikan)' },
-  { keys: ['0'], text: 'Kembali ke sepeda' },
-  { keys: ['Mouse', 'Roda'], text: 'Orbit & zoom saat POV' },
-  { keys: ['M'], text: 'Minimap' },
-  { keys: ['N'], text: 'Preset waktu berikutnya' },
-  { keys: ['T'], text: 'Jalankan / hentikan jam' },
-  { keys: ['[', ']'], text: 'Mundur / maju 1 jam' },
-  { keys: ['R'], text: 'Hujan / cerah' },
-  { keys: ['O'], text: 'Ambient occlusion' },
-  { group: 'Kebun (barat Jl. Prof. Aras Mulyadi, dekat sekre)' },
-  { keys: ['I'], text: 'Buka / tutup tas (klik item lalu klik slot tujuan untuk memindah)' },
-  { keys: ['1–9', 'Roda'], text: 'Pilih slot hotbar (saat jalan kaki)' },
-  { keys: ['E'], text: 'Di depan petak: pakai item di tangan (cangkul / benih / gembor), panen dengan apa saja' },
-  { keys: ['E', 'B'], text: 'Kotak benih (peti hijau): beli 1 benih · B ganti jenis' },
-  { keys: ['E'], text: 'Kotak kiriman (peti merah): kirim hasil panen yang dipegang · pintu rumah: tidur, kiriman dibayar' },
-  { keys: ['F'], text: 'Traktor: lewati petak rumput untuk membajak' },
-  { group: 'Sekre (interior)' },
-  { keys: ['E'], text: 'Di depan pintu sekre: masuk · di dalam: pakai barang yang dilihat' },
-  { keys: ['W', 'A', 'S', 'D'], text: 'Jalan kaki (A/D geser)' },
-  { keys: ['Shift'], text: 'Lari' },
-  { keys: ['Mouse'], text: 'Melihat sekeliling' },
-  { keys: ['V'], text: 'Orang pertama / orang ketiga' },
-  { keys: ['P'], text: 'Mode foto: 1–4 preset (lesehan, pintu, pojok, atas), W/A/S/D + Q/E kamera bebas' },
-  { keys: ['Esc'], text: 'Keluar sekre (atau tutup kartu info)' },
-]);
+/** Daftar kontrol dari satu sumber (config/controlsHelp.js); `menu` dibuang. */
+const SIM_HELP_ITEMS = CONTROL_HELP.map(({ menu: _m, ...item }) => item);
 
 /** Muat modul panel + css; null bila salah satu gagal. */
 async function loadPanelModules() {

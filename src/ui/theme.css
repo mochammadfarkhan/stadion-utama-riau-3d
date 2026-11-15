@@ -2,8 +2,9 @@
 :root {
   /* unit responsif: ~4px di layar kecil, ~5px di layar lebar */
   --ui-u: clamp(3.5px, 0.3vw + 2.6px, 5px);
-  --ui-fs: clamp(12px, 0.25vw + 11.2px, 13.5px);
-  --ui-fs-sm: calc(var(--ui-fs) * 0.86);
+  --ui-text-scale: 1; /* setelan aksesibilitas.textScale */
+  --ui-fs: calc(clamp(13px, 0.25vw + 12px, 15px) * var(--ui-text-scale));
+  --ui-fs-sm: calc(var(--ui-fs) * 0.92);
   --ui-fs-lg: calc(var(--ui-fs) * 1.2);
 
   --ui-font: 'Inter Variable', 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -11,7 +12,7 @@
 
   --ui-fg: #eef3f6;
   --ui-muted: #9fb0bd;
-  --ui-dim: #66798a;
+  --ui-dim: #7d90a1; /* ≥ 4,5 : 1 di latar gelap */
   --ui-bg: rgba(9, 15, 22, 0.78);
   --ui-bg-2: rgba(17, 26, 36, 0.92);
   --ui-bg-3: rgba(255, 255, 255, 0.045);

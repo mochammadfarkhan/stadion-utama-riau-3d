@@ -34,12 +34,13 @@ body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
 
 /* Layar kecil (HP landscape = tinggi pendek; potret diblokir layar putar): HUD lebih ringkas. */
 @media (max-height: 480px), (max-width: 640px) {
+  .touch-btn { font-size: calc(13px * var(--ui-text-scale, 1)); }
   .touch-stick { width: 120px; height: 120px; }
   #hud-top-left, #hud-top-right { min-width: 0; padding: 6px 10px; top: 10px; }
   #hud-top-left { left: 10px; max-width: 42vw; }
   #hud-top-right { max-width: 34vw; }
   #hud .big { font-size: 22px; }
-  .pill { font-size: 12px; padding: 5px 12px; }
+  .pill { font-size: calc(13px * var(--ui-text-scale, 1)); padding: 5px 12px; }
   #hud-prompt { bottom: 180px; }
   #overlay .panel { max-width: 92vw; padding: 20px 18px; }
 }

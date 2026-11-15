@@ -9,8 +9,9 @@ import { bindGraphics } from './bindGraphics.js';
 import { bindCamera } from './bindCamera.js';
 import { bindAudio } from './bindAudio.js';
 import { bindPerformance } from './bindPerformance.js';
+import { bindAccessibility } from './bindAccessibility.js';
 
-export { bindSky, bindWeather, bindGraphics, bindCamera, bindAudio, bindPerformance };
+export { bindSky, bindWeather, bindGraphics, bindCamera, bindAudio, bindPerformance, bindAccessibility };
 
 /**
  * @param {object} store hasil createSettingsStore
@@ -27,5 +28,6 @@ export function bindAll(store, ctx) {
   if (ctx.rig && camera) disposers.push(bindCamera(store, { rig: ctx.rig, camera, hud: ctx.hud, app }));
   disposers.push(bindAudio(store, { audioBus: ctx.audioBus }));
   if (app) disposers.push(bindPerformance(store, { app, hud: ctx.hud, vendors: ctx.vendors }));
+  disposers.push(bindAccessibility(store));
   return () => { for (const d of disposers) d(); };
 }
