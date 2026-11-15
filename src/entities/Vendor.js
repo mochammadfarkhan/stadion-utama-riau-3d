@@ -12,7 +12,7 @@ import { randomVendorOutfit } from './Humanoid.outfits.js';
 import { createFallbackCart } from './Vendor.cart.js';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { createCart } from '../world/props/Cart.js';
-import { mergeByMaterial } from '../world/util/merge.js';
+import { mergeByMaterial } from '../engine/mergeByMaterial.js';
 import { makeRng, isFiniteXZ, lerpAngle, clamp, HAS_DOM, flatGround, groundOf } from './util.js';
 
 const LABEL_DISTANCE = 45;
