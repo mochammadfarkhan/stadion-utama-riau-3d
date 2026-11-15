@@ -1,6 +1,6 @@
-# Stadion Utama Riau — Simulator 3D
+# Anak Bertuah — Dunia terbuka Pekanbaru
 
-Simulator 3D interaktif kawasan **Stadion Utama Riau** (Jl. Naga Sakti, Panam, Pekanbaru) dibangun dengan [Three.js](https://threejs.org) 0.186 + Vite. Hampir semua geometri prosedural; dua model Blender (GLB: tugu Lancang Kuning dan bangku taman) dimuat dari `public/models/`. Font Inter/JetBrains Mono di-host sendiri (`@fontsource-variable`), jadi tidak butuh internet.
+Game dunia terbuka 3D di Pekanbaru: berawal dari kawasan **Stadion Utama Riau** (Jl. Naga Sakti, Panam) dan kampus UNRI, dibangun dengan [Three.js](https://threejs.org) 0.186 + Vite. Hampir semua geometri prosedural; dua model Blender (GLB: tugu Lancang Kuning dan bangku taman) dimuat dari `public/models/`. Font Inter/JetBrains Mono di-host sendiri (`@fontsource-variable`), jadi tidak butuh internet.
 
 | Interior tribun | Plaza & gate utara |
 |---|---|

@@ -100,3 +100,19 @@ describe('Input: tombol virtual (sentuh/gamepad)', () => {
     expect(input.consumePress('KeyJ')).toBe(false);
   });
 });
+
+describe('Input sumbu analog (R14)', () => {
+  it('sumber dengan magnitudo terbesar menang; 0 menghapus; dispose mengosongkan; clamp', () => {
+    const t = { addEventListener() {}, removeEventListener() {} };
+    const input = new Input(t);
+    input.setAxis('moveX', 0.4, 'pad');
+    input.setAxis('moveX', -0.9, 'touch');
+    expect(input.axis('moveX')).toBe(-0.9);
+    input.setAxis('moveX', 0, 'touch');
+    expect(input.axis('moveX')).toBe(0.4);
+    input.setAxis('moveY', 3, 'pad');
+    expect(input.axis('moveY')).toBe(1);
+    input.dispose();
+    expect(input.axis('moveX')).toBe(0);
+  });
+});

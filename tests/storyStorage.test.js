@@ -14,7 +14,7 @@ const V2 = {
   version: 2, chapter: 2, step: 1, badges: ['x'], eggs: ['a'], bestLap: 41.5, rupiah: 20000, finished: false,
   wallet: { balance: 31000, items: [TEH] },
 };
-const V3 = { ...V2, version: 3, place: { region: 'stadion', x: 12.5, z: -190, yaw: 0.4 } };
+const V3 = { ...V2, version: 3, place: { region: 'stadion', x: 12.5, z: -190, yaw: 0.4, mode: 'jalan' } };
 
 describe('story storage v3 (M0 multi-region)', () => {
   it('SAVE_VERSION = 3; round-trip v3 (progres + dompet + tempat)', () => {
@@ -41,7 +41,13 @@ describe('story storage v3 (M0 multi-region)', () => {
     for (const place of [null, 'x', { region: '', x: 0, z: 0, yaw: 0 }, { region: 'stadion', x: Number.NaN, z: 0, yaw: 0 }, { x: 1, z: 2, yaw: 0 }]) {
       expect(sanitizeSave({ ...V3, place }, LIMITS)).toEqual({ ...V3, place: null });
     }
-    expect(sanitizePlace({ region: 'unri-lembaga', x: 1, z: 2, yaw: 3, extra: true })).toEqual({ region: 'unri-lembaga', x: 1, z: 2, yaw: 3 });
+    expect(sanitizePlace({ region: 'unri-lembaga', x: 1, z: 2, yaw: 3, extra: true })).toEqual({ region: 'unri-lembaga', x: 1, z: 2, yaw: 3, mode: 'sepeda' });
+  });
+
+  it('sanitizePlace: mode tak dikenal menjadi sepeda; mode sah dipertahankan', () => {
+    expect(sanitizePlace({ region: 'stadion', x: 1, z: 2, yaw: 0, mode: 'jalan' }).mode).toBe('jalan');
+    expect(sanitizePlace({ region: 'stadion', x: 1, z: 2, yaw: 0, mode: 'roket' }).mode).toBe('sepeda');
+    expect(sanitizePlace({ region: 'stadion', x: 1, z: 2, yaw: 0 }).mode).toBe('sepeda');
   });
 
   it('JSON rusak atau versi tak dikenal → null dan teks asli dicadangkan ke .bak', () => {

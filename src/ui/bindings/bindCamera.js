@@ -27,6 +27,10 @@ export function bindCamera(store, { rig, camera, hud = null, app = null }) {
   on('camera.angledLockYaw', (v) => { rig.angledLockYaw = Boolean(v); });
   on('camera.angledDistance', (v) => { if (Math.abs((rig.angledDistance ?? v) - v) > 1e-6) rig.setAngledDistance?.(v); });
   on('camera.sensitivity', (v) => { rig.sensitivity = v; });
+  on('camera.touchSensitivity', (v) => { rig.touchSensitivity = v; });
+  on('camera.padSensitivity', (v) => { rig.padSensitivity = v; });
+  on('camera.invertY', (v) => { rig.invertY = Boolean(v); });
+  try { on('aksesibilitas.reduceMotion', (v) => { rig.reduceMotion = Boolean(v); }); } catch { /* setelan aksesibilitas belum ada (R21) */ }
   on('camera.followSmoothing', (v) => { rig.followSmoothing = v; });
 
   const sync = {

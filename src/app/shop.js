@@ -3,14 +3,14 @@
  */
 
 /** Dialog beli: pedagang bisa berjalan menjauh saat dialog terbuka; kunci id pedagang saat dibuka. */
-export function setupShop(hud, ents, story) {
+export function setupShop(hud, ents, story, sfx = () => {}) {
   const shop = { vendorId: null };
   hud.onBuy = (itemId) => {
     if (!shop.vendorId) return;
     const res = ents.vendors.tryBuy(itemId, shop.vendorId);
     hud.setWallet(ents.vendors.wallet);
     hud.toast(res.ok ? `Beli ${res.item.name} ✔` : res.error, res.ok);
-    if (res.ok) story.onBought(res.item.id);
+    if (res.ok) { story.onBought(res.item.id); sfx('pop'); }
   };
   return shop;
 }

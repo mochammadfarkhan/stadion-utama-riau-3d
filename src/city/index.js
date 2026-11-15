@@ -16,6 +16,7 @@ import { applyGroundHole } from './groundHole.js';
 import { FACADE_UNIFORMS, nightFactor } from './facade.js';
 import { addTileDetail } from './tileDetail.js';
 import { createFarCity } from './farCity.js';
+import { createLandmarks } from './landmarks.js';
 import { GROUND_UNIFORMS } from './groundDetail.js';
 import { SWAY_UNIFORMS } from './treeSway.js';
 
@@ -93,6 +94,7 @@ export async function createCity({
   let previewOn = false;
   let far = null; // objek kota jauh setelah dimuat (update per frame)
   let farPromise = null; // lapisan kota jauh (farCity.js), dimuat malas saat pratinjau pertama
+  let landmarks = null; // landmark hero berLOD (landmarks.js), dibuat saat pratinjau pertama
   /** Selesaikan penunggu sekali dan bersihkan timer habis-waktunya. */
   const settle = (w, value) => {
     if (!waiters.delete(w)) return;
@@ -111,6 +113,7 @@ export async function createCity({
       }
       const focus = ctx.focus ?? ctx.bikePos;
       if (!focus) return;
+      if (previewOn && landmarks) landmarks.update({ focus, distance: app.camera?.position.distanceTo(focus) ?? 1000 });
       if (previewOn && far && time) far.update({ time: ctx.time ?? 0, focus, distance: app.camera?.position.distanceTo(focus) ?? 1000, hour: time.hour });
       const a = groundAnchor(focus);
       ground.position.set(a.x, CITY_GROUND.y, a.z);
@@ -142,6 +145,8 @@ export async function createCity({
       streamer.setPreview(value);
       ground.scale.setScalar(value ? PREVIEW_GROUND_SCALE : 1);
       previewOn = Boolean(value);
+      landmarks ??= createLandmarks({ parent: group, baseUrl, loadGltf: createGltfLoader(), logger });
+      landmarks.setActive(previewOn);
       if (previewOn) {
         farPromise ??= createFarCity({ scene: group, baseUrl, logger }).catch((err) => { logger.error('Kota jauh gagal:', err); return null; });
         farPromise.then(async (f) => {
@@ -166,6 +171,7 @@ export async function createCity({
       app.removeSystem(system.id);
       for (const w of [...waiters]) settle(w, false);
       farPromise?.then((f) => f?.dispose());
+      landmarks?.dispose();
       vehicles.dispose(); // muatan kendaraan yang telat dibuang (tidak dipasang/didaftarkan)
       loader.dispose(); // muatan yang masih berjalan dibuang saat selesai (tidak dipasang/didaftarkan)
       group.removeFromParent();

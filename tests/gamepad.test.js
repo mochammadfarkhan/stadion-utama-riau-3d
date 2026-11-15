@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyDeadzone, padToIntents, createGamepadPoller } from '../src/core/gamepad.js';
+import { applyDeadzone, padToIntents, createGamepadPoller, radialDeadzone, stickCurve } from '../src/core/gamepad.js';
 import { Input } from '../src/core/Input.js';
 
 const btn = (pressed = false, value = pressed ? 1 : 0) => ({ pressed, value });
@@ -86,12 +86,19 @@ describe('createGamepadPoller', () => {
     for (const code of ['Space', 'CameraCycle', 'KeyJ', 'Escape']) expect(input.consumePress(code)).toBe(true);
   });
 
+  it('stik kanan ditekan = mode (F), stik kiri ditekan = tas (I), Back = PanelToggle', () => {
+    const input = new Input(fakeTarget());
+    const current = pad({ pressed: [11, 10, 8] });
+    createGamepadPoller(input, { getPads: () => [current], lookBy: () => {} }).update(0.016);
+    for (const code of ['KeyF', 'KeyI', 'PanelToggle']) expect(input.consumePress(code)).toBe(true);
+  });
+
   it('LB = perjalanan cepat (KeyG), tidak bentrok dengan aksi lain', () => {
     const input = new Input(fakeTarget());
     const current = pad({ pressed: [4] });
     createGamepadPoller(input, { getPads: () => [current], lookBy: () => {} }).update(0.016);
     expect(input.consumePress('KeyG')).toBe(true);
-    for (const code of ['Space', 'KeyE', 'CameraCycle', 'Escape', 'KeyJ', 'KeyH']) expect(input.consumePress(code)).toBe(false);
+    for (const code of ['Space', 'KeyE', 'CameraCycle', 'Escape', 'KeyJ', 'PanelToggle']) expect(input.consumePress(code)).toBe(false);
   });
 
   it('stick kanan memanggil lookBy proporsional dt; tanpa pad tidak melakukan apa pun', () => {
@@ -111,5 +118,21 @@ describe('createGamepadPoller', () => {
     const poller = createGamepadPoller(input, { getPads: () => [null, pad({ axes: [0, -1, 0, 0] })], lookBy: () => {} });
     poller.update(0.016);
     expect(input.isDown('KeyW')).toBe(true);
+  });
+});
+
+describe('radialDeadzone (R14)', () => {
+  it('zona mati melingkar, diskalakan ulang', () => {
+    expect(radialDeadzone(0.1, 0.1)).toEqual({ x: 0, y: 0 });
+    expect(radialDeadzone(1, 0)).toEqual({ x: 1, y: 0 });
+    expect(radialDeadzone(0.6, 0, 0.2).x).toBeCloseTo(0.5, 9);
+  });
+});
+
+describe('stickCurve (R15)', () => {
+  it('halus di tengah, penuh di tepi, tanda dipertahankan', () => {
+        expect(stickCurve(0)).toBe(0);
+    expect(stickCurve(1)).toBe(1);
+    expect(stickCurve(-0.5)).toBeCloseTo(-(0.5 ** 1.8), 9);
   });
 });

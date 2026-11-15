@@ -53,7 +53,7 @@ function louvreMaterial(color) {
 }
 
 export const Materials = Object.freeze({
-  acp: () => cached('acp', () => new MeshStandardMaterial({ color: COLORS.acp, roughness: ROUGH_SATIN, metalness: ACP_METALNESS })),
+  acp: () => cached('acp', () => uplit(new MeshStandardMaterial({ color: COLORS.acp, roughness: ROUGH_SATIN, metalness: ACP_METALNESS }), 0xffe2b8, 0.28)), // rusuk disorot hangat malam
   grc: () => cached('grc', () => uplit(new MeshLambertMaterial({ color: COLORS.roofWhite, side: DoubleSide }), 0x8fa6ff, 0.16)),
   concrete: () => cached('concrete', () => concreteLambert(COLORS.concrete, { side: DoubleSide })),
   concreteDark: () => cached('concreteDark', () => concreteLambert(COLORS.concreteDark)),

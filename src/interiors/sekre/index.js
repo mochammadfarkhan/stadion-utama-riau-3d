@@ -60,7 +60,7 @@ async function buildSekre(ctx) {
 
   const { materials, room, furniture, boards, npcs, lighting } = withScope(ctx.scope, () => {
     const mats = createSekreMaterials(ctx.renderer ?? null);
-    const furn = buildFurniture({ materials: mats });
+    const furn = buildFurniture({ materials: mats, hq: ctx.store?.get?.('graphics.preset') === 'tinggi' }); // model realistis hanya di Tinggi
     return {
       materials: mats,
       room: buildRoom({ renderer: ctx.renderer ?? null }),
