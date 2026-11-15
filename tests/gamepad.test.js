@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyDeadzone, padToIntents, createGamepadPoller, radialDeadzone } from '../src/core/gamepad.js';
+import { applyDeadzone, padToIntents, createGamepadPoller, radialDeadzone, stickCurve } from '../src/core/gamepad.js';
 import { Input } from '../src/core/Input.js';
 
 const btn = (pressed = false, value = pressed ? 1 : 0) => ({ pressed, value });
@@ -119,5 +119,13 @@ describe('radialDeadzone (R14)', () => {
     expect(radialDeadzone(0.1, 0.1)).toEqual({ x: 0, y: 0 });
     expect(radialDeadzone(1, 0)).toEqual({ x: 1, y: 0 });
     expect(radialDeadzone(0.6, 0, 0.2).x).toBeCloseTo(0.5, 9);
+  });
+});
+
+describe('stickCurve (R15)', () => {
+  it('halus di tengah, penuh di tepi, tanda dipertahankan', () => {
+        expect(stickCurve(0)).toBe(0);
+    expect(stickCurve(1)).toBe(1);
+    expect(stickCurve(-0.5)).toBeCloseTo(-(0.5 ** 1.8), 9);
   });
 });

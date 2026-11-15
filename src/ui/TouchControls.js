@@ -146,7 +146,7 @@ export class TouchControls {
     }, { signal });
     this.surface.addEventListener('pointermove', (e) => {
       if (e.pointerId !== this._lookId || !this._lastLook) return;
-      this.rig.lookBy(e.clientX - this._lastLook.x, e.clientY - this._lastLook.y, LOOK_SCALE);
+      this.rig.lookBy(e.clientX - this._lastLook.x, e.clientY - this._lastLook.y, LOOK_SCALE, 'touch'); // × camera.touchSensitivity di rig
       this._lastLook = { x: e.clientX, y: e.clientY };
     }, { signal });
     const end = (e) => {

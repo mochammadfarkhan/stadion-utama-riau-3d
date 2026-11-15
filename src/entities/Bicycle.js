@@ -100,6 +100,13 @@ export class Bicycle {
   }
 
   get mode() { return this.#mode; }
+  /** Pitch rangka mengikuti lereng (rad). */
+  get pitch() { return this.#pitch; }
+  /** Tinggi mata orang pertama (m di atas tanah): traktor dari titik duduk modelnya. */
+  get eyeHeight() {
+    if (this.#mode === 'traktor') return Number.isFinite(this.#tractor?.seat?.y) ? this.#tractor.seat.y + 0.75 : 1.9;
+    return 1.55;
+  }
 
   /** Model traktor (GLB): {group, seat:Vector3 (titik duduk lokal), spin(angle)}. Dipasang tersembunyi. */
   setTractorModel(model) {

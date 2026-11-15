@@ -27,6 +27,12 @@ export function radialDeadzone(x, y, dz = 0.2) {
   return { x: fx * k, y: fy * k };
 }
 
+/** Kurva stik kanan (lihat): gerakan kecil lebih halus, dorongan penuh tetap 1. */
+export function stickCurve(v, exp = 1.8) {
+  if (!Number.isFinite(v)) return 0;
+  return Math.sign(v) * Math.abs(v) ** exp;
+}
+
 /** Buang zona mati lalu skalakan ulang agar keluaran tetap 0..1 (simetris). */
 export function applyDeadzone(v, dz = DEADZONE) {
   if (!Number.isFinite(v)) return 0;
@@ -57,7 +63,7 @@ export function padToIntents(pad) {
   };
   const buttons = Array.from({ length: 17 }, (_, i) => pressed(pad, i));
   const move = radialDeadzone(axis(pad, 0), axis(pad, 1));
-  return { held, buttons, move, look: { x: applyDeadzone(axis(pad, 2)), y: applyDeadzone(axis(pad, 3)) } };
+  return { held, buttons, move, look: { x: stickCurve(applyDeadzone(axis(pad, 2))), y: stickCurve(applyDeadzone(axis(pad, 3))) } };
 }
 
 /**
