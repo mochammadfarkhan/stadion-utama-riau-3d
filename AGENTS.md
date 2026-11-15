@@ -7,8 +7,18 @@ Proyek hobi: **cepat dan sederhana mengalahkan lengkap**. Bahasa: Indonesia.
 2. **Baca seperlunya:** `grep` dulu, buka hanya berkas terkait.
 3. **Cek cepat:** `npm run lint` + tes berkas terkait (`node node_modules/vitest/vitest.mjs run <path>`). Suite penuh + `npm run build` hanya sebelum push.
 4. **Lihat hasilnya** bila visual: 1–2 bidikan yang dibaca sendiri; lewati bila bukan visual.
-5. **Git:** branch per fitur dari `main` terbaru, commit kecil (`git add <file>` lalu `git commit -m "…"` sebagai perintah terpisah, hook memblokir gabungan), bila hijau push + PR ke `main`; merge oleh user.
+5. **Git:** lihat bagian "Git: folder utama selalu di `main`" di bawah.
 6. **Lapor ≤ 8 baris:** apa yang berubah, cara mencoba, yang belum yakin (jujur, termasuk yang belum diuji).
+
+## Git: folder utama selalu di `main`
+User ingin folder proyek ini **selalu berada di `main` terbaru** supaya hasil kerja langsung terlihat. Jangan membuat worktree atau folder salinan.
+- **Mulai sesi:** `git switch main` lalu `git pull --ff-only`.
+- **Dokumen saja** (`docs/**`, `*.md`, termasuk berkas ini): commit **langsung di `main`**, lalu push. Tanpa branch, tanpa PR.
+- **Kode/aset/data** (`src/`, `tools/`, `public/`, `assets-src/`, tes, konfigurasi): branch dari `main` di folder ini juga (`git switch -c <jenis>/<nama>`), commit kecil, bila hijau push + PR ke `main`; **merge oleh user**.
+  Setelah PR dibuat, **kembali ke `main`** (`git switch main`) supaya folder tidak tertinggal di branch fitur. Setelah user merge: `git pull --ff-only`.
+- Commit: `git add <file>` lalu `git commit -m "…"` sebagai **dua perintah terpisah** (hook memblokir gabungan).
+- **Perubahan user yang belum di-commit jangan disentuh**: biarkan ikut saat pindah branch. Bila `git switch` menolak karena bentrok, berhenti dan tanya user.
+  Jangan stash, reset, atau hapus berkas user.
 
 ## Aturan
 - Fitur baru **langsung aktif** (default), kecuali diminta opt-in; mode lama tetap bisa dipilih.
@@ -24,4 +34,4 @@ Proyek hobi: **cepat dan sederhana mengalahkan lengkap**. Bahasa: Indonesia.
 - Blender: `"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --python-expr "import runpy;print(runpy.run_path(r'<skrip>')['build']())"` (atau Blender MCP); skrip di `assets-src/blender/`.
 - Bidikan: `tools/shots/*` (Playwright GPU, `--wait 9000` untuk malam). Port dev 5173.
 - **Ruang uji** `/ruang-uji.html` (dev): cek satu model/karakter/animasi tanpa memuat dunia; bidik `node tools/shots/uji.mjs --q "orang=kasual-pria-g&anim=jalan-p"` atau `--q "model=models/…glb"`.
-- Jangan hapus worktree dengan `--force` bila `node_modules` berupa junction.
+- Worktree lama (bila masih ada): jangan hapus dengan `--force` bila `node_modules` berupa junction; lepas junction dulu.
