@@ -41,6 +41,7 @@ export const PALETTES = deepFreeze({
   putih: { wall: 0xf3f1ec, trim: 0xdedcd6, plinth: 0x9a9da0, column: 0xfbfaf7, roof: 0x55595e, fascia: 0x4b4f54, accent: 0x50433a, floor: 0xd2cdc2 }, // [T] Rektorat putih, parapet gelap
   kayu: { wall: 0x8b5d3b, trim: 0x6f4a2e, plinth: 0x7d7468, column: 0x6a4329, roof: 0x7f909d, fascia: 0x6f4a2e, accent: 0x5a3a24, floor: 0x9a7350 }, // [T] building:walls=wood
   'beton-mentah': { wall: 0xa9a59c, trim: 0x9e9a91, plinth: 0x8a857c, column: 0xa3a097, roof: 0x7d8790, fascia: 0x8f8b83, accent: 0x5b5148, floor: 0x9b958a }, // [T] mangkrak
+  ruko: { wall: 0xe8e0cb, trim: 0x8b9095, plinth: 0x777b80, column: 0xefeadf, roof: 0x7f909d, fascia: 0xd9d2c3, accent: 0x55595e, floor: 0xbdb6a6 }, // [INF] ruko cat krem, kusen aluminium abu
   rusun: { wall: 0xece7dc, trim: 0xd9d3c6, plinth: 0x8f9396, column: 0xf4f0e8, roof: 0x5f6469, fascia: 0xd9d3c6, accent: 0x5f4532, floor: 0xc9c2b4 }, // [INF] warna
 });
 
@@ -51,6 +52,7 @@ export const VARIANTS = deepFreeze({
   K07: ['kantin', 'parkir'],                // 'parkir': gudang beratap berkolom tanpa dinding (nama OSM "Area Parkir …")
   K10: ['rangka', 'beratap'],               // 'beratap': atap terpasang, dinding belum selesai (FH Panam [T])
   K11: ['gudang', 'pos', 'toilet'],
+  K14: ['gulung', 'balkon', 'kanopi'],     // ruko: muka pintu gulung / balkon lt 2 / kanopi seng di atas pintu
 });
 
 const K = (o) => o;
@@ -74,6 +76,9 @@ export const ARCHETYPES = deepFreeze({
   K10: K({ id: 'K10', name: 'mangkrak', levels: 2, maxLevels: 6, floorH: 3.8, upperH: 3.6, bay: 4.0, corridor: { side: 'tidak', depth: 0 }, roof: { type: 'datar', pitch: 0, overhang: 0 }, plinth: 0, palette: 'beton-mentah', window: 'tanpa', windowAlt: 'tanpa', roster: false, acChance: 0, doors: 'tanpa', ornaments: ['besi-tulangan', 'coretan', 'ilalang', 'bata-sebagian'], signStyle: 'tidak' }),
   K11: K({ id: 'K11', name: 'utilitas', levels: 1, maxLevels: 2, floorH: 3.0, upperH: 3.0, bay: 3.0, corridor: { side: 'tidak', depth: 0 }, roof: { type: 'pelana', pitch: 20, overhang: 0.5 }, plinth: 0.3, palette: 'putih-seng', window: 'nako', windowAlt: 'jalusi-alu', roster: false, acChance: 0.05, doors: 'tunggal', ornaments: ['talang'], signStyle: 'tidak' }),
   K12: K({ id: 'K12', name: 'ekstrusi-rapi', levels: 1, maxLevels: 8, floorH: 3.6, upperH: 3.5, bay: 3.2, corridor: { side: 'tidak', depth: 0 }, roof: { type: 'datar-parapet', pitch: 0, overhang: 0 }, plinth: 0.6, palette: 'krem-seng', window: 'nako', windowAlt: 'jalusi-kayu', roster: true, acChance: 0.1, doors: 'tunggal', ornaments: [], signStyle: 'timbul' }),
+  // K14 ruko (kota): muka sempit menghadap jalan (1 bay ±4,5 m = 1 unit), lantai dasar pintu gulung + papan nama,
+  // lantai atas jendela lebar/balkon; sisi samping polos (menempel tetangga); tandon di atap. [INF] proporsi ruko Pekanbaru.
+  K14: K({ id: 'K14', name: 'ruko', levels: 2, maxLevels: 4, floorH: 3.8, upperH: 3.4, bay: 4.5, corridor: { side: 'tidak', depth: 0 }, roof: { type: 'datar-parapet', pitch: 0, overhang: 0 }, plinth: 0.3, palette: 'ruko', window: 'kaca-biru', windowAlt: 'nako', roster: false, acChance: 0.35, doors: 'ruko', ornaments: ['tandon', 'kanopi-seng'], signStyle: 'panel' }),
 });
 
 export const ARCHETYPE_IDS = Object.freeze(Object.keys(ARCHETYPES));

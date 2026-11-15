@@ -73,7 +73,7 @@ export function bayOpenings(ctx) {
     }
     return out;
   }
-  const special = { K10: mangkrakBay, K09: rusunBay, K03: adbBay }[arch.id];
+  const special = { K10: mangkrakBay, K09: rusunBay, K03: adbBay, K14: rukoBay }[arch.id];
   if (special) {
     special(ctx, push);
     return out;
@@ -172,6 +172,47 @@ function rusunBay(ctx, push) {
   }
 }
 
+/** Papan nama generik ruko (tanpa merek dagang); null = tanpa papan. Dipilih rng bila tidak ada override. */
+export const RUKO_SIGNS = Object.freeze([
+  'TOKO SEMBAKO', 'FOTOKOPI', 'BENGKEL MOTOR', 'RUMAH MAKAN', 'APOTEK', 'KEDAI KOPI', 'TOKO BANGUNAN', 'LAUNDRY',
+  'PONSEL & PULSA', 'TOKO EMAS', 'SALON', 'PENJAHIT', 'TOKO KUE', 'ATK', null, null,
+]);
+
+/**
+ * K14 ruko: depan lt 0 = pintu gulung selebar bay; depan lt atas = jendela lebar, atau pintu kaca + balkon di lt 1
+ * (varian 'balkon'); belakang = pintu kecil + jendela nako (+AC); sisi = polos (dinding bersama tetangga).
+ */
+function rukoBay(ctx, push) {
+  const { face, floor, floorH, bay, rng, style, variant, arch } = ctx;
+  const bayW = bay.u1 - bay.u0;
+  if (bayW < 2.4) return;
+  if (face.role === 'depan') {
+    if (floor === 0) {
+      const [u0, u1] = center(bay, Math.min(bayW - 0.5, 4.2));
+      push({ u0, u1, y0: 0, y1: Math.min(floorH - 0.9, 3.0), kind: 'pintu-gulung', cell: 'pintu-gulung' });
+      return;
+    }
+    const lit = rng.chance(PLAN.litChance.K14);
+    if (floor === 1 && variant === 'balkon') {
+      const [du0, du1] = center(bay, Math.min(1.8, bayW - 1.0));
+      push({ u0: du0, u1: du1, y0: 0, y1: 2.4, kind: 'pintu-kaca', cell: lit ? 'kaca-biru-nyala' : 'pintu-kaca', lit });
+      push({ u0: bay.u0 + 0.15, u1: bay.u1 - 0.15, y0: 0, y1: 1.05, kind: 'balkon', cell: 'railing', jemuran: rng.chance(0.3) });
+      return;
+    }
+    const [u0, u1] = center(bay, Math.min(bayW - 0.9, 3.4));
+    push({ u0, u1, y0: 0.8, y1: Math.min(2.6, floorH - 0.6), kind: 'jendela', cell: windowCell(style.window, lit, rng.chance(PLAN.tiraiChance)), lit });
+    return;
+  }
+  if (face.role !== 'belakang') return;
+  if (floor === 0) {
+    push({ u0: bay.u0 + 0.5, u1: bay.u0 + 1.4, y0: 0, y1: OPENING.door.h, kind: 'pintu', cell: 'pintu-kayu' });
+    return;
+  }
+  const lit = rng.chance(PLAN.litChance.K14);
+  const [u0, u1] = center(bay, 1.2);
+  push({ u0, u1, y0: 1.0, y1: 2.2, kind: 'jendela', cell: windowCell('nako', lit, false), lit, ac: rng.chance(arch.acChance) });
+}
+
 /** K10: bay terbuka (rangka) atau diisi bata sebagian; tanpa kaca. */
 function mangkrakBay(ctx, push) {
   const { bay, floorH, rng, floor } = ctx;
@@ -187,6 +228,7 @@ export function planSign(text, arch, mass, floorH0) {
   if (!face || face.len < 3) return null;
   const h = arch.signStyle === 'panel' ? 0.9 : 0.5;
   const w = Math.min(PLAN.signMaxW, face.len * 0.7, text.length * h * 0.62 + h);
+  if (arch.id === 'K14') return { text, style: arch.signStyle, mass: 0, face: face.id, u: face.len / 2, y: floorH0 - 0.45, out: 0.06, w: Math.min(face.len - 0.6, w), h: 0.6 };
   const onBeam = face.role === 'selasar';
   const out = arch.id === 'K02' ? mass.corridor.depth + 3.0 + 0.06 : onBeam ? mass.corridor.depth + 0.06 : 0.06;
   const y = onBeam || arch.id === 'K02' ? floorH0 - 0.3 : Math.min(floorH0 - 0.5, 2.9);
@@ -199,7 +241,7 @@ const T = (x, y, z, yaw = 0, sx = 1, sy = 1, sz = 1) => ({ x, y, z, yaw, sx, sy,
  * Ornamen LOD0 per arketipe (spec §7.1 kolom "Ciri wajib"). transform dunia; y absolut.
  * @returns {Array<{assetId:string, transform:{x:number,y:number,z:number,yaw:number,sx:number,sy:number,sz:number}}>}
  */
-export function planOrnaments(arch, variant, mass, baseY, height, rng, ground) {
+export function planOrnaments(arch, variant, mass, baseY, height, rng, ground, floorH0 = 3.6) {
   const out = [];
   const add = (assetId, t) => out.push({ assetId, transform: t });
   const front = primaryFace(mass);
@@ -261,6 +303,17 @@ export function planOrnaments(arch, variant, mass, baseY, height, rng, ground) {
   if (arch.id === 'K09') {
     const { obb } = mass;
     for (const s of [-0.3, 0.3]) add('tandon', T(obb.cx + Math.cos(obb.yaw) * s * obb.w, baseY + height, obb.cz - Math.sin(obb.yaw) * s * obb.w, obb.yaw));
+  }
+  if (arch.id === 'K14') {
+    if (variant === 'kanopi') {
+      const [x, z] = at(front.len / 2, 0);
+      add('kanopi-seng', T(x, baseY + floorH0 - 0.1, z, yaw, front.len, 1, 1.4));
+    }
+    const back = mass.faces.find((f) => f.role === 'belakang');
+    if (back && rng.chance(0.7)) {
+      const [x, z] = facePoint(back, back.len / 2, -1.6);
+      add('tandon', T(x, baseY + height, z, faceYaw(back)));
+    }
   }
   if (arch.id === 'K10') {
     const n = Math.max(4, Math.round(mass.faces.reduce((s, f) => s + f.len, 0) / 5));

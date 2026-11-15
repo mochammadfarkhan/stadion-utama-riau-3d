@@ -47,7 +47,7 @@ Keputusan selera sudah dijawab (maket / 16:45 / suara otomatis); lihat vibes/REA
 4. ⬜ **Variasi pohon**: 3 jenis (tajuk bulat, palem, pohon peneduh) + batang; ganti geometri di `farCity.js`/`tileDetail.js`. [ganti-model]
 5. ⬜ **Peta tanah 4096 dipecah per sel + KTX2 (Basis)** agar tajam saat zoom menengah tanpa melewati anggaran 70 MB; muat per sel terdekat. [kota-jauh]
 6. 🔄 **Air**: perahu ✅ (rivers.bin + farLife); ⬜ shader air (riak + pantulan langit). [kota-jauh]
-7. ⬜ **Bangunan kota dari kit** (20 jenis × 3 variasi: ruko, rumah, walet, masjid kubah, sekolah, kantor Melayu, …) memperluas kit kampus `src/world/kit` (3 arketipe baru K13 rumah, K14 ruko, K15 walet) untuk 3×3 tile di sekitar pemain di mode jalan; mode Kota tetap ekstrusi. Terukur: LOD0 450–1.800, LOD1 70–160 segitiga, ±1 ms rakit per gedung. Rencana: [model-bangunan](model-bangunan/README.md). Tahap 0 = ukur dengan arketipe lama dulu. [model-bangunan]
+7. ⬜ **Bangunan kota dari kit** (20 jenis × 3 variasi: ruko, rumah, walet, masjid kubah, sekolah, kantor Melayu, …) memperluas kit kampus `src/world/kit` (3 arketipe baru K13 rumah, K14 ruko, K15 walet) untuk 3×3 tile di sekitar pemain di mode jalan; mode Kota tetap ekstrusi. Terukur: LOD0 450–1.800, LOD1 70–160 segitiga, ±1 ms rakit per gedung. Rencana: [model-bangunan](model-bangunan/README.md). Tahap 0 = ukur dengan arketipe lama dulu. **K14 ruko sudah ada di kit** (galeri `/kit-gallery.html?kit=K14`), belum dipasang di kota. [model-bangunan]
 
 ## Landmark (model Blender ringan, ganti lewat resep)
 Syarat: lokasi & nama dari OSM/Overture (jangan mengarang), 1 draw call per jenis.

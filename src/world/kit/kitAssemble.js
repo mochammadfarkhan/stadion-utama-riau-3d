@@ -15,7 +15,7 @@ export const LOD1_CELLS = Object.freeze({
   K01: ['lod1-kuliah', 'lod1-kuliah-nyala'], K02: ['lod1-kuliah', 'lod1-kuliah-nyala'], K03: ['lod1-adb', 'lod1-adb-nyala'],
   K04: ['lod1-lab', null], K05: ['lod1-aula', null], K06: ['lod1-kuliah', 'lod1-kuliah-nyala'], K07: ['lod1-kantin', null],
   K08: ['lod1-jalusi', null], K09: ['lod1-rusun', 'lod1-rusun-nyala'], K10: ['lod1-mangkrak', null], K11: ['lod1-polos', null],
-  K12: ['lod1-kuliah', 'lod1-kuliah-nyala'],
+  K12: ['lod1-kuliah', 'lod1-kuliah-nyala'], K14: ['lod1-kuliah', 'lod1-kuliah-nyala'],
 });
 
 /** Konteks rakit: warna linear (dengan variasi seed), arketipe efektif, sel atap, sel LOD1. */

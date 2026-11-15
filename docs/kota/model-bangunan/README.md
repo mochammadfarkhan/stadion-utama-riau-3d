@@ -1,7 +1,9 @@
 # Bangunan kota dari kit: 20 jenis × 3 variasi
 
 Tujuan: bangunan kota di sekitar pemain berwujud bangunan khas Pekanbaru (ruko, rumah, masjid, walet, …), bukan kotak bertekstur jendela, supaya kota
-**terasa ditinggali**. Status: **rencana, belum ada kode** (dirombak 2026-11-16).
+**terasa ditinggali**. Status: **K14 ruko selesai di kit** (galeri gedung, belum dipasang di kota); sisanya rencana. Dirombak 2026-11-16.
+
+**K14 ruko (2026-11-16):** muka 1 bay ±4,5 m per unit; lt 0 pintu gulung + papan nama generik tanpa merek (`RUKO_SIGNS`, 14 nama + kosong); lt atas jendela kaca/nako; varian `gulung` / `balkon` (pintu kaca + balkon, kadang jemuran) / `kanopi` (ornamen `kanopi-seng`); sisi samping polos; tandon di atap (70%). LOD1 sementara memakai sel `lod1-kuliah`. Belum: palet warna ruko yang beragam (sekarang satu palet `ruko` ± tint 3%).
 
 > **Rombakan 2026-11-16:** versi pertama dokumen ini mengusulkan 60 model Blender baru. Usulan itu melewatkan bahwa game **sudah punya kit gedung
 > prosedural** (`src/world/kit/`, 12 arketipe) yang dipakai 221 gedung kampus UNRI. Rencana ini sekarang memperluas kit itu: **3 arketipe baru +
@@ -57,7 +59,7 @@ atap baru; **BARU** = arketipe baru. Variasi A/B/C dipilih `hash(id) % 3` sehing
 
 | # | Jenis | Dipasang ke (data / tebakan) | Kit | Variasi A / B / C |
 |---|---|---|---|---|
-| 6 | Ruko 2 lantai | `retail`, `commercial`; heuristik `ruko/komersial` di `height.js` | **BARU K14 `ruko`** | pintu gulung / balkon kecil lt 2 / kanopi seng depan |
+| 6 | Ruko 2 lantai | `retail`, `commercial`; heuristik `ruko/komersial` di `height.js` | ✅ **K14 `ruko`** (2026-11-16, galeri `?kit=K14`) | pintu gulung / balkon kecil lt 2 / kanopi seng depan |
 | 7 | Ruko 3–4 lantai | sama, di jalan arteri (heuristik sudah memberi 3–4 lt) | K14 (`levels 3–4`) | fasad kaca + kolom / jendela deret / atap limas kecil di puncak |
 | 8 | Rumah walet | tanpa kelas, menjulang di zona ruko lama `[INFERENSI]`, dibatasi ±1 per tile | **BARU K15 `walet`** (paling murah: kotak + lubang kecil) | kotak beton / ruko berlantai atas walet / menara walet |
 | 9 | Usaha pinggir jalan | `kiosk`; tanpa kelas < 40 m² menempel jalan `[INFERENSI]` | ada: K07 `kantin` + K11 `pos` | warung + terpal / bengkel muka terbuka (varian baru) / kios etalase |

@@ -10,7 +10,7 @@ import { ROSTER_PATTERNS, VARIANTS, ARCHETYPES, geometryArchetype, hashId } from
 import { computeObb, OBB_RECT_MIN } from './obb.js';
 import { decomposeFootprint } from './decompose.js';
 import { PLAN, assignRoles, boxMass, floorHeights, makeBays, median, obbRing, polygonMass } from './planGeom.js';
-import { bayOpenings, planOrnaments, planSign } from './planRules.js';
+import { RUKO_SIGNS, bayOpenings, planOrnaments, planSign } from './planRules.js';
 
 export const ROOF_PITCH = Object.freeze({ pelana: 25, limas: 25, 'pelana-lebar': 15, 'limas-tumpang': 30, 'datar-parapet': 0, datar: 0 });
 const FLAT = new Set(['datar-parapet', 'datar']);
@@ -106,7 +106,8 @@ export function planBuilding(input) {
       });
     }
   });
-  const sign = planSign(resolved.sign, arch.id === kit.id ? arch : kit, masses[0], floorH[0]);
+  const signText = resolved.sign ?? (kit.id === 'K14' ? RUKO_SIGNS[Math.floor(rng.next() * RUKO_SIGNS.length)] : null);
+  const sign = planSign(signText, arch.id === kit.id ? arch : kit, masses[0], floorH[0]);
   return {
     id, archetype, kit: kit.id, fallback: reason, seed, palette: resolved.palette, variant: resolved.variant, style,
     groundY: ground.med, footY: ground.min - 0.25, baseY, floors, floorH, height,
@@ -114,6 +115,6 @@ export function planBuilding(input) {
     roof: masses[0].roof,
     corridor: { side: masses[0].corridor.faces[0] ?? null, faces: masses[0].corridor.faces, depth: masses[0].corridor.depth },
     signs: sign ? [sign] : [],
-    ornaments: planOrnaments(kit, resolved.variant, masses[0], baseY, height, rng, ground.med),
+    ornaments: planOrnaments(kit, resolved.variant, masses[0], baseY, height, rng, ground.med, floorH[0]),
   };
 }

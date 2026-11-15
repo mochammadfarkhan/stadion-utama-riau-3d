@@ -16,7 +16,7 @@ export const PLAN = Object.freeze({
   sample: 0.5,             // langkah sampel sisi luar/dalam (m)
   probe: 0.4,              // jarak uji keluar dari sisi untuk deteksi sisi dalam antar-massa
   minBayFace: 1.2,         // interval luar lebih pendek tidak diberi bay
-  litChance: Object.freeze({ K01: 0.15, K02: 0.35, K03: 0.5, K04: 0.2, K05: 0.1, K06: 0.4, K09: 0.6, K11: 0.5, K12: 0.25 }),
+  litChance: Object.freeze({ K01: 0.15, K02: 0.35, K03: 0.5, K04: 0.2, K05: 0.1, K06: 0.4, K09: 0.6, K11: 0.5, K12: 0.25, K14: 0.35 }),
   tiraiChance: 0.3,
   signMaxW: 14,
 });

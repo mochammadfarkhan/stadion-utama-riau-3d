@@ -170,3 +170,47 @@ describe('aturan bukaan (murni)', () => {
     expect(corridorFaces('belakang', obb, [0, 1])).toEqual(['-z']);
   });
 });
+
+describe('planBuilding — K14 ruko', () => {
+  const RUKO = [[0, 0], [4.5, 0], [4.5, 15], [0, 15]]; // muka 4,5 m menghadap jalan di +z
+  const ruko = (over = {}) => planBuilding(base({ archetype: 'K14', ring: RUKO, levels: 2, ...over }));
+  const roleOf = (p, o) => p.masses[o.mass].faces.find((f) => f.id === o.face).role;
+
+  it('muka sempit menghadap jalan: lt 0 pintu gulung selebar bay, lt 1 jendela lebar; sisi samping polos', () => {
+    const p = ruko();
+    const depan = p.openings.filter((o) => roleOf(p, o) === 'depan');
+    expect(depan.filter((o) => o.floor === 0).map((o) => o.kind)).toEqual(['pintu-gulung']);
+    const gulung = depan.find((o) => o.kind === 'pintu-gulung');
+    expect(gulung.u1 - gulung.u0).toBeGreaterThan(3.5);
+    expect(gulung.y1).toBeLessThanOrEqual(p.floorH[0] - 0.8);
+    expect(depan.filter((o) => o.floor === 1).map((o) => o.kind)).toEqual(['jendela']);
+    expect(p.openings.filter((o) => roleOf(p, o) === 'sisi')).toEqual([]);
+    expect(p.roof.type).toBe('datar-parapet');
+  });
+
+  it('dua unit (muka 9 m) → dua pintu gulung', () => {
+    const p = ruko({ ring: [[0, 0], [9, 0], [9, 15], [0, 15]] });
+    expect(p.openings.filter((o) => o.kind === 'pintu-gulung')).toHaveLength(2);
+  });
+
+  it('varian balkon: pintu kaca + balkon di lt 1; varian kanopi: ornamen kanopi seng di atas pintu', () => {
+    const b = ruko({ overrides: { variant: 'balkon' } });
+    expect(b.openings.filter((o) => o.floor === 1 && roleOf(b, o) === 'depan').map((o) => o.kind).sort()).toEqual(['balkon', 'pintu-kaca']);
+    const k = ruko({ overrides: { variant: 'kanopi' } });
+    const kanopi = k.ornaments.find((o) => o.assetId === 'kanopi-seng');
+    expect(kanopi.transform.y).toBeCloseTo(k.baseY + k.floorH[0] - 0.1, 6);
+    expect(kanopi.transform.sx).toBeCloseTo(4.5, 6);
+  });
+
+  it('papan nama generik (bukan merek) di pita antara pintu gulung dan lt 1; override menang', () => {
+    const texts = new Set();
+    for (let i = 0; i < 40; i += 1) {
+      const p = ruko({ id: `w${1000 + i}` });
+      if (!p.signs.length) continue;
+      texts.add(p.signs[0].text);
+      expect(p.signs[0].y).toBeCloseTo(p.floorH[0] - 0.45, 6);
+    }
+    expect(texts.size).toBeGreaterThan(5);
+    expect(ruko({ overrides: { sign: 'TOKO ERC' } }).signs[0].text).toBe('TOKO ERC');
+  });
+});

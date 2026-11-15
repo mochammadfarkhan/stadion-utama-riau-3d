@@ -18,7 +18,7 @@ const SPECIMENS = [
   ['K06', rect(10, 10), 1, {}, 6000], ['K06', rect(10, 10), 1, { variant: 'kubah-kecil', roof: 'datar-parapet' }, 6000],
   ['K07', rect(20, 10), 1, {}, 7000], ['K07', rect(20, 10), 1, { variant: 'parkir' }, 7000], ['K08', rect(12, 12), 1, {}, 5000],
   ['K09', rect(69, 23), 5, {}, 20000], ['K10', rect(40, 14), 3, { variant: 'rangka' }, 15000], ['K10', rect(40, 14), 3, { variant: 'beratap', roof: 'pelana' }, 15000],
-  ['K11', rect(8, 8), 1, {}, 2000], ['K12', [[0, 0], [32, 0], [36, 12], [22, 20], [0, 20]], 3, {}, 4000],
+  ['K11', rect(8, 8), 1, {}, 2000], ['K14', rect(4.5, 15), 2, {}, 3000], ['K14', rect(9, 15), 2, { variant: 'balkon' }, 4000], ['K14', rect(5, 16), 3, { variant: 'kanopi' }, 4000], ['K12', [[0, 0], [32, 0], [36, 12], [22, 20], [0, 20]], 3, {}, 4000],
 ];
 
 const mats = createKitMaterials(createResourceScope('uji-kit'));
@@ -121,6 +121,7 @@ describe('atlas', () => {
 
   it('ornamen yang direncanakan semua punya builder', () => {
     expect(ORNAMENT_IDS).toEqual(expect.arrayContaining(['teras-kanopi', 'tangga-tengah', 'tiang-bendera', 'pot', 'exhaust', 'kanopi-masuk', 'tempat-wudu', 'rak-sandal', 'etalase', 'meja-bangku', 'spanduk-menu', 'tandon', 'ilalang']));
-    expect(ARCHETYPE_IDS).toHaveLength(12);
+    expect(ARCHETYPE_IDS).toHaveLength(13);
+    expect(ORNAMENT_IDS).toContain('kanopi-seng');
   });
 });

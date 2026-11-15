@@ -25,7 +25,7 @@ const SHOTS = Object.freeze([
   ['m3-galeri-malam.jpg', 'kit=all&malam=1'],
   ['m3-galeri-lod1.jpg', 'kit=all&lod=1'],
   ['m3-atlas.jpg', 'atlas=1'],
-  ...['K01', 'K02', 'K03', 'K04', 'K05', 'K06', 'K07', 'K08', 'K09', 'K10', 'K11', 'K12', 'hero'].map((k) => [`m3-${k.toLowerCase()}.jpg`, `kit=${k}`]),
+  ...['K01', 'K02', 'K03', 'K04', 'K05', 'K06', 'K07', 'K08', 'K09', 'K10', 'K11', 'K12', 'K14', 'hero'].map((k) => [`m3-${k.toLowerCase()}.jpg`, `kit=${k}`]),
 ]);
 
 const { values: opts } = parseArgs({ options: { gpu: { type: 'string', default: 'd3d11' }, out: { type: 'string', default: 'docs/screenshots/unri' } } });

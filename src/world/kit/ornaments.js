@@ -85,6 +85,14 @@ const BUILDERS = {
     const f = (x, y) => L(t, x, y, 0);
     s.opak.quad(f(-t.sx / 2, -0.4), f(t.sx / 2, -0.4), f(t.sx / 2, 0.4), f(-t.sx / 2, 0.4), cellUv('spanduk-menu'), c.white);
   },
+  'kanopi-seng': (s, t, c) => { // kanopi seng miring di atas pintu gulung (t.y = pangkal di dinding), atas + bawah
+    const w = t.sx / 2;
+    const d = t.sz;
+    const a = L(t, -w, 0, 0); const b = L(t, w, 0, 0); const e = L(t, w, -0.35, d); const f = L(t, -w, -0.35, d);
+    s.opak.quad(f, e, b, a, cellUv('seng'), c.roof);
+    s.opak.quad(a, b, e, f, cellUv('seng'), c.roofDark);
+    lbox(s.opak, t, 0, -0.42, d, t.sx, 0.14, 0.06, 'beton', c.fascia);
+  },
   tandon: (s, t, c) => {
     for (const x of [-0.5, 0.5]) for (const z of [-0.5, 0.5]) lbox(s.opak, t, x, 0.5, z, 0.08, 1.0, 0.08, 'besi', c.white);
     prism(s.opak, { ...t, y: t.y + 1.0 }, 0.6, 1.3, 8, 'tandon', c.white);

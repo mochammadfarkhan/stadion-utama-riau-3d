@@ -29,6 +29,7 @@ const SPECIMENS = Object.freeze({
   K10: [['K10', 40, 14, 3, { variant: 'rangka' }, 'K10 rangka'], ['K10', 50, 13, 3, { variant: 'beratap', roof: 'pelana' }, 'K10 beratap']],
   K11: [['K11', 6, 5, 1, { variant: 'pos' }, 'K11 pos'], ['K11', 7, 5, 1, { variant: 'toilet' }, 'K11 toilet'], ['K11', 8, 6, 1, {}, 'K11 gudang']],
   K12: [['K12', 0, 0, 3, {}, 'K12 ekstrusi (L tak siku)']],
+  K14: [['K14', 4.5, 15, 2, { variant: 'gulung' }, 'K14 ruko gulung'], ['K14', 9, 15, 2, { variant: 'balkon' }, 'K14 ruko balkon (2 unit)'], ['K14', 13.5, 16, 4, { variant: 'kanopi' }, 'K14 ruko kanopi 4 lt (3 unit)']],
   hero: [
     ['hero:rektorat', 64, 38, 5, { palette: 'putih', roof: 'datar-parapet', sign: 'REKTORAT UNIVERSITAS RIAU' }, 'hero:rektorat'],
     ['hero:masjid-arfaunnas', 30, 28, 2, { roof: 'datar-parapet' }, 'hero:masjid-arfaunnas'],
@@ -175,7 +176,7 @@ function main() {
   else {
     const built = buildSpecimens(scene, mats);
     stats = { perSpecimen: built.perSpecimen };
-    const dist = Math.max(60, built.span * 0.62);
+    const dist = Math.max(60, built.span * 0.85); // FOV 40° di 16:9 → setengah sudut horizontal ±33° → butuh ≥ 0,77 × lebar
     const top = params.get('cam') === 'atas';
     camera.position.set(-dist * 0.12, top ? dist * 0.9 : dist * 0.3, top ? dist * 0.4 : dist * 0.78);
     controls.target.set(0, 4, 0);
