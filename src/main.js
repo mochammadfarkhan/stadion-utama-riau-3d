@@ -56,6 +56,7 @@ import { createTerrainService } from './app/terrainService.js';
 import { mountDistrict } from './app/districtMount.js';
 import { unriDistrict } from './districts/unri/index.js';
 import { createStudentKit } from './entities/Student.js';
+import { loadOrangAssets, createOrangFactory, createOrangKit } from './entities/Orang.js';
 import { pointInPolygon } from './geo/polygon.js';
 import { UNRI_BOUNDARY } from './districts/unri/boundary.js';
 import { UNRI_VENDORS } from './story/chapters.unri.js';
@@ -120,6 +121,9 @@ async function main() {
   const humanoidKit = Promise.all(HUMANOID_KIT_PATHS.map((path) => loadModel(path)
     .then(addHumanoidKit)
     .catch((err) => console.error(`Kit karakter ${path} gagal dimuat; memakai bentuk cadangan:`, err))));
+
+  // Pack orang (warga low poly ber-skin, 1 draw call/orang) dimuat paralel; dipakai kit NPC distrik bila termuat.
+  const orangAssets = loadOrangAssets(loadModel, import.meta.env.BASE_URL);
 
   // Pembongkaran berurutan terbalik (LIFO); dipakai __sim.teardown() di mode dev.
   const lifecycle = createDisposerStack();
@@ -257,7 +261,11 @@ async function main() {
   // mask-nya. regionIdAt juga dipakai devtools/E2E untuk mengetahui region yang menaungi sebuah titik dunia.
   const regionIdAt = (x, z) => HERO_REGIONS.find((def) => regionContains(def, x, z))?.id ?? null;
   const districtServices = Object.freeze({
-    npc: createStudentKit(),
+    npc: createOrangKit({
+      factory: (await orangAssets) && createOrangFactory(await orangAssets),
+      fallback: createStudentKit(),
+      enabled: () => store.get('graphics.orangPack') !== false,
+    }),
     camera: lodView,
     hour: () => time.hour,
     excludeAt: (x, z) => regionIdAt(x, z) !== null,

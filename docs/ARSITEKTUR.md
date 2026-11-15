@@ -92,6 +92,7 @@ Aturan praktis untuk sistem baru:
 
 | Tanggal | Keputusan | Alasan / rujukan |
 |---|---|---|
+| 2026-11-15 | Warga kampus memakai pack orang low poly kiriman user (`entities/Orang.js`, kit NPC sama dengan `createStudentKit`; 1 SkinnedMesh/orang, 19 klip bersama, palet 256 px × kulit sawo/terang); humanoid lama = cadangan & setelan `graphics.orangPack`. Ruang uji dev `/ruang-uji.html` | permintaan user; FBX mentah tanpa lisensi tetap di `data-src/` (tidak di-commit) |
 | 2026-11-14 | Landmark hero mode Kota = model Blender 3 LOD yang dipilih menurut jarak kamera (`src/city/landmarks.js`, di dalam grup `kota`, aktif hanya saat pratinjau K); GLB di `public/models/landmark/`. Batas LOD dihitung dari jarak kamera ≈ 1300 m × zoom; daftar posisi tambahan dihasilkan skrip Blender ke `src/city/landmarks.data.js` (26 landmark per 2026-11-15) | An-Nur dulu sebagai percontohan; satu draw call per landmark; resep `docs/kota/landmark/README.md` |
 | 2026-11-13 | Pratinjau kota memuat seluruh Pekanbaru lewat lapisan "jauh" instans (bukan tile bake penuh) | 380 rb bangunan = 3 MB biner (8 B/bangunan) vs ±130 MB bila di-bake sebagai tile GLB; peta tanah WebP karena hanya dilihat dari jauh |
 | 2026-10-27 | Dokumen ini jadi titik masuk; plan/spec lama tetap arsip | konteks proyek terlalu besar untuk dibaca ulang tiap sesi |

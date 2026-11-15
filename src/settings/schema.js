@@ -77,6 +77,7 @@ export const SETTINGS_SCHEMA = Object.freeze({
             labels: { auto: 'Otomatis (ikut resolusi)', tinggi: 'Tinggi (5 lapisan + normal)', sedang: 'Sedang (3 lapisan + normal)', rendah: 'Rendah (albedo saja)' },
           }),
           kartuDaun: toggle('Pohon rimbun kartu daun (kartun)', true),
+          orangPack: toggle('Warga dari pack orang (mati = humanoid lama; berlaku setelah muat ulang)', true),
           bloom: toggle('Bloom (kartun/facet)', true),
           tiltShift: toggle('Efek maket (blur atas-bawah)', false),
           gradingStrength: range('Kekuatan grading', 1, 0, 1, 0.05, { format: 'percent' }),
