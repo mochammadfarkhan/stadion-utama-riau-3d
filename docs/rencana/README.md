@@ -72,27 +72,27 @@ Dalam kasus itu: kembalikan perubahan langkah tersebut, selesaikan langkah lain 
 
 ## 4. Daftar kartu, urutan, dan status
 
-Status: ⬜ belum · 🔄 dikerjakan · ✅ selesai · ⏸ menunggu.
+Status: ⬜ belum · 🔄 dikerjakan · ✅ selesai · ⏸ menunggu. **Diperbarui 2026-11-16 dari PR yang sudah merge** (nomor PR di kolom Status); uji main manusia (M) belum tercatat untuk kartu mana pun.
 Jenis cek: **T** tes otomatis · **B** bidikan yang dibuka eksekutor · **M** uji main oleh manusia · **U** ukur angka.
 
 ### Tonggak T1 — Sepuluh menit pertama ("baru mulai sudah betah")
 
 | Kartu | Isi | Prasyarat | Tugas | Cek | Status |
 |---|---|---|---|---|---|
-| [R01](R01-hud-rapi.md) | HUD rapi: dompet, menu bersih, prompt ganda, teks teknis, skor (U1–U5) | — | 5 | T B | ⬜ |
-| [R02](R02-rendah-rapi.md) | Preset Rendah: bayangan kontak (cacat satu baris), kabut, FXAA (G1–G3) | — | 4 | T B U | ⬜ |
-| [R13](R13-rasa-kendali-sepeda.md) | Rasa kendali sepeda: belok, meluncur, sprint, senggol dinding | — | 6 | T M | ⬜ |
-| [R03](R03-mulai-dari-sekre.md) | Mulai di depan sekre ERC; jarak + arah tujuan (S1, U6, G4) | R01, R02 T1 | 5 | T B M | ⬜ |
-| [R19](R19-simpan-muat.md) | Simpan/muat: dompet, posisi, kendaraan, mulai dari awal | — | 5 | T M | ⬜ |
-| [R05](R05-draw-call-mode-jalan.md) | Draw call mode jalan 460–510 → ≤ 300 (M3 + baru) | — | 6 | T B U | ⬜ |
-| [R14](R14-masukan-analog-jalan-kaki.md) | Gamepad/sentuh analog; jalan kaki relatif kamera | R13 | 6 | T M | ⬜ |
-| [R15](R15-kamera.md) | Kamera: menyusul belokan, FOV kecepatan, orang pertama miring | R13 | 5 | T M | ⬜ |
-| [R17](R17-animasi.md) | Animasi: tangan ke setang, lari, transisi pose (M6) | R13 T6 | 5 | T B M | ⬜ |
-| [R16](R16-hp-sentuh.md) | HP landscape: jebakan mode foto, tombol Mode/Tas, tata letak | R01 | 7 | T B M | ⬜ |
-| [R21](R21-keterbacaan-aksesibilitas.md) | Kontras toko/toast (cacat), aksen, teks ≥ 13 px, ARIA, daftar kontrol | — | 6 | T B | ⬜ |
-| [R18](R18-audio.md) | Suara: jeda saat tab tersembunyi, hujan, sepeda, suasana kawasan | — | 6 | T M | ⬜ |
-| [R22](R22-waktu-muat.md) | Waktu muat: alat ukur, label benar, Mulai tidak menunggu | R03 (T4) | 4 | U | ⬜ |
-| [R04](R04-stadion-ikon.md) | Stadion ikon: proxy mode Kota + wajah malam (K4, G6) | — | 4 | T B | ⬜ |
+| [R01](R01-hud-rapi.md) | HUD rapi: dompet, menu bersih, prompt ganda, teks teknis, skor (U1–U5) | — | 5 | T B | ✅ #47 |
+| [R02](R02-rendah-rapi.md) | Preset Rendah: bayangan kontak (cacat satu baris), kabut, FXAA (G1–G3) | — | 4 | T B U | ✅ #41 |
+| [R13](R13-rasa-kendali-sepeda.md) | Rasa kendali sepeda: belok, meluncur, sprint, senggol dinding | — | 6 | T M | ✅ #50 |
+| [R03](R03-mulai-dari-sekre.md) | Mulai di depan sekre ERC; jarak + arah tujuan (S1, U6, G4) | R01, R02 T1 | 5 | T B M | ✅ #51 |
+| [R19](R19-simpan-muat.md) | Simpan/muat: dompet, posisi, kendaraan, mulai dari awal | — | 5 | T M | ✅ #43 |
+| [R05](R05-draw-call-mode-jalan.md) | Draw call mode jalan 460–510 → ≤ 300 (M3 + baru) | — | 6 | T B U | ✅ #42 |
+| [R14](R14-masukan-analog-jalan-kaki.md) | Gamepad/sentuh analog; jalan kaki relatif kamera | R13 | 6 | T M | ✅ #54 |
+| [R15](R15-kamera.md) | Kamera: menyusul belokan, FOV kecepatan, orang pertama miring | R13 | 5 | T M | ✅ #55 |
+| [R17](R17-animasi.md) | Animasi: tangan ke setang, lari, transisi pose (M6) | R13 T6 | 5 | T B M | 🔄 sebagian: 19 animasi dari pack orang (#59); tangan ke setang belum dicek |
+| [R16](R16-hp-sentuh.md) | HP landscape: jebakan mode foto, tombol Mode/Tas, tata letak | R01 | 7 | T B M | ✅ #49 |
+| [R21](R21-keterbacaan-aksesibilitas.md) | Kontras toko/toast (cacat), aksen, teks ≥ 13 px, ARIA, daftar kontrol | — | 6 | T B | ✅ #46 |
+| [R18](R18-audio.md) | Suara: jeda saat tab tersembunyi, hujan, sepeda, suasana kawasan | — | 6 | T M | ✅ #48, #56 |
+| [R22](R22-waktu-muat.md) | Waktu muat: alat ukur, label benar, Mulai tidak menunggu | R03 (T4) | 4 | U | ✅ #52 |
+| [R04](R04-stadion-ikon.md) | Stadion ikon: proxy mode Kota + wajah malam (K4, G6) | — | 4 | T B | ✅ #53 |
 
 **T1 selesai bila:** 3 teman ERC bermain 10 menit tanpa dibantu dan tidak ada yang berhenti atau bingung arah (protokol di `R26` bagian D); bidikan titik mulai preset Rendah layak jadi gambar README.
 **Sengaja tidak dikerjakan di T1:** lapisan Kota baru, tanaman baru, region baru.
@@ -101,7 +101,7 @@ Jenis cek: **T** tes otomatis · **B** bidikan yang dibuka eksekutor · **M** uj
 
 | Kartu | Isi | Prasyarat | Tugas | Cek | Status |
 |---|---|---|---|---|---|
-| [R20](R20-kebun.md) | Kebun: tidur hanya malam, tumbuh per malam, harga, status petak | R19 T1 | 5 | T M | ⬜ |
+| [R20](R20-kebun.md) | Kebun: tidur hanya malam, tumbuh per malam, harga, status petak | R19 T1 | 5 | T M | ✅ #44 |
 | [R09](R09-ekonomi-stamina.md) | Saldo awal 15 rb, stamina, makan (X), perlengkapan (S2, S3) | R20 T2, R19 T1 | 5 | T M | ⬜ |
 | [R10](R10-kurir-hari-pertandingan.md) | Kurir: pesanan antar berulang; kalender; hari pertandingan (S4, S6) | R03, R09 T5, R19 T1 | 4 | T M | ⬜ |
 | [R24](R24-sekre-rumah.md) | Sekre rumah: cache interior, rebahan = tidur + simpan, papan, lemari | R19, R09 T5, R10 T4 | 5 | T M | ⬜ |
@@ -113,9 +113,9 @@ Jenis cek: **T** tes otomatis · **B** bidikan yang dibuka eksekutor · **M** uj
 
 | Kartu | Isi | Prasyarat | Tugas | Cek | Status |
 |---|---|---|---|---|---|
-| [R08](R08-kinerja-kota.md) | Zoom penuh 1.399 → ≤ 600 draw call; blur maket; pojok putih (G7, G8) | — | 4 | T B U | ⬜ |
+| [R08](R08-kinerja-kota.md) | Zoom penuh 1.399 → ≤ 600 draw call; blur maket; pojok putih (G7, G8) | — | 4 | T B U | ✅ #45, #62 |
 | [R06](R06-kota-bersiluet.md) | Kelas bangunan, warna kawasan, kubah (K1, K6) | R08 T1 (disarankan) | 4 | T B | ⬜ |
-| [R07](R07-landmark-dari-data.md) | Nama dari Overture, `landmarks.json`, label bertingkat, HUD Kota (K2, K3, U9) | R06 T1 | 4 | T B M | ⬜ |
+| [R07](R07-landmark-dari-data.md) | Nama dari Overture, `landmarks.json`, label bertingkat, HUD Kota (K2, K3, U9) | R06 T1 | 4 | T B M | 🔄 sebagian: 26 landmark dari jejak OSM (#58); nama Overture + label bertingkat belum |
 | [R11](R11-jelajah-paspor.md) | Paspor kota, "Ke sini" dari peta, jurnal (S5, S7, S8) | R07, R03 T1, R19 | 4 | T M | ⬜ |
 | [R12](R12-sisa-putaran-1.md) | Sisa: gedung kit polos, minimap, arteri, guna lahan (G5, U8, K7, K8) | R08 (T3) | 4 | T B | ⬜ |
 
@@ -127,8 +127,8 @@ Jenis cek: **T** tes otomatis · **B** bidikan yang dibuka eksekutor · **M** uj
 |---|---|---|
 | [R25](R25-kendaraan-lain.md) | Motor sebagai pembelian besar; collider badan kendaraan | ⬜ dibuka setelah R09 + R10 lulus uji main |
 | [R26](R26-menunggu-user.md) | Bahan dan keputusan dari user (rujukan manusia, foto stadion, isi sekre, landmark ikonik, …) | ⏸ |
-| R27 (belum ditulis) | Model manusia: wajah, proporsi, siluet, hijab (M1, M2, M4, M5) | ⏸ sedang dikerjakan sesi lain di PR #39 (`feat/karakter-preset`); dinilai ulang setelah PR itu masuk (R26 A1) |
-| R28 (belum ditulis) | Model landmark buatan tangan (K5) | ⏸ menunggu R07 + R26 A4 |
+| R27 (belum ditulis) | Model manusia: wajah, proporsi, siluet, hijab (M1, M2, M4, M5) | 🔄 3 karakter ber-rig masuk lewat PR #39; penilaian ulang model manusia (R26 A1) belum |
+| R28 (belum ditulis) | Model landmark buatan tangan (K5) | 🔄 An-Nur, jembatan Siak, 23 landmark 3 LOD masuk lewat PR #58 |
 
 ### Urutan yang disarankan (irama D2: satu PR mode jalan, satu PR Kota)
 
