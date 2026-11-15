@@ -91,7 +91,7 @@ Akar keterbatasan sekarang: `BUILDING_CLASS` melebur masjid/sekolah/RS/pemerinta
 Lihat [ganti-model](ganti-model/README.md).
 
 ## Kinerja & kualitas (cek berkala)
-- 🔄 Ukur di GPU asli (`?perf`): draw call target ≤ 600 di pratinjau penuh, segitiga ≤ 3 jt, GPU texture ≤ 70 MB. **Terukur 2026-11-13 (headless d3d11, zoom maksimum): 1.423 draw call, 4,98 jt segitiga, 12 fps → melewati target**; zoom dekat stadion 157 call / 0,43 jt / 30 fps. Tekstur belum diukur.
+- 🔄 Ukur di GPU asli (`?perf`): draw call target ≤ 600 di pratinjau penuh, segitiga ≤ 3 jt, GPU texture ≤ 70 MB. **Terukur 2026-11-13 (headless d3d11, zoom maksimum): 1.423 draw call, 4,98 jt segitiga, 12 fps → melewati target**; zoom dekat stadion 157 call / 0,43 jt / 30 fps. Tekstur belum diukur. **2026-11-15 (iGPU AMD laptop user, d3d11):** tile digabung per material saat zoom jauh → 779 → 197 draw call (`city/tileMerge.js`); masih tersisa patah ±1 s saat zoom keluar pertama (sudah ada sebelum penggabungan).
 - ⬜ LOD sel jauh: zoom jauh → sel > 6 km hanya footprint datar tanpa atap (kurangi segitiga).
 - ⬜ Frustum/occlusion: bangunan di balik cakrawala dibuang per sel (sudah per-sel via bounding sphere).
 
