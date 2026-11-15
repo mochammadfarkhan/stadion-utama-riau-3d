@@ -1,7 +1,8 @@
 /**
  * Logika kebun ala Harvest Moon (MURNI, immutable): petak rumput → dicangkul (atau dibajak traktor) → ditanam benih
- * jenis tertentu → disiram → tumbuh satu tahap per `growHours` jenisnya selama tersiram (lalu kering lagi) → tahap 3
- * dipanen (jenis `regrow` kembali ke tahap 2). Tabel jenis (`crops`: type → {growHours, regrow}) diberikan pemanggil
+ * jenis tertentu → disiram → TIDUR: tanaman tersiram maju satu malam (naik tahap tiap `nights` jenisnya), semua petak
+ * kering lagi → tahap 3 dipanen (jenis `regrow` kembali ke tahap 1). Tidur hanya malam, sekali per malam (canSleep;
+ * farm.day / farm.lastSleepDay). Tabel jenis (`crops`: type → {nights, regrow}) diberikan pemanggil
  * (config/kebun.js CROPS). Aksi E: `planAction` mencocokkan item di tangan (cangkul / benih / gembor) dengan petak, lalu
  * `actOn` mengubah petak; uang & tas diurus pemanggil. Simpanan localStorage memakai `farmToJson`/`farmFromJson`.
  */
@@ -12,7 +13,35 @@ const emptyTile = () => Object.freeze({ tilled: false, watered: false, crop: nul
 
 /** @param {number} count jumlah petak */
 export function createFarm(count) {
-  return Object.freeze({ tiles: Object.freeze(Array.from({ length: count }, emptyTile)) });
+  return Object.freeze({ tiles: Object.freeze(Array.from({ length: count }, emptyTile)), day: 0, lastSleepDay: null });
+}
+
+/**
+ * Boleh tidur? Hanya malam (jam ≥ from atau < until) dan sekali per hari permainan.
+ * @returns {{ok:boolean, reason:string|null}}
+ */
+export function canSleep(hour, lastSleepDay, day, { from = 18, until = 4 } = {}) {
+  if (!(hour >= from || hour < until)) return { ok: false, reason: `Belum mengantuk. Tidur bisa mulai pukul ${String(from).padStart(2, '0')}.00.` };
+  if (lastSleepDay === day) return { ok: false, reason: 'Sudah tidur malam ini.' };
+  return { ok: true, reason: null };
+}
+
+/** Tidur semalam: tanaman tersiram tumbuh, semua petak kering, hari bertambah. */
+export function sleepNight(farm, crops) {
+  const day = farm.day ?? 0;
+  return Object.freeze({ ...growFarm(farm, 1, crops), lastSleepDay: day, day: day + 1 });
+}
+
+/**
+ * Teks keadaan petak untuk prompt informasi (null = rumput, tak perlu teks).
+ * @returns {string|null}
+ */
+export function describeTile(tile, crops) {
+  if (!tile || (!tile.tilled && !tile.crop)) return null;
+  if (!tile.crop) return 'Tanah siap tanam';
+  const label = crops[tile.crop.type]?.label ?? tile.crop.type;
+  if (tile.crop.stage >= MAX_STAGE) return `${label} · siap panen`;
+  return `${label} · tahap ${tile.crop.stage}/${MAX_STAGE} · ${tile.watered ? 'tumbuh saat tidur' : 'perlu disiram'}`;
 }
 
 function withTile(farm, i, patch) {
@@ -53,7 +82,7 @@ export function planAction(tile, held) {
  * Lakukan aksi petak i sesuai `nextAction` (pemanggil sudah memastikan item di tangan cocok lewat planAction).
  * @param {{tiles:ReadonlyArray<object>}} farm
  * @param {number} i
- * @param {{seed?:string, crops:Record<string, {growHours:number, regrow?:boolean}>}} opts seed = jenis yang ditanam
+ * @param {{seed?:string, crops:Record<string, {nights:number, regrow?:boolean}>}} opts seed = jenis yang ditanam
  * @returns {{farm:object, action:string|null, type:string|null, harvest:string|null, error?:string}}
  *   harvest = jenis hasil panen (masuk tas pemanggil)
  */
@@ -68,7 +97,7 @@ export function actOn(farm, i, { seed, crops }) {
       return { ...none, type: seed, farm: withTile(farm, i, { crop: crop(seed, 1), watered: false }) };
     case 'siram': return { ...none, farm: withTile(farm, i, { watered: true }) };
     case 'panen': {
-      const next = crops[tile.crop.type]?.regrow ? crop(tile.crop.type, 2) : null;
+      const next = crops[tile.crop.type]?.regrow ? crop(tile.crop.type, 1) : null; // tumbuh lagi: 2 malam ke panen berikutnya
       return { ...none, harvest: tile.crop.type, farm: withTile(farm, i, { crop: next, watered: false }) };
     }
     default: return none;
@@ -83,17 +112,18 @@ export function plow(farm, i) {
 }
 
 /**
- * Majukan waktu `hours` jam dunia: tanaman tersiram bertambah growth; mencapai `growHours` jenisnya → naik SATU tahap
- * (sisa jam dibuang) lalu kering. Kembalikan farm yang sama bila tidak ada perubahan (hemat render ulang).
+ * Majukan `nights` malam: tanaman tersiram bertambah growth; mencapai `nights` jenisnya → naik SATU tahap.
+ * Semua petak kering sesudahnya (siram lagi tiap hari). Kembalikan farm yang sama bila tidak ada perubahan.
  */
-export function growFarm(farm, hours, crops) {
-  if (!(hours > 0)) return farm;
+export function growFarm(farm, nights, crops) {
+  if (!(nights > 0)) return farm;
   let changed = false;
   const tiles = farm.tiles.map((t) => {
-    if (!t.crop || !t.watered || t.crop.stage >= MAX_STAGE) return t;
+    if (!t.watered) return t;
     changed = true;
-    const growth = t.crop.growth + hours;
-    if (growth < (crops[t.crop.type]?.growHours ?? Infinity)) return Object.freeze({ ...t, crop: crop(t.crop.type, t.crop.stage, growth) });
+    if (!t.crop || t.crop.stage >= MAX_STAGE) return Object.freeze({ ...t, watered: false });
+    const growth = t.crop.growth + nights;
+    if (growth < (crops[t.crop.type]?.nights ?? Infinity)) return Object.freeze({ ...t, watered: false, crop: crop(t.crop.type, t.crop.stage, growth) });
     return Object.freeze({ ...t, watered: false, crop: crop(t.crop.type, t.crop.stage + 1) });
   });
   return changed ? Object.freeze({ ...farm, tiles: Object.freeze(tiles) }) : farm;
@@ -101,9 +131,10 @@ export function growFarm(farm, hours, crops) {
 
 /** @param {ReadonlyArray<string>} order urutan jenis (indeks disimpan) */
 export function farmToJson(farm, order) {
-  return JSON.stringify(farm.tiles.map((t) => [
+  const rows = farm.tiles.map((t) => [
     t.tilled ? 1 : 0, t.watered ? 1 : 0, t.crop ? t.crop.stage : 0, t.crop ? t.crop.growth : 0, t.crop ? Math.max(0, order.indexOf(t.crop.type)) : 0,
-  ]));
+  ]);
+  return JSON.stringify({ rows, day: farm.day ?? 0, lastSleepDay: farm.lastSleepDay ?? null });
 }
 
 /**
@@ -112,8 +143,11 @@ export function farmToJson(farm, order) {
  */
 export function farmFromJson(text, count, order) {
   try {
-    const rows = JSON.parse(text);
+    const raw = JSON.parse(text);
+    const rows = Array.isArray(raw) ? raw : raw?.rows; // format lama: array polos (hari 0, belum pernah tidur)
     if (!Array.isArray(rows)) return createFarm(count);
+    const day = Number.isInteger(raw?.day) && raw.day >= 0 ? raw.day : 0;
+    const lastSleepDay = Number.isInteger(raw?.lastSleepDay) ? raw.lastSleepDay : null;
     const fresh = createFarm(count).tiles;
     const tiles = fresh.map((blank, i) => {
       if (i >= rows.length) return blank;
@@ -124,7 +158,7 @@ export function farmFromJson(text, count, order) {
       const type = order[Number.isInteger(typeIdx) ? typeIdx : 0] ?? order[0];
       return Object.freeze({ tilled: tilled === 1 || st > 0, watered: watered === 1 && st > 0, crop: st ? crop(type, st, g) : null });
     });
-    return Object.freeze({ tiles: Object.freeze(tiles) });
+    return Object.freeze({ tiles: Object.freeze(tiles), day, lastSleepDay });
   } catch {
     return createFarm(count);
   }
