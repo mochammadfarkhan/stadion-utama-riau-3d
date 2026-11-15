@@ -39,3 +39,18 @@ describe('detail stadion jauh', () => {
     expect(o.layers.isEnabled(0)).toBe(true);
   });
 });
+
+describe('gerbang kabut (seluruh region di luar ujung kabut)', () => {
+  it('sembunyi bila tepi region melewati ujung kabut, tampil lagi dengan histeresis', async () => {
+    const { nextFogHidden, FOG_GATE_MARGIN } = await import('../src/regions/stadion/farDetail.js');
+    expect(nextFogHidden(false, 1000, 300, 560)).toBe(true); // tepi 700 m > kabut 560
+    expect(nextFogHidden(false, 800, 300, 560)).toBe(false); // tepi 500 m: masih terlihat samar
+    expect(nextFogHidden(true, 300 + 560 - FOG_GATE_MARGIN / 2, 300, 560)).toBe(true); // di celah histeresis: tetap
+    expect(nextFogHidden(true, 300 + 560 - FOG_GATE_MARGIN - 1, 300, 560)).toBe(false);
+  });
+  it('kabut tak diketahui atau tak hingga: selalu tampil', async () => {
+    const { nextFogHidden } = await import('../src/regions/stadion/farDetail.js');
+    expect(nextFogHidden(true, 5000, 300, Infinity)).toBe(false);
+    expect(nextFogHidden(false, 5000, 300, 0)).toBe(false);
+  });
+});
