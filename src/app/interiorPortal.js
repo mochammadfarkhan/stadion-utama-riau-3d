@@ -27,6 +27,9 @@ export const PORTAL_STATES = Object.freeze({ OUTSIDE: 'outside', FADING_IN: 'fad
 export const LOCKED_TOAST = 'Pintu terkunci';
 export const INTERIOR_AO_RADIUS = 0.45; // m: AO ruang sempit (eksterior memakai RENDER.aoRadius)
 export const FAR_EXIT_M = 30;
+/** Sepeda dalam (STAY_EXIT_M, NEAR_DOOR_M] dari exitTo = masih di radius pemicu pintu: dipindah ke exitTo agar E tidak langsung masuk lagi. */
+export const STAY_EXIT_M = 0.75;
+export const NEAR_DOOR_M = 2.5;
 export const KEEP_INSIDE = Object.freeze(['gamepad', 'keymap', 'timeOfDay', 'weather', 'scheduler', 'input.endFrame']);
 export const INTERIOR_EYE_Y = 1.55;
 const PRESET_KEYS = Object.freeze(['Digit1', 'Digit2', 'Digit3', 'Digit4']);
@@ -223,7 +226,8 @@ export function createInteriorPortal({
     if (!frame) return;
     const p = frame.toWorld(def.exitTo.x, def.exitTo.z);
     const s = bike.state;
-    if (s && Number.isFinite(s.x) && Math.hypot(s.x - p.x, s.z - p.z) <= FAR_EXIT_M) return; // sepeda tetap
+    const dist = s && Number.isFinite(s.x) ? Math.hypot(s.x - p.x, s.z - p.z) : Infinity;
+    if (dist <= STAY_EXIT_M || (dist > NEAR_DOOR_M && dist <= FAR_EXIT_M)) return; // sudah di exitTo, atau parkir agak jauh: tetap
     bike.teleport(p.x, p.z, frame.yawToWorld(def.exitTo.yaw));
   }
 

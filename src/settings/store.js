@@ -1,6 +1,7 @@
 import { SETTINGS_SCHEMA, coerceValue, defaultSettings, listFields } from './schema.js';
+import { SAVE_KEYS } from '../config/saveKeys.js';
 
-export const STORAGE_KEY = 'sur3d.settings.v1';
+export const STORAGE_KEY = SAVE_KEYS.settings;
 
 /**
  * Store settings immutable: state = objek datar beku {"grup.field": nilai}.

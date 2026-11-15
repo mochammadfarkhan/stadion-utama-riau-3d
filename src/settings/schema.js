@@ -77,6 +77,7 @@ export const SETTINGS_SCHEMA = Object.freeze({
             labels: { auto: 'Otomatis (ikut resolusi)', tinggi: 'Tinggi (5 lapisan + normal)', sedang: 'Sedang (3 lapisan + normal)', rendah: 'Rendah (albedo saja)' },
           }),
           kartuDaun: toggle('Pohon rimbun kartu daun (kartun)', true),
+          orangPack: toggle('Warga dari pack orang (mati = humanoid lama; berlaku setelah muat ulang)', true),
           bloom: toggle('Bloom (kartun/facet)', true),
           tiltShift: toggle('Efek maket (blur atas-bawah)', false),
           gradingStrength: range('Kekuatan grading', 1, 0, 1, 0.05, { format: 'percent' }),
@@ -117,6 +118,7 @@ export const SETTINGS_SCHEMA = Object.freeze({
       mix: Object.freeze({
         title: 'Volume',
         fields: Object.freeze({
+          muted: toggle('Bisukan semua', false),
           master: range('Utama', 0.8, 0, 1, 0.01, { format: 'percent' }),
           bell: range('Bel sepeda', 1, 0, 1, 0.01, { format: 'percent' }),
           ambience: range('Suasana', 0.6, 0, 1, 0.01, { format: 'percent' }),
@@ -132,7 +134,7 @@ export const SETTINGS_SCHEMA = Object.freeze({
         title: 'Statistik',
         fields: Object.freeze({
           fpsCap: select('Batas FPS (hemat panas & baterai)', '60', ['30', '60', 'tanpa batas']),
-          showStats: toggle('Tampilkan FPS & draw call', true),
+          showStats: toggle('Tampilkan FPS & draw call', false),
           minimap: toggle('Minimap', true),
           labels: toggle('Label pedagang', true),
         }),
