@@ -1,0 +1,27 @@
+// DIHASILKAN oleh assets-src/blender/landmark/bangunan.py — jangan sunting tangan.
+// Model memakai koordinat dunia relatif ke titik tengah (yaw 0), lihat docs/kota/landmark/README.md.
+export const GENERATED_LANDMARKS = Object.freeze([
+  { id: 'kantor-gubernur-riau', name: 'Kantor Gubernur Riau + Menara Lancang Kuning', x: 6269.9, z: -3702.7, yaw: 0, files: ['kantor-gubernur-riau-lod0.glb', 'kantor-gubernur-riau-lod1.glb', 'kantor-gubernur-riau-lod2.glb'], lod: [1300, 2800] },
+  { id: 'perpustakaan-soeman-hs', name: 'Perpustakaan Soeman Hs.', x: 6339.2, z: -3532.2, yaw: 0, files: ['perpustakaan-soeman-hs-lod0.glb', 'perpustakaan-soeman-hs-lod1.glb', 'perpustakaan-soeman-hs-lod2.glb'], lod: [1300, 2800] },
+  { id: 'balai-adat-melayu-riau', name: 'Balai Adat Melayu Riau', x: 7064.0, z: -3454.3, yaw: 0, files: ['balai-adat-melayu-riau-lod0.glb', 'balai-adat-melayu-riau-lod1.glb', 'balai-adat-melayu-riau-lod2.glb'], lod: [1300, 2800] },
+  { id: 'anjung-seni-idrus-tintin', name: 'Anjung Seni Idrus Tintin', x: 7381.4, z: 627.8, yaw: 0, files: ['anjung-seni-idrus-tintin-lod0.glb', 'anjung-seni-idrus-tintin-lod1.glb', 'anjung-seni-idrus-tintin-lod2.glb'], lod: [1300, 2800] },
+  { id: 'museum-sang-nila-utama', name: 'Museum Sang Nila Utama', x: 7210.8, z: -1176.8, yaw: 0, files: ['museum-sang-nila-utama-lod0.glb', 'museum-sang-nila-utama-lod1.glb', 'museum-sang-nila-utama-lod2.glb'], lod: [1300, 2800] },
+  { id: 'mal-ska', name: 'Mal SKA', x: 3179.9, z: -1767.8, yaw: 0, files: ['mal-ska-lod0.glb', 'mal-ska-lod1.glb', 'mal-ska-lod2.glb'], lod: [1300, 2800] },
+  { id: 'swiss-belinn-ska', name: 'Swiss-Belinn SKA', x: 3216.4, z: -1687.3, yaw: 0, files: ['swiss-belinn-ska-lod0.glb', 'swiss-belinn-ska-lod1.glb', 'swiss-belinn-ska-lod2.glb'], lod: [1300, 2800] },
+  { id: 'living-world', name: 'Living World Pekanbaru', x: 3437.9, z: -1817.2, yaw: 0, files: ['living-world-lod0.glb', 'living-world-lod1.glb', 'living-world-lod2.glb'], lod: [1300, 2800] },
+  { id: 'ciputra-seraya-mall', name: 'Mal Ciputra Seraya', x: 4543.9, z: -5775.0, yaw: 0, files: ['ciputra-seraya-mall-lod0.glb', 'ciputra-seraya-mall-lod1.glb', 'ciputra-seraya-mall-lod2.glb'], lod: [1300, 2800] },
+  { id: 'mall-pekanbaru', name: 'Mall Pekanbaru', x: 6531.9, z: -5325.6, yaw: 0, files: ['mall-pekanbaru-lod0.glb', 'mall-pekanbaru-lod1.glb', 'mall-pekanbaru-lod2.glb'], lod: [1300, 2800] },
+  { id: 'plaza-suka-ramai', name: 'Plaza Suka Ramai', x: 6340.8, z: -5025.5, yaw: 0, files: ['plaza-suka-ramai-lod0.glb', 'plaza-suka-ramai-lod1.glb', 'plaza-suka-ramai-lod2.glb'], lod: [1300, 2800] },
+  { id: 'plaza-citra', name: 'Plaza Citra', x: 6366.9, z: -2934.7, yaw: 0, files: ['plaza-citra-lod0.glb', 'plaza-citra-lod1.glb', 'plaza-citra-lod2.glb'], lod: [1300, 2800] },
+  { id: 'pasar-bawah', name: 'Pasar Bawah', x: 6031.5, z: -6007.9, yaw: 0, files: ['pasar-bawah-lod0.glb', 'pasar-bawah-lod1.glb', 'pasar-bawah-lod2.glb'], lod: [1300, 2800] },
+  { id: 'hotel-furaya', name: 'Hotel Furaya', x: 6373.5, z: -5665.0, yaw: 0, files: ['hotel-furaya-lod0.glb', 'hotel-furaya-lod1.glb', 'hotel-furaya-lod2.glb'], lod: [1300, 2800] },
+  { id: 'masjid-raya-senapelan', name: 'Masjid Raya Senapelan', x: 5856.6, z: -6006.0, yaw: 0, files: ['masjid-raya-senapelan-lod0.glb', 'masjid-raya-senapelan-lod1.glb', 'masjid-raya-senapelan-lod2.glb'], lod: [1300, 2800] },
+  { id: 'tugu-selais', name: 'Tugu Selais Tiga Sepadan', x: 6498.5, z: -3258.0, yaw: 0, files: ['tugu-selais-lod0.glb', 'tugu-selais-lod1.glb', 'tugu-selais-lod2.glb'], lod: [1300, 2800] },
+  { id: 'tugu-zapin', name: 'Tugu Zapin 0 KM', x: 6446.8, z: -3767.1, yaw: 0, files: ['tugu-zapin-lod0.glb', 'tugu-zapin-lod1.glb', 'tugu-zapin-lod2.glb'], lod: [1300, 2800] },
+  { id: 'tugu-keris', name: 'Tugu Keris', x: 6967.3, z: -2949.7, yaw: 0, files: ['tugu-keris-lod0.glb', 'tugu-keris-lod1.glb', 'tugu-keris-lod2.glb'], lod: [1300, 2800] },
+  { id: 'tugu-perjuangan', name: 'Tugu Perjuangan', x: 7017.7, z: -3758.2, yaw: 0, files: ['tugu-perjuangan-lod0.glb', 'tugu-perjuangan-lod1.glb', 'tugu-perjuangan-lod2.glb'], lod: [1300, 2800] },
+  { id: 'tugu-bambu-runcing', name: 'Tugu Bambu Runcing', x: 7024.3, z: -4613.4, yaw: 0, files: ['tugu-bambu-runcing-lod0.glb', 'tugu-bambu-runcing-lod1.glb', 'tugu-bambu-runcing-lod2.glb'], lod: [1300, 2800] },
+  { id: 'monumen-skyhawk', name: 'Monumen Pesawat Skyhawk', x: 6519.5, z: 1343.3, yaw: 0, files: ['monumen-skyhawk-lod0.glb', 'monumen-skyhawk-lod1.glb', 'monumen-skyhawk-lod2.glb'], lod: [1300, 2800] },
+  { id: 'bandara-terminal', name: 'Terminal Bandara SSK II', x: 6491.1, z: 2047.4, yaw: 0, files: ['bandara-terminal-lod0.glb', 'bandara-terminal-lod1.glb', 'bandara-terminal-lod2.glb'], lod: [1300, 2800] },
+  { id: 'bandara-landasan', name: 'Landasan Bandara SSK II', x: 6012.6, z: 2631.2, yaw: 0, files: ['bandara-landasan-lod0.glb', 'bandara-landasan-lod1.glb', 'bandara-landasan-lod2.glb'], lod: [3200, 6400] },
+]);

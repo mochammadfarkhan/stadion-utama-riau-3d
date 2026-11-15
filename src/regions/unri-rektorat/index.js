@@ -12,7 +12,7 @@ import { defineRegion, validateBuild } from '../Region.js';
 import { disposeTree } from '../../engine/disposeTree.js';
 import { withScope } from '../../engine/ResourceScope.js';
 import { createModelGroup, placeModels } from '../../world/assets/models.js';
-import { mergeByMaterial } from '../../world/util/merge.js';
+import { mergeByMaterial } from '../../engine/mergeByMaterial.js';
 import { REKTORAT_ID, REKTORAT_PLACEMENT, REKTORAT_ACTIVATION } from './placement.js';
 import { REKTORAT_MASK } from './mask.js';
 import { REKTORAT_PADS } from './pads.js';

@@ -28,6 +28,9 @@ export default [
     },
   },
   { files: ['tests/**', 'vite.config.js', 'eslint.config.js'], languageOptions: { globals: { ...globals.node, ...globals.browser } } },
+  // Berkas panjang sulit dikerjakan aman (terutama oleh model kecil): > 400 baris kode = peringatan, pecah saat disentuh.
+  // Sudah melewati batas (utang tercatat di docs/ARSITEKTUR.md): sekre/boards.js, core/App.js, sekre/room.js, kit/atlasPaint.openings.js.
+  { files: ['src/**/*.js'], rules: { 'max-lines': ['warn', { max: 400, skipBlankLines: true, skipComments: true }] } },
   { files: ['src/config/**/*.js'], rules: restrict(THREE_PKG, layers(ALL), MAIN) },
   { files: ['src/engine/**/*.js'], rules: restrict(layers(except('engine')), MAIN) },
   { files: ['src/geo/**/*.js'], rules: restrict(THREE_PKG, layers(ALL), MAIN) },

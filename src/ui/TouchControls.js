@@ -4,19 +4,26 @@
  * lewat kode tombol yang sama dengan keyboard, jadi game tidak perlu tahu sumber inputnya.
  * DOM dibangun dengan createElement (tanpa innerHTML).
  */
-import { clampToRadius, joystickKeys } from './touchMath.js';
+import { clampToRadius, joystickKeys, touchAxes } from './touchMath.js';
 
 const MOVE_KEYS = Object.freeze(['KeyW', 'KeyS', 'KeyA', 'KeyD']);
 const LOOK_SCALE = 1.8; // jari lebih sulit presisi daripada mouse: sedikit lebih peka
 
-/** [id, label, kode tombol, mode]. tap = satu ketukan saat disentuh, hold = ditahan selama disentuh. */
+/**
+ * [id, label, kode tombol, mode, aria-label?]. tap = satu ketukan saat disentuh, hold = ditahan selama disentuh.
+ * Grid 4 kolom: empat pertama = baris atas. 'benih' tersembunyi sampai pemain di kotak benih (setButtonVisible).
+ */
 const BUTTONS = Object.freeze([
-  ['bel', 'Bel', 'Space', 'tap'],
-  ['aksi', 'E', 'KeyE', 'tap'],
-  ['sprint', 'Lari', 'ShiftLeft', 'hold'],
   ['kamera', 'Kamera', 'CameraCycle', 'tap'], // siklus third → first → angled
   ['jurnal', 'Jurnal', 'KeyJ', 'tap'],
+  ['mode', 'Mode', 'KeyF', 'tap', 'Ganti mode: jalan / sepeda / traktor'],
+  ['tas', 'Tas', 'KeyI', 'tap', 'Buka tas'],
+  ['bel', 'Bel', 'Space', 'tap'],
+  ['aksi', 'E', 'KeyE', 'tap', 'Interaksi'],
+  ['sprint', 'Lari', 'ShiftLeft', 'hold'],
+  ['benih', 'Ganti', 'KeyB', 'tap', 'Ganti jenis benih'],
 ]);
+const HIDDEN_AT_START = new Set(['benih']);
 
 /** setPointerCapture melempar NotFoundError bila pointer sudah tidak aktif; itu tidak boleh membatalkan handler. */
 function capture(target, pointerId) {
@@ -55,8 +62,9 @@ export class TouchControls {
     this.stick.append(this.knob);
     this.buttons = {};
     const pad = el('div', 'touch-actions');
-    for (const [id, label, code, mode] of BUTTONS) {
-      const b = el('button', `touch-btn touch-btn-${id}`, { type: 'button', 'aria-label': label });
+    for (const [id, label, code, mode, aria = label] of BUTTONS) {
+      const b = el('button', `touch-btn touch-btn-${id}`, { type: 'button', 'aria-label': aria });
+      b.hidden = HIDDEN_AT_START.has(id);
       b.textContent = label;
       this.#bindButton(b, code, mode);
       this.buttons[id] = b;
@@ -72,6 +80,12 @@ export class TouchControls {
   setVisible(visible) {
     this.el.classList.toggle('hidden', !visible);
     if (!visible) this.#releaseAll();
+  }
+
+  /** Tombol kontekstual (mis. 'benih' hanya di kotak benih). */
+  setButtonVisible(id, on) {
+    const b = this.buttons[id];
+    if (b) b.hidden = !on;
   }
 
   get visible() { return !this.el.classList.contains('hidden'); }
@@ -113,6 +127,9 @@ export class TouchControls {
       this.knob.style.transform = `translate(${k.x}px, ${k.y}px)`;
       const keys = joystickKeys(dx, dy, radius);
       for (const code of MOVE_KEYS) this.input.setVirtual(code, keys[code], 'touch');
+      const a = touchAxes(dx, dy, radius); // analog: kayuh/belok sebagian
+      this.input.setAxis?.('moveX', a.x, 'touch');
+      this.input.setAxis?.('moveY', a.y, 'touch');
     };
     this.stick.addEventListener('pointerdown', (e) => {
       e.preventDefault();
@@ -143,7 +160,7 @@ export class TouchControls {
     }, { signal });
     this.surface.addEventListener('pointermove', (e) => {
       if (e.pointerId !== this._lookId || !this._lastLook) return;
-      this.rig.lookBy(e.clientX - this._lastLook.x, e.clientY - this._lastLook.y, LOOK_SCALE);
+      this.rig.lookBy(e.clientX - this._lastLook.x, e.clientY - this._lastLook.y, LOOK_SCALE, 'touch'); // × camera.touchSensitivity di rig
       this._lastLook = { x: e.clientX, y: e.clientY };
     }, { signal });
     const end = (e) => {

@@ -9,14 +9,14 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { makeRng } from '../../entities/util.js';
-import { ROOM, WINDOW, DOOR, REAR, SELASAR, SELASAR_SEBERANG } from './data.js';
+import { ROOM, WINDOWS, DOOR, REAR, SELASAR, SELASAR_SEBERANG } from './data.js';
 import { makeCanvas, canvasTexture, fitFont, tint, FONT } from './canvas.js';
 import { styleState } from '../../engine/styleState.js';
 import { loadPbr } from '../../world/textures/pbr.js';
 import { TILE_M, tierForQuality } from '../../world/textures/pbrCore.js';
 
 const PLESTER_M = 2.0; // meter per ulangan tekstur plester
-const KERAMIK_M = 0.8; // 2 × 2 ubin 40 cm
+const KERAMIK_M = 1.2; // 2 × 2 ubin 60 cm (foto: keramik putih besar)
 const PLAFON_M = 1.2;  // panel gipsum 1,2 m
 const PLINT_H = 0.1;
 const RAIN_DROPS = 320;
@@ -102,7 +102,7 @@ export function drawKeramik(c, w, h, seed = 21) {
       c.fillStyle = `rgb(${243 + v},${243 + v},${240 + v})`;
       c.fillRect(i * tw, j * th, tw, th);
       for (let k = 0; k < 900; k += 1) {
-        c.fillStyle = `rgba(${rnd() < 0.5 ? '150,130,100' : '255,250,235'},${0.05 + rnd() * 0.08})`;
+        c.fillStyle = `rgba(${rnd() < 0.5 ? '170,165,155' : '255,255,250'},${0.03 + rnd() * 0.05})`; // putih bersih, bintik tipis
         c.fillRect(i * tw + rnd() * tw, j * th + rnd() * th, 1 + rnd() * 2, 1 + rnd() * 2);
       }
       const g = c.createLinearGradient(i * tw, j * th, (i + 1) * tw, (j + 1) * th);
@@ -287,9 +287,10 @@ function wallGeometry() {
   const { w, d, h, wall: t } = ROOM;
   const hw = w / 2;
   const hd = d / 2;
-  const top = WINDOW.sill + WINDOW.h;
-  const wx0 = WINDOW.x - WINDOW.w / 2;
-  const wx1 = WINDOW.x + WINDOW.w / 2;
+  const [L, R] = WINDOWS; // jendela kiri & kanan pintu ganda (urut x)
+  const span = (win) => [win.x - win.w / 2, win.x + win.w / 2, win.sill + win.h];
+  const [lx0, lx1, ltop] = span(L);
+  const [rx0, rx1, rtop] = span(R);
   const front = (x0, x1, y0, y1) => slab(x0, x1, y0, y1, -hd - t, -hd);
   const zb = REAR.zBack;
   const part = (x0, x1, y0, y1) => slab(x0, x1, y0, y1, hd, hd + t); // dinding pemisah ruang utama | ruang belakang
@@ -303,12 +304,15 @@ function wallGeometry() {
     slab(wc.x0 - t / 2, wc.x0 + t / 2, 0, h, wc.z0 + t, zb), // sisi barat WC
     wcPart(wc.x0 - t / 2, wc.door.x0, 0, h), wcPart(wc.door.x0, wc.door.x1, wc.door.h, h), wcPart(wc.door.x1, hw, 0, h),
     part(-hw, dw.x0, 0, h), part(dw.x0, dw.x1, dw.h, h), part(dw.x1, dr.x0, 0, h), part(dr.x0, dr.x1, dr.h, h), part(dr.x1, hw, 0, h),
-    front(-hw, wx0, 0, h),
-    front(wx0, wx1, 0, WINDOW.sill),
-    front(wx0, wx1, top, h),
-    front(wx1, DOOR.x0, 0, h),
+    front(-hw, lx0, 0, h),
+    front(lx0, lx1, 0, L.sill),
+    front(lx0, lx1, ltop, h),
+    front(lx1, DOOR.x0, 0, h),
     front(DOOR.x0, DOOR.x1, DOOR.h, h),
-    front(DOOR.x1, hw, 0, h),
+    front(DOOR.x1, rx0, 0, h),
+    front(rx0, rx1, 0, R.sill),
+    front(rx0, rx1, rtop, h),
+    front(rx1, hw, 0, h),
     slab(SELASAR.ujungKiri, -hw - t, 0, SELASAR.tinggiAtap, -hd - t, -hd),  // dinding ruang tetangga kiri
     slab(hw + t, SELASAR.ujungKanan, 0, SELASAR.tinggiAtap, -hd - t, -hd),  // tetangga kanan (BEM, dst.)
     slab(-hw - t, hw + t, h, SELASAR.tinggiAtap, -hd - t, -hd),             // balok di atas dinding depan
@@ -396,7 +400,7 @@ export function buildRoom({ renderer = null } = {}) {
     return canvasTexture(canvas, renderer, { repeat: true });
   };
   const plester = new THREE.MeshStandardMaterial({ map: tex(drawPlester, 512, 512, 11), roughness: 0.92 });
-  const keramik = new THREE.MeshStandardMaterial({ map: tex(drawKeramik, 512, 512, 21), roughness: 0.32, envMapIntensity: 0.6 });
+  const keramik = new THREE.MeshStandardMaterial({ map: tex(drawKeramik, 512, 512, 21), roughness: 0.16, envMapIntensity: 0.9 }); // mengilap (foto)
   const plafon = new THREE.MeshStandardMaterial({ map: tex(drawPlafon, 512, 512, 31), roughness: 0.95 });
   upgradeWallWithPbr(plester, PLESTER_M);
   const facadeCanvas = makeCanvas(1024, 256);

@@ -1,3 +1,4 @@
+import { SAVE_KEYS } from '../config/saveKeys.js';
 /**
  * Simpan/muat progres cerita di localStorage (kunci tetap; versi di dalam data). Data dari storage
  * tidak dipercaya: dibersihkan terhadap batas chapter/langkah, id yang dikenal, dompet yang sah, dan
@@ -6,7 +7,7 @@
  * story/points.js; null bila belum tercatat). Data rusak atau versi tak dikenal dicadangkan ke
  * STORY_BACKUP_KEY sebelum mulai baru (tidak dibuang diam-diam).
  */
-export const STORY_KEY = 'sur3d.story.v1';
+export const STORY_KEY = SAVE_KEYS.story;
 export const STORY_BACKUP_KEY = `${STORY_KEY}.bak`;
 export const SAVE_VERSION = 3;
 const V2 = 2;
@@ -40,11 +41,14 @@ export function sanitizeWallet(raw, itemIds) {
  * pemakai me-resolve lewat frameOf (region tak dikenal → null di sana).
  * @returns {{region:string, x:number, z:number, yaw:number}|null}
  */
+/** Mode pemain yang boleh disimpan bersama tempat (sama dengan PLAYER_MODES; story/ tidak mengimpor config kebun). */
+export const PLACE_MODES = Object.freeze(['sepeda', 'jalan', 'traktor']);
+
 export function sanitizePlace(raw) {
   if (!raw || typeof raw !== 'object') return null;
   if (typeof raw.region !== 'string' || raw.region === '') return null;
   if (![raw.x, raw.z, raw.yaw].every(Number.isFinite)) return null;
-  return { region: raw.region, x: raw.x, z: raw.z, yaw: raw.yaw };
+  return { region: raw.region, x: raw.x, z: raw.z, yaw: raw.yaw, mode: PLACE_MODES.includes(raw.mode) ? raw.mode : 'sepeda' };
 }
 
 /** Field progres yang sama di v1, v2 & v3. */

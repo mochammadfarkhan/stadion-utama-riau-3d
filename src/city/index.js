@@ -16,6 +16,7 @@ import { applyGroundHole } from './groundHole.js';
 import { FACADE_UNIFORMS, nightFactor } from './facade.js';
 import { addTileDetail } from './tileDetail.js';
 import { createFarCity } from './farCity.js';
+import { createLandmarks } from './landmarks.js';
 
 /** Nama grup detail kecil di dalam tile (tileDetail.js) yang tak terlihat dari kamera pratinjau jauh. */
 const TILE_FINE_DETAIL = new Set(['pohon', 'marka', 'tiangLampu', 'kepalaLampu']);
@@ -112,6 +113,7 @@ export async function createCity({
       for (const c of tile.children) if (TILE_FINE_DETAIL.has(c.name)) c.visible = !hidden;
     }
   };
+  let landmarks = null; // landmark hero berLOD (landmarks.js), dibuat saat pratinjau pertama
   /** Selesaikan penunggu sekali dan bersihkan timer habis-waktunya. */
   const settle = (w, value) => {
     if (!waiters.delete(w)) return;
@@ -138,6 +140,7 @@ export async function createCity({
         tileDetailHidden = wantHidden;
         setTileDetail(wantHidden);
       }
+      if (previewOn && landmarks) landmarks.update({ focus, distance: camDist });
       const a = groundAnchor(focus);
       ground.position.set(a.x, CITY_GROUND.y, a.z);
       for (const action of streamer.update(focus)) {
@@ -168,6 +171,8 @@ export async function createCity({
       streamer.setPreview(value);
       ground.scale.setScalar(value ? PREVIEW_GROUND_SCALE : 1);
       previewOn = Boolean(value);
+      landmarks ??= createLandmarks({ parent: group, baseUrl, loadGltf: createGltfLoader(), logger });
+      landmarks.setActive(previewOn);
       if (previewOn) {
         farPromise ??= createFarCity({ scene: group, baseUrl, logger }).catch((err) => { logger.error('Kota jauh gagal:', err); return null; });
         farPromise.then(async (f) => {
@@ -192,6 +197,7 @@ export async function createCity({
       app.removeSystem(system.id);
       for (const w of [...waiters]) settle(w, false);
       farPromise?.then((f) => f?.dispose());
+      landmarks?.dispose();
       vehicles.dispose(); // muatan kendaraan yang telat dibuang (tidak dipasang/didaftarkan)
       loader.dispose(); // muatan yang masih berjalan dibuang saat selesai (tidak dipasang/didaftarkan)
       group.removeFromParent();
