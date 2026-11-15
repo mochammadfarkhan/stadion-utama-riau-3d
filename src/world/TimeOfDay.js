@@ -51,6 +51,15 @@ export function fogRange(near, far, limit = Infinity) {
   return { near: near * k, far: limit };
 }
 
+/**
+ * Jarak kabut untuk preset: far = min(far × scale, limit); near TIDAK ikut menyusut di bawah `nearFloor`
+ * (benda hero di depan pemain tetap jenuh), kecuali far sendiri sudah pendek (near ≤ far / 2). Murni.
+ */
+export function fogForPreset(near, far, scale, limit = Infinity, nearFloor = 300) {
+  const f = Math.min(far * scale, limit);
+  return { near: Math.max(near * (f / far), Math.min(nearFloor, f * 0.5)), far: f };
+}
+
 /** Kubah bintang sederhana (Points) yang mengikuti kamera; hanya tampak malam. */
 function createStars(count) {
   const pos = new Float32Array(count * 3);
@@ -127,8 +136,7 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
     L.hemi.intensity = p.hemiIntensity;
     L.hemi.color.setHex(p.hemiSky);
     L.hemi.groundColor.setHex(p.hemiGround);
-    const fogScale = over.fogDistance / FOG_DEFAULT;
-    const fog = fogRange(p.fogNear * fogScale, p.fogFar * fogScale, fogLimit);
+    const fog = fogForPreset(p.fogNear, p.fogFar, over.fogDistance / FOG_DEFAULT, fogLimit);
     scene.fog.color.setHex(p.fogColor);
     scene.fog.near = fog.near;
     scene.fog.far = fog.far;

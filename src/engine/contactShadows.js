@@ -14,15 +14,18 @@ export function registerContactSource(fn) {
   return () => sources.delete(fn);
 }
 
+/** Stop gradien alphaMap bayangan kontak: [posisi 0..1, kecerahan 0..255]. three.js membaca alphaMap dari kanal hijau, bukan alpha. */
+export const BLOB_STOPS = Object.freeze([[0, 255], [0.55, 140], [1, 0]]);
+
 function blobTexture() {
   const c = document.createElement('canvas');
   c.width = 64;
   c.height = 64;
   const g = c.getContext('2d');
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, 64, 64);
   const grad = g.createRadialGradient(32, 32, 2, 32, 32, 31);
-  grad.addColorStop(0, 'rgba(0,0,0,1)');
-  grad.addColorStop(0.55, 'rgba(0,0,0,0.55)');
-  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  for (const [t, v] of BLOB_STOPS) grad.addColorStop(t, `rgb(${v},${v},${v})`);
   g.fillStyle = grad;
   g.fillRect(0, 0, 64, 64);
   const tex = new THREE.CanvasTexture(c);

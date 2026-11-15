@@ -21,6 +21,7 @@ export class Input {
   #keys = new Set();
   #virtual = new Map(); // kode tombol → Set sumber yang sedang menahan (touch, gamepad, ...)
   #pressedOnce = new Set();
+  #axes = new Map(); // nama sumbu → Map(sumber → nilai)
   #abort = new AbortController();
 
   constructor(target = window) {
@@ -31,7 +32,7 @@ export class Input {
       this.#keys.add(e.code);
     }, { signal });
     target.addEventListener('keyup', (e) => this.#keys.delete(e.code), { signal });
-    (typeof window !== 'undefined' ? window : target).addEventListener('blur', () => this.#keys.clear(), { signal });
+    (typeof window !== 'undefined' ? window : target).addEventListener('blur', () => { this.#keys.clear(); this.#axes.clear(); }, { signal });
   }
 
   /** Lepas semua listener dan kosongkan state tombol (dipanggil saat aplikasi dibongkar). */
@@ -40,6 +41,7 @@ export class Input {
     this.#keys.clear();
     this.#virtual.clear();
     this.#pressedOnce.clear();
+    this.#axes.clear();
   }
 
   /** Tombol sedang ditahan (keyboard ATAU virtual). */
@@ -68,6 +70,25 @@ export class Input {
       sources.delete(source);
       if (sources.size === 0) this.#virtual.delete(code);
     }
+  }
+
+  /**
+   * Sumbu analog dari satu sumber ('pad', 'touch'): nilai di-clamp [−1, 1], 0 menghapus sumber itu.
+   * Konvensi: moveY positif = maju, moveX positif = kanan.
+   */
+  setAxis(name, value, source = 'virtual') {
+    const v = Number.isFinite(value) ? Math.min(1, Math.max(-1, value)) : 0;
+    let m = this.#axes.get(name);
+    if (v === 0) { m?.delete(source); return; }
+    if (!m) { m = new Map(); this.#axes.set(name, m); }
+    m.set(source, v);
+  }
+
+  /** Nilai sumbu dengan magnitudo terbesar di antara semua sumber (0 bila tidak ada). */
+  axis(name) {
+    let best = 0;
+    for (const v of this.#axes.get(name)?.values() ?? []) if (Math.abs(v) > Math.abs(best)) best = v;
+    return best;
   }
 
   /** Satu ketukan tombol virtual (tombol layar, tombol gamepad). */

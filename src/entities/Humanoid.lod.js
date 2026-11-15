@@ -10,7 +10,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { currentScope } from '../engine/ResourceScope.js';
 import { styleState } from '../engine/styleState.js';
 
-export const LOD_NEAR = 60;  // m: di dalam jarak ini detail penuh + bayangan
+export const LOD_NEAR = 28;  // m: di dalam jarak ini detail penuh + bayangan
 export const LOD_FAR = 320;  // m: di luar jarak ini disembunyikan
 
 /** Material bersama untuk semua mesh LOD (Lambert, warna dari atribut vertex), satu per ResourceScope aktif. */

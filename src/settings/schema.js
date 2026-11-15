@@ -70,6 +70,7 @@ export const SETTINGS_SCHEMA = Object.freeze({
           ao: toggle('Ambient occlusion', false),
           vignette: toggle('Vignette', true),
           outline: toggle('Garis tepi', true),
+          fxaa: toggle('Penghalus tepi (FXAA)', true),
           gayaGrafis: select('Gaya grafis', 'kartun', ['asli', 'kartun', 'facet'], {
             labels: { asli: 'Asli', kartun: 'Kartun (halus, hemat) — L', facet: 'Facet (low-poly bersegi)' },
           }),
@@ -77,6 +78,7 @@ export const SETTINGS_SCHEMA = Object.freeze({
             labels: { auto: 'Otomatis (ikut resolusi)', tinggi: 'Tinggi (5 lapisan + normal)', sedang: 'Sedang (3 lapisan + normal)', rendah: 'Rendah (albedo saja)' },
           }),
           kartuDaun: toggle('Pohon rimbun kartu daun (kartun)', true),
+          orangPack: toggle('Warga dari pack orang (mati = humanoid lama; berlaku setelah muat ulang)', true),
           bloom: toggle('Bloom (kartun/facet)', true),
           tiltShift: toggle('Efek maket (blur atas-bawah)', false),
           gradingStrength: range('Kekuatan grading', 1, 0, 1, 0.05, { format: 'percent' }),
@@ -99,6 +101,9 @@ export const SETTINGS_SCHEMA = Object.freeze({
           angledDistance: range('Jarak kamera 3/4', 24, 10, 45, 0.5, { unit: 'm' }),
           fov: range('Sudut pandang (FOV)', 60, 40, 100, 1, { unit: '°' }),
           sensitivity: range('Sensitivitas mouse', 1, 0.2, 3, 0.05, { unit: '×' }),
+          touchSensitivity: range('Kepekaan sentuh', 1, 0.3, 3, 0.05, { unit: '×' }),
+          padSensitivity: range('Kepekaan gamepad', 1, 0.3, 3, 0.05, { unit: '×' }),
+          invertY: toggle('Balik sumbu Y', false),
           followSmoothing: range('Kehalusan kamera', 6, 1, 15, 0.5),
           kotaMaket: toggle('Pratinjau Kota (K): gaya maket sore emas', true),
           kotaSuara: toggle('Pratinjau Kota (K): suara ambient', true),
@@ -114,6 +119,7 @@ export const SETTINGS_SCHEMA = Object.freeze({
       mix: Object.freeze({
         title: 'Volume',
         fields: Object.freeze({
+          muted: toggle('Bisukan semua', false),
           master: range('Utama', 0.8, 0, 1, 0.01, { format: 'percent' }),
           bell: range('Bel sepeda', 1, 0, 1, 0.01, { format: 'percent' }),
           ambience: range('Suasana', 0.6, 0, 1, 0.01, { format: 'percent' }),
@@ -129,9 +135,22 @@ export const SETTINGS_SCHEMA = Object.freeze({
         title: 'Statistik',
         fields: Object.freeze({
           fpsCap: select('Batas FPS (hemat panas & baterai)', '60', ['30', '60', 'tanpa batas']),
-          showStats: toggle('Tampilkan FPS & draw call', true),
+          showStats: toggle('Tampilkan FPS & draw call', false),
           minimap: toggle('Minimap', true),
           labels: toggle('Label pedagang', true),
+        }),
+      }),
+    }),
+  }),
+  aksesibilitas: Object.freeze({
+    title: 'Aksesibilitas',
+    icon: 'eye',
+    sections: Object.freeze({
+      tampilan: Object.freeze({
+        title: 'Tampilan',
+        fields: Object.freeze({
+          textScale: range('Ukuran teks', 1, 0.85, 1.5, 0.05, { unit: '×' }),
+          reduceMotion: toggle('Kurangi gerakan', false),
         }),
       }),
     }),

@@ -18,11 +18,40 @@ const AUDIO_BUFFER_SECONDS = 2;
 const WIND_DEFAULT = 0.3;          // nilai settings weather.wind yang berarti angin = WEATHER.wind
 
 /**
+ * Suara hujan lewat AudioBus: buffer desis yang bisa diulang tanpa klik (dulu buffer 2 detik Math.random di-loop mentah →
+ * klik tiap 2 detik). Loop dibuat pada gestur pertama (kebijakan autoplay); kanal 'ambience'.
+ */
+function createBusRainAudio(audioBus, eventTarget) {
+  let handle = null;
+  let level = 0;
+  const listeners = new AbortController();
+  const start = () => {
+    if (handle || !audioBus.ensure()) return;
+    handle = audioBus.startRainHiss({ channel: 'ambience', level: AUDIO_GAIN * level });
+  };
+  eventTarget?.addEventListener?.('pointerdown', start, { passive: true, signal: listeners.signal });
+  eventTarget?.addEventListener?.('keydown', start, { passive: true, signal: listeners.signal });
+  return {
+    setLevel(v) {
+      if (v === level) return;
+      level = v;
+      handle?.setLevel(AUDIO_GAIN * v, 0.5);
+    },
+    dispose() {
+      listeners.abort();
+      handle?.stop();
+      handle = null;
+    },
+  };
+}
+
+/**
  * Suara hujan dari derau terfilter (Web Audio); dibuat setelah gesture pengguna (pointerdown/keydown
  * pada `eventTarget`). Bila audioBus ada, memakai konteks bersama dan kanal 'ambience' (volume dari
  * settings) — konteks itu milik bus, jadi tidak ditutup di sini.
  */
 function createRainAudio(audioBus, eventTarget) {
+  if (audioBus?.startRainHiss) return createBusRainAudio(audioBus, eventTarget);
   let ctx = null;
   let gain = null;
   let src = null;

@@ -23,7 +23,7 @@ import { createPlanters } from './props/Planter.js';
 import { createLancangKuning, createTanjakMonument } from './props/Monument.js';
 import { createGapura } from './props/Gapura.js';
 import { createParkedCars, createParkedMotorcycles, pickParkingSpots } from './props/Vehicles.js';
-import { mergeByMaterial } from './util/merge.js';
+import { mergeByMaterial } from '../engine/mergeByMaterial.js';
 import { distanceToGateCorridor } from './stadium/gateCorridor.js';
 
 const ROW_DEPTH = STADIUM.rowDepth;

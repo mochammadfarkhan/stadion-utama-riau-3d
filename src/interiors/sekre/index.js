@@ -11,7 +11,7 @@ import { defineInterior } from '../Interior.js';
 import { createRoomCollider } from '../roomCollider.js';
 import { withScope } from '../../engine/ResourceScope.js';
 import { freezeStatic } from '../../engine/freezeStatic.js';
-import { mergeByMaterial } from '../../world/util/merge.js';
+import { mergeByMaterial } from '../../engine/mergeByMaterial.js';
 import { lightingPreset } from '../../sim/dayCycle.js';
 import { ROOM, SPAWN, SOLIDS, TALL_SOLIDS, ROOM_YAW_OFFSET, ZONES } from './data.js';
 import { buildRoom } from './room.js';
@@ -60,7 +60,7 @@ async function buildSekre(ctx) {
 
   const { materials, room, furniture, boards, npcs, lighting } = withScope(ctx.scope, () => {
     const mats = createSekreMaterials(ctx.renderer ?? null);
-    const furn = buildFurniture({ materials: mats });
+    const furn = buildFurniture({ materials: mats, hq: ctx.store?.get?.('graphics.preset') === 'tinggi' }); // model realistis hanya di Tinggi
     return {
       materials: mats,
       room: buildRoom({ renderer: ctx.renderer ?? null }),

@@ -5,6 +5,7 @@
  *   (spin), crankL/crankR (pedal), saddleMount (tempat duduk pengendara).
  */
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { BIKE } from '../config/constants.js';
 import { matFor } from './util.js';
 
@@ -168,14 +169,54 @@ function createBasket(barY) {
 }
 
 /**
+ * Gabungkan mesh diam di bawah satu pivot menjadi satu mesh per material (draw call sepeda ±37 → ±21).
+ * Pivot lain (`stop`) dan isinya tidak disentuh; InstancedMesh (jari-jari) dibiarkan. Transform relatif pivot dipanggang ke geometri.
+ * @param {THREE.Object3D} pivot
+ * @param {Set<THREE.Object3D>} stop pivot bergerak lain yang tidak boleh ikut digabung
+ */
+export function mergePivot(pivot, stop) {
+  pivot.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(pivot.matrixWorld).invert();
+  const buckets = new Map();
+  const visit = (o) => {
+    for (const c of [...o.children]) {
+      if (stop.has(c)) continue;
+      if (c.isMesh && !c.isInstancedMesh && !Array.isArray(c.material)) {
+        const key = c.material.uuid;
+        if (!buckets.has(key)) buckets.set(key, []);
+        buckets.get(key).push(c);
+      } else if (!c.isMesh) visit(c);
+    }
+  };
+  visit(pivot);
+  for (const meshes of buckets.values()) {
+    const geos = meshes.map((m) => {
+      const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone();
+      return g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, m.matrixWorld));
+    });
+    const geo = mergeGeometries(geos, false);
+    geos.forEach((g) => g.dispose());
+    if (!geo) continue;
+    const merged = new THREE.Mesh(geo, meshes[0].material);
+    merged.name = `sepeda:${meshes[0].material.name || 'gabung'}+${meshes.length}`;
+    merged.castShadow = meshes.some((m) => m.castShadow);
+    for (const m of meshes) {
+      m.removeFromParent();
+      m.geometry.dispose();
+    }
+    pivot.add(merged);
+  }
+}
+
+/**
  * Bangun mesh sepeda lengkap.
- * @param {{frameColor?:number, withBasket?:boolean}} opts
+ * @param {{frameColor?:number, withBasket?:boolean, merge?:boolean}} opts  merge false = mesh terpisah (pembanding tes)
  * @returns {{group:THREE.Group, parts:{frame:THREE.Group, steer:THREE.Group,
  *   wheelF:THREE.Group, wheelR:THREE.Group, crankL:THREE.Group, crankR:THREE.Group,
  *   saddleMount:THREE.Group}}}
  */
 export function createBicycleMesh(opts = {}) {
-  const { frameColor = 0x1e6fb8, withBasket = true } = opts;
+  const { frameColor = 0x1e6fb8, withBasket = true, merge = true } = opts;
   const g = BIKE_GEO;
   const matFrame = matFor(frameColor);
   const matMetal = matFor(0xb0b4b8);
@@ -195,5 +236,10 @@ export function createBicycleMesh(opts = {}) {
   const saddleMount = new THREE.Group();
   saddleMount.position.copy(g.saddle);
   frame.add(wheelR, steer, crankL, crankR, createChain(g, matMetal), saddleMount);
+  if (merge) {
+    const pivots = [frame, steer, wheelF, wheelR, crankL, crankR, saddleMount];
+    const stop = new Set(pivots);
+    for (const p of pivots) if (p !== saddleMount) mergePivot(p, stop);
+  }
   return { group, parts: { frame, steer, wheelF, wheelR, crankL, crankR, saddleMount } };
 }
