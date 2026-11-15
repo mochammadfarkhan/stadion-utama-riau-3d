@@ -8,12 +8,17 @@ import { thirdPersonOffset } from '../core/cameraMath.js';
 import { regionContains } from '../regions/Region.js';
 
 /** Area manifest untuk An-Nur (tools/citybake/config.js AREAS.pusat; pusat area = node OSM masjid). */
+import { START_POINT } from '../config/startPoint.js';
+
+/** Tanda waktu tahap perjalanan (tools/shots/waktuMuat.mjs); tanpa Performance API → diam. */
+const mark = (name) => { try { globalThis.performance?.mark?.(name); } catch { /* */ } };
+
 export const ANNUR_AREA_ID = 'pusat';
 
 /** Tujuan kampus (dunia; spec §8.4, titik ukur §9.2 sekre-luar & rektorat), menghadap gedung (yaw π = utara). */
 export const CAMPUS_DESTINATIONS = Object.freeze([
   // Sekre UKM blok biru (ERC, pintu D5): 3 m di depan pintu, halaman beton, menghadap timur ke gedung (yaw π/2).
-  Object.freeze({ id: 'unri-sekre-ukm', label: 'Kampus UNRI — Sekre UKM (ERC)', x: -96.65, z: 1005.5, yaw: Math.PI / 2 }),
+  Object.freeze({ id: 'unri-sekre-ukm', label: 'Kampus UNRI — Sekre UKM (ERC)', x: START_POINT.x, z: START_POINT.z, yaw: START_POINT.yaw }), // = titik mulai
   Object.freeze({ id: 'unri-sekre', label: 'Kampus UNRI — Sekretariat Lembaga', x: -219, z: 1130, yaw: Math.PI }),
   Object.freeze({ id: 'unri-rektorat', label: 'Kampus UNRI — Rektorat', x: -979, z: 860, yaw: Math.PI }),
 ]);
@@ -141,6 +146,32 @@ export function createFastTravel({
     bike.state = { ...bike.state, x, z, yaw, v: 0 };
     bike.setCollider(createCollider({ x, z }, colliders.isWalkable, colliders.penetration));
   };
+  /**
+   * Perjalanan ke titik bebas (tempat terakhir, titik mulai): jalur sama dengan go(id).
+   * @param {{x:number, z:number, yaw?:number, label:string}} d
+   * @returns {Promise<TravelStatus>}
+   */
+  async function goTo({ x, z, yaw = 0, label }) {
+    if (busy) return 'busy';
+    busy = true;
+    screen.show(`Menuju ${label}…`);
+    try {
+      if (rig?.povId) rig.exitPov({ instant: true }); // fokus streamer kembali ke sepeda; tanpa terbang ke tujuan
+      place(x, z, yaw); // fokus streamer pindah ke tujuan
+      mark('tujuan:mulai');
+      // Kota, distrik, dan region dimuat BERSAMAAN (dulu kota ditunggu dulu); settle menunggu kota sebelum prekompilasi shader.
+      const cityP = Promise.resolve(city ? city.whenSettled(x, z, settleRadius) : true).then((ok) => { mark('tujuan:kota'); return ok; });
+      const extraOk = settle ? await settle(x, z, cityP) : true; // M7: distrik + region hero
+      const cityOk = await cityP;
+      mark('tujuan:settle');
+      const spot = findSpawnNear(x, z, { isWalkable: colliders.isWalkable, isCameraClear, fallbackYaw: yaw }) ?? { x, z, yaw };
+      place(spot.x, spot.z, spot.yaw); // collider tile sudah ada: titik walkable dengan ruang kamera
+      return cityOk && extraOk ? 'ok' : 'timeout';
+    } finally {
+      screen.hide();
+      busy = false;
+    }
+  }
   return {
     destinations,
     get busy() { return busy; },
@@ -151,22 +182,8 @@ export function createFastTravel({
     async go(id) {
       const d = destinations.find((v) => v.id === id);
       if (!d) return 'unknown';
-      if (busy) return 'busy';
-      busy = true;
-      screen.show(`Menuju ${d.label}…`);
-      try {
-        if (rig?.povId) rig.exitPov({ instant: true }); // fokus streamer kembali ke sepeda; tanpa terbang ke tujuan
-        place(d.x, d.z, d.yaw); // fokus streamer pindah ke tujuan
-        const cityOk = city ? await city.whenSettled(d.x, d.z, settleRadius) : true;
-        const extraOk = settle ? await settle(d.x, d.z) : true; // M7: distrik + region hero
-        const settled = cityOk && extraOk;
-        const spot = findSpawnNear(d.x, d.z, { isWalkable: colliders.isWalkable, isCameraClear, fallbackYaw: d.yaw }) ?? d;
-        place(spot.x, spot.z, spot.yaw); // collider tile sudah ada: titik walkable dengan ruang kamera
-        return settled ? 'ok' : 'timeout';
-      } finally {
-        screen.hide();
-        busy = false;
-      }
+      return goTo(d);
     },
+    goTo,
   };
 }

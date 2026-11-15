@@ -42,6 +42,8 @@ Aturan dipaksa oleh `eslint.config.js` (`no-restricted-imports`). Urutan kira-ki
    distrik UNRI (`mountDistrict`) → entitas → waktu/cuaca → cerita → HUD/minimap.
 3. Tiap modul mendaftar ke loop lewat `app.addSystem({ id, phase, update(dt, ctx) })`.
 4. `regionManager.update(focus)` tiap frame memasang/melepas region streaming.
+5. Sepeda dibuat di titik stadion (latar menu orbit stadion). Saat Mulai: tempat tersimpan dipulihkan, atau bila tidak ada,
+   `travel.goTo(START_POINT)` (`config/startPoint.js`) membawa pemain ke depan pintu sekre ERC lewat layar perjalanan (R03).
 
 ## Loop per frame
 
@@ -55,6 +57,8 @@ Aturan praktis untuk sistem baru:
 - Pasang/lepas harus simetris: semua yang dibuat saat mount punya `dispose` (lihat `engine/disposeTree.js`).
 
 > Fitur Kota (pratinjau K, tile terperinci, kota jauh, proxy stadion, resep ganti model): **`docs/kota/README.md`** + rencana hidup `docs/kota/PLAN.md` (perbarui tiap sesi).
+>
+> Kritik kualitas (grafis, model manusia, UI, desain sistem, detail peta) dengan daftar prioritas: **`docs/KRITIK.md`** (hidup, per putaran).
 
 ## Dunia: siapa dipasang kapan
 
@@ -93,7 +97,10 @@ Aturan praktis untuk sistem baru:
 
 | Tanggal | Keputusan | Alasan / rujukan |
 |---|---|---|
+| 2026-11-15 | Sekre: model realistis CC0 Poly Haven (`HQ_ASET`, `tools/sekrehq/build.mjs`) + sorot sore ber-cookie hanya di preset Tinggi; Rendah tetap low poly | permintaan user (rujukan foto meja bersinar sore); laptop iGPU tetap di Rendah |
 | 2026-11-14 | Rampingkan berkas gemuk tanpa ubah perilaku: `main.js` → `app/*`, perabot sekre satu model satu berkas, ESLint `max-lines` 400 (peringatan) | permintaan user: kode dirapikan dulu sebelum kartu R01–R25 dikerjakan model kecil; enam kartu menyentuh `main.js` |
+| 2026-11-15 | Warga kampus memakai pack orang low poly kiriman user (`entities/Orang.js`, kit NPC sama dengan `createStudentKit`; 1 SkinnedMesh/orang, 19 klip bersama, palet 256 px × kulit sawo/terang); humanoid lama = cadangan & setelan `graphics.orangPack`. Ruang uji dev `/ruang-uji.html` | permintaan user; FBX mentah tanpa lisensi tetap di `data-src/` (tidak di-commit) |
+| 2026-11-14 | Landmark hero mode Kota = model Blender 3 LOD yang dipilih menurut jarak kamera (`src/city/landmarks.js`, di dalam grup `kota`, aktif hanya saat pratinjau K); GLB di `public/models/landmark/`. Batas LOD dihitung dari jarak kamera ≈ 1300 m × zoom; daftar posisi tambahan dihasilkan skrip Blender ke `src/city/landmarks.data.js` (26 landmark per 2026-11-15) | An-Nur dulu sebagai percontohan; satu draw call per landmark; resep `docs/kota/landmark/README.md` |
 | 2026-11-13 | Pratinjau kota memuat seluruh Pekanbaru lewat lapisan "jauh" instans (bukan tile bake penuh) | 380 rb bangunan = 3 MB biner (8 B/bangunan) vs ±130 MB bila di-bake sebagai tile GLB; peta tanah WebP karena hanya dilihat dari jauh |
 | 2026-10-27 | Dokumen ini jadi titik masuk; plan/spec lama tetap arsip | konteks proyek terlalu besar untuk dibaca ulang tiap sesi |
 | 2026-10-26 | Batas FPS default 60 + preset kualitas Otomatis | laptop panas & GPU terintegrasi; `engine/frameCap.js`, `config/quality.js` |

@@ -4,6 +4,9 @@
  */
 import { menuModel } from './menuModel.js';
 
+/** Batas waktu klik kedua "Mulai dari awal" (ms). */
+export const CONFIRM_MS = 4000;
+
 export class MainMenu {
   /** @param {Document} [doc] */
   constructor(doc = document) {
@@ -16,8 +19,27 @@ export class MainMenu {
     this.body.classList.add('is-menu'); // HUD disembunyikan sampai hide() (bukan away())
     this.handlers = { start: () => {}, newGame: () => {}, settings: () => {} };
     this.startBtn.addEventListener('click', () => this.handlers.start());
-    this.newBtn.addEventListener('click', () => this.handlers.newGame());
+    this.newBtn.addEventListener('click', () => this.#confirmNew());
     this.settingsBtn.addEventListener('click', () => this.handlers.settings());
+  }
+
+  /** Dua klik dalam CONFIRM_MS: klik pertama hanya mengubah teks tombol (semua kemajuan akan dihapus). */
+  #confirmNew() {
+    if (!this.armed) {
+      this.armed = true;
+      this.newLabel = this.newBtn.textContent;
+      this.newBtn.textContent = 'Yakin? Semua kemajuan dihapus';
+      this.armTimer = setTimeout(() => this.#disarm(), CONFIRM_MS);
+      return;
+    }
+    this.#disarm();
+    this.handlers.newGame();
+  }
+
+  #disarm() {
+    clearTimeout(this.armTimer);
+    this.armed = false;
+    this.newBtn.textContent = this.newLabel ?? this.newBtn.textContent;
   }
 
   /** @param {{start?:Function, newGame?:Function, settings?:Function}} handlers */

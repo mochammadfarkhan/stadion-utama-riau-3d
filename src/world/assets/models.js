@@ -22,7 +22,7 @@ export function loadModel(path) {
   const scope = currentScope();
   const key = `models:${url}`;
   return scope.get(key, () => {
-    const pending = loader.loadAsync(url).then((gltf) => prepare(gltf.scene));
+    const pending = loader.loadAsync(url).then((gltf) => { gltf.scene.animations = gltf.animations ?? []; return prepare(gltf.scene); });
     // Gagal: lupakan entri agar bisa dicoba lagi. Galatnya tetap sampai ke pemanggil lewat `pending`.
     pending.catch(() => scope.forget(key));
     return pending;

@@ -29,11 +29,33 @@ export function piece(geos, material, name = '', castShadow = true) {
   const flat = geos.map((g) => (g.index ? g.toNonIndexed() : g));
   const geo = mergeGeometries(flat, false);
   for (const g of new Set([...geos, ...flat])) g.dispose();
+  if (material?.userData?.metricUv) metricUv(geo); // tekstur bahan: 1 UV = 1 m, tidak melar di balok panjang
   const m = new THREE.Mesh(geo, material);
   m.name = name;
   m.castShadow = castShadow;
   m.receiveShadow = true;
   return m;
+}
+
+/** UV dalam meter dari posisi lokal (proyeksi kotak menurut normal dominan); skala tile diatur repeat tekstur. */
+export function metricUv(geo) {
+  const pos = geo.attributes.position;
+  const nor = geo.attributes.normal;
+  const uv = geo.attributes.uv;
+  if (!pos || !nor || !uv) return geo;
+  for (let i = 0; i < pos.count; i += 1) {
+    const ax = Math.abs(nor.getX(i));
+    const ay = Math.abs(nor.getY(i));
+    const az = Math.abs(nor.getZ(i));
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    if (ay >= ax && ay >= az) uv.setXY(i, x, z);
+    else if (ax >= az) uv.setXY(i, z, y);
+    else uv.setXY(i, x, y);
+  }
+  uv.needsUpdate = true;
+  return geo;
 }
 
 export function placed(obj, it, ry = propRy(it.hadap)) {

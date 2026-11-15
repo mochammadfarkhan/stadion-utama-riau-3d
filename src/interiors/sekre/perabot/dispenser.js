@@ -11,7 +11,7 @@ export function buildDispenser(m) {
     box(0.3, 0.04, 0.3, '#dfe3e6', { y: 0.92 }),
     box(0.03, 0.03, 0.005, '#43a047', { x: 0.1, y: 0.8, z: -0.163 }),
     cyl(0.128, 0.128, 0.07, '#5fa8d3', { y: 1.015 }, 20),
-  ], m.prop, 'badan');
+  ], m.plastik, 'badan');
   const galon = piece([
     cyl(0.135, 0.05, 0.04, '#ffffff', { y: 0.96 }, 20),
     cyl(0.135, 0.135, 0.27, '#ffffff', { y: 1.115 }, 20),

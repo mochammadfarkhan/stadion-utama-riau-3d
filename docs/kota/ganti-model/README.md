@@ -15,7 +15,7 @@ Semua bentuk kota dibuat prosedural/instans supaya mudah ditukar. Tabel: **apa �
 | Tekstur/variasi tanah | `src/city/groundDetail.js`; peta jauh: warna di `farbake.mjs` (`COVER_COLOR`, `BASE_COLOR`) | ubah | peta jauh: ya |
 | Bangunan tile (dinding/atap) | `tools/citybake/geometry/buildings.js` | ubah generator | ya: `npm run bake` (butuh jaringan/cache `data-src`) |
 | Stadion pratinjau | `src/regions/stadion/proxy.js` | lihat [stadion-proxy](../stadion-proxy/README.md) | tidak |
-| Landmark hero (Masjid, jembatan, dll.) | belum ada — lihat di bawah | | |
+| Landmark hero (Masjid An-Nur; jembatan dll. menyusul) | `assets-src/blender/landmark/<nama>.py` + `src/city/landmarks.js` | jalankan skrip Blender → 3 GLB LOD; ubah x/z/yaw/batas LOD di `LANDMARKS` | GLB: ya (skrip); lainnya tidak — resep: [landmark](../landmark/README.md) |
 
 ## Menambah landmark hero (model Blender) — rencana
 Prasyarat fakta: koordinat + nama dari OSM/Overture (`[INFERENSI]` bila tidak). Langkah:
