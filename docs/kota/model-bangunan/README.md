@@ -107,8 +107,9 @@ Gaya atap Melayu (Selaso Jatuh Kembar, Lipat Kajang, selembayung) dikenal sebaga
 3. **Tahap 2:** K15 walet (#8), sekolah (#18), kantor Melayu (#20), kos (#5), gudang (#14), gedung bertingkat (#12).
 4. **Tahap 3:** rumah panggung (#4), SPBU dan pasar (#11, #13; butuh tag OSM baru), puskesmas (#19), gereja/vihara (#17).
 
-Tiap arketipe baru: aturan di `archetypes.js` + `planRules.js`, tes rencana (jumlah bukaan, atap, lantai), lalu dibuka di ruang uji (`/ruang-uji.html`)
-sebelum dipasang di kota.
+Tiap arketipe baru: aturan di `archetypes.js` + `planRules.js`, tes rencana (jumlah bukaan, atap, lantai), spesimen di `SPECIMENS`
+(`src/dev/kitGallery.js`), lalu dilihat di **galeri gedung** `/kit-gallery.html?kit=K14` sebelum dipasang di kota.
+Rujukan bentuk (atap, aksesori atap, fasad ruko, pagar, carport): lembar ilustrasi isometrik kiriman user 2026-11-16 `[belum disimpan di repo]`.
 
 ## Cek fakta yang masih terbuka
 

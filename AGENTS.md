@@ -10,15 +10,15 @@ Proyek hobi: **cepat dan sederhana mengalahkan lengkap**. Bahasa: Indonesia.
 5. **Git:** lihat bagian "Git: folder utama selalu di `main`" di bawah.
 6. **Lapor ≤ 8 baris:** apa yang berubah, cara mencoba, yang belum yakin (jujur, termasuk yang belum diuji).
 
-## Git: folder utama selalu di `main`
-User ingin folder proyek ini **selalu berada di `main` terbaru** supaya hasil kerja langsung terlihat. Jangan membuat worktree atau folder salinan.
-- **Mulai sesi:** `git switch main` lalu `git pull --ff-only`.
-- **Dokumen saja** (`docs/**`, `*.md`, termasuk berkas ini): commit **langsung di `main`**, lalu push. Tanpa branch, tanpa PR.
-- **Kode/aset/data** (`src/`, `tools/`, `public/`, `assets-src/`, tes, konfigurasi): branch dari `main` di folder ini juga (`git switch -c <jenis>/<nama>`), commit kecil, bila hijau push + PR ke `main`; **merge oleh user**.
-  Setelah PR dibuat, **kembali ke `main`** (`git switch main`) supaya folder tidak tertinggal di branch fitur. Setelah user merge: `git pull --ff-only`.
-- Commit: `git add <file>` lalu `git commit -m "…"` sebagai **dua perintah terpisah** (hook memblokir gabungan).
-- **Perubahan user yang belum di-commit jangan disentuh**: biarkan ikut saat pindah branch. Bila `git switch` menolak karena bentrok, berhenti dan tanya user.
-  Jangan stash, reset, atau hapus berkas user.
+## Git: semua langsung di `main` (tanpa branch, tanpa PR)
+User ingin folder proyek ini **selalu berada di `main` terbaru** dan semua pekerjaan langsung masuk ke `main` (keputusan user 2026-11-16).
+**Jangan membuat branch, PR, worktree, atau folder salinan.**
+- **Mulai sesi:** `git pull --ff-only` di `main`.
+- **Semua perubahan** (dokumen, kode, aset, data, tes): commit kecil langsung di `main`, lalu push.
+- **Sebelum push perubahan kode:** `npm run lint` + tes terkait wajib hijau; `npm run build` + suite penuh bila perubahannya besar atau menyentuh banyak lapisan.
+  Push ke `main` langsung ter-deploy ke GitHub Pages, jadi jangan push kode yang belum dicek.
+- Commit: `git add <file>` lalu `git commit -m "…"` sebagai **dua perintah terpisah** (hook memblokir gabungan). `git add` hanya berkas yang diubah sendiri.
+- **Perubahan user yang belum di-commit jangan disentuh** dan jangan ikut di-commit. Jangan stash, reset, atau hapus berkas user.
 
 ## Aturan
 - Fitur baru **langsung aktif** (default), kecuali diminta opt-in; mode lama tetap bisa dipilih.
@@ -34,4 +34,7 @@ User ingin folder proyek ini **selalu berada di `main` terbaru** supaya hasil ke
 - Blender: `"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --python-expr "import runpy;print(runpy.run_path(r'<skrip>')['build']())"` (atau Blender MCP); skrip di `assets-src/blender/`.
 - Bidikan: `tools/shots/*` (Playwright GPU, `--wait 9000` untuk malam). Port dev 5173.
 - **Ruang uji** `/ruang-uji.html` (dev): cek satu model/karakter/animasi tanpa memuat dunia; bidik `node tools/shots/uji.mjs --q "orang=kasual-pria-g&anim=jalan-p"` atau `--q "model=models/…glb"`.
+- **Galeri gedung** `/kit-gallery.html` (dev, `src/dev/kitGallery.js`): pratinjau gedung kit tanpa memuat dunia. Query: `kit=all|variasi|K01…K12|hero`, `lod=1`, `malam=1`,
+  `seed=N`, `cam=atas`, `atlas=1`. Arketipe/varian baru: tambahkan spesimennya di `SPECIMENS` lalu lihat di sini **sebelum** dipasang di kota/kampus.
+  Bidik semua: `node tests/e2e/kitGallery.shot.mjs --out renders/galeri-kit` (folder `renders/` diabaikan git; `--out` relatif ke root repo).
 - Worktree lama (bila masih ada): jangan hapus dengan `--force` bila `node_modules` berupa junction; lepas junction dulu.
