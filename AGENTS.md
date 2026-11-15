@@ -17,6 +17,7 @@ Proyek hobi: **cepat dan sederhana mengalahkan lengkap**. Bahasa: Indonesia.
 - Anggaran: draw call region ≤ 250, tekstur GPU ≤ 70 MB, konten berulang lewat generator + instancing.
 
 ## Teknis singkat
+- **Kartu kerja: `docs/rencana/README.md`** — baca dulu sebelum mengerjakan perbaikan dari kritik; satu kartu (R01…R25) = satu PR, berisi berkas, tes, perintah cek, dan angka lulus. Perbarui status kartu di PR yang sama.
 - **Rencana Kota: `docs/kota/PLAN.md`** (+ README per fitur di `docs/kota/*/`) — perbarui di akhir tiap sesi yang menyentuh Kota; resep ganti model di `docs/kota/ganti-model/`.
 - **Peta arsitektur: `docs/ARSITEKTUR.md`** — baca dulu sebelum menjelajah; perbarui (termasuk log keputusan) bila menambah lapisan/sistem/region.
 - Koordinat dunia: +X timur, +Z selatan (meter). Lapisan ESLint tidak boleh saling impor lintas (lihat `eslint.config.js`).
