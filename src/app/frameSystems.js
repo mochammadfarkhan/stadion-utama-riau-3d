@@ -27,12 +27,16 @@ export function addFrameSystems({
       raining: Boolean(store.get('weather.raining')), paused: hud.shopOpen || rig.freezesBike || travel.busy, // timer misi beku selama perjalanan
     }),
   });
+  const rigBike = {}; // state sepeda + pitch + tinggi mata untuk rig kamera (diisi ulang tiap frame)
   app.addSystem({
     id: 'cameraRig',
     phase: 'camera',
     update: (dt, ctx) => {
       rig.distanceScale = ents.bike.mode === 'traktor' ? 1.4 : 1; // traktor lebih besar: kamera mundur
-      rig.update(ents.bike.state, dt, ctx.time);
+      Object.assign(rigBike, ents.bike.state); // satu objek scratch (tanpa alokasi per frame)
+      rigBike.pitch = ents.bike.pitch;
+      rigBike.eyeHeight = ents.bike.eyeHeight;
+      rig.update(rigBike, dt, ctx.time);
       ents.bike.setRiderVisible(!rig.firstPersonView);
       // POV beku: sepeda berhenti seketika (bukan meluncur karena momentum)
       if (rig.freezesBike && ents.bike.state.v !== 0) ents.bike.state = { ...ents.bike.state, v: 0 };

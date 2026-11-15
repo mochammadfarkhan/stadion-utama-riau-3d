@@ -25,7 +25,11 @@ export function handleKeys(input, { rig, hud, ents, shop, time, store, story, tr
   if (input.consumePress('KeyO')) toggle('graphics.ao'); // matikan AO bila FPS rendah
   handleTimeWeatherKeys(input, hud, time, store);
   if (input.consumePress('KeyJ')) story.toggleJournal();
-  if (input.consumePress('KeyF') && !rig.freezesBike) hud.toast(`Mode: ${MODE_LABEL[ents.bike.cycleMode()]}`, true); // jalan → sepeda → traktor
+  if (input.consumePress('KeyF') && !rig.freezesBike) { // jalan → sepeda → traktor; hanya saat hampir berhenti
+    const before = ents.bike.mode;
+    const after = ents.bike.cycleMode();
+    hud.toast(after === before ? 'Berhenti dulu untuk ganti kendaraan' : `Mode: ${MODE_LABEL[after]}`, after !== before);
+  }
   if (travelMenu) handleTravelKeys(input, travelMenu); // perjalanan cepat (Stadion / Masjid Raya An-Nur)
   const escTarget = input.consumePress('Escape')
     ? routeEscape({ journalOpen: story.journal.open, shopOpen: hud.shopOpen, travelOpen: Boolean(travelMenu?.open) })

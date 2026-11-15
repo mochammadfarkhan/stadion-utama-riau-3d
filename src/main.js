@@ -124,10 +124,10 @@ async function main() {
   lifecycle.add(() => rig.dispose());
   // Kontrol sentuh + gamepad menulis ke Input yang sama dengan keyboard.
   // Router lihat: kamera sepeda di luar, kamera interior di dalam sekre (target diganti portal.onInsideChange).
-  const look = { target: rig, lookBy(dx, dy, scale) { look.target.lookBy(dx, dy, scale); } };
+  const look = { target: rig, lookBy(dx, dy, scale, source) { look.target.lookBy(dx, dy, scale, source); } };
   const touchUi = new TouchControls(document.body, { input, rig: look, surface: app.renderer.domElement });
   lifecycle.add(() => touchUi.dispose());
-  const gamepad = createGamepadPoller(input, { lookBy: (dx, dy) => look.lookBy(dx, dy) });
+  const gamepad = createGamepadPoller(input, { lookBy: (dx, dy) => look.lookBy(dx, dy, 1, 'pad') });
   app.addSystem({ id: 'gamepad', phase: 'input', update: (dt) => gamepad.update(dt) });
   window.addEventListener('gamepadconnected', () => hud.toast('Gamepad terhubung', true), { signal: listeners.signal });
   const audioBus = createAudioBus();
@@ -336,10 +336,11 @@ async function main() {
   const precompiled = precompile(); // mulai paralel sekarang; dunia yang sudah ada tidak menunggu streaming
   app.start((dt, t, rawDt) => {
     bikePos.set(ents.bike.state.x, ents.bike.groundY, ents.bike.state.z);
+    rig.setFreeYaw(ents.bike.mode === 'jalan'); // jalan kaki: kamera memegang yaw sendiri (gerak relatif kamera)
     // focus = titik pusat tampilan (sepeda, atau titik pandang saat POV); sepeda beku di POV tanpa kendali.
     // heightAt/terrain (M1): tanah dunia untuk entitas, lampu, cuaca (ctx region-lokal membungkus heightAt).
     return {
-      dt, rawDt, time: t, bikePos, focus: rig.focus, heightAt: terrain.heightAt, terrain,
+      dt, rawDt, time: t, bikePos, focus: rig.focus, heightAt: terrain.heightAt, terrain, cameraYaw: rig.cameraYaw,
       input: hud.shopOpen || inventory?.open || rig.freezesBike || travel.blocksInput || portalKit.portal.busy || portalKit.portal.inside ? null : input,
     };
   });

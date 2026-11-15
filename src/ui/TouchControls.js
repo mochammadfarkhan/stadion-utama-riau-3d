@@ -4,7 +4,7 @@
  * lewat kode tombol yang sama dengan keyboard, jadi game tidak perlu tahu sumber inputnya.
  * DOM dibangun dengan createElement (tanpa innerHTML).
  */
-import { clampToRadius, joystickKeys } from './touchMath.js';
+import { clampToRadius, joystickKeys, touchAxes } from './touchMath.js';
 
 const MOVE_KEYS = Object.freeze(['KeyW', 'KeyS', 'KeyA', 'KeyD']);
 const LOOK_SCALE = 1.8; // jari lebih sulit presisi daripada mouse: sedikit lebih peka
@@ -127,6 +127,9 @@ export class TouchControls {
       this.knob.style.transform = `translate(${k.x}px, ${k.y}px)`;
       const keys = joystickKeys(dx, dy, radius);
       for (const code of MOVE_KEYS) this.input.setVirtual(code, keys[code], 'touch');
+      const a = touchAxes(dx, dy, radius); // analog: kayuh/belok sebagian
+      this.input.setAxis?.('moveX', a.x, 'touch');
+      this.input.setAxis?.('moveY', a.y, 'touch');
     };
     this.stick.addEventListener('pointerdown', (e) => {
       e.preventDefault();
@@ -157,7 +160,7 @@ export class TouchControls {
     }, { signal });
     this.surface.addEventListener('pointermove', (e) => {
       if (e.pointerId !== this._lookId || !this._lastLook) return;
-      this.rig.lookBy(e.clientX - this._lastLook.x, e.clientY - this._lastLook.y, LOOK_SCALE);
+      this.rig.lookBy(e.clientX - this._lastLook.x, e.clientY - this._lastLook.y, LOOK_SCALE, 'touch'); // × camera.touchSensitivity di rig
       this._lastLook = { x: e.clientX, y: e.clientY };
     }, { signal });
     const end = (e) => {
