@@ -11,6 +11,7 @@ import { EASTER_EGGS, EGG_IDS } from '../story/easterEggs.js';
 import { createEggState, stepEggs, EGG_ANCHORS } from '../story/eggTriggers.js';
 import { loadStory, saveStory, reopenForNewChapters, SAVE_VERSION } from '../story/storage.js';
 import { resolvePoint } from '../story/points.js';
+import { relativeBearing } from '../story/goalInfo.js';
 import { resolveAnchors, resolveChapters, resolveEggs, resolveNpcs } from '../story/storyWorld.js';
 import { createStory } from '../sim/story/reducer.js';
 import { fundsShortfall } from '../story/funds.js';
@@ -55,14 +56,14 @@ export class StoryDirector {
    */
   constructor({
     storage, vendors, storyHud, journal, markers, onToast = () => {}, onWalletChange = () => {}, pointerLock = null,
-    frameOf = () => IDENTITY_FRAME, placeOf = () => null,
+    frameOf = () => IDENTITY_FRAME, placeOf = () => null, modeOf = () => 'sepeda',
   }) {
     this.chapters = resolveChapters(CHAPTERS, frameOf);
     this.npcs = resolveNpcs(STORY_NPCS, frameOf);
     this.eggs = resolveEggs(EASTER_EGGS, frameOf);
     this.anchors = resolveAnchors(EGG_ANCHORS, frameOf);
     this.story = createStory({ chapters: this.chapters, eggs: this.eggs });
-    Object.assign(this, { storage, vendors, storyHud, journal, markers, onToast, onWalletChange, pointerLock, frameOf, placeOf });
+    Object.assign(this, { storage, vendors, storyHud, journal, markers, onToast, onWalletChange, pointerLock, frameOf, placeOf, modeOf });
     this.state = this.story.initial();
     this.eggState = createEggState();
     this.checkpoints = lapCheckpoints(frameOf);
@@ -113,8 +114,19 @@ export class StoryDirector {
       version: SAVE_VERSION,
       ...Object.fromEntries(PROGRESS_KEYS.map((k) => [k, this.state[k]])),
       wallet: this.vendors.wallet,
-      place: this.placeOf() ?? null,
+      place: this.#placeNow(),
     });
+  }
+
+  /** Tempat sekarang; placeOf null (mis. menu utama masih terbuka) → tempat tersimpan dipertahankan, bukan dihapus. */
+  #placeNow() {
+    const p = this.placeOf();
+    return p ? { ...p, mode: this.modeOf() } : this.savedPlace;
+  }
+
+  /** Simpan sekarang (dompet, progres, tempat + kendaraan): dipakai transaksi kebun, simpan berkala, dan saat tab ditutup. */
+  saveNow() {
+    this.#persist();
   }
 
   dispatch(event) {
@@ -158,7 +170,9 @@ export class StoryDirector {
     this.#ensureFunds(dt);
     this.#updateLaps(pos, ctx.time);
     this.#updateEggs(dt, ctx);
-    this.markers.setTarget(this.goalPoint());
+    const g = this.goalPoint();
+    this.markers.setTarget(g);
+    this.storyHud.setGoalInfo?.(g && !this.state.dialog ? { distance: Math.hypot(g.x - pos.x, g.z - pos.z), bearing: relativeBearing(pos, g, pos.yaw ?? 0) } : null);
     this.markers.update(ctx.time);
   }
 
@@ -234,7 +248,7 @@ export class StoryDirector {
 
   /** Teks prompt E untuk NPC/dialog (null bila tidak ada). `pos` dunia. */
   promptFor(pos) {
-    if (this.state.dialog) return 'Tekan E — lanjut';
+    if (this.state.dialog) return null; // petunjuk "E / klik" ada di kotak dialog (StoryHUD)
     const npc = this.#nearNpc(pos);
     return npc ? `Tekan E — bicara dengan ${npc.name}` : null;
   }
@@ -272,6 +286,7 @@ export class StoryDirector {
     this.fundedStep = null; // uang saku per langkah boleh diberikan lagi setelah mulai ulang
     this.fundsTimer = 0;
     this.vendors.setWallet(createWallet()); // "Mulai dari awal" = dompet awal juga
+    this.savedPlace = null; // tempat lama tidak dipulihkan lagi
     this.onWalletChange(this.vendors.wallet);
     this.#persist();
     this.journal.hide();

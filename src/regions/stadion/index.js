@@ -14,7 +14,11 @@ import { LAYOUT } from './layout.js';
 import { STADION_MASK, isVegetationSpot } from './mask.js';
 import { stadionNightLights } from './lamps.js';
 import { STADION_PLACEMENT } from './placement.js';
-import { createFarGate } from './farDetail.js';
+import { createFarGate, createFogGate } from './farDetail.js';
+import { registerContactSource } from '../../engine/contactShadows.js';
+import { toWorld } from '../../geo/regionTransform.js';
+
+const CONTACT_LAMP_RANGE = 40; // m dari fokus (sama dengan tiang PJU distrik UNRI)
 
 export const STADION_ID = 'stadion';
 export { STADION_PLACEMENT };
@@ -35,15 +39,31 @@ function buildStadion({ scope, placement = STADION_PLACEMENT, loadModels: withMo
   const farGate = createFarGate(world.farDetail);
   const models = createModelGroup();
   world.group.add(models);
+  // Di luar ujung kabut seluruh stadion (termasuk model GLB) tertutup warna kabut: tidak digambar sama sekali (dari kampus ±1 km: ±140 draw call).
+  const farSet = new Set(world.farDetail);
+  const sceneOf = (o) => { let r = o; while (r.parent) r = r.parent; return r; };
+  const fogGate = createFogGate(world.group.children.filter((c) => !farSet.has(c)), {
+    radius: Math.max(...STADION_MASK.map(([x, z]) => Math.hypot(x, z))),
+    fogFar: () => Math.abs(sceneOf(world.group).fog?.far ?? Infinity),
+  });
   let disposed = false;
   const ready = loadModels(scope, models, world.group, withModels, () => disposed);
+  // bayangan kontak di dasar tiang PJU plaza + ring road (dunia), seperti tiang distrik UNRI
+  const poles = [...LAYOUT.plazaLamps, ...LAYOUT.ringRoadLamps].map((l) => toWorld(placement, l.x, l.z));
+  const unregisterBlobs = registerContactSource((emit, focus) => {
+    for (const l of poles) {
+      const dx = l.x - focus.x;
+      const dz = l.z - focus.z;
+      if (dx * dx + dz * dz < CONTACT_LAMP_RANGE * CONTACT_LAMP_RANGE) emit(l.x, l.z, 0.5);
+    }
+  });
   return validateBuild({
     group: world.group,
     colliders: stadionColliders,
     minimapLayer: () => {}, // peta dasar region di-bake App.bakeMinimap dari layer minimap
     systems: [
       { id: 'stadion.world', phase: 'world', update: (dt, ctx) => world.update(dt, ctx.time, ctx.focus), dispose() {} },
-      { id: 'stadion.farDetail', phase: 'world', update: (dt, ctx) => farGate.update(ctx.focus), dispose() {} },
+      { id: 'stadion.farDetail', phase: 'world', update: (dt, ctx) => { farGate.update(ctx.focus); fogGate.update(ctx.focus); }, dispose() {} },
     ],
     seatSamples: world.seatSamples,
     layout: LAYOUT,
@@ -53,6 +73,7 @@ function buildStadion({ scope, placement = STADION_PLACEMENT, loadModels: withMo
     dispose() {
       if (disposed) return;
       disposed = true;
+      unregisterBlobs();
       world.group.removeFromParent();
       disposeTree(world.group, { scope });
       scope.dispose();

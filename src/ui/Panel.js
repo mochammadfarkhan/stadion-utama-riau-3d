@@ -49,6 +49,7 @@ export class SettingsPanel {
     this._buildRail();
     this._buildToast();
     this._buildHelp();
+    this._buildPhotoExit();
     parent.append(this.root);
     this._applyOpen(false);
     this._bindIsolation();
@@ -57,6 +58,16 @@ export class SettingsPanel {
   }
 
   // ---------- Pembangunan DOM ----------
+
+  /** Tombol "Selesai" mode foto: satu-satunya jalan keluar di layar sentuh (tanpa P/Esc). Kanvas yang difoto, bukan DOM. */
+  _buildPhotoExit() {
+    this.photoExit = h('button', 'ui-photo-exit', { text: 'Selesai' });
+    this.photoExit.type = 'button';
+    this.photoExit.setAttribute('aria-label', 'Keluar dari mode foto');
+    this.photoExit.hidden = true;
+    this.photoExit.addEventListener('click', () => this.setPhotoMode(false), { signal: this._ac.signal });
+    this.root.append(this.photoExit);
+  }
 
   _iconBtn(name, label, onClick, extraCls = '') {
     const btn = h('button', `ui-iconbtn ui-interactive ${extraCls}`.trim(), {
@@ -151,13 +162,16 @@ export class SettingsPanel {
     if (key === 'f1') { e.preventDefault(); this.toggleHelp(); }
     else if (key === 'h') this.togglePanel();
     else if (key === 'p') this.setPhotoMode(!this._photo);
-    else if (key === 'escape') this._onEscape();
+    else if (key === 'escape') this.handleEscape();
   }
 
-  _onEscape() {
+  /** Esc (keyboard atau gamepad Back/B): tutup bantuan → foto → panel. true bila ada yang ditutup. */
+  handleEscape() {
     if (this._helpOpen) this.toggleHelp(false);
     else if (this._photo) this.setPhotoMode(false);
     else if (this._open) this.togglePanel(false);
+    else return false;
+    return true;
   }
 
   /** Roving tabindex di tablist: panah/Home/End memindah tab aktif dan fokus. */
@@ -243,6 +257,7 @@ export class SettingsPanel {
     if (next === this._photo) return;
     this._photo = next;
     document.body.classList.toggle('is-photo', next);
+    this.photoExit.hidden = !next;
     if (next) this.toast('Mode foto — tekan P atau Esc untuk keluar', 'warm');
     callHook(this.hooks.onPhotoMode, next, this);
   }

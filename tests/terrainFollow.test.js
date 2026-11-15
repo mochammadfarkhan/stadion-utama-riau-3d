@@ -106,3 +106,20 @@ describe('Bicycle mengikuti tanah', () => {
     flat.dispose();
   });
 });
+
+describe('sub-langkah fisika (R14)', () => {
+  it('satu update(0,1) ≈ enam update(1/60) (toleransi 5%)', () => {
+    const input = { isDown: (c) => c === 'KeyW', consumePress: () => false };
+    const a = new Bicycle({ x: 0, z: 0, yaw: 0 });
+    const b = new Bicycle({ x: 0, z: 0, yaw: 0 });
+    for (let i = 0; i < 60; i += 1) { a.update(1 / 60, { input }); b.update(1 / 60, { input }); } // melaju dulu
+    const a0 = a.state.z;
+    const b0 = b.state.z;
+    a.update(0.1, { input });
+    for (let i = 0; i < 6; i += 1) b.update(1 / 60, { input });
+    const da = a.state.z - a0;
+    const db = b.state.z - b0;
+    expect(db).toBeGreaterThan(0);
+    expect(Math.abs(da - db) / db).toBeLessThan(0.05);
+  });
+});

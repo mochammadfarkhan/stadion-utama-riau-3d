@@ -42,6 +42,8 @@ Aturan dipaksa oleh `eslint.config.js` (`no-restricted-imports`). Urutan kira-ki
    distrik UNRI (`mountDistrict`) → entitas → waktu/cuaca → cerita → HUD/minimap.
 3. Tiap modul mendaftar ke loop lewat `app.addSystem({ id, phase, update(dt, ctx) })`.
 4. `regionManager.update(focus)` tiap frame memasang/melepas region streaming.
+5. Sepeda dibuat di titik stadion (latar menu orbit stadion). Saat Mulai: tempat tersimpan dipulihkan, atau bila tidak ada,
+   `travel.goTo(START_POINT)` (`config/startPoint.js`) membawa pemain ke depan pintu sekre ERC lewat layar perjalanan (R03).
 
 ## Loop per frame
 
@@ -80,8 +82,11 @@ Aturan praktis untuk sistem baru:
 
 ## Titik lemah yang diketahui (jujur)
 
-1. **`main.js` terlalu gemuk** — 569 baris, 81 impor. Semua fitur baru menambah baris di sini.
-   Arah: pindahkan perakitan per fitur ke `app/<fitur>.js` (pola `setupShop`, `setupInventory` sudah benar).
+1. **Berkas panjang** — `main.js` sudah dirampingkan (2026-11-14: 599 → ±370 baris; perakitan cerita, minimap, portal, perjalanan cepat,
+   sistem frame, dan lapisan region pindah ke `app/*Setup.js`, `app/frameSystems.js`, `app/regionLayer.js`, `app/heroRegions.js`).
+   Fitur baru tetap dirakit di `app/<fitur>.js`; `main.js` hanya memanggilnya. ESLint `max-lines` (400 baris kode) memperingatkan
+   berkas yang masih melewati batas: `core/App.js`, `interiors/sekre/boards.js`, `interiors/sekre/room.js`, `world/kit/atlasPaint.openings.js` —
+   pecah saat berkas itu disentuh kartu kerja, bukan sebagai pekerjaan terpisah. Perabot sekre: satu model = satu berkas di `interiors/sekre/perabot/`.
 2. **GPU terintegrasi masih berat** — di laptop user (AMD Radeon terintegrasi) titik kebun: preset Rendah 27 FPS,
    Tinggi 2 FPS. Penyebab spesifik di kebun belum diprofil. Lihat `plans/2026-10-26-performa-open-world.md` Fase 2–4.
 3. **Lag sesaat saat streaming** — terukur (Fase 2) penyebab utamanya kompilasi shader, bukan parsing (< 0,7 s);
@@ -94,6 +99,10 @@ Aturan praktis untuk sistem baru:
 
 | Tanggal | Keputusan | Alasan / rujukan |
 |---|---|---|
+| 2026-11-15 | Sekre: model realistis CC0 Poly Haven (`HQ_ASET`, `tools/sekrehq/build.mjs`) + sorot sore ber-cookie hanya di preset Tinggi; Rendah tetap low poly | permintaan user (rujukan foto meja bersinar sore); laptop iGPU tetap di Rendah |
+| 2026-11-14 | Rampingkan berkas gemuk tanpa ubah perilaku: `main.js` → `app/*`, perabot sekre satu model satu berkas, ESLint `max-lines` 400 (peringatan) | permintaan user: kode dirapikan dulu sebelum kartu R01–R25 dikerjakan model kecil; enam kartu menyentuh `main.js` |
+| 2026-11-15 | Warga kampus memakai pack orang low poly kiriman user (`entities/Orang.js`, kit NPC sama dengan `createStudentKit`; 1 SkinnedMesh/orang, 19 klip bersama, palet 256 px × kulit sawo/terang); humanoid lama = cadangan & setelan `graphics.orangPack`. Ruang uji dev `/ruang-uji.html` | permintaan user; FBX mentah tanpa lisensi tetap di `data-src/` (tidak di-commit) |
+| 2026-11-14 | Landmark hero mode Kota = model Blender 3 LOD yang dipilih menurut jarak kamera (`src/city/landmarks.js`, di dalam grup `kota`, aktif hanya saat pratinjau K); GLB di `public/models/landmark/`. Batas LOD dihitung dari jarak kamera ≈ 1300 m × zoom; daftar posisi tambahan dihasilkan skrip Blender ke `src/city/landmarks.data.js` (26 landmark per 2026-11-15) | An-Nur dulu sebagai percontohan; satu draw call per landmark; resep `docs/kota/landmark/README.md` |
 | 2026-11-14 | Kritik dipecah jadi kartu kerja `docs/rencana/R01…R25` (satu kartu = satu PR); alat ukur baku `tools/shots/kritik.mjs` dengan preset dipaksa Rendah. Terukur: mode jalan 459–511 draw call (anggaran ≤ 250), Kota zoom penuh 1.399 | permintaan user: rencana harus bisa dieksekusi model kecil; angka di `docs/rencana/R00-alat-ukur.md` |
 | 2026-11-14 | Judul game: **"Anak Bertuah"** (teks di `index.html`/README belum diganti; nama repo tetap) | keputusan user D4, `docs/KRITIK.md` bagian Arah |
 | 2026-11-13 | Arah game: dunia terbuka bebas ("GTA pada akhirnya"), **sekre ERC pusatnya**; Kota dan mode jalan dikerjakan seimbang; arah seni dikunci di preset Rendah; judul akan diganti; penguji = teman ERC | keputusan user D1–D6, `docs/KRITIK.md` bagian Arah |

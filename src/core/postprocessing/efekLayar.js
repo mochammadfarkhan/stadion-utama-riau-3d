@@ -124,6 +124,15 @@ export class BloomLitePass extends Pass {
 }
 
 /** Efek maket: blur H+V setengah resolusi, dicampur menurut jarak vertikal dari tengah layar. */
+/**
+ * Rencana blur: radius dipecah jadi `iterations` putaran (≤ 4) beradius `step = radius / √iterations` (varians gaussian
+ * menjumlah, jadi lebar akhirnya sama) supaya jarak antar-sampel tiap putaran ≈ ≤ 1,2 teksel. Murni.
+ */
+export function blurPlan(radius) {
+  const iterations = Math.min(4, Math.max(1, Math.ceil(radius / 1.2)));
+  return { iterations, step: radius / Math.sqrt(iterations) };
+}
+
 export class TiltShiftPass extends Pass {
   constructor({ focus, band, falloff, radius, scale }) {
     super();
@@ -145,14 +154,20 @@ export class TiltShiftPass extends Pass {
     const tw = this.a.width;
     const th = this.a.height;
     const u = this.blur.material.uniforms;
-    u.tDiffuse.value = readBuffer.texture;
-    u.dir.value.set(this.radius / tw, 0);
-    renderer.setRenderTarget(this.b);
-    this.blur.render(renderer);
-    u.tDiffuse.value = this.b.texture;
-    u.dir.value.set(0, this.radius / th);
-    renderer.setRenderTarget(this.a);
-    this.blur.render(renderer);
+    // Radius besar (gaya maket) dipecah jadi beberapa putaran kecil: satu putaran beroffset > 1 teksel membentuk pola kisi.
+    const { iterations, step } = blurPlan(this.radius);
+    let src = readBuffer.texture;
+    for (let i = 0; i < iterations; i += 1) {
+      u.tDiffuse.value = src;
+      u.dir.value.set(step / tw, 0);
+      renderer.setRenderTarget(this.b);
+      this.blur.render(renderer);
+      u.tDiffuse.value = this.b.texture;
+      u.dir.value.set(0, step / th);
+      renderer.setRenderTarget(this.a);
+      this.blur.render(renderer);
+      src = this.a.texture;
+    }
     const m = this.mix.material.uniforms;
     m.tDiffuse.value = readBuffer.texture;
     m.tBlur.value = this.a.texture;

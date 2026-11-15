@@ -55,3 +55,44 @@ describe('alas diorama', () => {
     }
   });
 });
+
+describe('kota jauh: perakitan per blok + detail menurut jarak', () => {
+  it('batchKey mengelompokkan n × n sel (juga koordinat negatif)', async () => {
+    const { batchKey, FAR_BATCH } = await import('../../src/city/farCity.js');
+    expect(batchKey(0, 0, 4)).toBe('0_0');
+    expect(batchKey(3, 3, 4)).toBe('0_0');
+    expect(batchKey(4, -1, 4)).toBe('1_-1');
+    expect(batchKey(-1, -4, 4)).toBe('-1_-1');
+    expect(batchKey(1, 1)).toBe(FAR_BATCH > 1 ? '0_0' : '1_1');
+  });
+  it('farDetail: penuh dekat, menyusut linier, batas bawah per jenis', async () => {
+    const { farDetail } = await import('../../src/city/farCity.js');
+    expect(farDetail(1000, 'bangunan')).toBe(1);
+    expect(farDetail(20000, 'bangunan')).toBe(0.45);
+    expect(farDetail(13000, 'bangunan')).toBeCloseTo(0.725, 6);
+    expect(farDetail(14000, 'pohon')).toBe(0.25);
+    expect(farDetail(99999, 'lain')).toBe(1);
+  });
+});
+
+describe('pratinjau kota: detail kecil tile disembunyikan saat zoom jauh', () => {
+  it('histeresis 6000 / 5000 m', async () => {
+    const { nextTileDetailHidden } = await import('../../src/city/index.js');
+    expect(nextTileDetailHidden(false, 5500)).toBe(false);
+    expect(nextTileDetailHidden(false, 6100)).toBe(true);
+    expect(nextTileDetailHidden(true, 5500)).toBe(true);
+    expect(nextTileDetailHidden(true, 4900)).toBe(false);
+    expect(nextTileDetailHidden(true, NaN)).toBe(true);
+  });
+});
+
+describe('blur maket tanpa pola kisi', () => {
+  it('blurPlan memecah radius besar jadi putaran kecil (≤ 4)', async () => {
+    const { blurPlan } = await import('../../src/core/postprocessing/efekLayar.js');
+    expect(blurPlan(1)).toEqual({ iterations: 1, step: 1 });
+    const p = blurPlan(3.6);
+    expect(p.iterations).toBe(3);
+    expect(p.step).toBeCloseTo(2.078, 3);
+    expect(blurPlan(100).iterations).toBe(4);
+  });
+});

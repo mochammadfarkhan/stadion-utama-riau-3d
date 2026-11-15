@@ -26,7 +26,7 @@
 }
 
 .ui-ctl-time .ui-ctl-label {
-  font-size: 12.5px;
+  font-size: calc(13px * var(--ui-text-scale, 1));
   color: var(--tod-text);
 }
 
@@ -39,7 +39,7 @@
 .ui-tod-clock,
 .ui-tod-clock-input {
   font-family: var(--tod-mono);
-  font-size: 12.5px;
+  font-size: calc(13px * var(--ui-text-scale, 1));
   font-variant-numeric: tabular-nums;
   color: var(--tod-sun);
   background: transparent;
@@ -155,14 +155,14 @@
 
 .ui-tod-lbl {
   font-family: var(--tod-mono);
-  font-size: 8.5px;
+  font-size: 11px;
   fill: rgba(255, 255, 255, 0.7);
   pointer-events: none;
 }
 
 .ui-tod-phase {
   font-family: var(--tod-sans);
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-text-scale, 1));
   font-weight: 700;
   fill: #fff;
   paint-order: stroke fill;
@@ -226,7 +226,7 @@
   display: flex;
   justify-content: space-between;
   font-family: var(--tod-mono);
-  font-size: 8.5px;
+  font-size: 11px;
   color: var(--tod-muted);
   padding: 0 2px;
   margin-top: -4px;

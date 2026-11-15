@@ -8,8 +8,9 @@
  */
 import { QUALITY_PRESETS, PRESET_KEYS } from '../config/quality.js';
 import { guessTierFromGpu, percentile, tierAfterBenchmark } from '../engine/qualityTier.js';
+import { SAVE_KEYS } from '../config/saveKeys.js';
 
-const STORAGE_KEY = 'sur3d.quality.v1';
+const STORAGE_KEY = SAVE_KEYS.quality;
 const WARMUP_SEC = 3;
 const SAMPLE_SEC = 5;
 const MAX_ROUNDS = 2;
