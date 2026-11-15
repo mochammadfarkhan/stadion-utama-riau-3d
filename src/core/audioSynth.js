@@ -253,3 +253,133 @@ export function rainHissBuffer(sampleRate, { seconds = 6, seed = 41 } = {}) {
   }
   return normalizePeak(makeLoopable(out, fade), 0.9);
 }
+
+// ---------- R18 tugas 3–5: generator suara dunia (deterministik, sambungan loop mulus) ----------
+
+/** Pembantu loop: `fill(i, t, rnd)` per sampel, lalu sambungan halus + normalisasi. */
+function loopBuffer(sampleRate, seconds, seed, peak, fill) {
+  const sr = sr8(sampleRate);
+  const fade = Math.round(sr * LOOP_FADE_S);
+  const total = Math.round(sr * seconds) + fade;
+  const rnd = mulberry(seed);
+  const out = new Float32Array(total);
+  for (let i = 0; i < total; i += 1) out[i] = fill(i, i / sr, rnd, sr);
+  return normalizePeak(makeLoopable(out, fade), peak);
+}
+
+/** Ban di aspal: derau band sempit (bandpass dua kutub ±300 Hz) dengan getar halus. Loop 4 s. */
+export function tyreRollBuffer(sampleRate, { seconds = 4, seed = 31 } = {}) {
+  let lp = 0;
+  let bp = 0;
+  return loopBuffer(sampleRate, seconds, seed, 0.7, (i, t, rnd) => {
+    const w = rnd() * 2 - 1;
+    lp += (w - lp) * 0.25;
+    bp += (lp - bp) * 0.08;
+    return (lp - bp) * (0.85 + 0.15 * Math.sin((TAU * 6 * t) / seconds));
+  });
+}
+
+/** Rantai / freewheel: 8 klik pendek merata per detik (dikali `seconds`). Loop 1 s. */
+export function chainTickBuffer(sampleRate, { seconds = 1, seed = 33 } = {}) {
+  const sr = sr8(sampleRate);
+  const total = Math.round(sr * seconds);
+  const rnd = mulberry(seed);
+  const out = new Float32Array(total);
+  const clicks = Math.round(8 * seconds);
+  const len = Math.round(sr * 0.006);
+  for (let c = 0; c < clicks; c += 1) {
+    const at = Math.round((c / clicks) * total) + 1;
+    for (let k = 0; k < len && at + k < total - 1; k += 1) out[at + k] = (rnd() * 2 - 1) * Math.exp(-k / (len / 4));
+  }
+  return normalizePeak(out, 0.7);
+}
+
+/** Kicau burung: sapuan sinus pendek naik-turun di waktu acak (tetap deterministik). Loop 10 s. */
+export function birdsBuffer(sampleRate, { seconds = 10, seed = 17 } = {}) {
+  const sr = sr8(sampleRate);
+  const total = Math.round(sr * seconds);
+  const rnd = mulberry(seed);
+  const out = new Float32Array(total);
+  const chirps = Math.round(seconds * 2.2);
+  for (let c = 0; c < chirps; c += 1) {
+    const start = Math.floor(rnd() * (total - sr * 0.3)) + 1;
+    const len = Math.round(sr * (0.05 + rnd() * 0.12));
+    const f0 = 2200 + rnd() * 1800;
+    const f1 = f0 + (rnd() * 2 - 1) * 1200;
+    let ph = 0;
+    for (let k = 0; k < len && start + k < total - 1; k += 1) {
+      const u = k / len;
+      ph += (TAU * (f0 + (f1 - f0) * u)) / sr;
+      out[start + k] += Math.sin(ph) * Math.sin(Math.PI * u) * 0.6;
+    }
+  }
+  return normalizePeak(out, 0.6);
+}
+
+/** Gemuruh penonton: derau merah muda (tiga integrator) termodulasi lambat. Loop 8 s. */
+export function crowdRoarBuffer(sampleRate, { seconds = 8, seed = 19 } = {}) {
+  let a = 0;
+  let b = 0;
+  let c = 0;
+  return loopBuffer(sampleRate, seconds, seed, 0.7, (i, t, rnd) => {
+    const w = rnd() * 2 - 1;
+    a = 0.99 * a + 0.1 * w;
+    b = 0.95 * b + 0.25 * w;
+    c = 0.6 * c + 0.4 * w;
+    const swell = 0.7 + 0.2 * Math.sin((TAU * 2 * t) / seconds) + 0.1 * Math.sin((TAU * 5 * t) / seconds + 1.1);
+    return (a + b + c * 0.5) * swell;
+  });
+}
+
+/** Lalu lintas: dengung rendah (derau cokelat) + desis kendaraan lewat (amplop periodik). Loop 10 s. */
+export function trafficBuffer(sampleRate, { seconds = 10, seed = 23 } = {}) {
+  let brown = 0;
+  let hiss = 0;
+  return loopBuffer(sampleRate, seconds, seed, 0.7, (i, t, rnd) => {
+    const w = rnd() * 2 - 1;
+    brown = (brown + 0.02 * w) / 1.02;
+    hiss += (w - hiss) * 0.3;
+    const pass = Math.max(0, Math.sin((TAU * 3 * t) / seconds)) ** 4 + 0.6 * Math.max(0, Math.sin((TAU * 2 * t) / seconds + 2)) ** 6;
+    return brown * 6 + hiss * 0.12 * pass;
+  });
+}
+
+/** Aliran sungai: derau putih lowpass dengan gelombang lambat. Loop 8 s. */
+export function riverBuffer(sampleRate, { seconds = 8, seed = 29 } = {}) {
+  let lp = 0;
+  return loopBuffer(sampleRate, seconds, seed, 0.7, (i, t, rnd) => {
+    lp += (rnd() * 2 - 1 - lp) * 0.12;
+    return lp * (0.75 + 0.15 * Math.sin((TAU * 3 * t) / seconds) + 0.1 * Math.sin((TAU * 7 * t) / seconds + 0.5));
+  });
+}
+
+/** Bunyi pendek sekali (≤ 0,3 s): derau/sinus beramplop, puncak 0,8. */
+function oneShot(sampleRate, seconds, seed, fill) {
+  const sr = sr8(sampleRate);
+  const total = Math.round(sr * seconds);
+  const rnd = mulberry(seed);
+  const out = new Float32Array(total);
+  for (let i = 0; i < total; i += 1) out[i] = fill(i / sr, i / total, rnd);
+  return normalizePeak(out, 0.8);
+}
+
+/** Cangkul ke tanah: dentum rendah + derau tanah. */
+export function thudBuffer(sampleRate, { seed = 51 } = {}) {
+  return oneShot(sampleRate, 0.22, seed, (t, u, rnd) => (Math.sin(TAU * 90 * t) * 0.8 + (rnd() * 2 - 1) * 0.3) * Math.exp(-u * 7));
+}
+
+/** Siram: desis air berlowpass. */
+export function splashBuffer(sampleRate, { seed = 53 } = {}) {
+  let lp = 0;
+  return oneShot(sampleRate, 0.3, seed, (t, u, rnd) => { lp += (rnd() * 2 - 1 - lp) * 0.35; return lp * Math.sin(Math.PI * u); });
+}
+
+/** Tanam / panen / beli: "pop" sinus menurun cepat. */
+export function popBuffer(sampleRate, { seed = 55 } = {}) {
+  return oneShot(sampleRate, 0.12, seed, (t, u) => Math.sin(TAU * (660 - 300 * u) * t) * Math.exp(-u * 5));
+}
+
+/** Klik UI / ganti kendaraan: klik pendek bernada. */
+export function tickBuffer(sampleRate, { seed = 57 } = {}) {
+  return oneShot(sampleRate, 0.05, seed, (t, u, rnd) => (Math.sin(TAU * 1800 * t) * 0.7 + (rnd() * 2 - 1) * 0.3) * Math.exp(-u * 9));
+}

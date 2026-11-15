@@ -61,7 +61,10 @@ const near = (b, p, r) => Math.hypot(b.x - p.x, b.z - p.z) < r;
  *   terrain:{heightAt(x:number,z:number):number}, time:{hour:number}, store:{set(k:string,v:unknown):void},
  *   isBlocked?:() => boolean, logger?:{error:Function}}} opts
  */
-export function setupFarm({ app, input, hud, ents, inventory, terrain, time, store, isBlocked = () => false, logger = console }) {
+/** Bunyi tiap aksi kebun (AudioBus.sfx). */
+const WORK_SFX = Object.freeze({ cangkul: 'thud', siram: 'splash', tanam: 'pop', panen: 'pop' });
+
+export function setupFarm({ app, input, hud, ents, inventory, terrain, time, store, isBlocked = () => false, sfx = () => {}, logger = console }) {
   let farm = loadFarm();
   let view = null;
   let held = null; // pabrik model item di tangan
@@ -173,6 +176,7 @@ export function setupFarm({ app, input, hud, ents, inventory, terrain, time, sto
     if (r.action === 'tanam' && !inventory.remove(`benih-${t.seed}`, 1)) return hud.toast('Benih habis', false);
     if (r.harvest && inventory.add(r.harvest, 1) > 0) return hud.toast('Tas penuh: kosongkan slot dulu (I)', false);
     commit(r.farm);
+    sfx(WORK_SFX[r.action] ?? 'pop'); // cangkul = dentum, siram = percik, tanam/panen = pop
     if (BURST[r.action]) soilBurst(t, r.action);
     if (r.harvest) hud.toast(`+1 ${CROPS[r.harvest].label}${CROPS[r.harvest].regrow ? ' (tumbuh lagi)' : ''}`, true);
     return null;

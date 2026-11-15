@@ -61,6 +61,7 @@ export class Bicycle {
   #terrain = null;
   #groundY = 0;
   #pitch = 0;
+  #audioBus = null; // bunyi ganti kendaraan (sfx)
   #mode = 'sepeda';
   #tractor = null; // {group, seat:THREE.Vector3, spin(angle)}
   #held = null; // {object, carry, work, shoulder} item di tangan kanan (hanya tampil saat jalan kaki)
@@ -113,7 +114,9 @@ export class Bicycle {
   /** Mode berikutnya dalam urutan PLAYER_MODES (lewati traktor bila belum dimuat). */
   cycleMode() {
     const order = PLAYER_MODES.filter((m) => m !== 'traktor' || this.#tractor);
-    return this.setMode(order[(order.indexOf(this.#mode) + 1) % order.length]);
+    const mode = this.setMode(order[(order.indexOf(this.#mode) + 1) % order.length]);
+    this.#audioBus?.sfx?.('tick'); // umpan balik ganti kendaraan
+    return mode;
   }
 
   /** Pasang item di tangan kanan (null = tangan kosong). Objek dipakai ulang; yang lama dilepas dari tangan. */
@@ -220,7 +223,10 @@ export class Bicycle {
   }
 
   /** Arahkan bel ke AudioBus bersama (kanal 'bell'); null = konteks sendiri. */
-  setAudioBus(bus) { this.#bell.setAudioBus(bus); }
+  setAudioBus(bus) {
+    this.#audioBus = bus;
+    this.#bell.setAudioBus(bus);
+  }
 
   get position() { return this.#posVec.set(this.state.x, this.#groundY, this.state.z); }
   get yaw() { return this.state.yaw; }
