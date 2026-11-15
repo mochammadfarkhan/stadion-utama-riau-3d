@@ -266,6 +266,7 @@ async function main() {
   const farm = setupFarm({ // kebun dekat sekre ERC; juga sebelum 'keymap' (E kebun lebih dulu dari cerita/toko)
     app, input, hud, ents, inventory, terrain, time, store,
     isBlocked: () => hud.shopOpen || inventory.open || rig.freezesBike || portalKit.portal.state !== 'outside',
+    onSeedContext: (on) => touchUi.setButtonVisible('benih', on), // tombol layar "Ganti" (B) di kotak benih
   });
   lifecycle.add(() => farm.dispose());
   const inStadion = () => regionContains(stadionDef, ents.bike.state.x, ents.bike.state.z); // skor pertandingan hanya di kawasan stadion
@@ -315,7 +316,7 @@ async function main() {
   const menu = new MainMenu();
   const rotatePrompt = createRotatePrompt(document.body, { isTouch: touch });
   lifecycle.add(() => rotatePrompt.dispose());
-  setupMenu({ app, rig, hud, store, touchUi, touch, menu, story })
+  setupMenu({ app, rig, hud, store, touchUi, touch, menu, story, input })
     .then((mounted) => {
       panelRef.current = mounted.panel;
       lifecycle.add(() => mounted.dispose());
