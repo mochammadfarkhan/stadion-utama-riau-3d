@@ -12,6 +12,7 @@ import { RENDER, RENDER_LAYERS } from '../config/constants.js';
 import { DepthRenderPass, OutlinePass } from './postprocessing/OutlinePass.js';
 import { createSystemRunner } from '../engine/SystemRunner.js';
 import { gateSystem } from '../engine/systemGate.js';
+import { createLabelList } from '../engine/hiddenSkip.js';
 import { GradingShader, tintVector } from './postprocessing/gradingShader.js';
 import { BloomLitePass, TiltShiftPass } from './postprocessing/efekLayar.js';
 import { BLOOM, TILT_SHIFT } from '../config/lowpoly.js';
@@ -89,6 +90,10 @@ export class App {
     this.camera = new THREE.PerspectiveCamera(60, 1, 0.3, 2500);
     this.renderer = createRenderer();
     this.labelRenderer = createLabelRenderer();
+    // Label CSS2D digambar dari daftar kecil (disisir ulang berkala), bukan dengan menyisir ±7.000 objek scene tiap frame.
+    this.labels = createLabelList();
+    this.labelRoot = new THREE.Object3D();
+    this.labelRoot.matrixWorldAutoUpdate = false; // matriks label sudah dihitung scene.updateMatrixWorld()
     this.post = createComposer(this.renderer, this.scene, this.camera);
     /** Scene & kamera yang sedang dirender (setView); default = scene/kamera utama (eksterior). */
     this.view = { scene: this.scene, camera: this.camera, aoRadius: RENDER.aoRadius };
@@ -609,7 +614,8 @@ export class App {
     const { scene, camera } = this.view;
     scene.updateMatrixWorld();
     this.post.composer.render(); // pass pertama membersihkan buffer; OutputPass menulis ke layar
-    this.labelRenderer.render(scene, camera);
+    this.labelRoot.children = this.labels.refresh(scene); // anak semu: induk asli label tidak berubah
+    this.labelRenderer.render(this.labelRoot, camera);
   }
 
   /**

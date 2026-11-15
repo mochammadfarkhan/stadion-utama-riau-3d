@@ -10,6 +10,7 @@
  */
 import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
+import { skipMatrixWhenHidden } from '../engine/hiddenSkip.js';
 import { makeRng } from './util.js';
 
 export const ORANG_DIR = 'models/orang/';
@@ -85,6 +86,7 @@ export function createOrangFactory({ karakter, anim, palet }) {
       const root = cloneSkinned(src);
       root.name = `orang:${id}`;
       root.rotation.y = Math.PI; // model menghadap −Z; konvensi NPC: maju = +Z pada yaw 0
+      skipMatrixWhenHidden(root); // 29 tulang: jangan dihitung tiap frame selama orangnya tersembunyi (LOD/jarak/mode Kota)
       const mat = material(`${baju}-${kulit}`);
       let skinned = null;
       root.traverse((o) => {
