@@ -17,6 +17,7 @@ import { FACADE_UNIFORMS, nightFactor } from './facade.js';
 import { addTileDetail } from './tileDetail.js';
 import { createFarCity } from './farCity.js';
 import { createLandmarks } from './landmarks.js';
+import { createTileMerge, isTileRoot } from './tileMerge.js';
 
 /** Nama grup detail kecil di dalam tile (tileDetail.js) yang tak terlihat dari kamera pratinjau jauh. */
 const TILE_FINE_DETAIL = new Set(['pohon', 'marka', 'tiangLampu', 'kepalaLampu']);
@@ -114,6 +115,8 @@ export async function createCity({
     }
   };
   let landmarks = null; // landmark hero berLOD (landmarks.js), dibuat saat pratinjau pertama
+  let tileMerge = null; // tile digabung per material saat pratinjau di-zoom jauh (tileMerge.js); dibuang saat pratinjau ditutup
+  const tileRoots = () => group.children.filter(isTileRoot);
   /** Selesaikan penunggu sekali dan bersihkan timer habis-waktunya. */
   const settle = (w, value) => {
     if (!waiters.delete(w)) return;
@@ -139,6 +142,10 @@ export async function createCity({
       if (wantHidden !== tileDetailHidden || (wantHidden && tileDetailCheck === 0)) { // ulang berkala: tile baru termuat
         tileDetailHidden = wantHidden;
         setTileDetail(wantHidden);
+        if (previewOn) {
+          tileMerge ??= createTileMerge({ parent: group, logger });
+          tileMerge.update(wantHidden, tileRoots());
+        }
       }
       if (previewOn && landmarks) landmarks.update({ focus, distance: camDist });
       const a = groundAnchor(focus);
@@ -165,7 +172,7 @@ export async function createCity({
         w.timer = setTimer(() => { if (waiters.delete(w)) resolve(false); }, timeoutMs);
       });
     },
-    stats: () => ({ ...streamer.stats(), ...loader.stats() }),
+    stats: () => ({ ...streamer.stats(), ...loader.stats(), tileGabung: tileMerge?.ready ?? false, tileGabungMaksMs: tileMerge?.lastBuildMs ?? 0 }),
     /** Pratinjau kota: muat semua tile (LOD0) dan perluas tanah dasar agar menutupi seluruh peta; false = normal. */
     setPreview(value) {
       streamer.setPreview(value);
@@ -184,6 +191,9 @@ export async function createCity({
       } else {
         ground.visible = true;
         farPromise?.then((f) => f?.setActive(false));
+        tileMerge?.update(false, tileRoots());
+        tileMerge?.dispose();
+        tileMerge = null;
       }
     },
     /**
@@ -198,6 +208,7 @@ export async function createCity({
       for (const w of [...waiters]) settle(w, false);
       farPromise?.then((f) => f?.dispose());
       landmarks?.dispose();
+      tileMerge?.dispose();
       vehicles.dispose(); // muatan kendaraan yang telat dibuang (tidak dipasang/didaftarkan)
       loader.dispose(); // muatan yang masih berjalan dibuang saat selesai (tidak dipasang/didaftarkan)
       group.removeFromParent();
