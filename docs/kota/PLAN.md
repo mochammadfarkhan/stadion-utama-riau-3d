@@ -47,6 +47,7 @@ Keputusan selera sudah dijawab (maket / 16:45 / suara otomatis); lihat vibes/REA
 4. ⬜ **Variasi pohon**: 3 jenis (tajuk bulat, palem, pohon peneduh) + batang; ganti geometri di `farCity.js`/`tileDetail.js`. [ganti-model]
 5. ⬜ **Peta tanah 4096 dipecah per sel + KTX2 (Basis)** agar tajam saat zoom menengah tanpa melewati anggaran 70 MB; muat per sel terdekat. [kota-jauh]
 6. 🔄 **Air**: perahu ✅ (rivers.bin + farLife); ⬜ shader air (riak + pantulan langit). [kota-jauh]
+7. ⬜ **Kit model bangunan 20 jenis × 3 variasi** (ruko, rumah, walet, masjid, sekolah, kantor Melayu, …) menggantikan kotak di tile terperinci; rencana + anggaran di [model-bangunan](model-bangunan/README.md). Prasyarat R06. [model-bangunan]
 
 ## Landmark (model Blender ringan, ganti lewat resep)
 Syarat: lokasi & nama dari OSM/Overture (jangan mengarang), 1 draw call per jenis.
