@@ -21,7 +21,7 @@ export function buildLemari(m) {
       box(0.435, 0.02, 0.015, GREY, { x, y: 0.98, z: -0.22 }),
       box(0.435, 0.02, 0.015, GREY, { x, y: 1.74, z: -0.22 }),
     ]),
-  ], m.metal, 'lemari');
+  ], m.catBesi, 'lemari');
   const glass = piece([-0.2225, 0.2225].map((x) => box(0.395, 0.74, 0.004, '#ffffff', { x, y: 1.36, z: -0.219 })), m.glass, 'kaca', false);
   return groupOf('S09', shell, glass);
 }

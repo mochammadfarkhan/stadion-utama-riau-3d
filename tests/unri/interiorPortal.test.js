@@ -160,6 +160,14 @@ describe('createInteriorPortal: mesin state', () => {
     expect(t.bike.teleport).not.toHaveBeenCalled();
   });
 
+  it('pemain masih di radius pemicu pintu saat keluar: dipindah ke exitTo (E tidak langsung masuk lagi)', async () => {
+    const t = setup();
+    t.bike.state = { x: 11.6, z: 5, yaw: 0 };
+    await t.portal.enter('sekre');
+    await t.portal.exit();
+    expect(t.bike.teleport).toHaveBeenCalledWith(10, 5, 0);
+  });
+
   it('sepeda jauh dari pintu (masuk lewat dev/E2E) dipindah ke exitTo', async () => {
     const t = setup();
     t.bike.state = { x: 500, z: -300, yaw: 0 };

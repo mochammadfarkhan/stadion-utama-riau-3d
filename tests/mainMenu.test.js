@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from 'vitest';
-import { MainMenu } from '../src/ui/MainMenu.js';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { MainMenu, CONFIRM_MS } from '../src/ui/MainMenu.js';
+import { hasAnyProgress } from '../src/ui/menuModel.js';
 import { createRotatePrompt } from '../src/ui/orientation.js';
 
 function dom() {
+  document.body.className = '';
   document.body.innerHTML = `<div id="overlay"><div class="panel"><button id="start" disabled>Memuat aset…</button>
     <button id="menu-new" class="hidden" disabled></button><button id="menu-settings" disabled></button><p id="menu-hint"></p></div></div>`;
 }
@@ -35,6 +37,7 @@ describe('MainMenu', () => {
     m.ready({ hasProgress: true, touch: false });
     document.getElementById('start').click();
     document.getElementById('menu-new').click();
+    document.getElementById('menu-new').click(); // konfirmasi
     document.getElementById('menu-settings').click();
     expect(calls).toEqual(['start', 'baru', 'set']);
   });
@@ -69,5 +72,55 @@ describe('createRotatePrompt', () => {
     document.body.replaceChildren();
     const p = createRotatePrompt(document.body, { isTouch: false, win: win(500, 900) });
     expect(p.el.classList.contains('hidden')).toBe(true);
+  });
+});
+
+describe('MainMenu: HUD tersembunyi selama menu', () => {
+  it('body.is-menu terpasang selama menu tampil, bertahan saat away(), dilepas oleh hide()', () => {
+    dom();
+    const m = new MainMenu();
+    expect(document.body.classList.contains('is-menu')).toBe(true);
+    m.away(true);
+    expect(document.body.classList.contains('is-menu')).toBe(true);
+    m.hide();
+    expect(document.body.classList.contains('is-menu')).toBe(false);
+  });
+});
+
+describe('Mulai dari awal: konfirmasi dua klik', () => {
+  beforeEach(dom);
+
+  it('klik pertama hanya mengubah teks; klik kedua menjalankan; tanpa klik kedua teks kembali', () => {
+    vi.useFakeTimers();
+    try {
+      const m = new MainMenu();
+      let n = 0;
+      m.on({ newGame: () => { n += 1; } });
+      m.ready({ hasProgress: true, touch: false });
+      const btn = document.getElementById('menu-new');
+      btn.textContent = 'Mulai dari awal';
+      btn.click();
+      expect(n).toBe(0);
+      expect(btn.textContent).toMatch(/Yakin/);
+      vi.advanceTimersByTime(CONFIRM_MS + 1);
+      expect(btn.textContent).toBe('Mulai dari awal');
+      btn.click();
+      btn.click();
+      expect(n).toBe(1);
+      expect(btn.textContent).toBe('Mulai dari awal');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('hasAnyProgress', () => {
+  const storage = (keys) => ({ getItem: (k) => (keys.includes(k) ? '{}' : null) });
+  it('cerita maju, atau kebun/tas pernah tersimpan', () => {
+    expect(hasAnyProgress({ storyState: { chapter: 1, step: 0 }, storage: storage([]) })).toBe(true);
+    expect(hasAnyProgress({ storyState: { chapter: 0, step: 0 }, storage: storage(['stadion.kebun.v1']) })).toBe(true);
+    expect(hasAnyProgress({ storyState: { chapter: 0, step: 0 }, storage: storage([]) })).toBe(false);
+    expect(hasAnyProgress({ storyState: null, storage: null })).toBe(false);
+    expect(hasAnyProgress({ storyState: null, storage: null, savedPlace: { region: 'world', x: 0, z: 0, yaw: 0 } })).toBe(true);
   });
 });

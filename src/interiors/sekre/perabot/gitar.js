@@ -16,5 +16,5 @@ export function buildGitar(m) {
     geos.push(box(0.0015, 0.8, 0.0015, '#d7d7d7', { x: -0.0125 + i * 0.005, y: 0.52, z: -0.04 }));
     geos.push(cyl(0.006, 0.006, 0.03, '#c9b27a', { x: i < 3 ? -0.045 : 0.045, y: 0.9 + (i % 3) * 0.035, rz: PI / 2 }));
   }
-  return groupOf('S19-ph', piece(geos, m.prop, 'gitar'));
+  return groupOf('S19-ph', piece(geos, m.kayuHalus, 'gitar'));
 }

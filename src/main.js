@@ -21,7 +21,7 @@ import { createWorldSound } from './app/ambience.js';
 import { pointInPolygon } from './geo/polygon.js';
 import { UNRI_BOUNDARY } from './districts/unri/boundary.js';
 import { MainMenu } from './ui/MainMenu.js';
-import { hasStoryProgress } from './ui/menuModel.js';
+import { hasAnyProgress } from './ui/menuModel.js';
 import { createRotatePrompt } from './ui/orientation.js';
 import { updateWind } from './world/shaders/windState.js';
 import { buildEntities } from './entities/index.js';
@@ -36,6 +36,8 @@ import { createLoadingScreen } from './ui/LoadingScreen.js';
 import { disposeTree } from './engine/disposeTree.js';
 import { stadionRegion, STADION_ID } from './regions/stadion/index.js';
 import { session, setupMenu } from './app/session.js';
+import { setupAutosave, restorePlace } from './app/savePlace.js';
+import { START_POINT } from './config/startPoint.js';
 import { setupShop } from './app/shop.js';
 import { exposeDevTools, parsePlacementParam, parseFlagParam } from './app/devtools.js';
 import { preloadProcTextures, releaseBaked } from './world/textures/procBake.js';
@@ -46,6 +48,7 @@ import { createCityPreview } from './app/cityPreview.js';
 import { mountDistrict } from './app/districtMount.js';
 import { unriDistrict } from './districts/unri/index.js';
 import { createStudentKit } from './entities/Student.js';
+import { loadOrangAssets, createOrangFactory, createOrangKit, setOrangFactory } from './entities/Orang.js';
 import { UNRI_VENDORS } from './story/chapters.unri.js';
 import { createLocalContext } from './app/regionContext.js';
 import { withPlacement, regionContains } from './regions/Region.js';
@@ -69,8 +72,8 @@ import { setupPortal } from './app/portalSetup.js';
 import { setupStory } from './app/storySetup.js';
 import { setupMinimap } from './app/minimapSetup.js';
 
-const MODELS_TIMEOUT_MS = 8000;
-const START_SETTLE_TIMEOUT_MS = 12000; // batas tunggu streaming area awal sebelum render pertama
+const START_SETTLE_TIMEOUT_MS = 6000; // batas tunggu streaming area awal (berjalan di belakang menu)
+const START_BUTTON_WAIT_MS = 4000; // tombol Mulai aktif paling lambat sekian setelah dunia bisa digambar
 
 /** Tunggu tile kota + distrik di sekitar titik awal termuat (dibatasi waktu: streaming lambat tidak menahan Mulai). */
 function settleStartArea({ city, unri, at }) {
@@ -102,6 +105,9 @@ async function main() {
   const humanoidKit = Promise.all(HUMANOID_KIT_PATHS.map((path) => loadModel(path)
     .then(addHumanoidKit)
     .catch((err) => console.error(`Kit karakter ${path} gagal dimuat; memakai bentuk cadangan:`, err))));
+
+  // Pack orang (warga low poly ber-skin, 1 draw call/orang) dimuat paralel; dipakai kit NPC distrik bila termuat.
+  const orangAssets = loadOrangAssets(loadModel, import.meta.env.BASE_URL);
 
   // Pembongkaran berurutan terbalik (LIFO); dipakai __sim.teardown() di mode dev.
   const lifecycle = createDisposerStack();
@@ -200,6 +206,10 @@ async function main() {
 
   await loading.step(0.55, 'Menyiapkan pemain, pelari, pedagang, dan penonton…');
   await humanoidKit;
+  // Pack orang: satu factory (material palet bersama) untuk warga plaza (registri) dan mahasiswa (kit distrik).
+  const orangLoaded = await orangAssets;
+  const orangFactory = orangLoaded && store.get('graphics.orangPack') !== false ? createOrangFactory(orangLoaded) : null;
+  setOrangFactory(orangFactory);
   const wallet = createWallet();
   // Jangkar region: entitas & objek cerita region-lokal ditempel di bawah grup ber-placement.
   const anchor = applyPlacement(new THREE.Group(), frame.placement);
@@ -225,7 +235,7 @@ async function main() {
     id: `entities.${i}`, phase: 'sim', update: (dt, ctx) => e.update(dt, e === ents.bike ? ctx : toLocalCtx(ctx)),
   }));
 
-  await loading.step(0.8, 'Menyiapkan siklus waktu dan cuaca…');
+  await loading.step(0.8, 'Menyiapkan cerita dan HUD…');
   time.registerEmissive(ents.group);
   time.registerEmissive(ents.regionGroup);
   app.addSystem({ id: 'timeOfDay', phase: 'world', update: (dt, ctx) => time.update(dt, ctx, ents.bike.state) });
@@ -235,18 +245,24 @@ async function main() {
   hud.setCameraMode(rig.mode);
   // bayangan kontak untuk semua humanoid ber-LOD (NPC cerita, mahasiswa, satpam, pedagang) dalam 30 m dari fokus
   lifecycle.add(registerContactSource((emit, focus) => ents.lod.forEachNear(focus, 30, (x, z) => emit(x, z, 0.55))));
-  const story = setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle, terrain });
+  const travelRef = { current: null }; // perjalanan cepat dibuat sesudah cerita
+  const story = setupStory({ app, ents, hud, rig, anchor, toLocalCtx, regions, lifecycle, terrain, isTravelling: () => Boolean(travelRef.current?.busy), onReset: () => resetGame() });
   const shop = setupShop(hud, ents, story, (n) => audioBus.sfx(n));
   const minimap = setupMinimap(app, ents, story, frame, regions);
   if (city) minimap.setTileLayer(city.minimap);
   // Region hero kampus punya isi sendiri (mis. motor rapat di teras sekre M4): distrik tidak menaruh instans di dalam mask-nya.
   const districtServices = Object.freeze({
-    npc: createStudentKit(),
+    npc: createOrangKit({
+      factory: orangFactory,
+      fallback: createStudentKit(),
+      enabled: () => store.get('graphics.orangPack') !== false,
+    }),
     camera: lodView,
     hour: () => time.hour,
     excludeAt: (x, z) => regionIdAt(x, z) !== null,
   });
   // Distrik kampus UNRI (terrain, tanah, gedung, kehidupan). Gagal → null + toast; permainan berlanjut tanpa distrik (spec §10).
+  await loading.step(0.85, 'Memuat kampus UNRI…');
   const unri = await mountDistrict(app, unriDistrict, {
     terrain, scheduler, collider: districtColliders, minimap, city, weather, time, baseUrl: import.meta.env.BASE_URL,
     toast: (t, ok) => hud.toast(t, ok),
@@ -259,6 +275,8 @@ async function main() {
   lifecycle.add(() => heroOrnaments.dispose());
   app.addSystem({ id: 'heroOrnaments', phase: 'world', update: (dt, ctx) => heroOrnaments.update(ctx.focus) });
   const travel = setupFastTravel({ app, lifecycle, hud, rig, ents, colliders, city, frame, spawn: region.layout.spawn, touch, unri, regions });
+  travelRef.current = travel;
+  setupAutosave({ app, story, ents, travel, signal: listeners.signal });
   const panelRef = { current: null }; // SettingsPanel (diisi saat panel selesai dipasang)
   /** Tas pemain (setupInventory): dibaca sistem frame & portal untuk membekukan input saat panel tas terbuka. */
   let inventory = null;
@@ -279,11 +297,13 @@ async function main() {
   app.addSystem({ id: 'worldSound', phase: 'ui', update: (dt) => worldSound.update(dt) });
   lifecycle.add(() => worldSound.dispose());
   const farm = setupFarm({ // kebun dekat sekre ERC; juga sebelum 'keymap' (E kebun lebih dulu dari cerita/toko)
-    app, input, hud, ents, inventory, terrain, time, store, sfx: (n) => audioBus.sfx(n),
+    app, input, hud, ents, inventory, terrain, time, store, sfx: (n) => audioBus.sfx(n), onWalletChanged: () => story.saveNow(),
     isBlocked: () => hud.shopOpen || inventory.open || rig.freezesBike || portalKit.portal.state !== 'outside',
+    onSeedContext: (on) => touchUi.setButtonVisible('benih', on), // tombol layar "Ganti" (B) di kotak benih
   });
   lifecycle.add(() => farm.dispose());
-  addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel, portal: portalKit.portal, isInventoryOpen });
+  const inStadion = () => regionContains(stadionDef, ents.bike.state.x, ents.bike.state.z); // skor pertandingan hanya di kawasan stadion
+  addFrameSystems({ app, input, rig, hud, ents, shop, time, weather, store, story, travel, portal: portalKit.portal, isInventoryOpen, inStadion });
   // K: pratinjau kota isometrik; isi berat (stadion, region, penonton) diganti bentuk dasar selama aktif.
   const cityPreview = createCityPreview({
     app, rig, regions, time, store, hud, city, lighting, audioBus, tier: () => quality?.tier ?? null, landmarks: travel.destinations.map((d) => (d.id === 'stadion' ? { ...d, ...frame.toWorld(0, 0) } : d)), stadionId: STADION_ID, stadionPlacement: frame.placement, hide: [ents.group, anchor],
@@ -329,15 +349,30 @@ async function main() {
   const menu = new MainMenu();
   const rotatePrompt = createRotatePrompt(document.body, { isTouch: touch });
   lifecycle.add(() => rotatePrompt.dispose());
-  setupMenu({ app, rig, hud, store, touchUi, touch, menu, story })
+  /** Satu jalur "mulai dari awal" (menu dan jurnal): cerita + dompet + kebun + tas. */
+  function resetGame() {
+    story.reset();
+    farm.reset();
+    inventory.reset();
+  }
+  // Region hero di titik mulai (Lembaga, sekre ERC) dipasang selama menu: Mulai tidak menunggu pemasangannya lagi.
+  const startRegion = unri ? HERO_REGIONS.find((r) => regionContains(r, START_POINT.x, START_POINT.z)) : null;
+  if (startRegion) regions.pin(startRegion.id, true);
+  const unpinStart = () => { if (startRegion) regions.pin(startRegion.id, false); };
+  setupMenu({
+    app, rig, hud, store, touchUi, touch, menu, story, input, resetGame,
+    restore: () => restorePlace({ story, regions, travel, ents })
+      .catch((err) => { console.error('Tempat terakhir gagal dipulihkan:', err); return true; })
+      .then((moved) => { if (moved) unpinStart(); return moved; }),
+    // Permainan baru mulai di depan sekre ERC (D1); distrik UNRI gagal → tetap di titik stadion lama.
+    startFresh: unri ? () => travel.goTo(START_POINT).catch((err) => console.error('Gagal menuju titik mulai:', err)).finally(unpinStart) : null,
+  })
     .then((mounted) => {
       panelRef.current = mounted.panel;
       lifecycle.add(() => mounted.dispose());
     })
     .catch((err) => console.error('Panel pengaturan gagal dipasang:', err));
-  await loading.step(0.9, 'Memuat model 3D (tugu, bangku)…');
-  // Model 3D opsional (ada cadangan prosedural): jangan tahan tombol Mulai bila unduhan macet.
-  await Promise.race([modelsReady, new Promise((resolve) => setTimeout(resolve, MODELS_TIMEOUT_MS))]);
+  // Model 3D opsional (ada cadangan prosedural; modelsReady hanya untuk toast gagal): tidak ditunggu.
   await loading.step(0.97, 'Menggambar peta…');
   // Base layer minimap per region aktif dibake sekarang (galat bake ditangani manager: latar polos);
   // region yang dipasang kemudian dibake setelah siap.
@@ -347,13 +382,14 @@ async function main() {
   rig.handlePovKey(POVS.find((p) => p.id === 'orbit').key);
   await loading.step(0.98, 'Menyiapkan shader…');
   await precompiled;
-  await settleStartArea({ city, unri, at: rig.focus });
-  await precompile(); // objek hasil streaming; program yang sudah ada diambil dari cache
+  // Sisa streaming + prekompilasi berjalan di belakang orbit menu; Mulai aktif saat selesai atau paling lambat START_BUTTON_WAIT_MS.
+  const siap = settleStartArea({ city, unri, at: rig.focus }).then(precompile); // objek hasil streaming; program lama dari cache
+  await Promise.race([siap, new Promise((resolve) => setTimeout(resolve, START_BUTTON_WAIT_MS))]);
   app.holdRender = false;
   releaseBaked(); // bitmap tekstur bake tidak dibutuhkan lagi (pemasangan ulang = prosedural)
   await loading.step(1, 'Siap!');
   loading.done();
-  menu.ready({ hasProgress: hasStoryProgress(story.state), touch });
+  menu.ready({ hasProgress: hasAnyProgress({ storyState: story.state, storage, savedPlace: story.savedPlace }), touch });
   if (perfProbe) {
     perfProbe.attach({
       app, store, quality,
