@@ -12,5 +12,5 @@ export function buildTas(m, color) {
     box(0.04, 0.36, 0.02, dark, { x: -0.08, y: 0.24, z: 0.095 }),
     box(0.04, 0.36, 0.02, dark, { x: 0.08, y: 0.24, z: 0.095 }),
     box(0.2, 0.006, 0.004, '#cfd8dc', { y: 0.22, z: -0.131 }),
-  ], m.prop, 'tas'));
+  ], m.kain, 'tas'));
 }

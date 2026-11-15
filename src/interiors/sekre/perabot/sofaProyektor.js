@@ -19,12 +19,15 @@ export function drawProyeksi(c, w, h) {
 
 /** Sofa kulit coklat di dinding barat + helm di sandaran, proyektor di atas boks plastik, dan layar proyeksi (E). */
 export function buildSofaProyektor(m) {
-  const LEATHER = '#9a5b34';
-  const DARK = '#7d4528';
+  const LEATHER = '#c97f3a'; // kulit sintetis tan cokelat-oranye (foto)
+  const DARK = '#ad6526';
   const SX = kx(-1.62);
   const sofa = [
-    rbox(0.86, 0.4, 2.2, 0.06, LEATHER, { x: SX, y: 0.3, z: 0.5 }),
-    rbox(0.2, 0.5, 2.2, 0.07, DARK, { x: SX - 0.33, y: 0.62, z: 0.5 }),
+    ...[-0.2, 0.5, 1.2].flatMap((z) => [ // tiga modul: dudukan + sandaran sendiri-sendiri
+      rbox(0.8, 0.22, 0.68, 0.06, LEATHER, { x: SX + 0.02, y: 0.41, z }),
+      rbox(0.2, 0.5, 0.68, 0.07, DARK, { x: SX - 0.33, y: 0.62, z }),
+    ]),
+    rbox(0.86, 0.22, 2.2, 0.05, DARK, { x: SX, y: 0.2, z: 0.5 }),
     rbox(0.86, 0.5, 0.2, 0.07, DARK, { x: SX, y: 0.5, z: -0.5 }),
     rbox(0.86, 0.5, 0.2, 0.07, DARK, { x: SX, y: 0.5, z: 1.5 }),
     box(0.8, 0.1, 2.1, '#3a2b22', { x: SX, y: 0.05, z: 0.5 }),
@@ -41,5 +44,5 @@ export function buildSofaProyektor(m) {
   screen.name = 'layar-proyeksi';
   screen.position.set(2.985, 2.1, 1.15);
   screen.rotation.y = -PI / 2;
-  return groupOf('sofa-proyektor', piece(sofa, m.prop, 'sofa'), piece(projector, m.prop, 'proyektor', false), screen);
+  return groupOf('sofa-proyektor', piece(sofa, m.kulit, 'sofa'), piece(projector, m.plastik, 'proyektor', false), screen);
 }
