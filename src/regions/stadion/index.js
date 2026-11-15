@@ -15,6 +15,10 @@ import { STADION_MASK, isVegetationSpot } from './mask.js';
 import { stadionNightLights } from './lamps.js';
 import { STADION_PLACEMENT } from './placement.js';
 import { createFarGate } from './farDetail.js';
+import { registerContactSource } from '../../engine/contactShadows.js';
+import { toWorld } from '../../geo/regionTransform.js';
+
+const CONTACT_LAMP_RANGE = 40; // m dari fokus (sama dengan tiang PJU distrik UNRI)
 
 export const STADION_ID = 'stadion';
 export { STADION_PLACEMENT };
@@ -37,6 +41,15 @@ function buildStadion({ scope, placement = STADION_PLACEMENT, loadModels: withMo
   world.group.add(models);
   let disposed = false;
   const ready = loadModels(scope, models, world.group, withModels, () => disposed);
+  // bayangan kontak di dasar tiang PJU plaza + ring road (dunia), seperti tiang distrik UNRI
+  const poles = [...LAYOUT.plazaLamps, ...LAYOUT.ringRoadLamps].map((l) => toWorld(placement, l.x, l.z));
+  const unregisterBlobs = registerContactSource((emit, focus) => {
+    for (const l of poles) {
+      const dx = l.x - focus.x;
+      const dz = l.z - focus.z;
+      if (dx * dx + dz * dz < CONTACT_LAMP_RANGE * CONTACT_LAMP_RANGE) emit(l.x, l.z, 0.5);
+    }
+  });
   return validateBuild({
     group: world.group,
     colliders: stadionColliders,
@@ -53,6 +66,7 @@ function buildStadion({ scope, placement = STADION_PLACEMENT, loadModels: withMo
     dispose() {
       if (disposed) return;
       disposed = true;
+      unregisterBlobs();
       world.group.removeFromParent();
       disposeTree(world.group, { scope });
       scope.dispose();

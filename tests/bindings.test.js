@@ -24,6 +24,7 @@ function fakeApp() {
     setPixelRatio: (v) => calls.push(['pr', v]),
     setAO: (v) => calls.push(['ao', v]),
     setVignette: (v) => calls.push(['vig', v]),
+    setFxaa: (v) => calls.push(['fxaa', v]),
     tick(dt = 0.1) { for (const u of app.updatables) u.update(dt, {}); },
   };
   return { app, calls };
@@ -134,6 +135,8 @@ describe('bindGraphics', () => {
     store.set('graphics.ao', true);
     store.set('graphics.vignette', false);
     store.set('graphics.crowdDensity', 0.25);
+    store.set('graphics.fxaa', false);
+    expect(calls).toContainEqual(['fxaa', false]);
     expect(calls).toContainEqual(['pr', 1]);
     expect(calls).toContainEqual(['ao', true]);
     expect(calls).toContainEqual(['vig', false]);
