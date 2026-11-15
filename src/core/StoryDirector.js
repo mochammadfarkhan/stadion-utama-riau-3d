@@ -11,6 +11,7 @@ import { EASTER_EGGS, EGG_IDS } from '../story/easterEggs.js';
 import { createEggState, stepEggs, EGG_ANCHORS } from '../story/eggTriggers.js';
 import { loadStory, saveStory, reopenForNewChapters, SAVE_VERSION } from '../story/storage.js';
 import { resolvePoint } from '../story/points.js';
+import { relativeBearing } from '../story/goalInfo.js';
 import { resolveAnchors, resolveChapters, resolveEggs, resolveNpcs } from '../story/storyWorld.js';
 import { createStory } from '../sim/story/reducer.js';
 import { fundsShortfall } from '../story/funds.js';
@@ -169,7 +170,9 @@ export class StoryDirector {
     this.#ensureFunds(dt);
     this.#updateLaps(pos, ctx.time);
     this.#updateEggs(dt, ctx);
-    this.markers.setTarget(this.goalPoint());
+    const g = this.goalPoint();
+    this.markers.setTarget(g);
+    this.storyHud.setGoalInfo?.(g && !this.state.dialog ? { distance: Math.hypot(g.x - pos.x, g.z - pos.z), bearing: relativeBearing(pos, g, pos.yaw ?? 0) } : null);
     this.markers.update(ctx.time);
   }
 
