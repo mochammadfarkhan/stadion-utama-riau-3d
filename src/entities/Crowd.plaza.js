@@ -10,6 +10,7 @@ import {
 import { randomCasualOutfit, randomRunnerOutfit } from './Humanoid.outfits.js';
 import { NPC_MIX, outfitFromMix } from './npcTypes.js';
 import { matFor, range, yawFromDir, lerpAngle, clamp, flatGround } from './util.js';
+import { createOrangRandom, orangPlay } from './Orang.js';
 
 const EXERCISE = { rows: 3, cols: 4, spacing: 1.6 };
 const BADMINTON = { gap: 6, flightTime: 1.1, peak: 2.6, swingTime: 0.45 };
@@ -26,20 +27,20 @@ function createExerciseGroup(spot, rng) {
   const people = [];
   for (let r = 0; r < EXERCISE.rows; r++) {
     for (let c = 0; c < EXERCISE.cols; c++) {
-      const h = createHumanoid(randomCasualOutfit(rng));
+      const h = createOrangRandom(rng) ?? createHumanoid(randomCasualOutfit(rng)); // pack orang: klip senam 'pemanasan'
       h.group.position.set((c - (EXERCISE.cols - 1) / 2) * EXERCISE.spacing, 0, -r * EXERCISE.spacing);
       g.add(h.group);
       people.push({ h, offset: 0 });
     }
   }
-  const instructor = createHumanoid({ ...randomRunnerOutfit(rng), hat: 0xd32f2f });
+  const instructor = createOrangRandom(rng, 'kasual-pria-k') ?? createHumanoid({ ...randomRunnerOutfit(rng), hat: 0xd32f2f });
   instructor.group.position.set(0, 0, 2.2);
   instructor.group.rotation.y = Math.PI; // menghadap barisan
   g.add(instructor.group);
   people.push({ h: instructor, offset: 0.3 });
   const update = (time, ground) => {
     g.position.y = ground(spot.x, spot.z);
-    people.forEach((p) => animateExercise(p.h, time, p.offset));
+    people.forEach((p) => (p.h.orang ? orangPlay(p.h, 'pemanasan', time + p.offset) : animateExercise(p.h, time, p.offset)));
   };
   return { group: g, update };
 }
@@ -140,7 +141,7 @@ function randomTarget(center, rng) {
 function createWalkers(center, count, rng) {
   const g = new THREE.Group();
   const walkers = Array.from({ length: count }, () => {
-    const h = createHumanoid(outfitFromMix(NPC_MIX.plaza, rng));
+    const h = createOrangRandom(rng) ?? createHumanoid(outfitFromMix(NPC_MIX.plaza, rng));
     const start = randomTarget(center, rng);
     h.group.position.set(start.x, 0, start.z);
     g.add(h.group);
@@ -157,7 +158,8 @@ function stepWalker(w, dt, time, center, rng, ground) {
   p.y = ground(p.x, p.z);
   if (w.pause > 0) {
     w.pause -= dt;
-    animateIdle(w.h, time + w.phase);
+    if (w.h.orang) orangPlay(w.h, `diam-${w.h.g}`, time + w.phase, dt);
+    else animateIdle(w.h, time + w.phase);
     return;
   }
   const dx = w.target.x - p.x, dz = w.target.z - p.z;
@@ -172,7 +174,8 @@ function stepWalker(w, dt, time, center, rng, ground) {
   p.z += (dz / d) * stepLen;
   w.yaw = lerpAngle(w.yaw, yawFromDir(dx, dz), Math.min(1, WALK.yawSmooth * dt));
   w.h.group.rotation.y = w.yaw;
-  animateWalk(w.h, time * (w.speed / 1.4) + w.phase);
+  if (w.h.orang) orangPlay(w.h, `jalan-${w.h.g}`, time * (w.speed / 1.35) + w.phase, dt);
+  else animateWalk(w.h, time * (w.speed / 1.4) + w.phase);
 }
 
 // ---------- Gabungan ----------

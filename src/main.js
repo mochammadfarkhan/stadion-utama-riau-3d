@@ -56,7 +56,7 @@ import { createTerrainService } from './app/terrainService.js';
 import { mountDistrict } from './app/districtMount.js';
 import { unriDistrict } from './districts/unri/index.js';
 import { createStudentKit } from './entities/Student.js';
-import { loadOrangAssets, createOrangFactory, createOrangKit } from './entities/Orang.js';
+import { loadOrangAssets, createOrangFactory, createOrangKit, setOrangFactory } from './entities/Orang.js';
 import { pointInPolygon } from './geo/polygon.js';
 import { UNRI_BOUNDARY } from './districts/unri/boundary.js';
 import { UNRI_VENDORS } from './story/chapters.unri.js';
@@ -218,6 +218,10 @@ async function main() {
 
   await loading.step(0.55, 'Menyiapkan pemain, pelari, pedagang, dan penonton…');
   await humanoidKit;
+  // Pack orang: satu factory (material palet bersama) untuk warga plaza (registri) dan mahasiswa (kit distrik).
+  const orangLoaded = await orangAssets;
+  const orangFactory = orangLoaded && store.get('graphics.orangPack') !== false ? createOrangFactory(orangLoaded) : null;
+  setOrangFactory(orangFactory);
   const wallet = createWallet();
   // Jangkar region: entitas & objek cerita region-lokal ditempel di bawah grup ber-placement.
   const anchor = applyPlacement(new THREE.Group(), frame.placement);
@@ -262,7 +266,7 @@ async function main() {
   const regionIdAt = (x, z) => HERO_REGIONS.find((def) => regionContains(def, x, z))?.id ?? null;
   const districtServices = Object.freeze({
     npc: createOrangKit({
-      factory: (await orangAssets) && createOrangFactory(await orangAssets),
+      factory: orangFactory,
       fallback: createStudentKit(),
       enabled: () => store.get('graphics.orangPack') !== false,
     }),

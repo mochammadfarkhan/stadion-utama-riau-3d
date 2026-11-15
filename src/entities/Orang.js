@@ -136,10 +136,30 @@ export function playOrang(h, clips, name, t, dt = 1 / 60) {
  * Kit NPC berbasis pack dengan cadangan kit lama.
  * @param {{factory: ReturnType<typeof createOrangFactory>|null, fallback: object, enabled?: () => boolean, seedSalt?: number}} opts
  */
+/** Baju & kulit acak (kulit sawo SAWO_CHANCE). */
+export function pickLook(rng) {
+  return [ORANG_BAJU[Math.floor(rng() * ORANG_BAJU.length) % ORANG_BAJU.length], rng() < SAWO_CHANCE ? 'sawo' : 'terang'];
+}
+
+// Registri factory untuk entitas non-distrik (warga plaza): main.js mengisinya sebelum buildEntities.
+let registered = null;
+/** @param {ReturnType<typeof createOrangFactory>|null} f */
+export function setOrangFactory(f) { registered = f ?? null; }
+/** Orang acak dari pack (null bila pack tidak aktif/termuat → pemanggil memakai humanoid lama). */
+export function createOrangRandom(rng, id = null) {
+  if (!registered) return null;
+  const pick = id ?? pickKarakter(rng);
+  const [baju, kulit] = pickLook(rng);
+  return registered.create(pick, baju, kulit);
+}
+/** Mainkan klip pada orang dari registri (fase t detik). */
+export function orangPlay(h, name, t, dt) {
+  if (registered) playOrang(h, registered.clips, name, t, dt);
+}
+
 export function createOrangKit({ factory, fallback, enabled = () => true }) {
   const use = () => Boolean(factory) && enabled();
   const clips = factory?.clips ?? new Map();
-  const pickLook = (rng) => [ORANG_BAJU[Math.floor(rng() * ORANG_BAJU.length) % ORANG_BAJU.length], rng() < SAWO_CHANCE ? 'sawo' : 'terang'];
   const tick = (h) => {
     // di luar near: pose diperbarui tiap 3 panggilan (hemat CPU skinning); LOD menandai h.group.userData.orangJauh
     if (!h.group.userData.orangJauh) return true;
