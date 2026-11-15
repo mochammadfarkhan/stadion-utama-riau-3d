@@ -202,3 +202,7 @@ body.is-photo .vendor-label { display: none !important; }
   position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
   background: rgba(8, 12, 18, 0.88); color: #fff; font: 600 18px/1.4 system-ui, sans-serif;
 }
+
+/* Jarak + arah ke tujuan di kartu misi (StoryHUD.setGoalInfo). */
+#story-card .story-where { margin-top: 6px; font-weight: 700; display: flex; gap: 6px; align-items: center; }
+#story-card .story-arrow { display: inline-block; color: var(--hud-accent); }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { travelDestinations, findWalkableNear, findSpawnNear, createFastTravel, waitForRegion } from '../src/app/fastTravel.js';
+import { travelDestinations, findWalkableNear, findSpawnNear, createFastTravel, waitForRegion, CAMPUS_DESTINATIONS } from '../src/app/fastTravel.js';
 import { thirdPersonOffset } from '../src/core/cameraMath.js';
 import { createRegionFrame, IDENTITY_FRAME } from '../src/geo/regionTransform.js';
 import { LAYOUT } from '../src/regions/stadion/layout.js';
@@ -53,6 +53,16 @@ describe('createFastTravel', () => {
     expect(log).toEqual(['show:Menuju Masjid Raya An-Nur…', 'collider', 'tunggu:6800,-4750,600', 'collider', 'hide']);
     expect(bike.state.x).toBeGreaterThan(6805);
     expect(bike.state.v).toBe(0);
+    expect(ft.busy).toBe(false);
+  });
+
+  it('goTo titik bebas: teks label, tiba di titik walkable terdekat, menghadap yaw tersimpan; kedua saat sibuk = busy', async () => {
+    const { log, bike, ft } = setup();
+    const p = ft.goTo({ x: 10, z: 20, yaw: 1, label: 'Uji' });
+    expect(await ft.goTo({ x: 0, z: 0, label: 'Lain' })).toBe('busy');
+    expect(await p).toBe('ok');
+    expect(log[0]).toBe('show:Menuju Uji…');
+    expect(bike.state).toMatchObject({ x: 10, z: 20, yaw: 1, v: 0 });
     expect(ft.busy).toBe(false);
   });
 
@@ -155,5 +165,13 @@ describe('waitForRegion', () => {
     let t = 0;
     const opts = { timeoutMs: 300, pollMs: 100, sleep: async (ms) => { t += ms; }, now: () => t };
     expect(await waitForRegion({ active: () => [] }, [def], 0, 0, opts)).toBe(false);
+  });
+});
+
+describe('titik mulai (R03)', () => {
+  it('tujuan unri-sekre-ukm = START_POINT (satu sumber)', async () => {
+    const { START_POINT } = await import('../src/config/startPoint.js');
+    const d = CAMPUS_DESTINATIONS.find((c) => c.id === 'unri-sekre-ukm');
+    expect([d.x, d.z, d.yaw]).toEqual([START_POINT.x, START_POINT.z, START_POINT.yaw]);
   });
 });

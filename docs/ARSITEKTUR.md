@@ -42,6 +42,8 @@ Aturan dipaksa oleh `eslint.config.js` (`no-restricted-imports`). Urutan kira-ki
    distrik UNRI (`mountDistrict`) → entitas → waktu/cuaca → cerita → HUD/minimap.
 3. Tiap modul mendaftar ke loop lewat `app.addSystem({ id, phase, update(dt, ctx) })`.
 4. `regionManager.update(focus)` tiap frame memasang/melepas region streaming.
+5. Sepeda dibuat di titik stadion (latar menu orbit stadion). Saat Mulai: tempat tersimpan dipulihkan, atau bila tidak ada,
+   `travel.goTo(START_POINT)` (`config/startPoint.js`) membawa pemain ke depan pintu sekre ERC lewat layar perjalanan (R03).
 
 ## Loop per frame
 
