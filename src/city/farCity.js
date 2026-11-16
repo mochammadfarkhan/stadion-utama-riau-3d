@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { applyGroundDetail } from './groundDetail.js';
 import { applyFacade } from './facade.js';
+import { NEW as TILE_PALETTE, hexToLinear } from './tilePalette.js';
 import { applyTreeSway } from './treeSway.js';
 import { applyNightGlow } from './nightGlow.js';
 import { createFarLife, parseRivers } from './farLife.js';
@@ -25,6 +26,9 @@ export const FAR_ROAD_WIDTH = Object.freeze([18, 16, 14, 12, 10, 8, 6.5]);
 /** Warna dasar (sRGB) per vertex: dinding, atap datar, atap pelana, tajuk pohon (atas/bawah). */
 export const FAR_COLORS = Object.freeze({ wall: '#d6ccb8', flatRoof: '#85837f', gableRoof: '#a8452e', crownTop: '#5f9e3c', crownBottom: '#2c5524' });
 /** Pengali warna per kelas bangunan: 0 lain, 1 niaga, 2 industri, 3 publik/ibadah, 4 hunian. */
+/** Rasio palet dinding tile (tilePalette NEW.walls) terhadap warna dinding dasar jauh → warna instans (linear). */
+const FAR_WALL_BASE = hexToLinear(FAR_COLORS.wall);
+const FAR_WALL_RATIO = TILE_PALETTE.walls.map((h) => hexToLinear(h).map((c, i) => c / FAR_WALL_BASE[i]));
 export const FAR_CLASS_TINT = Object.freeze([[1, 1, 1], [1, 0.9, 0.87], [0.78, 0.85, 0.95], [1.1, 1.06, 0.88], [1, 0.95, 0.9]]);
 /** Lapisan irisan tanah diorama di tepi peta (tebal m dari permukaan, warna sRGB): rumput → tanah → liat → batuan. */
 export const SLAB_STRATA = Object.freeze([
@@ -343,7 +347,9 @@ export async function createFarCity({
       parseBuildings(bb).forEach((bd, i) => {
         const tint = FAR_CLASS_TINT[bd.cls] ?? FAR_CLASS_TINT[0];
         const k = 0.82 + 0.34 * hash(i + seed);
-        const color = [tint[0] * k, tint[1] * k * (0.96 + 0.08 * hash(i * 3 + seed)), tint[2] * k];
+        const wall = FAR_WALL_RATIO[Math.floor(hash(i * 5 + seed) * FAR_WALL_RATIO.length) % FAR_WALL_RATIO.length]; // palet dinding sama dengan tile
+        const kk = 0.9 + (0.2 * (k - 0.82)) / 0.34;
+        const color = wall.map((w, ch) => w * kk * (0.75 + 0.25 * tint[ch])); // atap diwarnai shader (facade.js, per instans)
         (bd.gable ? out.gable : out.flat).push({ ...bd, x: ox + bd.x, z: oz + bd.z, color });
       });
     }

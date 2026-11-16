@@ -22,7 +22,7 @@ const SHADOW_EXTENT_RANGE = Object.freeze([200, 700]); // setengah lebar frustum
 const LABEL_ZOOM = 0.4;       // zoom saat terbang ke landmark
 const NEAR_RANGE = Object.freeze([0.3, 120]);
 /** Gaya maket sore emas (pilihan user 2026-11-13): jam, tilt-shift kuat (pita tajam di tengah), bloom. */
-const MAKET = Object.freeze({ hour: 16.75, band: 0.17, falloff: 0.3, radiusScale: 1.6 });
+const MAKET = Object.freeze({ hour: 16.75, band: 0.3, falloff: 0.32, radiusScale: 1.3 }); // pita tajam lebar (arah seni 2026-11-16): blur hanya di tepi atas/bawah
 /** Grading khusus pratinjau kota (arah seni 2026-11-16, gambar target user): hangat, jenuh, kontras tegas; dipulihkan saat keluar. */
 const KOTA_GRADE = Object.freeze({ saturation: 1.35, contrast: 1.14, strength: 0.45, highlight: 0xffd49a, shadow: 0x46679a, satKnee: 0.62, satCeil: 0.93, vignette: 0.2 });
 const GRADE_KEYS = Object.freeze(['saturation', 'contrast', 'strength', 'satKnee', 'satCeil', 'vignette', 'highlight', 'shadow']);

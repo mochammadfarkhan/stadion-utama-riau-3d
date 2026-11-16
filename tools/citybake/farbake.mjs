@@ -252,7 +252,7 @@ async function bakeGround(gb, density, svgRoads) {
   const water = await readCsv('air.csv');
   if (water) {
     const isLine = (r) => /^\s*(MULTI)?LINESTRING/i.test(r.wkt); // kanal/anak sungai = garis, bukan poligon
-    const lineStrokes = { river: 3, canal: 1.1, stream: 0.9, drain: 0.7 };
+    const lineStrokes = { river: 3, canal: 0.55, stream: 0.45, drain: 0.3 }; // tipis: di zona tile, garis air tile yang tajam tidak dibayangi pita biru kabur (arah seni 2026-11-16)
     layers.push(`<path fill="${WATER_COLOR}" fill-rule="evenodd" d="${water.rows.filter((r) => !isLine(r)).flatMap((r) => wktParts(r.wkt).map(ringPath)).join('')}"/>`);
     for (const [sub, w] of Object.entries(lineStrokes)) {
       const d = water.rows.filter((r) => isLine(r) && r.subtype === sub).flatMap((r) => wktParts(r.wkt).map((l) => `M${l.map(toWorld).map(([x, z]) => px(x, z)).join('L')}`)).join('');

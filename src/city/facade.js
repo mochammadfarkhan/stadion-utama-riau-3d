@@ -17,10 +17,11 @@ export function nightFactor(hour) {
   return t * t * (3 - 2 * t);
 }
 
-const COMMON_V = 'varying vec3 vFacadeP;\nvarying vec3 vFacadeN;';
+const COMMON_V = 'varying vec3 vFacadeP;\nvarying vec3 vFacadeN;\nvarying vec2 vFacadeId;';
 const COMMON_F = [
   'varying vec3 vFacadeP;',
   'varying vec3 vFacadeN;',
+  'varying vec2 vFacadeId;',
   'uniform float uNight;',
   'float facadeHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
 ].join('\n');
@@ -32,6 +33,15 @@ const WALL_FRAGMENT = [
   FADE,
   'float facadeGlow = 0.0;',
   'vec3 fn = normalize(vFacadeN);',
+  // bangunan jauh (instans): atap berwarna sendiri per bangunan (hash pusat instans): terakota/bata/beton/seng (arah seni 2026-11-16)
+  '#ifdef USE_INSTANCING',
+  'if (fn.y >= 0.5) {',
+  '  vec2 fid = floor(vFacadeId);',
+  '  float rh = facadeHash(fid);',
+  '  vec3 roofC = rh < 0.4 ? vec3(0.527, 0.125, 0.044) : rh < 0.62 ? vec3(0.376, 0.074, 0.037) : rh < 0.84 ? vec3(0.624, 0.195, 0.068) : vec3(0.323, 0.314, 0.292);', // sama dengan tilePalette NEW.roofFlat
+  '  diffuseColor.rgb = roofC * (0.85 + 0.3 * facadeHash(fid + 3.1));',
+  '}',
+  '#endif',
   'if (abs(fn.y) < 0.5) {',
   '  float u = dot(vFacadeP.xz, vec2(fn.z, -fn.x));', // meter sepanjang dinding
   '  float v = vFacadeP.y;',
@@ -80,6 +90,10 @@ const INSTANCE_AWARE_VERTEX = [
   '#endif',
   'vFacadeP = (modelMatrix * facadeLocal).xyz;',
   'vFacadeN = normalize(mat3(modelMatrix) * facadeNormal);',
+  'vFacadeId = vec2(0.0);',
+  '#ifdef USE_INSTANCING',
+  '  vFacadeId = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xz;',
+  '#endif',
 ].join('\n');
 
 /** Sisipkan varying + pola ke sumber shader MeshLambertMaterial (murni; dites tanpa WebGL). */
@@ -104,7 +118,7 @@ export function applyFacade(material, kind) {
     shader.vertexShader = patched.vertexShader;
     shader.fragmentShader = patched.fragmentShader;
   };
-  material.customProgramCacheKey = () => `kota-facade-${kind}-v2`;
+  material.customProgramCacheKey = () => `kota-facade-${kind}-v3`;
   material.needsUpdate = true;
   return material;
 }

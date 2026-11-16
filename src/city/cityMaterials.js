@@ -6,6 +6,7 @@
  * (renderOrder −4, y = −0,05) mengisi celah landuse. Tekstur jendela tidak dibuat: tile v1 tanpa UV.
  */
 import * as THREE from 'three';
+import { remapTileColors, tileRemap } from './tilePalette.js';
 import { applyFacade } from './facade.js';
 import { applyGroundDetail } from './groundDetail.js';
 import { applyNightGlow } from './nightGlow.js';
@@ -75,6 +76,7 @@ export function applyCityMaterials(root, materials) {
     }
     o.material.dispose?.(); // placeholder bawaan GLB
     o.material = mat;
+    remapTileColors(o.geometry, tileRemap().get(o.name)); // palet arah seni (tilePalette.js), tanpa bake ulang
     o.renderOrder = layer.renderOrder;
     o.castShadow = !layer.flat;
     o.receiveShadow = true;
