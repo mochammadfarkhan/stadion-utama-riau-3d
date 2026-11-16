@@ -10,7 +10,7 @@ export const BAKED = Object.freeze({
   walls: Object.freeze(['#e8e2d6', '#ddd5c5', '#f0ece4', '#d8cbb5', '#c9c4bb', '#e6d7c3', '#bfc7cc', '#efe6d2']),
   roofFlat: Object.freeze(['#9a9a96', '#8c8a85', '#a8a49c', '#7f8286']),
   roofGable: Object.freeze(['#a5452f', '#8e3b2a', '#b5573a', '#6d5f57']),
-  landuse: Object.freeze({ residential: '#c9c2b3', commercial: '#d4b8b0', retail: '#d9b3a8', education: '#d8cfa0', religious: '#cfc4a8' }),
+  landuse: Object.freeze({ residential: '#c9c2b3', commercial: '#d4b8b0', retail: '#d9b3a8', education: '#d8cfa0', religious: '#cfc4a8', construction: '#b9a888' }),
 });
 
 /** Palet baru, indeks sejajar BAKED. [INFERENSI] warna ruko/rumah Pekanbaru: cat pastel hangat, genteng & seng. */
@@ -18,7 +18,7 @@ export const NEW = Object.freeze({
   walls: Object.freeze(['#f1e2c0', '#efc98f', '#e7ae8c', '#c9dde6', '#d3e2bd', '#f6f2e8', '#e8c49a', '#c7cdd4']),
   roofFlat: Object.freeze(['#c0633b', '#a54d36', '#cf7a4a', '#9a9893']), // terakota, merah bata, terakota muda, beton (oranye dominan seperti target)
   roofGable: Object.freeze(['#cf6d3f', '#bb5232', '#d98a4a', '#a8623f']), // genteng: sisi teduh tetap terbaca oranye, bukan hitam
-  landuse: Object.freeze({ residential: '#b4b896', commercial: '#c8bea6', retail: '#cdbca2', education: '#c6c79a', religious: '#c3c39f' }),
+  landuse: Object.freeze({ residential: '#b4b896', commercial: '#c8bea6', retail: '#cdbca2', education: '#afba84', religious: '#b6b98c', construction: '#aaa47c' }), // halaman kampus/ibadah berumput
 });
 
 /** Faktor gelap kaki dinding di bake (`buildings.js` BASE_SHADE). */

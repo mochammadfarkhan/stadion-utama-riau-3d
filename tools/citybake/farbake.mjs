@@ -30,7 +30,7 @@ export const FAR = Object.freeze({
 const BUILDING_CLASS = Object.freeze({ commercial: 1, retail: 1, office: 1, industrial: 2, warehouse: 2, religious: 3, mosque: 3, civic: 3, education: 3, school: 3, medical: 3, residential: 4, house: 4, apartments: 4 });
 /** Kelas jalan → indeks (klien: lebar & warna). */
 export const ROAD_INDEX = Object.freeze({ motorway: 0, trunk: 1, primary: 2, secondary: 3, tertiary: 4, unclassified: 5, residential: 6 });
-const COVER_COLOR = Object.freeze({ forest: '#3f7030', shrub: '#6f9448', grass: '#82ad5a', crop: '#b4c070', wetland: '#6f9a74', mangrove: '#3f7550', barren: '#a9a87a', urban: '#7d8c5c', snow: '#eeeeee', moss: '#82ad5a' });
+const COVER_COLOR = Object.freeze({ forest: '#3f7030', shrub: '#6f9448', grass: '#82ad5a', crop: '#b4c070', wetland: '#6f9a74', mangrove: '#3f7550', barren: '#a2ad6c', urban: '#7d8c5c', snow: '#eeeeee', moss: '#82ad5a' });
 const BASE_COLOR = '#7a9a50'; // dasar = vegetasi (kota rimbun); kawasan padat diberi bayangan atap dari peta kerapatan
 const WATER_COLOR = '#35688c';
 const ROAD_STROKE = Object.freeze({ 0: 3.2, 1: 3, 2: 2.6, 3: 2.2, 4: 1.8, 5: 1.1, 6: 0.9 });
@@ -269,7 +269,8 @@ async function bakeGround(gb, density, svgRoads) {
   const overlay = Buffer.alloc(S * S * 4);
   for (let i = 0; i < S * S; i += 1) {
     const a = Math.min(0.55, density[i] * 0.12);
-    overlay[i * 4] = 88; overlay[i * 4 + 1] = 82; overlay[i * 4 + 2] = 74; overlay[i * 4 + 3] = Math.round(a * 255);
+    // hijau teduh (bukan cokelat tanah gundul), arah seni 2026-11-16
+    overlay[i * 4] = 58; overlay[i * 4 + 1] = 72; overlay[i * 4 + 2] = 48; overlay[i * 4 + 3] = Math.round(a * 255);
   }
   const base = await sharp(Buffer.from(svg), { limitInputPixels: false })
     .composite([{ input: overlay, raw: { width: S, height: S, channels: 4 }, blend: 'over' }])
