@@ -75,6 +75,10 @@ const ROOF_FRAGMENT = [
   '  } else {', // datar: petak seng
   '    float sheet = facadeHash(floor(vFacadeP.xz / 6.0));',
   '    diffuseColor.rgb *= 1.0 + (sheet - 0.5) * 0.22 * facadeFade;',
+  // peralatan atap (AC luar / tandon): kotak kecil abu terang di ±8% petak 3 m (arah seni 2026-11-16, seperti gambar target)
+  '    vec2 eq = fract(vFacadeP.xz / 3.0);',
+  '    float box = step(0.92, facadeHash(floor(vFacadeP.xz / 3.0) + 11.0)) * step(0.25, eq.x) * step(eq.x, 0.7) * step(0.25, eq.y) * step(eq.y, 0.7);',
+  '    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.42, 0.44, 0.46), box * facadeFade);',
   '  }',
   '}',
 ].join('\n');
@@ -118,7 +122,7 @@ export function applyFacade(material, kind) {
     shader.vertexShader = patched.vertexShader;
     shader.fragmentShader = patched.fragmentShader;
   };
-  material.customProgramCacheKey = () => `kota-facade-${kind}-v3`;
+  material.customProgramCacheKey = () => `kota-facade-${kind}-v4`;
   material.needsUpdate = true;
   return material;
 }

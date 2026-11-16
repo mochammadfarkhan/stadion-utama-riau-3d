@@ -6,6 +6,8 @@ Semua bentuk kota dibuat prosedural/instans supaya mudah ditukar. Tabel: **apa �
 |---|---|---|---|
 | Bentuk bangunan jauh (kotak, pelana) | `src/city/farCity.js` (`wallsGeometry`, `flatRoofGeometry`, `gableRoofGeometry`) | ganti geometri satuan (alas y=0, tinggi 1, footprint 1×1 pusat di origin; bubungan sepanjang x) | tidak |
 | Warna bangunan jauh | `FAR_COLORS`, `FAR_CLASS_TINT` | ubah nilai | tidak |
+| **Palet tile (dinding, atap, landuse permukiman)** | `src/city/tilePalette.js` `NEW` (warna lama `BAKED` ditukar byte-persis saat tile dimuat) | ubah hex di `NEW` | **tidak** (bila palet bake di `tools/citybake/config.js` berubah, salin ke `BAKED`; tes menjaga) |
+| Warna atap bangunan jauh (per bangunan) | `src/city/facade.js` cabang `USE_INSTANCING` (`roofC`), dinding jauh = `NEW.walls` lewat warna instans | ubah konstanta linear | tidak |
 | Aturan atap pelana jauh (kapan pelana) | `tools/citybake/farbake.mjs` (`gable`) | ubah ambang luas/aspek | ya: `node tools/citybake/farbake.mjs` (±15 dtk) |
 | Pohon jauh | `crownGeometry` (`farCity.js`) | geometri satuan tinggi 1 (alas y≈0,15), warna per vertex | tidak |
 | Kepadatan pohon jauh | `FAR.treeStep`, `FAR.treeKeep` (`farbake.mjs`) | ubah | ya |
