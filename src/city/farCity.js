@@ -23,7 +23,7 @@ const FETCH_PARALLEL = 6;
 /** Lebar jalan LOD jauh (m) per indeks kelas (dilebarkan dari aslinya agar terbaca dari udara). */
 export const FAR_ROAD_WIDTH = Object.freeze([18, 16, 14, 12, 10, 8, 6.5]);
 /** Warna dasar (sRGB) per vertex: dinding, atap datar, atap pelana, tajuk pohon (atas/bawah). */
-export const FAR_COLORS = Object.freeze({ wall: '#d6ccb8', flatRoof: '#85837f', gableRoof: '#a8452e', crownTop: '#4f8a3c', crownBottom: '#2c5524' });
+export const FAR_COLORS = Object.freeze({ wall: '#d6ccb8', flatRoof: '#85837f', gableRoof: '#a8452e', crownTop: '#5f9e3c', crownBottom: '#2c5524' });
 /** Pengali warna per kelas bangunan: 0 lain, 1 niaga, 2 industri, 3 publik/ibadah, 4 hunian. */
 export const FAR_CLASS_TINT = Object.freeze([[1, 1, 1], [1, 0.9, 0.87], [0.78, 0.85, 0.95], [1.1, 1.06, 0.88], [1, 0.95, 0.9]]);
 /** Lapisan irisan tanah diorama di tepi peta (tebal m dari permukaan, warna sRGB): rumput → tanah → liat → batuan. */
@@ -392,7 +392,7 @@ export async function createFarCity({
     q.setFromAxisAngle(UP, -rot);
     m.compose(new THREE.Vector3(bd.x, 0, bd.z), q, new THREE.Vector3(Math.max(2, w), Math.max(2.4, bd.h), Math.max(2, d)));
   };
-  const placeTree = (t, m) => m.compose(new THREE.Vector3(t.x, 0, t.z), IDENTITY_Q, new THREE.Vector3(t.h * 0.85, t.h, t.h * 0.85));
+  const placeTree = (t, m) => m.compose(new THREE.Vector3(t.x, 0, t.z), IDENTITY_Q, new THREE.Vector3(t.h * 1.15, t.h, t.h * 1.15));
 
   /** Satu blok FAR_BATCH × FAR_BATCH sel → ≤ 4 draw call (datar, pelana, pohon, jalan) alih-alih ≤ 4 per sel. */
   const addBatch = async (key, cells) => {

@@ -15,7 +15,7 @@ import { createCityControls } from '../ui/CityControls.js';
 import { TOUR, tourRoute, createTour, advanceHour } from './cityTour.js';
 
 const FOG_PREVIEW = 9000;      // m: jarak kabut selama pratinjau (setelan "Jarak kabut" hanya sampai 2000)
-const FOG_PER_DISTANCE = 14;     // fogDistance ≈ 14 × jarak kamera → awal kabut ≈ 1,8 × jarak: hanya cakrawala yang berkabut
+const FOG_PER_DISTANCE = 30;     // fogDistance ≈ 30 × jarak kamera: kota di layar jernih, hanya cakrawala jauh yang berkabut (arah seni 2026-11-16)
 const MAX_PREVIEW_PIXEL_RATIO = 1.5;
 const LOW_TIER_PIXEL_RATIO = 1;     // GPU lemah (tier rendah, mis. iGPU): bloom + tilt-shift di resolusi penuh terlalu berat
 const SHADOW_EXTENT_RANGE = Object.freeze([200, 700]); // setengah lebar frustum bayangan (m): ikut jarak kamera agar bangunan di layar bersayangan
@@ -23,6 +23,9 @@ const LABEL_ZOOM = 0.4;       // zoom saat terbang ke landmark
 const NEAR_RANGE = Object.freeze([0.3, 120]);
 /** Gaya maket sore emas (pilihan user 2026-11-13): jam, tilt-shift kuat (pita tajam di tengah), bloom. */
 const MAKET = Object.freeze({ hour: 16.75, band: 0.17, falloff: 0.3, radiusScale: 1.6 });
+/** Grading khusus pratinjau kota (arah seni 2026-11-16, gambar target user): hangat, jenuh, kontras tegas; dipulihkan saat keluar. */
+const KOTA_GRADE = Object.freeze({ saturation: 1.35, contrast: 1.14, strength: 0.45, highlight: 0xffd49a, shadow: 0x46679a, satKnee: 0.62, satCeil: 0.93, vignette: 0.2 });
+const GRADE_KEYS = Object.freeze(['saturation', 'contrast', 'strength', 'satKnee', 'satCeil', 'vignette', 'highlight', 'shadow']);
 const AUDIO_STEP_S = 0.25;         // jeda pembaruan volume suara (setLevel memakai rampa, tak perlu tiap frame)
 const PHOTO_SCALE = 2;          // foto Kota: resolusi ×2 (label & bar disembunyikan lewat body.is-photo)
 const INTRO_ZOOM = 9;          // intro terbang: mulai dari ketinggian ini lalu menukik ke stadion
@@ -46,6 +49,7 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
   let styleCap = Infinity; // batas pixel ratio gaya grafis sebelum pratinjau
   let shadowSaved = null;
   let maketSaved = null;       // keadaan sebelum gaya maket (jam, tilt-shift, bloom)
+  let gradeSaved = null;       // uniform grading sebelum pratinjau (KOTA_GRADE)
   let sound = null;            // { hum, wind } loop suara ambient
   let audioClock = 0;
   const light = lighting?.userData ?? {};
@@ -104,6 +108,26 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     maketSaved = null;
   };
 
+  /** Grading kota: simpan uniform lama (nilai + warna di-clone), pasang KOTA_GRADE. */
+  const applyGrade = () => {
+    const pass = app.post?.gradingPass;
+    if (!pass || !app.setGrading) return;
+    const u = pass.uniforms;
+    gradeSaved = { enabled: pass.enabled, values: Object.fromEntries(GRADE_KEYS.map((k) => [k, u[k].value?.clone ? u[k].value.clone() : u[k].value])) };
+    app.setGrading(KOTA_GRADE);
+  };
+
+  const restoreGrade = () => {
+    if (!gradeSaved) return;
+    const pass = app.post.gradingPass;
+    for (const k of GRADE_KEYS) {
+      const v = gradeSaved.values[k];
+      if (v?.clone) pass.uniforms[k].value.copy(v); else pass.uniforms[k].value = v;
+    }
+    pass.enabled = gradeSaved.enabled;
+    gradeSaved = null;
+  };
+
   const startSound = () => {
     sound = { hum: audioBus.startCityHum?.({ channel: 'ambience', level: 0 }), wind: audioBus.startWind?.({ channel: 'ambience', level: 0 }) };
   };
@@ -144,6 +168,7 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     app.setPixelRatio?.(Math.min(window.devicePixelRatio || 1, tier() === 'rendah' ? LOW_TIER_PIXEL_RATIO : MAX_PREVIEW_PIXEL_RATIO));
     app.setAdaptiveResolution?.(false);
     if (store.get('camera.kotaMaket')) applyMaket();
+    applyGrade();
     if (store.get('camera.kotaSuara') && audioBus) startSound();
     document.body.classList.add('is-city-preview');
     labels.setVisible(true);
@@ -173,6 +198,7 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     city?.setPreview(false);
     document.body.classList.remove('is-city-preview');
     restoreMaket();
+    restoreGrade();
     stopSound();
     labels.setVisible(false);
     controls.setVisible(false);

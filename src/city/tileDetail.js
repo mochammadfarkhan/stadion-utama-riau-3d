@@ -169,7 +169,7 @@ export function treePoints(tile, reserved = () => false, { max = TREES.maxPerTil
   };
   const push = (x, z, i, j) => {
     const h = TREES.minH + hash01(seed, i, j) * (TREES.maxH - TREES.minH);
-    out.push({ x, z, h, w: h * (0.55 + hash01(j, i, seed) * 0.25), rot: hash01(i, j, seed + 5) * Math.PI * 2, tint: 0.82 + hash01(seed, j, i) * 0.36 });
+    out.push({ x, z, h, w: h * (0.85 + hash01(j, i, seed) * 0.35), rot: hash01(i, j, seed + 5) * Math.PI * 2, tint: 0.82 + hash01(seed, j, i) * 0.36 });
   };
   roads: for (const [ri, r] of tile.roads.entries()) {
     if (!TREE_ROAD_CLASSES.has(r.cls)) continue;
@@ -211,10 +211,21 @@ export function treePoints(tile, reserved = () => false, { max = TREES.maxPerTil
 }
 
 const TRUNK_RGB = [0.16, 0.09, 0.05];
-const CROWN_RGB = [0.07, 0.24, 0.06];
+const CROWN_RGB = [0.07, 0.24, 0.06];   // bawah tajuk (gelap)
+const CROWN_TOP_RGB = [0.2, 0.46, 0.1];  // puncak tajuk (terkena matahari): gradasi membuat tajuk terbaca bulat dari udara
 
 /** Geometri pohon satuan (tinggi 1, tajuk elipsoid radius 0,5): batang prisma 4 sisi + tajuk ikosahedron. ±28 segitiga. */
 export function createTreeGeometry() {
+  const gradient = (g, lo, hi) => {
+    const p = g.attributes.position;
+    const c = new Float32Array(p.count * 3);
+    for (let i = 0; i < p.count; i += 1) {
+      const t = Math.min(1, Math.max(0, (p.getY(i) - 0.3) / 0.7));
+      for (let k = 0; k < 3; k += 1) c[i * 3 + k] = lo[k] + (hi[k] - lo[k]) * t;
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(c, 3));
+    return g;
+  };
   const paint = (g, rgb) => {
     const n = g.attributes.position.count;
     const c = new Float32Array(n * 3);
@@ -223,7 +234,7 @@ export function createTreeGeometry() {
     return g;
   };
   const trunk = paint(new THREE.CylinderGeometry(0.035, 0.05, 0.42, 4, 1, true).translate(0, 0.21, 0).toNonIndexed(), TRUNK_RGB);
-  const crown = paint(new THREE.IcosahedronGeometry(0.5, 0).scale(1, 0.85, 1).translate(0, 0.66, 0).toNonIndexed(), CROWN_RGB);
+  const crown = gradient(new THREE.IcosahedronGeometry(0.5, 0).scale(1, 0.8, 1).translate(0, 0.66, 0).toNonIndexed(), CROWN_RGB, CROWN_TOP_RGB);
   for (const g of [trunk, crown]) { g.deleteAttribute('uv'); }
   const merged = mergeGeometries([trunk, crown], false);
   trunk.dispose();
