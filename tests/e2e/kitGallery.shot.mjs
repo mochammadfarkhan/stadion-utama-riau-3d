@@ -28,7 +28,8 @@ const SHOTS = Object.freeze([
   ...['K01', 'K02', 'K03', 'K04', 'K05', 'K06', 'K07', 'K08', 'K09', 'K10', 'K11', 'K12', 'K14', 'hero'].map((k) => [`m3-${k.toLowerCase()}.jpg`, `kit=${k}`]),
 ]);
 
-const { values: opts } = parseArgs({ options: { gpu: { type: 'string', default: 'd3d11' }, out: { type: 'string', default: 'docs/screenshots/unri' } } });
+const { values: opts } = parseArgs({ options: { gpu: { type: 'string', default: 'd3d11' }, out: { type: 'string', default: 'docs/screenshots/unri' }, q: { type: 'string', multiple: true } } });
+// --q "kit=K14&fokus=0" (boleh berulang) → hanya bidik query itu, nama berkas dari query.
 
 function loadPlaywright() {
   const require = createRequire(import.meta.url);
@@ -54,7 +55,8 @@ async function main() {
     const page = await browser.newPage({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 1 });
     page.on('pageerror', (e) => report.errors.push(String(e)));
     page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') report.errors.push(`${m.type()}: ${m.text()}`); });
-    for (const [file, query] of SHOTS) {
+    const shots = opts.q?.length ? opts.q.map((q) => [`${q.replace(/[^a-z0-9]+/gi, '-')}.jpg`, q]) : SHOTS;
+    for (const [file, query] of shots) {
       await page.goto(`http://localhost:${PORT}/kit-gallery.html?${query}`);
       await page.waitForFunction(() => window.__kitGallery?.ready === true, null, { timeout: 120000 });
       await page.waitForTimeout(800);

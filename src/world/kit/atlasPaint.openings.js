@@ -112,7 +112,7 @@ function kacaBiru(ctx, w, h, rnd, lit = false) {
       ctx.fillStyle = g;
       ctx.fillRect(x, y, pw, ph);
       if (lit && r > 0) {
-        ctx.fillStyle = rgba(250, 226, 170, 0.65);
+        ctx.fillStyle = rgba(250, 226, 170, 0.18); // tipis: nyala malam dari peta emisif, siang kaca tetap terlihat kaca
         ctx.fillRect(x + 4, y + ph * 0.35, pw - 8, ph * 0.6);
       }
       ctx.fillStyle = rgba(255, 255, 255, 0.25);

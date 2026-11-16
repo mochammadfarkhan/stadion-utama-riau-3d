@@ -195,8 +195,8 @@ function rukoBay(ctx, push) {
     const lit = rng.chance(PLAN.litChance.K14);
     if (floor === 1 && variant === 'balkon') {
       const [du0, du1] = center(bay, Math.min(1.8, bayW - 1.0));
-      push({ u0: du0, u1: du1, y0: 0, y1: 2.4, kind: 'pintu-kaca', cell: lit ? 'kaca-biru-nyala' : 'pintu-kaca', lit });
-      push({ u0: bay.u0 + 0.15, u1: bay.u1 - 0.15, y0: 0, y1: 1.05, kind: 'balkon', cell: 'railing', jemuran: rng.chance(0.3) });
+      push({ u0: du0, u1: du1, y0: 0, y1: 2.4, kind: 'pintu-kaca', cell: 'pintu-kaca', lit });
+      push({ u0: bay.u0 + 0.15, u1: bay.u1 - 0.15, y0: 0, y1: 1.05, kind: 'balkon', cell: 'railing', jemuran: false }); // jemuran di muka ruko tampak seperti kaca pecah
       return;
     }
     const [u0, u1] = center(bay, Math.min(bayW - 0.9, 3.4));

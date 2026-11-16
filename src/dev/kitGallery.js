@@ -152,7 +152,7 @@ function buildSpecimens(scene, mats) {
     root.add(m);
   }
   scene.add(root);
-  return { root, perSpecimen, span: layout.span };
+  return { root, perSpecimen, span: layout.span, plans };
 }
 
 function showAtlas(scene, mats, camera, controls) {
@@ -180,6 +180,18 @@ function main() {
     const top = params.get('cam') === 'atas';
     camera.position.set(-dist * 0.12, top ? dist * 0.9 : dist * 0.3, top ? dist * 0.4 : dist * 0.78);
     controls.target.set(0, 4, 0);
+    const focus = built.plans[Number(params.get('fokus'))]; // fokus=N: dekat ke spesimen ke-N, dari depan agak serong
+    if (focus) {
+      const ring = focus.masses.flatMap((m) => m.ring);
+      const xs = ring.map((p) => p[0]);
+      const zs = ring.map((p) => p[1]);
+      const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+      const size = Math.max(Math.max(...xs) - Math.min(...xs), focus.height);
+      const d = Math.max(10, size * 1.9);
+      const cy = focus.baseY + focus.height * 0.5;
+      camera.position.set(cx - d * 0.3, cy + d * 0.12, Math.max(...zs) + d);
+      controls.target.set(cx, cy, Math.max(...zs));
+    }
   }
   controls.update();
   renderer.render(scene, camera);

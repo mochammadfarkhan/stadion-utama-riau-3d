@@ -37,4 +37,5 @@ User ingin folder proyek ini **selalu berada di `main` terbaru** dan semua peker
 - **Galeri gedung** `/kit-gallery.html` (dev, `src/dev/kitGallery.js`): pratinjau gedung kit tanpa memuat dunia. Query: `kit=all|variasi|K01…K12|hero`, `lod=1`, `malam=1`,
   `seed=N`, `cam=atas`, `atlas=1`. Arketipe/varian baru: tambahkan spesimennya di `SPECIMENS` lalu lihat di sini **sebelum** dipasang di kota/kampus.
   Bidik semua: `node tests/e2e/kitGallery.shot.mjs --out renders/galeri-kit` (folder `renders/` diabaikan git; `--out` relatif ke root repo).
+  Satu gedung dari dekat: `--q "kit=K14&fokus=0"` (boleh berulang; `fokus=N` = spesimen ke-N, tambah `&malam=1` untuk malam). Selalu cek dari dekat, bukan hanya bidikan jauh.
 - Worktree lama (bila masih ada): jangan hapus dengan `--force` bila `node_modules` berupa junction; lepas junction dulu.
