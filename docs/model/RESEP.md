@@ -23,8 +23,9 @@ Tiap putaran: ubah → nilai → putuskan. Bila skor tidak naik dua putaran bert
 - **Gambar paling akhir, kecil:** satu `look` (max_size kecil) atau satu bidikan `node tools/shots/uji.mjs --q "model=models/…glb"`.
   Jangan mengirim banyak bidikan per putaran.
 
-## 4. Anggaran [INFERENSI — sesuaikan bila ada angka resmi]
-- Karakter ≤ 5k segitiga, properti kecil ≤ 1k, gedung (per LOD0) ≤ 10k; tekstur ≤ 512² (karakter boleh atlas 1024²).
+## 4. Anggaran
+- Kota (resmi, `docs/kota/ganti-model/README.md`): pohon ≤ 28 segitiga/instans, rumah ≤ 14, landmark ≤ 2 rb (1 material vertex color), draw call tambahan ≤ 1 per jenis.
+- [INFERENSI] Karakter ≤ 5 rb segitiga, properti kecil ≤ 1 rb; tekstur ≤ 512² (karakter boleh atlas 1024²).
 - Global tetap: draw call region ≤ 250, tekstur GPU ≤ 70 MB (AGENTS.md). Barang realistis hanya preset Tinggi; Rendah tetap low poly.
 
 ## 5. Aturan hemat token
@@ -33,5 +34,12 @@ Tiap putaran: ubah → nilai → putuskan. Bila skor tidak naik dua putaran bert
 - Satu skrip per model di `assets-src/blender/<kategori>/`, dijalankan dengan perintah di AGENTS.md; jangan menulis ulang skrip dari nol bila sudah ada.
 - Lapor ≤ 8 baris: skor sebelum → sesudah, satu gambar, yang belum beres.
 
-## 6. Definisi selesai
+## 6. Cek: Blender dulu, game sekali
+- Bentuk, ukuran, segitiga, warna → cukup di Blender (`get_scene_info` + satu `look`).
+- Tetap **satu** bidikan di game sebelum push (`uji.mjs --q "model=…"`, atau bidikan kota untuk landmark): sumbu Y-atas,
+  skala, warna vertex vs pencahayaan/palet game, dan LOD hanya kelihatan di sana.
+- Bagian kota yang prosedural (bangunan tile, bangunan jauh, pohon, jalan) **bukan GLB** — tidak bisa dibuka di Blender.
+  Memperbaikinya lewat kode/bake (`docs/kota/ganti-model/README.md`), atau ganti dengan GLB Blender seperti landmark hero.
+
+## 7. Definisi selesai
 GLB di `public/models/…`, dicek di `/ruang-uji.html`, anggaran lolos, sumber+lisensi tercatat di commit.
