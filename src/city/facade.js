@@ -50,15 +50,36 @@ const WALL_FRAGMENT = [
   '  float ci = floor(u / 3.0);',
   '  float fu = fract(u / 3.0);',
   '  float lit = facadeHash(vec2(ci, fi));',
-  '  float win = step(0.2, fv) * step(fv, 0.74) * step(0.2, fu) * step(fu, 0.8);',
-  '  vec3 glass = mix(vec3(0.045, 0.075, 0.11), vec3(0.12, 0.17, 0.22), lit);',
-  '  float shop = 1.0 - step(0.5, fi);', // lantai dasar: kios/pintu gulung
+  '  float ag = facadeHash(vec2(floor(u / 9.0), 11.0));', // kelompok 3 bay
+  '  float shop = (1.0 - step(0.5, fi)) * step(0.6, ag);', // kios/pintu gulung: lantai dasar di ±40% kelompok; rumah tidak jadi deret ruko
+  '  float upper = 1.0 - shop;', // selebihnya (termasuk lantai dasar lain) berjendela
+  '  float fdist = distance(vFacadeP, cameraPosition);',
+  '  float fine = 1.0 - smoothstep(60.0, 220.0, fdist);', // garis tipis (< 1 px di kejauhan) dipudarkan: tanpa moire/kedip
+  '  float mid = 1.0 - smoothstep(150.0, 450.0, fdist);',
+  '  vec3 trim = vec3(0.82, 0.80, 0.74);', // bingkai, ambang, lis lantai (krem terang)
+  // jendela berkesan ceruk: bingkai terang > kaca gelap > bayangan dalam di sisi atas/kiri kaca
+  '  float win = step(0.22, fv) * step(fv, 0.72) * step(0.2, fu) * step(fu, 0.8);',
+  '  float frame = step(0.17, fv) * step(fv, 0.77) * step(0.16, fu) * step(fu, 0.84);',
+  '  float sill = step(0.13, fv) * step(fv, 0.17) * step(0.13, fu) * step(fu, 0.87);',
+  '  vec3 glass = mix(vec3(0.03, 0.06, 0.10), vec3(0.10, 0.17, 0.25), lit);',
+  '  glass *= 1.0 - 0.5 * max(step(0.66, fv), step(fu, 0.27));',
+  '  vec3 col = diffuseColor.rgb;',
+  '  col = mix(col, trim, max(frame, sill * fine) * upper * mix(0.55, 1.0, fine));',
+  '  col = mix(col, glass, win * upper);',
+  '  col = mix(col, trim, 0.6 * fine * step(0.5, fi) * step(fv, 0.05));', // lis antar-lantai
+  // lantai dasar: pintu gulung beralur dari tanah + kanopi belang (sebagian kelompok 3 bay) + bayangan di bawah kanopi
+  '  float shopWin = step(fv, 0.64) * step(0.08, fu) * step(fu, 0.92);',
   '  vec3 shutter = mix(vec3(0.10, 0.13, 0.17), vec3(0.22, 0.12, 0.09), step(0.6, facadeHash(vec2(ci, 7.0))));',
-  '  float shopWin = step(0.08, fv) * step(fv, 0.8) * step(0.1, fu) * step(fu, 0.9);',
-  '  float pane = shop * shopWin + (1.0 - shop) * win;',
-  '  diffuseColor.rgb = mix(diffuseColor.rgb, mix(glass, shutter, shop), pane * 0.9 * facadeFade);',
+  '  shutter *= 1.0 - 0.18 * fine * step(fract(v * 5.0), 0.5);',
+  '  col = mix(col, shutter, shopWin * shop);',
+  '  float aw = shop * step(0.68, fv) * step(fv, 0.88);',
+  '  vec3 awPick = ag < 0.76 ? vec3(0.60, 0.07, 0.05) : ag < 0.9 ? vec3(0.05, 0.30, 0.13) : vec3(0.05, 0.20, 0.45);',
+  '  col = mix(col, mix(awPick, vec3(0.90, 0.88, 0.82), mix(0.5, step(0.5, fract(u * 1.4)), mid)), aw);', // belang -> rata-rata di kejauhan
+  '  col *= 1.0 - 0.35 * shop * step(0.62, fv) * step(fv, 0.68);',
+  '  col *= 1.0 - 0.4 * (1.0 - step(0.4, v));', // plint gelap di dasar
+  '  float pane = shop * shopWin + upper * win;',
+  '  diffuseColor.rgb = mix(diffuseColor.rgb, col, facadeFade);',
   '  facadeGlow = pane * step(mix(0.45, 0.25, shop), facadeHash(vec2(ci * 1.7, fi + 3.0))) * (0.6 + 0.4 * facadeFade);', // sebagian jendela/kios menyala
-  '  diffuseColor.rgb *= 1.0 - 0.10 * facadeFade * step(fv, 0.06);', // pelat lantai
   '}',
 ].join('\n');
 
@@ -90,7 +111,9 @@ const INSTANCE_AWARE_VERTEX = [
   'vec3 facadeNormal = objectNormal;',
   '#ifdef USE_INSTANCING',
   '  facadeLocal = instanceMatrix * facadeLocal;',
-  '  facadeNormal = mat3(instanceMatrix) * facadeNormal;',
+  '  mat3 facadeIm = mat3(instanceMatrix);', // skala tak seragam: bagi kuadrat panjang kolom (cara three, defaultnormal_vertex)
+  '  facadeNormal /= vec3(dot(facadeIm[0], facadeIm[0]), dot(facadeIm[1], facadeIm[1]), dot(facadeIm[2], facadeIm[2]));',
+  '  facadeNormal = facadeIm * facadeNormal;',
   '#endif',
   'vFacadeP = (modelMatrix * facadeLocal).xyz;',
   'vFacadeN = normalize(mat3(modelMatrix) * facadeNormal);',
@@ -122,7 +145,7 @@ export function applyFacade(material, kind) {
     shader.vertexShader = patched.vertexShader;
     shader.fragmentShader = patched.fragmentShader;
   };
-  material.customProgramCacheKey = () => `kota-facade-${kind}-v4`;
+  material.customProgramCacheKey = () => `kota-facade-${kind}-v6`;
   material.needsUpdate = true;
   return material;
 }

@@ -17,7 +17,7 @@ const MOIST_TINT = Object.freeze([3.6, 2.9, 1.55]);   // serasah gelap -> cokela
 const GRAVEL_TINT = Object.freeze([0.66, 0.62, 0.55]); // kerikil putih bersih -> abu-krem
 /** Pengali linear albedo rumput (dan lumut): Grass004 mentah #616d31 zaitun kusam -> hijau cerah ±#5fae45 (rujukan city-builder). */
 export const GRASS_TINT = Object.freeze([1.0, 2.6, 1.8]);
-const KOTA_COLOR = 0xb9b59a;                          // = CITY_GROUND_COLOR (sambungan ke tile kota)
+const KOTA_COLOR = 0x7fb858;                          // = CITY_GROUND_COLOR (sambungan ke tile kota)
 
 /**
  * Atribut splat per titik dunia xz (Float32Array [x0, z0, ...]) dari grid bobot byte (sampel (i, j) di origin + (i·step,

@@ -30,6 +30,7 @@ const TITIK_JALAN = Object.freeze([
   { nama: 'unri-jalan', x: -206, z: 1118, yaw: -2.52, hour: 10 },
   { nama: 'sekre-luar', x: -96.65, z: 1011.5, yaw: Math.PI, hour: 11 },
   { nama: 'rektorat', x: -1074.7, z: 1316, yaw: Math.PI, hour: 9 },
+  { nama: 'kota-jalan', x: -178, z: 1133, yaw: 0.9, hour: 10 }, // tile kota di selatan kampus: gedung + tanah kota
 ]);
 
 const summary = { preset: values.preset, gaya: values.gaya ?? null, titik: {}, ui: {}, errors: [] };

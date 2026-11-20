@@ -215,8 +215,8 @@ const CROWN_RGB = [0.07, 0.3, 0.05];    // bawah tajuk (gelap)
 const CROWN_TOP_RGB = [0.24, 0.6, 0.1];  // puncak tajuk (terkena matahari): gradasi membuat tajuk terbaca bulat dari udara
 
 /**
- * Geometri pohon satuan (tinggi 1, lebar tajuk ±1): batang prisma 3 sisi + tajuk gerombol (ikosahedron pusat + 2 gumpalan
- * oktahedron di samping). 42 segitiga (dulu 28: satu ikosahedron terbaca sebagai bola; F2 2026-11-20).
+ * Geometri pohon satuan (tinggi 1, lebar tajuk ±1): batang prisma 3 sisi + tajuk gerombol (3 ikosahedron; oktahedron
+ * terlihat seperti limas terbalik dari dekat). 66 segitiga (dulu 28: satu bola; F2/F3 2026-11-20).
  */
 export function createTreeGeometry() {
   const gradient = (g, lo, hi) => {
@@ -241,8 +241,8 @@ export function createTreeGeometry() {
   const parts = [
     trunk,
     lump(new THREE.IcosahedronGeometry(0.36, 0), 0.02, 0.68, 0),
-    lump(new THREE.OctahedronGeometry(0.29, 0), 0.25, 0.52, 0.07),
-    lump(new THREE.OctahedronGeometry(0.27, 0), -0.21, 0.5, -0.17),
+    lump(new THREE.IcosahedronGeometry(0.29, 0), 0.25, 0.52, 0.07),
+    lump(new THREE.IcosahedronGeometry(0.27, 0), -0.21, 0.5, -0.17),
   ];
   for (const g of parts) { g.deleteAttribute('uv'); }
   const merged = mergeGeometries(parts, false);

@@ -9,7 +9,7 @@ import { Color } from 'three';
 import { COLORS } from '../../config/constants.js';
 
 /** Warna sasaran sRGB. soil/wet [INFERENSI visual tanah laterit Pekanbaru]; kota = CITY_GROUND_COLOR (src/city). */
-export const SURFACE_COLORS = Object.freeze({ soil: 0xa8613f, wet: 0x6b6446, kota: 0xb9b59a });
+export const SURFACE_COLORS = Object.freeze({ soil: 0xa8613f, wet: 0x6b6446, kota: 0x7fb858 });
 
 /** Pengali warna vertex (linear) per kanal. */
 export function surfaceTints(base = COLORS.grass, colors = SURFACE_COLORS) {

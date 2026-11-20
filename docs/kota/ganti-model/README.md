@@ -27,4 +27,4 @@ Prasyarat fakta: koordinat + nama dari OSM/Overture (`[INFERENSI]` bila tidak). 
 4. Perbarui [PLAN.md](../PLAN.md) bagian Landmark + folder fitur ini.
 
 ## Anggaran model
-Segitiga/instans ≤ 42 (pohon; dulu 28, dinaikkan 2026-11-20 untuk tajuk gerombol) · ≤ 14 (rumah) · landmark ≤ 2 rb · draw call tambahan ≤ 1 per jenis · GPU texture total ≤ 70 MB.
+Segitiga/instans ≤ 66 (pohon; dulu 28, dinaikkan 2026-11-20 untuk tajuk gerombol 3 gumpalan) · ≤ 14 (rumah) · landmark ≤ 2 rb · draw call tambahan ≤ 1 per jenis · GPU texture total ≤ 70 MB.

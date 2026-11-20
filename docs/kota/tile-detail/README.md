@@ -27,7 +27,7 @@ Lihat "Format tile v1" (`src/city/tileData.js`): koordinat tile desimeter; `buil
 
 ## Cara mengganti model
 - Bentuk bangunan = hasil bake (`tools/citybake/geometry/buildings.js`: dinding + atap datar/pelana). Ganti gaya atap/ukuran pelana di situ lalu `npm run bake`.
-- Pohon: `createTreeGeometry()` di `tileDetail.js` (satu geometri 42 segitiga: batang 3 sisi + tajuk gerombol 3 gumpalan, skala per instans).
+- Pohon: `createTreeGeometry()` di `tileDetail.js` (satu geometri 66 segitiga: batang 3 sisi + tajuk gerombol 3 ikosahedron, skala per instans).
 - Rincian fasad: konstanta di `facade.js` (jarak jendela 3 m, lantai 3,2 m, warna kaca/kios).
 Lihat [ganti-model](../ganti-model/README.md).
 

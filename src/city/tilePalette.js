@@ -10,15 +10,28 @@ export const BAKED = Object.freeze({
   walls: Object.freeze(['#e8e2d6', '#ddd5c5', '#f0ece4', '#d8cbb5', '#c9c4bb', '#e6d7c3', '#bfc7cc', '#efe6d2']),
   roofFlat: Object.freeze(['#9a9a96', '#8c8a85', '#a8a49c', '#7f8286']),
   roofGable: Object.freeze(['#a5452f', '#8e3b2a', '#b5573a', '#6d5f57']),
-  landuse: Object.freeze({ residential: '#c9c2b3', commercial: '#d4b8b0', retail: '#d9b3a8', education: '#d8cfa0', religious: '#cfc4a8', construction: '#b9a888' }),
+  landuse: Object.freeze({
+    residential: '#c9c2b3', commercial: '#d4b8b0', retail: '#d9b3a8', industrial: '#bdb3c2', education: '#d8cfa0', religious: '#cfc4a8',
+    construction: '#b9a888', farmland: '#b8c47a', cemetery: '#9fb08a', forest: '#4f7a3a', scrub: '#7d9a55', wetland: '#7a9a7a',
+    grass: '#8fb36a', park: '#7fae5a', pitch: '#6fa84f', parking: '#a9a9a9',
+  }),
+  /** Hanya jalur non-kendaraan yang ditukar (jalan aspal bake sudah gelap). Kunci = kelas di ROAD_CLASSES. */
+  roads: Object.freeze({ pedestrian: '#9a948a', track: '#8a7a62', footway: '#a8a296', path: '#a39a86' }),
 });
 
 /** Palet baru, indeks sejajar BAKED. [INFERENSI] warna ruko/rumah Pekanbaru: cat pastel hangat, genteng & seng. */
 export const NEW = Object.freeze({
-  walls: Object.freeze(['#f1e2c0', '#efc98f', '#e7ae8c', '#c9dde6', '#d3e2bd', '#f6f2e8', '#e8c49a', '#c7cdd4']),
+  // F3 2026-11-20 (rujukan city-builder): dinding jenuh beragam: kuning, oranye, toska, merah muda, krem, bata, biru muda, gading
+  walls: Object.freeze(['#f2c14e', '#ec8f45', '#3fb0a3', '#ee8fa6', '#f4dcae', '#d8604a', '#7fc3e3', '#f6eed8']),
   roofFlat: Object.freeze(['#c0633b', '#a54d36', '#cf7a4a', '#9a9893']), // terakota, merah bata, terakota muda, beton (oranye dominan seperti target)
   roofGable: Object.freeze(['#cf6d3f', '#bb5232', '#d98a4a', '#a8623f']), // genteng: sisi teduh tetap terbaca oranye, bukan hitam
-  landuse: Object.freeze({ residential: '#b4b896', commercial: '#c8bea6', retail: '#cdbca2', education: '#afba84', religious: '#b6b98c', construction: '#aaa47c' }), // halaman kampus/ibadah berumput
+  // blok permukiman/niaga = paving krem terang (terbaca seperti trotoar di rujukan); hijau dicerahkan serasi GRASS_TINT; parkir = aspal
+  landuse: Object.freeze({
+    residential: '#e0d4b4', commercial: '#e8dcc0', retail: '#eadcbc', industrial: '#cfc8bd', education: '#9fcf6a', religious: '#a6d070',
+    construction: '#d6c39a', farmland: '#a9d060', cemetery: '#8fc46a', forest: '#3f9a34', scrub: '#6fb04a', wetland: '#6aa878',
+    grass: '#7cc655', park: '#6cc04a', pitch: '#5cb844', parking: '#5a5d66',
+  }),
+  roads: Object.freeze({ pedestrian: '#e2d7bd', track: '#b08a5c', footway: '#e6dcc4', path: '#d6c9a8' }),
 });
 
 /** Faktor gelap kaki dinding di bake (`buildings.js` BASE_SHADE). */
@@ -44,7 +57,8 @@ export function buildTileRemap(baked = BAKED, next = NEW) {
   const walls = baked.walls.flatMap((h, i) => [pair(h, next.walls[i]), pair(h, next.walls[i], BAKED_WALL_SHADE)]);
   const roofs = [...baked.roofFlat.map((h, i) => pair(h, next.roofFlat[i])), ...baked.roofGable.map((h, i) => pair(h, next.roofGable[i]))];
   const landuse = Object.keys(baked.landuse).map((k) => pair(baked.landuse[k], next.landuse[k]));
-  return new Map([['buildings_walls', table(walls)], ['buildings_roofs', table(roofs)], ['landuse', table(landuse)]]);
+  const roads = Object.keys(baked.roads ?? {}).map((k) => pair(baked.roads[k], next.roads[k]));
+  return new Map([['buildings_walls', table(walls)], ['buildings_roofs', table(roofs)], ['landuse', table(landuse)], ['roads', table(roads)]]);
 }
 
 let shared = null;

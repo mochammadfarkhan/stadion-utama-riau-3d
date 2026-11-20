@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { BAKED, NEW, BAKED_WALL_SHADE, buildTileRemap, hexToLinear, remapTileColors, toBytes } from '../../src/city/tilePalette.js';
-import { BUILDING_COLORS, LANDUSE_COLORS } from '../../tools/citybake/config.js';
+import { BUILDING_COLORS, LANDUSE_COLORS, ROAD_CLASSES } from '../../tools/citybake/config.js';
 import { hexToLinear as bakeHexToLinear, shade } from '../../tools/citybake/geometry/colors.js';
 
 describe('tilePalette (remap warna tile di klien)', () => {
@@ -10,6 +10,9 @@ describe('tilePalette (remap warna tile di klien)', () => {
     expect(BAKED.roofFlat).toEqual(BUILDING_COLORS.roofFlat);
     expect(BAKED.roofGable).toEqual(BUILDING_COLORS.roofGable);
     for (const [k, v] of Object.entries(BAKED.landuse)) expect(v).toBe(LANDUSE_COLORS[k]);
+    for (const [k, v] of Object.entries(BAKED.roads)) expect(v).toBe(ROAD_CLASSES[k].color);
+    expect(Object.keys(NEW.landuse).sort()).toEqual(Object.keys(BAKED.landuse).sort());
+    expect(Object.keys(NEW.roads).sort()).toEqual(Object.keys(BAKED.roads).sort());
     expect(NEW.walls).toHaveLength(BAKED.walls.length);
     expect(NEW.roofFlat).toHaveLength(BAKED.roofFlat.length);
     expect(NEW.roofGable).toHaveLength(BAKED.roofGable.length);
@@ -27,6 +30,7 @@ describe('tilePalette (remap warna tile di klien)', () => {
     expect(t.get('buildings_walls').size).toBe(16);
     expect(t.get('buildings_roofs').size).toBe(8);
     expect(t.get('landuse').size).toBe(Object.keys(BAKED.landuse).length);
+    expect(t.get('roads').size).toBe(Object.keys(BAKED.roads).length);
   });
 
   it('remap atribut byte (GLB ternormalisasi) dan float; warna tak dikenal tidak disentuh', () => {

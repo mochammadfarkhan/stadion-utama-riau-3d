@@ -20,7 +20,7 @@ export const CITY_LAYERS = Object.freeze({
   buildings_roofs: Object.freeze({ renderOrder: 0, flat: false }),
 });
 
-export const CITY_GROUND_COLOR = 0xb9b59a; // tanah/rumput kering netral di bawah landuse
+export const CITY_GROUND_COLOR = 0x7fb858; // rumput cerah di sela landuse (F3; dulu krem kering 0xb9b59a)
 
 /** @returns {{forMesh(name:string): THREE.Material|null, layerOf(name:string): object|null, owns(r:object): boolean, ground: THREE.Material, dispose(): void}} */
 export function createCityMaterials() {
