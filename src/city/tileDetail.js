@@ -169,7 +169,7 @@ export function treePoints(tile, reserved = () => false, { max = TREES.maxPerTil
   };
   const push = (x, z, i, j) => {
     const h = TREES.minH + hash01(seed, i, j) * (TREES.maxH - TREES.minH);
-    out.push({ x, z, h, w: h * (0.85 + hash01(j, i, seed) * 0.35), rot: hash01(i, j, seed + 5) * Math.PI * 2, tint: 0.82 + hash01(seed, j, i) * 0.36 });
+    out.push({ x, z, h, w: h * (0.7 + hash01(j, i, seed) * 0.25), rot: hash01(i, j, seed + 5) * Math.PI * 2, tint: 0.82 + hash01(seed, j, i) * 0.36 });
   };
   roads: for (const [ri, r] of tile.roads.entries()) {
     if (!TREE_ROAD_CLASSES.has(r.cls)) continue;
@@ -210,11 +210,14 @@ export function treePoints(tile, reserved = () => false, { max = TREES.maxPerTil
   return out;
 }
 
-const TRUNK_RGB = [0.16, 0.09, 0.05];
-const CROWN_RGB = [0.07, 0.24, 0.06];   // bawah tajuk (gelap)
-const CROWN_TOP_RGB = [0.2, 0.46, 0.1];  // puncak tajuk (terkena matahari): gradasi membuat tajuk terbaca bulat dari udara
+const TRUNK_RGB = [0.2, 0.11, 0.06];
+const CROWN_RGB = [0.07, 0.3, 0.05];    // bawah tajuk (gelap)
+const CROWN_TOP_RGB = [0.24, 0.6, 0.1];  // puncak tajuk (terkena matahari): gradasi membuat tajuk terbaca bulat dari udara
 
-/** Geometri pohon satuan (tinggi 1, tajuk elipsoid radius 0,5): batang prisma 4 sisi + tajuk ikosahedron. ±28 segitiga. */
+/**
+ * Geometri pohon satuan (tinggi 1, lebar tajuk ±1): batang prisma 3 sisi + tajuk gerombol (ikosahedron pusat + 2 gumpalan
+ * oktahedron di samping). 42 segitiga (dulu 28: satu ikosahedron terbaca sebagai bola; F2 2026-11-20).
+ */
 export function createTreeGeometry() {
   const gradient = (g, lo, hi) => {
     const p = g.attributes.position;
@@ -233,12 +236,18 @@ export function createTreeGeometry() {
     g.setAttribute('color', new THREE.BufferAttribute(c, 3));
     return g;
   };
-  const trunk = paint(new THREE.CylinderGeometry(0.035, 0.05, 0.42, 4, 1, true).translate(0, 0.21, 0).toNonIndexed(), TRUNK_RGB);
-  const crown = gradient(new THREE.IcosahedronGeometry(0.5, 0).scale(1, 0.8, 1).translate(0, 0.66, 0).toNonIndexed(), CROWN_RGB, CROWN_TOP_RGB);
-  for (const g of [trunk, crown]) { g.deleteAttribute('uv'); }
-  const merged = mergeGeometries([trunk, crown], false);
-  trunk.dispose();
-  crown.dispose();
+  const trunk = paint(new THREE.CylinderGeometry(0.035, 0.05, 0.42, 3, 1, true).translate(0, 0.21, 0).toNonIndexed(), TRUNK_RGB);
+  const lump = (g, x, y, z) => gradient(g.scale(1, 0.9, 1).translate(x, y, z).toNonIndexed(), CROWN_RGB, CROWN_TOP_RGB);
+  const parts = [
+    trunk,
+    lump(new THREE.IcosahedronGeometry(0.36, 0), 0.02, 0.68, 0),
+    lump(new THREE.OctahedronGeometry(0.29, 0), 0.25, 0.52, 0.07),
+    lump(new THREE.OctahedronGeometry(0.27, 0), -0.21, 0.5, -0.17),
+  ];
+  for (const g of parts) { g.deleteAttribute('uv'); }
+  const merged = mergeGeometries(parts, false);
+  parts.forEach((g) => g.dispose());
+  merged.computeVertexNormals();
   return merged;
 }
 
@@ -328,7 +337,7 @@ export function addTileDetail(root, tile, materials, { reserved = () => false, t
         mesh.setColorAt(i, col.setRGB(t.tint, t.tint * (0.9 + 0.2 * hash01(i, 3, 1)), t.tint));
       });
       mesh.instanceMatrix.needsUpdate = true;
-      mesh.castShadow = false;
+      mesh.castShadow = true; // F2: pohon tanpa bayangan terlihat melayang
       mesh.receiveShadow = true;
       mesh.computeBoundingSphere();
       root.add(mesh);

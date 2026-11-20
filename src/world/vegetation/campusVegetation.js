@@ -6,12 +6,11 @@
  * warna, tinggi batang) deterministik dari posisi (hash01).
  */
 import {
-  BufferGeometry, Color, CylinderGeometry, DoubleSide, Float32BufferAttribute, Group, InstancedMesh, Matrix4,
+  BufferGeometry, Color, CylinderGeometry, DoubleSide, Float32BufferAttribute, Group, IcosahedronGeometry, InstancedMesh, Matrix4,
   MeshLambertMaterial, Quaternion, Vector3,
 } from 'three';
 import { currentScope } from '../../engine/ResourceScope.js';
-import { blobCluster } from '../siteutil/rounded.js';
-import { createRandom } from '../siteutil/rng.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { applyWind, createWindDepthMaterial } from '../shaders/wind.js';
 import { VEGETATION_CELL } from '../Landscape.trees.js';
 
@@ -20,12 +19,12 @@ import { VEGETATION_CELL } from '../Landscape.trees.js';
  * mahoni 12–18, angsana 10–15 (tajuk payung), saga 8–12 (renggang), sawit 6–9, semak ±1.
  */
 export const VEG_SPECIES = Object.freeze({
-  mahoni: Object.freeze({ trunkH: [6, 8], trunkR: 0.34, crown: [4.2, 3.6, 4.2], palette: Object.freeze([0x4f7d32, 0x5b8a3a, 0x46722d]) }),
-  angsana: Object.freeze({ trunkH: [5.5, 7], trunkR: 0.3, crown: [5.6, 2.6, 5.6], palette: Object.freeze([0x6e9e3c, 0x79a845, 0x86b24f]) }),
+  mahoni: Object.freeze({ trunkH: [6, 8], trunkR: 0.34, crown: [4.2, 3.6, 4.2], palette: Object.freeze([0x3f9a2e, 0x4aa636, 0x358a28]) }),
+  angsana: Object.freeze({ trunkH: [5.5, 7], trunkR: 0.3, crown: [5.6, 2.6, 5.6], palette: Object.freeze([0x5cb43a, 0x6abf44, 0x78c84e]) }),
   saga: Object.freeze({ trunkH: [4.25, 5], trunkR: 0.24, crown: [3.4, 2.9, 3.4], palette: Object.freeze([0x8cb85a, 0x98c266, 0x7fae4f]) }),
   sawit: Object.freeze({ trunkH: [4.5, 7], trunkR: 0.32, crownScale: 1.4, palette: Object.freeze([0x3f8f3a, 0x357f35, 0x4a9a3e]) }),
   // Hutan kampus bergaya Street View (region UKM blok biru): batang ramping, tajuk lebar bertingkat, hijau tua.
-  hutan: Object.freeze({ trunkH: [6.5, 10], trunkR: 0.2, crown: [5.2, 4.2, 5.2], palette: Object.freeze([0x3f6b2c, 0x4a7a33, 0x38612a, 0x557f38]) }),
+  hutan: Object.freeze({ trunkH: [6.5, 10], trunkR: 0.2, crown: [5.2, 4.2, 5.2], palette: Object.freeze([0x2f7f2a, 0x3a8c30, 0x2a7226, 0x44963a]) }),
   semak: Object.freeze({ crown: [1.1, 0.75, 1.1], palette: Object.freeze([0x7cb342, 0x8bc34a, 0x689f38]) }),
 });
 
@@ -98,8 +97,28 @@ function sawitLiteCrown(fronds = 8) {
 const CROWN_WIND = Object.freeze({ weightMode: 'height', heightMin: -1, heightMax: 1, weightMin: 0.2, amplitude: 0.7 });
 const SAWIT_WIND = Object.freeze({ weightMode: 'height', heightMin: 0, heightMax: 0.7, weightMin: 0.2, amplitude: 0.6 });
 
+/**
+ * Gumpalan tajuk satuan [x, y, z, r]: pusat + cincin 4 gumpalan + puncak. Lebar ±1,8, y −0,62..0,72 (rentang CROWN_WIND).
+ * Dasar gumpalan pusat ≤ −0,6: di situlah puncak batang (vegetationInstances menaruh tajuk di th + 0,6·cy), jadi tidak melayang.
+ */
+const CROWN_LUMPS = Object.freeze([
+  [0, -0.12, 0, 0.56], [0.5, -0.2, 0.08, 0.42], [-0.12, -0.26, 0.5, 0.4], [-0.5, -0.1, -0.14, 0.44], [0.1, -0.18, -0.5, 0.38], [0.06, 0.4, 0.04, 0.36],
+]);
+
+/**
+ * Tajuk bergerombol low poly (rujukan city-builder): ikosahedron bersegi datar (pusat detail 1, lainnya detail 0), satu
+ * geometri gabungan (180 segitiga; dulu 240; tetap 1 draw call per sel). Menggantikan 3 bola halus yang terbaca sebagai satu elipsoid licin.
+ */
+export function clusterCrownGeometry() {
+  const lumps = CROWN_LUMPS.map(([x, y, z, r], i) => new IcosahedronGeometry(r, i === 0 ? 1 : 0).scale(1, 0.9, 1).translate(x, y, z));
+  const merged = mergeGeometries(lumps, false);
+  lumps.forEach((g) => g.dispose());
+  merged.computeVertexNormals(); // non-indexed: normal per segitiga = bersegi datar
+  return merged;
+}
+
 function createKit() {
-  const trunkMat = new MeshLambertMaterial({ color: 0x7a5a45 });
+  const trunkMat = new MeshLambertMaterial({ color: 0x6b4a34 });
   const crownMat = applyWind(new MeshLambertMaterial({ color: 0xffffff }), CROWN_WIND);
   const sawitMat = applyWind(new MeshLambertMaterial({ color: 0xffffff, side: DoubleSide }), SAWIT_WIND);
   sawitMat.shadowSide = DoubleSide;
@@ -110,7 +129,7 @@ function createKit() {
     trunk: { name: 'batangPohonKampus', geometry: trunkGeo, material: trunkMat, castShadow: true },
     crown: {
       name: 'tajukPohonKampus',
-      geometry: blobCluster({ count: 3, radius: 0.62, spread: 0.42, flat: 0.95, vertical: 0.18 }, createRandom(4107)),
+      geometry: clusterCrownGeometry(),
       material: crownMat, castShadow: true, depth: createWindDepthMaterial(CROWN_WIND),
     },
     sawitTrunk: { name: 'batangSawitKampus', geometry: trunkGeo, material: trunkMat, castShadow: true },

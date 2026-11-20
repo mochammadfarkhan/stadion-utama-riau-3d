@@ -4,11 +4,11 @@
  * lift drape (DRAPE.lift) → tidak ada z-fighting antar lapisan maupun dengan terrain. Nama material untuk debug;
  * registry basah memilih berdasarkan NAMA MESH (ground.js), malam berdasarkan userData.nightEmissive.
  */
-import { MeshLambertMaterial, MeshStandardMaterial } from 'three';
+import { Color, MeshLambertMaterial, MeshStandardMaterial } from 'three';
 import { currentScope, withScope } from '../../engine/ResourceScope.js';
 import { COLORS } from '../../config/constants.js';
 import { GROUND_COLORS, surfaceMaterial } from '../../world/Ground.materials.js';
-import { createTerrainSplatMaterial } from '../../world/terrain/terrainSplat.js';
+import { createTerrainSplatMaterial, GRASS_TINT } from '../../world/terrain/terrainSplat.js';
 import { pbrSurfaceMaterial } from '../../world/textures/pbrMaterials.js';
 import { installAsphaltWear } from '../../world/textures/pbrWorld.js';
 import { createWaterToonMaterial } from '../../world/shaders/waterToon.js';
@@ -22,10 +22,16 @@ export const UNRI_GROUND_COLORS = Object.freeze({
   asphalt: 0xb3b0a9, marking: 0xf4f1e8, pitch: 0xdcefc4, water: 0x3f6f8f, ditch: 0x4b5a4a,
 });
 
-/** Aspal kartun: abu hangat netral menengah (bukan abu-biru gelap; bayangan kartun sudah biru, jadi jangan menambah). */
-export const ASPHALT_PBR_COLOR = 0xd9cfc0;
-/** Pengali kecerahan aspal (>1): di bayangan hanya ada cahaya langit biru, aspal gelap terlihat navy bila albedo terlalu rendah. */
-export const ASPHALT_BRIGHTNESS = 1.55;
+/** Aspal kartun: abu gelap sedikit dingin, efektif ±#4a4d57 = jalan tersier kota (rujukan city-builder: aspal gelap, marka putih kontras). */
+export const ASPHALT_PBR_COLOR = 0xa3a9bc;
+/** Pengali kecerahan aspal. Dulu 1,55 (aspal terang agar bayangan tidak navy); sejak F1 ambient turun dan bayangan tegas, jadi 1. */
+export const ASPHALT_BRIGHTNESS = 1;
+
+/** Rumput lapangan memakai albedo yang sama dengan terrain splat: kalikan tint yang sama agar tidak belang di sambungan. */
+const tintGrass = (m) => {
+  m.color.multiply(new Color().setRGB(...GRASS_TINT));
+  return m;
+};
 
 const brighten = (m, k) => {
   m.color.multiplyScalar(k);
@@ -48,7 +54,7 @@ function createPbrMaterials(quality) {
     asphalt: installAsphaltWear(offset(brighten(pbrSurfaceMaterial('asphalt', { ...q, color: ASPHALT_PBR_COLOR }), ASPHALT_BRIGHTNESS), -1)),
     paving: offset(pbrSurfaceMaterial('paving', { ...q, color: 0xe8e4da }), -2),
     walk: offset(pbrSurfaceMaterial('concrete', { ...q, color: GROUND_COLORS.sidewalk }), -3),
-    pitch: offset(pbrSurfaceMaterial('grass', { ...q, color: 0xf2ffe0 }), -1),
+    pitch: offset(tintGrass(pbrSurfaceMaterial('grass', { ...q, color: 0xf2ffe0 })), -1),
   };
 }
 

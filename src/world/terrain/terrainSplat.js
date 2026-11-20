@@ -15,6 +15,8 @@ import { TERRAIN_LAYERS, TILE_M, tierForQuality } from '../textures/pbrCore.js';
 const DRY_TINT = Object.freeze([1.0, 0.86, 0.6]); // geser pasir -> tanah laterit Pekanbaru [INFERENSI visual]
 const MOIST_TINT = Object.freeze([3.6, 2.9, 1.55]);   // serasah gelap -> cokelat-oranye hangat (pengali LINEAR; grading kartun menggeser bayangan ke biru, jadi condong hangat)
 const GRAVEL_TINT = Object.freeze([0.66, 0.62, 0.55]); // kerikil putih bersih -> abu-krem
+/** Pengali linear albedo rumput (dan lumut): Grass004 mentah #616d31 zaitun kusam -> hijau cerah ±#5fae45 (rujukan city-builder). */
+export const GRASS_TINT = Object.freeze([1.0, 2.6, 1.8]);
 const KOTA_COLOR = 0xb9b59a;                          // = CITY_GROUND_COLOR (sambungan ke tile kota)
 
 /**
@@ -90,6 +92,7 @@ uniform vec4 uTile;
 uniform float uTileMoss;
 uniform float uMoistBias;
 uniform float uPatch;
+uniform vec3 uGrassTint;
 uniform vec3 uDryTint;
 uniform vec3 uMoistTint;
 uniform vec3 uGravelTint;
@@ -147,6 +150,7 @@ if (wA.x > 0.02) {
   cG = mix(cG, cG2, smoothstep(0.3, 0.7, tsVN(tsXZ / 19.0 + 3.0)));
 #endif
   bG = wA.x + tsLum(cG) * 0.9;
+  cG *= uGrassTint; // sesudah bobot campur: tint tidak mengubah batas antar lapisan
 }
 if (wA.y > 0.02) { cM = TS_TEX(tMoist, uTile.y) * uMoistTint; bM = wA.y + tsLum(cM) * 0.9 + 0.1; }
 if (wA.z > 0.02) { cD = TS_TEX(tDry, uTile.z) * uDryTint; bD = wA.z + tsLum(cD) * 0.9; }
@@ -154,7 +158,7 @@ if (wA.z > 0.02) { cD = TS_TEX(tDry, uTile.z) * uDryTint; bD = wA.z + tsLum(cD) 
 if (wA.w > 0.02) { cV = TS_TEX(tGravel, uTile.w) * uGravelTint; bV = wA.w + tsLum(cV) * 0.9 - 0.1; }
 #endif
 #ifdef TS_MOSS
-if (wM > 0.02) { cO = TS_TEX(tMoss, uTileMoss); bO = wM + tsLum(cO) * 0.9; }
+if (wM > 0.02) { cO = TS_TEX(tMoss, uTileMoss); bO = wM + tsLum(cO) * 0.9; cO *= uGrassTint; }
 #endif
 float tsMax = max(max(max(bG, bM), max(bD, bV)), bO);
 float tsDepth = 0.42;
@@ -235,6 +239,7 @@ export function createTerrainSplatMaterial({ quality = 'tinggi', moistBias = 0.3
     uTileMoss: { value: 1 / TILE_M.moss },
     uMoistBias: { value: moistBias },
     uPatch: { value: patch },
+    uGrassTint: { value: new Vector3(...GRASS_TINT) },
     uDryTint: { value: new Vector3(...DRY_TINT) },
     uMoistTint: { value: new Vector3(...MOIST_TINT) },
     uGravelTint: { value: new Vector3(...GRAVEL_TINT) },

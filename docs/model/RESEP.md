@@ -24,7 +24,7 @@ Tiap putaran: ubah → nilai → putuskan. Bila skor tidak naik dua putaran bert
   Jangan mengirim banyak bidikan per putaran.
 
 ## 4. Anggaran
-- Kota (resmi, `docs/kota/ganti-model/README.md`): pohon ≤ 28 segitiga/instans, rumah ≤ 14, landmark ≤ 2 rb (1 material vertex color), draw call tambahan ≤ 1 per jenis.
+- Kota (resmi, `docs/kota/ganti-model/README.md`): pohon ≤ 42 segitiga/instans, rumah ≤ 14, landmark ≤ 2 rb (1 material vertex color), draw call tambahan ≤ 1 per jenis.
 - [INFERENSI] Karakter ≤ 5 rb segitiga, properti kecil ≤ 1 rb; tekstur ≤ 512² (karakter boleh atlas 1024²).
 - Global tetap: draw call region ≤ 250, tekstur GPU ≤ 70 MB (AGENTS.md). Barang realistis hanya preset Tinggi; Rendah tetap low poly.
 
