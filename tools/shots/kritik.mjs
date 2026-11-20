@@ -50,7 +50,9 @@ const applyPreset = (page) => page.evaluate(async ({ preset, gaya }) => {
   s.store.set('graphics.preset', preset);
   if (gaya) s.store.set('graphics.gayaGrafis', gaya);
   await new Promise((r) => setTimeout(r, 1500));
-  return { preset: s.store.get('graphics.preset'), pixelRatio: s.store.get('graphics.pixelRatio'), shadow: s.store.get('graphics.shadowQuality'), gaya: s.store.get('graphics.gayaGrafis') };
+  const gl = s.app.renderer.getContext();
+  const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+  return { gpu: String(gl.getParameter(dbg ? dbg.UNMASKED_RENDERER_WEBGL : gl.RENDERER)), preset: s.store.get('graphics.preset'), pixelRatio: s.store.get('graphics.pixelRatio'), shadow: s.store.get('graphics.shadowQuality'), gaya: s.store.get('graphics.gayaGrafis') };
 }, { preset: values.preset, gaya: values.gaya ?? null });
 
 /** Persegi dua elemen bertumpuk? (null bila salah satu tidak ada/tersembunyi). */

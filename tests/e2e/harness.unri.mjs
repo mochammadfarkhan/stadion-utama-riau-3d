@@ -15,6 +15,7 @@ export const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..
 const GPU_ARGS = Object.freeze({
   swiftshader: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
   d3d11: ['--use-angle=d3d11', '--ignore-gpu-blocklist', '--enable-gpu'],
+  rtx: ['--use-angle=d3d11', '--ignore-gpu-blocklist', '--enable-gpu', '--force_high_performance_gpu'], // laptop hybrid: GPU diskret
 });
 
 function loadPlaywright() {
@@ -29,7 +30,7 @@ function loadPlaywright() {
 }
 
 /** Vite (port) + Chromium headless; kembalikan { page, errors, close() }. */
-export async function openSim({ port = Number(process.env.SIM_PORT) || 5176, gpu = 'd3d11', width = 1600, height = 900, beforeGoto = null, query = '' } = {}) {
+export async function openSim({ port = Number(process.env.SIM_PORT) || 5176, gpu = process.env.SIM_GPU || 'd3d11', width = 1600, height = 900, beforeGoto = null, query = '' } = {}) {
   const vite = await import(pathToFileURL(join(ROOT, 'node_modules', 'vite', 'dist', 'node', 'index.js')).href);
   const server = await vite.createServer({
     root: ROOT, configFile: join(ROOT, 'vite.config.js'), server: { port, strictPort: true, fs: { strict: false } }, logLevel: 'error',

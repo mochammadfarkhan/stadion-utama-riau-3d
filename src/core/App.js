@@ -278,7 +278,7 @@ export class App {
     return this.post.outlinePass.enabled;
   }
 
-  /** Penghalus tepi FXAA; benar-benar aktif hanya bila rasio render ≤ 1 (di atas 1 supersampling sudah menghaluskan). */
+  /** Penghalus tepi FXAA (pass terakhir, pada warna akhir sRGB); aktif di semua rasio render. */
   setFxaa(enabled) {
     this.fxaaWanted = Boolean(enabled);
     this.#updateFxaa();
@@ -286,7 +286,7 @@ export class App {
   }
 
   #updateFxaa() {
-    this.post.fxaaPass.enabled = Boolean(this.fxaaWanted) && this.pixelRatio <= 1;
+    this.post.fxaaPass.enabled = Boolean(this.fxaaWanted); // juga di rasio > 1: supersampling 1,25x saja masih bergerigi
   }
 
   get outlineEnabled() {
@@ -707,7 +707,7 @@ function createRenderer() {
   // Penghalusan tepi datang dari supersampling (pixelRatio) + garis tepi.
   const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
-  renderer.shadowMap.enabled = true;     // tipe (VSM) diatur di world/Lighting.js
+  renderer.shadowMap.enabled = true;     // tipe (PCF) diatur di world/Lighting.js
   renderer.shadowMap.autoUpdate = false; // dipicu manual lewat needsUpdate sekali per frame
   renderer.info.autoReset = false;       // di-reset manual di App.render agar statistik per frame
   // Tone mapping dieksekusi sekali oleh OutputPass (render ke target tidak di-tone-map).

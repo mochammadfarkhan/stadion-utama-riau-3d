@@ -27,6 +27,7 @@ const MOON_AZIMUTH_DEG = 120;
 const MOON_SHADOW_STRENGTH = 0.45;  // kekuatan bayangan saat sumber cahaya = bulan (matahari = 1)
 const MOON_MAX_INTENSITY = 0.6;    // intensitas cahaya bulan (cahaya arah saat matahari di bawah horizon)
 const HORIZON_FADE_DEG = 6;        // matahari memudar menjelang terbenam (hindari bayangan datar ekstrem)
+const FOG_NEAR_FLOOR = 450;         // kabut tidak mulai lebih dekat dari ini (F1: jarak dekat-menengah bersih)
 const ENV_MIN_FACTOR = 0.15;       // environmentIntensity malam ≈ 0.12 × 0.15 ≈ 0.02
 const STAR_RADIUS = 1800;
 const STAR_MIN_Y = 0.06;
@@ -136,7 +137,7 @@ export function createTimeOfDay(lightingGroup, scene, renderer, app) {
     L.hemi.intensity = p.hemiIntensity;
     L.hemi.color.setHex(p.hemiSky);
     L.hemi.groundColor.setHex(p.hemiGround);
-    const fog = fogForPreset(p.fogNear, p.fogFar, over.fogDistance / FOG_DEFAULT, fogLimit);
+    const fog = fogForPreset(p.fogNear, p.fogFar, over.fogDistance / FOG_DEFAULT, fogLimit, FOG_NEAR_FLOOR);
     scene.fog.color.setHex(p.fogColor);
     scene.fog.near = fog.near;
     scene.fog.far = fog.far;

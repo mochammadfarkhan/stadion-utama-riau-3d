@@ -18,10 +18,10 @@ const SUN_DISTANCE = 600;
 const SHADOW_EXTENT = 200;          // setengah lebar frustum bayangan (m), mengikuti sepeda
 const SHADOW_MAP_SIZE = 2048;
 const SHADOW_DEPTH_PAD = 300;       // ±jarak sepanjang arah cahaya yang dicakup near/far
-// VSM r186: radius >= 3 pada frustum +-200 m menghapus bayangan (kontras turun >50%); 1.5 = lembut tapi terbaca.
+// PCF (F1 2026-11-20): tepi bayangan tegas seperti rujukan city-builder; radius = lebar penghalusan dalam texel.
 const SHADOW_RADIUS = 1.5;
 const SHADOW_BLUR_SAMPLES = 8;
-const SHADOW_BIAS = -0.0005;        // VSM: bias negatif kecil, cukup untuk mencegah acne
+const SHADOW_BIAS = -0.0004;        // PCF: bias negatif kecil, cukup untuk mencegah acne
 const SHADOW_NORMAL_BIAS = 0.05;
 const SKY_TURBIDITY = 2.5;          // langit biru bersih
 const SKY_RAYLEIGH = 1.6;
@@ -68,7 +68,7 @@ export function createLighting(scene, renderer) {
 
   const clouds = createStylizedClouds();
   group.add(sky, clouds, sun, sun.target, hemi);
-  renderer.shadowMap.type = THREE.VSMShadowMap; // bayangan lembut (blur variance)
+  renderer.shadowMap.type = THREE.PCFShadowMap; // bayangan tegas (VSM dulu: buram + bocor cahaya)
   scene.fog = new THREE.Fog(COLORS.fog, FOG_NEAR, FOG_FAR);
   scene.background = new THREE.Color(COLORS.sky);
   env.rebuild();

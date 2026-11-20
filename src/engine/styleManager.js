@@ -215,6 +215,7 @@ export function createStyleManager({ store, app, scene, lighting, rig, time = nu
       const hemi = lighting?.userData?.hemi;
       if (hemi) {
         hemi.intensity *= L.hemiMul;
+        if (L.hemiMul < 1) scene.environmentIntensity *= L.hemiMul; // env map ikut turun: sisi teduh benar-benar teduh
         hemi.color.lerp(tint.setHex(L.hemiSky), 0.85);
         hemi.groundColor.lerp(tint.setHex(L.hemiGround), 0.85);
       }

@@ -36,7 +36,7 @@ renderer.setPixelRatio(RENDER_MODE ? window.devicePixelRatio : Math.min(2, windo
 renderer.toneMapping = THREE.AgXToneMapping;
 renderer.toneMappingExposure = 0.9;
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.VSMShadowMap; // sama dengan world/Lighting.js; cahaya sekre disetel untuk VSM
+renderer.shadowMap.type = THREE.PCFShadowMap; // sama dengan world/Lighting.js
 stage.prepend(renderer.domElement);
 
 const cam = {

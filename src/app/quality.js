@@ -14,6 +14,7 @@ const STORAGE_KEY = SAVE_KEYS.quality;
 const WARMUP_SEC = 3;
 const SAMPLE_SEC = 5;
 const MAX_ROUNDS = 2;
+const PRESET_VERSION = 2; // naikkan bila isi preset jadi lebih berat: simpanan lama diuji ulang sekali (v2 = F1 2026-11-20)
 const LABEL = Object.freeze({ rendah: 'Rendah', sedang: 'Sedang', tinggi: 'Tinggi' });
 
 /** Nama GPU dari konteks WebGL (null bila disembunyikan browser). */
@@ -37,7 +38,7 @@ function loadSaved() {
 }
 
 function save(data) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* tanpa simpan: uji diulang kunjungan berikutnya */ }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...data, v: PRESET_VERSION })); } catch { /* tanpa simpan: uji diulang kunjungan berikutnya */ }
 }
 
 /**
@@ -49,7 +50,7 @@ function save(data) {
 export function setupQuality({ app, store, hud, touch = false }) {
   const gpu = readGpuName(app.renderer);
   const saved = loadSaved();
-  const known = saved?.gpu === gpu;
+  const known = saved?.gpu === gpu && saved?.v === PRESET_VERSION;
   let tier = known ? saved.tier : guessTierFromGpu(gpu, { mobile: touch });
   let bench = null; // {t, samples, round} selama uji berjalan
   let applying = false;

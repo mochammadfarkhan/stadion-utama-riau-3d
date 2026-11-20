@@ -32,7 +32,7 @@ renderer.toneMapping = THREE.AgXToneMapping;
 renderer.toneMappingExposure = 1.05;
 renderer.localClippingEnabled = true; // clipBelowSea (kapal karam)
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.VSMShadowMap;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 stage.prepend(renderer.domElement);
 
 const cam = {
