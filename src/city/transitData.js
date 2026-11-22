@@ -26,6 +26,7 @@ export const TRANSIT_LINES = Object.freeze([
       { id: 'mrt-unri', name: 'Stasiun UNRI Panam', x: -980, z: 720 },
       { id: 'mrt-stadion', name: 'Stasiun Stadion Utama Riau', x: 0, z: 260 },
       { id: 'mrt-panam', name: 'Stasiun Simpang Panam', x: 1650, z: -680 },
+      { id: 'mrt-soekarno-hatta', name: 'Stasiun Soekarno-Hatta', x: 3120, z: -1120 },
       { id: 'mrt-living-world', name: 'Stasiun Living World / SKA', x: 3420, z: -1910, interchange: true },
       { id: 'mrt-nangka', name: 'Stasiun Tuanku Tambusai', x: 4920, z: -2320 },
       { id: 'mrt-plaza-citra', name: 'Stasiun Plaza Citra', x: 6350, z: -2950 },

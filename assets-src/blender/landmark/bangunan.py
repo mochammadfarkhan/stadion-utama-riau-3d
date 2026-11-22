@@ -113,6 +113,109 @@ def b_mal(spec):
     return fr, build
 
 
+def _facade_fins(m, cx, cy, ang, L, W, z0, z1, count, col, depth=0.65, width=0.55):
+    """Tambah sirip vertikal ritmis di dua sisi panjang bangunan."""
+    c, s = math.cos(ang), math.sin(ang)
+    for side in (-1, 1):
+        v = side * (W * 0.5 + depth * 0.4)
+        for i in range(1, count):
+            u = -L * 0.45 + L * 0.9 * (i / count)
+            px = cx + u * c - v * s
+            py = cy + u * s + v * c
+            m.prism((px, py, z0), (px, py, z1), width, col, wz=width)
+
+
+def b_mal_ska(spec):
+    """Mal SKA Pekanbaru: podium krem-putih, lis biru-emas, 3 skylight atrium, pylon sudut simpang."""
+    fr = Frame([way(w) for w in spec["ways"]])
+
+    def build(lod):
+        m = Mesh()
+        w = spec["ways"][0]
+        poly = simplify(fr.pts(way(w)), tol(lod))
+        H = 5 * 4.5
+        wall, blue, gold, glass = "#f2efe8", "#1f6feb", "#f0a830", "#7cc0e8"
+        m.extrude(poly, 0, H, wall, roof="#9aa3ad", bands=bands(0, 5, 4.5, wall, "#172433") if lod == 0 else None)
+        m.extrude(poly, H, H + 1.5, blue)
+        m.extrude(poly, H + 1.5, H + 2.0, gold)
+
+        cx, cy, ang, L, W = min_rect(poly)
+        c, s = math.cos(ang), math.sin(ang)
+        # 3 skylight atrium kaca di atap agar tidak polos
+        for k in (-0.28, 0.0, 0.28):
+            ux = cx + math.cos(ang) * (L * k)
+            uy = cy + math.sin(ang) * (L * k)
+            m.hip(ux, uy, ang, L * 0.22, W * 0.46, H + 0.2, 4.4, 0.72, glass)
+        # Pylon menara ikonik di sudut menghadap Simpang SKA (+L/2, -W/2)
+        px = cx + c * (L * 0.42) - s * (-W * 0.38)
+        py = cy + s * (L * 0.42) + c * (-W * 0.38)
+        m.box(px, py, H, 10.0, 10.0, 8.5, blue)
+        m.box(px, py, H + 8.5, 10.6, 10.6, 1.4, gold)
+        if lod == 0:
+            _facade_fins(m, cx, cy, ang, L, W, 3.0, H, 14, "#e6e2d8")
+            sign_on_longest(m, poly, H - 3.6, 36, blue, lod)
+            ac_boxes(m, poly, H, lod, w)
+        return m
+    return fr, build
+
+
+def b_living_world(spec):
+    """Living World Pekanbaru: fasad krem-kayu, lis hijau zamrud, atrium skylight toska & taman atap."""
+    fr = Frame([way(w) for w in spec["ways"]])
+
+    def build(lod):
+        m = Mesh()
+        w = spec["ways"][0]
+        poly = simplify(fr.pts(way(w)), tol(lod))
+        H = 4 * 4.7
+        wall, green, wood, glass = "#f3ead8", "#269956", "#c98548", "#75cfc4"
+        m.extrude(poly, 0, H, wall, roof="#a8a498", bands=bands(0, 4, 4.7, wall, "#16242c") if lod == 0 else None)
+        m.extrude(poly, H, H + 1.4, green)
+        m.extrude(poly, H - 1.2, H, wood)
+
+        cx, cy, ang, L, W = min_rect(poly)
+        c, s = math.cos(ang), math.sin(ang)
+        # Atrium skylight besar di tengah + sayap hijau taman atap
+        m.hip(cx, cy, ang, L * 0.46, W * 0.44, H + 0.2, 5.2, 0.68, glass)
+        for sg in (-1, 1):
+            tx = cx + c * (L * 0.32 * sg)
+            ty = cy + s * (L * 0.32 * sg)
+            m.box(tx, ty, H + 0.1, 18.0, W * 0.42, 0.8, "#5aa854")
+        # Menara penanda hijau-emas menghadap Jl. Tuanku Tambusai
+        px = cx + c * (-L * 0.36) - s * (-W * 0.36)
+        py = cy + s * (-L * 0.36) + c * (-W * 0.36)
+        m.box(px, py, H, 9.0, 9.0, 7.5, green)
+        m.box(px, py, H + 7.5, 9.6, 9.6, 1.2, "#f0b83a")
+        if lod == 0:
+            _facade_fins(m, cx, cy, ang, L, W, 2.5, H, 12, wood)
+            sign_on_longest(m, poly, H - 3.4, 34, green, lod)
+            ac_boxes(m, poly, H, lod, w)
+        return m
+    return fr, build
+
+
+def b_swiss_belinn(spec):
+    """Swiss-Belinn SKA: podium batu krem + menara hotel kaca 12 lantai + mahkota biru-merah."""
+    fr = Frame([way(w) for w in spec["ways"]])
+
+    def build(lod):
+        m = Mesh()
+        w = spec["ways"][0]
+        poly = simplify(fr.pts(way(w)), tol(lod))
+        H = 12 * 3.6
+        wall, blue, red = "#eef1f5", "#1c4e9c", "#d94e3b"
+        m.extrude(poly, 0, 10.5, "#e6dfd2", roof=None, bands=bands(0, 3, 3.5, "#e6dfd2", "#182432") if lod == 0 else None)
+        m.extrude(poly, 10.5, H, wall, roof="#8c96a4", bands=bands(10.5, 9, 3.6, wall, "#152334") if lod == 0 else None)
+        m.extrude(poly, H, H + 2.2, blue)
+        m.extrude(poly, H + 2.2, H + 3.0, red)
+        cx, cy, ang, L, W = min_rect(poly)
+        m.hip(cx, cy, ang, L * 0.72, W * 0.72, H + 3.0, 3.8, 0.5, "#235eb8")
+        if lod == 0:
+            _facade_fins(m, cx, cy, ang, L, W, 10.5, H, 8, "#dfe5ed", depth=0.5, width=0.45)
+        return m
+    return fr, build
+
+
 # ---------------- Melayu: atap bertingkat + selembayung ----------------
 def melayu_roof(m, poly, z0, lod, roof, trim, scale=1.0, tiers=2, h1=7.0, eave=2.5):
     cx, cy, ang, L, W = min_rect(poly)
@@ -414,9 +517,9 @@ SPECS = [
     dict(id="balai-adat-melayu-riau", name="Balai Adat Melayu Riau", fn=b_melayu, ways=[1294872408], h=7.0, floors=1, wall="#e8dcc0", roof="#8c3a24", trim="#d8aa2e", tiers=2, h1=8.0, eave=3.0),
     dict(id="anjung-seni-idrus-tintin", name="Anjung Seni Idrus Tintin", fn=b_melayu, ways=[290157956], h=8.0, floors=1, wall="#e6d9b8", roof="#7c2f1d", trim="#d8aa2e", tiers=2, h1=8.0, eave=3.0),
     dict(id="museum-sang-nila-utama", name="Museum Sang Nila Utama", fn=b_melayu, ways=[1082088975], h=6.5, floors=1, wall="#e8e0c8", roof="#8c3a24", trim="#d8aa2e", tiers=1, h1=7.0, eave=2.5),
-    dict(id="mal-ska", name="Mal SKA", fn=b_mal, ways=[280698814], wall="#e8e6e1", accent="#1d5ea8", sign=30, **{**MAL, "levels": 6}),
-    dict(id="swiss-belinn-ska", name="Swiss-Belinn SKA", fn=b_mal, ways=[327403746], wall="#dfe3e6", accent="#1f3b6b", fh=3.5, levels=11),
-    dict(id="living-world", name="Living World Pekanbaru", fn=b_mal, ways=[327710042], wall="#efe3cf", accent="#2f8f55", sign=30, **MAL),
+    dict(id="mal-ska", name="Mal SKA", fn=b_mal_ska, ways=[280698814]),
+    dict(id="swiss-belinn-ska", name="Swiss-Belinn SKA", fn=b_swiss_belinn, ways=[327403746]),
+    dict(id="living-world", name="Living World Pekanbaru", fn=b_living_world, ways=[327710042]),
     dict(id="ciputra-seraya-mall", name="Mal Ciputra Seraya", fn=b_mal, ways=[327709577], wall="#e9dccb", accent="#b5382c", sign=24, **MAL),
     dict(id="mall-pekanbaru", name="Mall Pekanbaru", fn=b_mal, ways=[465740381], wall="#ddd9d2", accent="#c57a1a", sign=22, **MAL),
     dict(id="plaza-suka-ramai", name="Plaza Suka Ramai", fn=b_mal, ways=[465325690], wall="#e6ddcc", accent="#7a3b8f", sign=28, **{**MAL, "levels": 3}),
