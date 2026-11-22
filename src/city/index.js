@@ -17,6 +17,7 @@ import { FACADE_UNIFORMS, nightFactor } from './facade.js';
 import { addTileDetail } from './tileDetail.js';
 import { createFarCity } from './farCity.js';
 import { createLandmarks } from './landmarks.js';
+import { createTransitLines } from './transitLines.js';
 import { createTileMerge, isTileRoot } from './tileMerge.js';
 
 /** Nama grup detail kecil di dalam tile (tileDetail.js) yang tak terlihat dari kamera pratinjau jauh. */
@@ -115,6 +116,7 @@ export async function createCity({
     }
   };
   let landmarks = null; // landmark hero berLOD (landmarks.js), dibuat saat pratinjau pertama
+  let transit = null; // jaringan MRT & LRT Pekanbaru (transitLines.js), dibuat saat pratinjau pertama
   let tileMerge = null; // tile digabung per material saat pratinjau di-zoom jauh (tileMerge.js); dibuang saat pratinjau ditutup
   const tileRoots = () => group.children.filter(isTileRoot);
   /** Selesaikan penunggu sekali dan bersihkan timer habis-waktunya. */
@@ -148,6 +150,7 @@ export async function createCity({
         }
       }
       if (previewOn && landmarks) landmarks.update({ focus, distance: camDist });
+      if (previewOn && transit) transit.update(ctx.time ?? 0);
       const a = groundAnchor(focus);
       ground.position.set(a.x, CITY_GROUND.y, a.z);
       for (const action of streamer.update(focus)) {
@@ -180,6 +183,8 @@ export async function createCity({
       previewOn = Boolean(value);
       landmarks ??= createLandmarks({ parent: group, baseUrl, loadGltf: createGltfLoader(), logger });
       landmarks.setActive(previewOn);
+      transit ??= createTransitLines({ parent: group });
+      transit.setActive(previewOn);
       if (previewOn) {
         farPromise ??= createFarCity({ scene: group, baseUrl, logger }).catch((err) => { logger.error('Kota jauh gagal:', err); return null; });
         farPromise.then(async (f) => {
@@ -208,6 +213,7 @@ export async function createCity({
       for (const w of [...waiters]) settle(w, false);
       farPromise?.then((f) => f?.dispose());
       landmarks?.dispose();
+      transit?.dispose();
       tileMerge?.dispose();
       vehicles.dispose(); // muatan kendaraan yang telat dibuang (tidak dipasang/didaftarkan)
       loader.dispose(); // muatan yang masih berjalan dibuang saat selesai (tidak dipasang/didaftarkan)

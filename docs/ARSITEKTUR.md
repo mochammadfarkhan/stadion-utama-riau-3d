@@ -99,6 +99,7 @@ Aturan praktis untuk sistem baru:
 
 | Tanggal | Keputusan | Alasan / rujukan |
 |---|---|---|
+| 2026-11-22 | Mode Kota: jaringan jalur layang MRT & LRT Pekanbaru (`city/transitData.js`, `city/transitLines.js`) dengan stasiun interchange Living World / SKA, ±5 draw call gabungan/instanced, aktif saat pratinjau K | permintaan user ("mrt line stop di living world") |
 | 2026-11-15 | Sekre: model realistis CC0 Poly Haven (`HQ_ASET`, `tools/sekrehq/build.mjs`) + sorot sore ber-cookie hanya di preset Tinggi; Rendah tetap low poly | permintaan user (rujukan foto meja bersinar sore); laptop iGPU tetap di Rendah |
 | 2026-11-14 | Rampingkan berkas gemuk tanpa ubah perilaku: `main.js` → `app/*`, perabot sekre satu model satu berkas, ESLint `max-lines` 400 (peringatan) | permintaan user: kode dirapikan dulu sebelum kartu R01–R25 dikerjakan model kecil; enam kartu menyentuh `main.js` |
 | 2026-11-15 | Warga kampus memakai pack orang low poly kiriman user (`entities/Orang.js`, kit NPC sama dengan `createStudentKit`; 1 SkinnedMesh/orang, 19 klip bersama, palet 256 px × kulit sawo/terang); humanoid lama = cadangan & setelan `graphics.orangPack`. Ruang uji dev `/ruang-uji.html` | permintaan user; FBX mentah tanpa lisensi tetap di `data-src/` (tidak di-commit) |

@@ -103,6 +103,7 @@ Lihat [ganti-model](ganti-model/README.md).
 ## Log kerja
 | Tanggal | Perubahan | Hasil ukur |
 |---|---|---|
+| 2026-11-22 | Jalur MRT & LRT Pekanbaru di mode Kota (`city/transitData.js`, `city/transitLines.js`): 2 jalur layang (MRT Panam–Living World–Mall Pekanbaru & LRT Bandara SSK II–Living World–Senapelan), 17 stasiun berkanopi (hub interchange Living World / SKA berskybridge), kereta 3–4 gerbong bergerak & berhenti di stasiun | 3 tes murni (`transitData.test.js`); bidikan `living-world` zoom 0,45–1,2: 61–96 draw call, 0 galat |
 | 2026-11-13 | Putaran kritik 1 (tanpa perubahan kode): 10 bidikan GPU + barisan NPC, hasil di `docs/KRITIK.md` (tiap temuan: berkas + perubahan + cara cek, 12 paket kerja); bagian Landmark dipecah jadi tingkat A/B/C + urutan K1–K8 | zoom penuh 1.423 call / 4,98 jt segitiga / 12 fps; titik awal 466 call / 2,17 jt; humanoid 5.546 segitiga |
 | 2026-11-14 | Putaran kritik 2 + kartu kerja (tanpa perubahan kode permainan): data bangunan dianalisis (98,8% tanpa kelas), angka diukur ulang dengan `tools/shots/kritik.mjs` (zoom penuh 1.399 draw call / 4,95 jt segitiga), rencana Kota dipecah jadi kartu R04, R06, R07, R08, R11, R12 di `docs/rencana/` |
 | 2026-11-13 | Kota jauh v1 (bangunan kotak sejajar sumbu, jalan kelas ≤5, peta tanah) | 380 rb bangunan, 4,7 MB |
