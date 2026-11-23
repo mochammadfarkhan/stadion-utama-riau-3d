@@ -9,6 +9,7 @@ export const GENERATED_LANDMARKS = Object.freeze([
   { id: 'mal-ska', name: 'Mal SKA', x: 3179.9, z: -1767.8, yaw: 0, files: ['mal-ska-lod0.glb', 'mal-ska-lod1.glb', 'mal-ska-lod2.glb'], lod: [1300, 2800] },
   { id: 'swiss-belinn-ska', name: 'Swiss-Belinn SKA', x: 3216.4, z: -1687.3, yaw: 0, files: ['swiss-belinn-ska-lod0.glb', 'swiss-belinn-ska-lod1.glb', 'swiss-belinn-ska-lod2.glb'], lod: [1300, 2800] },
   { id: 'living-world', name: 'Living World Pekanbaru', x: 3437.9, z: -1817.2, yaw: 0, files: ['living-world-lod0.glb', 'living-world-lod1.glb', 'living-world-lod2.glb'], lod: [1300, 2800] },
+  { id: 'flyover-ska', name: 'Flyover Simpang SKA', x: 3308.0, z: -1870.0, yaw: 0, files: ['flyover-ska-lod0.glb', 'flyover-ska-lod1.glb', 'flyover-ska-lod2.glb'], lod: [1300, 2800] },
   { id: 'ciputra-seraya-mall', name: 'Mal Ciputra Seraya', x: 4543.9, z: -5775.0, yaw: 0, files: ['ciputra-seraya-mall-lod0.glb', 'ciputra-seraya-mall-lod1.glb', 'ciputra-seraya-mall-lod2.glb'], lod: [1300, 2800] },
   { id: 'mall-pekanbaru', name: 'Mall Pekanbaru', x: 6531.9, z: -5325.6, yaw: 0, files: ['mall-pekanbaru-lod0.glb', 'mall-pekanbaru-lod1.glb', 'mall-pekanbaru-lod2.glb'], lod: [1300, 2800] },
   { id: 'plaza-suka-ramai', name: 'Plaza Suka Ramai', x: 6340.8, z: -5025.5, yaw: 0, files: ['plaza-suka-ramai-lod0.glb', 'plaza-suka-ramai-lod1.glb', 'plaza-suka-ramai-lod2.glb'], lod: [1300, 2800] },

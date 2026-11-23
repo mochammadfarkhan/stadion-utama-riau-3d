@@ -216,6 +216,62 @@ def b_swiss_belinn(spec):
     return fr, build
 
 
+def b_flyover_ska(spec):
+    """Flyover Simpang SKA (Jl. Soekarno-Hatta di atas Jl. Tuanku Tambusai): oprit, geladak, pilar, ornamen Melayu, PJU."""
+    cx, cz = 3308.0, -1870.0
+    fr = Frame([[(cx, cz)]])
+    dx, dy = -45.0, 800.0
+    norm = math.hypot(dx, dy)
+    ux, uy = dx / norm, dy / norm
+    nx, ny = -uy, ux
+
+    def build(lod):
+        m = Mesh()
+        W, H, thick = 16.5, 6.2, 1.1
+        # Profil memanjang: [s, z_permukaan, is_ramp]
+        pts_s = [-360, -180, -100, 0, 100, 180, 360] if lod < 2 else [-360, -180, 180, 360]
+        z_of = lambda s: H if abs(s) <= 180 else H * max(0.01, (360 - abs(s)) / 180.0)  # noqa: E731
+
+        for i in range(len(pts_s) - 1):
+            s0, s1 = pts_s[i], pts_s[i + 1]
+            z0, z1 = z_of(s0), z_of(s1)
+            p0 = (ux * s0, uy * s0, z0)
+            p1 = (ux * s1, uy * s1, z1)
+            # Badan oprit penuh hingga tanah di ujung; geladak melayang di bentang tengah
+            if abs((s0 + s1) * 0.5) > 180:
+                bot0 = max(0.0, z0 * 0.5)
+                bot1 = max(0.0, z1 * 0.5)
+                m.prism((ux * s0, uy * s0, bot0), (ux * s1, uy * s1, bot1), W - 0.8, "#c8ccd4", wz=max(z0, z1))
+            # Permukaan aspal + parapet kiri/kanan + median
+            m.prism(p0, p1, W, "#323640", caps=True, wz=thick)
+            for sg in (-1, 1):
+                off = sg * (W * 0.5 - 0.35)
+                m.prism((p0[0] + nx * off, p0[1] + ny * off, z0 + 0.55), (p1[0] + nx * off, p1[1] + ny * off, z1 + 0.55), 0.65, "#e2e6ec", wz=0.95)
+                if abs((s0 + s1) * 0.5) <= 180:
+                    # Ornamen Melayu kuning-emas & hijau di sisi luar bentang tengah
+                    eoff = sg * (W * 0.5 + 0.05)
+                    m.prism((p0[0] + nx * eoff, p0[1] + ny * eoff, z0 - 0.15), (p1[0] + nx * eoff, p1[1] + ny * eoff, z1 - 0.15), 0.18, "#f0b83a", wz=0.42)
+                    m.prism((p0[0] + nx * eoff, p0[1] + ny * eoff, z0 - 0.55), (p1[0] + nx * eoff, p1[1] + ny * eoff, z1 - 0.55), 0.18, "#269956", wz=0.35)
+            m.prism((p0[0], p0[1], z0 + 0.45), (p1[0], p1[1], z1 + 0.45), 0.6, "#d4d8df", wz=0.65)
+
+        # Pilar beton T-pier di bentang layang (hindari tepat di tengah simpang s=0)
+        for s in (-165, -95, 95, 165):
+            px, py = ux * s, uy * s
+            m.box(px, py, 0.0, 3.2, 3.2, H - 0.9, "#b8bec8")
+            m.prism((px - nx * 6.5, py - ny * 6.5, H - 0.8), (px + nx * 6.5, py + ny * 6.5, H - 0.8), 2.2, "#c8cdd6", caps=True, wz=0.9)
+
+        if lod == 0:
+            # Tiang PJU ganda di median (kepala gelap agar menyala hangat di malam hari)
+            for s in range(-300, 301, 60):
+                px, py, pz = ux * s, uy * s, z_of(s)
+                m.box(px, py, pz + 0.6, 0.35, 0.35, 5.2, "#cfd4dc")
+                m.prism((px - nx * 2.4, py - ny * 2.4, pz + 5.7), (px + nx * 2.4, py + ny * 2.4, pz + 5.7), 0.25, "#cfd4dc", wz=0.22)
+                for sg in (-1, 1):
+                    m.box(px + nx * (2.3 * sg), py + ny * (2.3 * sg), pz + 5.45, 0.8, 0.5, 0.28, "#12151a")
+        return m
+    return fr, build
+
+
 # ---------------- Melayu: atap bertingkat + selembayung ----------------
 def melayu_roof(m, poly, z0, lod, roof, trim, scale=1.0, tiers=2, h1=7.0, eave=2.5):
     cx, cy, ang, L, W = min_rect(poly)
@@ -520,6 +576,7 @@ SPECS = [
     dict(id="mal-ska", name="Mal SKA", fn=b_mal_ska, ways=[280698814]),
     dict(id="swiss-belinn-ska", name="Swiss-Belinn SKA", fn=b_swiss_belinn, ways=[327403746]),
     dict(id="living-world", name="Living World Pekanbaru", fn=b_living_world, ways=[327710042]),
+    dict(id="flyover-ska", name="Flyover Simpang SKA", fn=b_flyover_ska),
     dict(id="ciputra-seraya-mall", name="Mal Ciputra Seraya", fn=b_mal, ways=[327709577], wall="#e9dccb", accent="#b5382c", sign=24, **MAL),
     dict(id="mall-pekanbaru", name="Mall Pekanbaru", fn=b_mal, ways=[465740381], wall="#ddd9d2", accent="#c57a1a", sign=22, **MAL),
     dict(id="plaza-suka-ramai", name="Plaza Suka Ramai", fn=b_mal, ways=[465325690], wall="#e6ddcc", accent="#7a3b8f", sign=28, **{**MAL, "levels": 3}),
