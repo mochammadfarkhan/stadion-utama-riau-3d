@@ -125,8 +125,17 @@ def _facade_fins(m, cx, cy, ang, L, W, z0, z1, count, col, depth=0.65, width=0.5
             m.prism((px, py, z0), (px, py, z1), width, col, wz=width)
 
 
+def _soft_bands(z0, n, fh, wall, glass="#243547"):
+    """Pita jendela lebih ramping (26% tinggi lantai) agar fasad tidak tampak belang zebra."""
+    out = []
+    for k in range(n):
+        z = z0 + k * fh
+        out += [(z, z + 0.42 * fh, wall), (z + 0.42 * fh, z + 0.68 * fh, glass), (z + 0.68 * fh, z + fh, wall)]
+    return out
+
+
 def b_mal_ska(spec):
-    """Mal SKA Pekanbaru: podium krem-putih, lis biru-emas, 3 skylight atrium, pylon sudut simpang."""
+    """Mal SKA Pekanbaru: cladding Gull Grey, 3 skylight berangka putih, kanopi entrance, pylon simpang."""
     fr = Frame([way(w) for w in spec["ways"]])
 
     def build(lod):
@@ -134,68 +143,83 @@ def b_mal_ska(spec):
         w = spec["ways"][0]
         poly = simplify(fr.pts(way(w)), tol(lod))
         H = 5 * 4.5
-        wall, blue, gold, glass = "#f2efe8", "#1f6feb", "#f0a830", "#7cc0e8"
-        m.extrude(poly, 0, H, wall, roof="#9aa3ad", bands=bands(0, 5, 4.5, wall, "#172433") if lod == 0 else None)
-        m.extrude(poly, H, H + 1.5, blue)
-        m.extrude(poly, H + 1.5, H + 2.0, gold)
+        wall, panel, blue, gold, glass = "#e2e5ea", "#cfd5dd", "#1f6feb", "#f0a830", "#7cc0e8"
+        m.extrude(poly, 0, 0.35, "#d8d3c8")  # pelataran trotoar mal
+        m.extrude(poly, 0.35, H, wall, roof="#aeb6c0", bands=_soft_bands(0.35, 5, 4.43, wall) if lod == 0 else None)
+        m.extrude(poly, H, H + 1.4, panel)
+        m.extrude(poly, H + 1.4, H + 2.0, blue)
 
         cx, cy, ang, L, W = min_rect(poly)
         c, s = math.cos(ang), math.sin(ang)
-        # 3 skylight atrium kaca di atap agar tidak polos
+        # 3 skylight atrium kaca + rangka kisi putih
         for k in (-0.28, 0.0, 0.28):
-            ux = cx + math.cos(ang) * (L * k)
-            uy = cy + math.sin(ang) * (L * k)
-            m.hip(ux, uy, ang, L * 0.22, W * 0.46, H + 0.2, 4.4, 0.72, glass)
-        # Pylon menara ikonik di sudut menghadap Simpang SKA (+L/2, -W/2)
-        px = cx + c * (L * 0.42) - s * (-W * 0.38)
-        py = cy + s * (L * 0.42) + c * (-W * 0.38)
-        m.box(px, py, H, 10.0, 10.0, 8.5, blue)
-        m.box(px, py, H + 8.5, 10.6, 10.6, 1.4, gold)
+            ux = cx + c * (L * k)
+            uy = cy + s * (L * k)
+            m.box(ux, uy, H + 1.4, L * 0.23, W * 0.48, 0.6, "#eef2f6")
+            m.hip(ux, uy, ang, L * 0.21, W * 0.44, H + 2.0, 4.2, 0.72, glass)
+        # Kanopi main entrance menghadap Simpang SKA (+L/2)
+        ex = cx + c * (L * 0.48)
+        ey = cy + s * (L * 0.48)
+        m.box(ex, ey, 6.5, 14.0, 26.0, 1.2, panel)
+        m.box(ex, ey, 7.7, 14.4, 26.4, 0.5, blue)
+        # Pylon menara SKA di sudut simpang
+        px = cx + c * (L * 0.43) - s * (-W * 0.38)
+        py = cy + s * (L * 0.43) + c * (-W * 0.38)
+        m.box(px, py, H + 1.4, 8.5, 8.5, 9.0, blue)
+        m.box(px, py, H + 10.4, 9.2, 9.2, 1.4, gold)
         if lod == 0:
-            _facade_fins(m, cx, cy, ang, L, W, 3.0, H, 14, "#e6e2d8")
-            sign_on_longest(m, poly, H - 3.6, 36, blue, lod)
-            ac_boxes(m, poly, H, lod, w)
+            _facade_fins(m, cx, cy, ang, L, W, 3.0, H, 14, panel)
+            sign_on_longest(m, poly, H - 3.4, 36, blue, lod)
+            ac_boxes(m, poly, H + 1.4, lod, w)
         return m
     return fr, build
 
 
 def b_living_world(spec):
-    """Living World Pekanbaru: fasad krem-kayu, lis hijau zamrud, atrium skylight toska & taman atap."""
+    """Living World Pekanbaru: fasad modern abu-putih & kaca curtain wall, kanopi megah, atrium berangka."""
     fr = Frame([way(w) for w in spec["ways"]])
 
     def build(lod):
         m = Mesh()
         w = spec["ways"][0]
         poly = simplify(fr.pts(way(w)), tol(lod))
-        H = 4 * 4.7
-        wall, green, wood, glass = "#f3ead8", "#269956", "#c98548", "#75cfc4"
-        m.extrude(poly, 0, H, wall, roof="#a8a498", bands=bands(0, 4, 4.7, wall, "#16242c") if lod == 0 else None)
-        m.extrude(poly, H, H + 1.4, green)
-        m.extrude(poly, H - 1.2, H, wood)
+        H = 5 * 4.4
+        wall, dark, wood, green, glass = "#eceae4", "#464d57", "#c98548", "#269956", "#78cfc6"
+        m.extrude(poly, 0, 0.35, "#d8d3c8")  # pelataran depan
+        m.extrude(poly, 0.35, H, wall, roof="#b4b8be", bands=_soft_bands(0.35, 5, 4.33, wall, "#20303c") if lod == 0 else None)
+        m.extrude(poly, H, H + 1.5, dark)
+        m.extrude(poly, H + 1.5, H + 2.0, green)
 
         cx, cy, ang, L, W = min_rect(poly)
         c, s = math.cos(ang), math.sin(ang)
-        # Atrium skylight besar di tengah + sayap hijau taman atap
-        m.hip(cx, cy, ang, L * 0.46, W * 0.44, H + 0.2, 5.2, 0.68, glass)
+        # Atrium skylight bertingkat + rangka putih + teras hijau di atap
+        m.box(cx, cy, H + 1.5, L * 0.48, W * 0.46, 0.8, "#f2f4f7")
+        m.hip(cx, cy, ang, L * 0.44, W * 0.42, H + 2.3, 5.2, 0.68, glass)
         for sg in (-1, 1):
-            tx = cx + c * (L * 0.32 * sg)
-            ty = cy + s * (L * 0.32 * sg)
-            m.box(tx, ty, H + 0.1, 18.0, W * 0.42, 0.8, "#5aa854")
-        # Menara penanda hijau-emas menghadap Jl. Tuanku Tambusai
+            tx = cx + c * (L * 0.33 * sg)
+            ty = cy + s * (L * 0.33 * sg)
+            m.box(tx, ty, H + 1.5, 16.0, W * 0.38, 0.6, "#5aa854")
+        # Kanopi curtain wall & main entrance menghadap Jl. Tuanku Tambusai (-W/2)
+        fx = cx - s * (-W * 0.48)
+        fy = cy + c * (-W * 0.48)
+        m.box(fx, fy, 4.5, 36.0, 8.0, 12.0, "#243b4a")
+        m.box(fx, fy, 7.2, 40.0, 14.0, 1.0, dark)
+        m.box(fx, fy, 8.2, 40.4, 14.4, 0.4, wood)
+        # Menara penanda Living World di sudut barat laut
         px = cx + c * (-L * 0.36) - s * (-W * 0.36)
         py = cy + s * (-L * 0.36) + c * (-W * 0.36)
-        m.box(px, py, H, 9.0, 9.0, 7.5, green)
-        m.box(px, py, H + 7.5, 9.6, 9.6, 1.2, "#f0b83a")
+        m.box(px, py, H + 1.5, 8.5, 8.5, 8.0, dark)
+        m.box(px, py, H + 9.5, 9.0, 9.0, 1.4, green)
         if lod == 0:
             _facade_fins(m, cx, cy, ang, L, W, 2.5, H, 12, wood)
-            sign_on_longest(m, poly, H - 3.4, 34, green, lod)
-            ac_boxes(m, poly, H, lod, w)
+            sign_on_longest(m, poly, H - 3.2, 34, green, lod)
+            ac_boxes(m, poly, H + 1.5, lod, w)
         return m
     return fr, build
 
 
 def b_swiss_belinn(spec):
-    """Swiss-Belinn SKA: podium batu krem + menara hotel kaca 12 lantai + mahkota biru-merah."""
+    """Swiss-Belinn SKA: podium batu krem + menara hotel krem-abu 12 lantai + mahkota modern."""
     fr = Frame([way(w) for w in spec["ways"]])
 
     def build(lod):
@@ -203,21 +227,21 @@ def b_swiss_belinn(spec):
         w = spec["ways"][0]
         poly = simplify(fr.pts(way(w)), tol(lod))
         H = 12 * 3.6
-        wall, blue, red = "#eef1f5", "#1c4e9c", "#d94e3b"
-        m.extrude(poly, 0, 10.5, "#e6dfd2", roof=None, bands=bands(0, 3, 3.5, "#e6dfd2", "#182432") if lod == 0 else None)
-        m.extrude(poly, 10.5, H, wall, roof="#8c96a4", bands=bands(10.5, 9, 3.6, wall, "#152334") if lod == 0 else None)
-        m.extrude(poly, H, H + 2.2, blue)
-        m.extrude(poly, H + 2.2, H + 3.0, red)
+        wall, blue, accent = "#ebe8e0", "#224d8f", "#c94638"
+        m.extrude(poly, 0, 10.5, "#dfd9ce", roof=None, bands=_soft_bands(0, 3, 3.5, "#dfd9ce", "#223446") if lod == 0 else None)
+        m.extrude(poly, 10.5, H, wall, roof="#9aa3b0", bands=_soft_bands(10.5, 9, 3.6, wall, "#203347") if lod == 0 else None)
+        m.extrude(poly, H, H + 2.0, blue)
+        m.extrude(poly, H + 2.0, H + 2.6, accent)
         cx, cy, ang, L, W = min_rect(poly)
-        m.hip(cx, cy, ang, L * 0.72, W * 0.72, H + 3.0, 3.8, 0.5, "#235eb8")
+        m.hip(cx, cy, ang, L * 0.72, W * 0.72, H + 2.6, 3.6, 0.5, "#2b62b5")
         if lod == 0:
-            _facade_fins(m, cx, cy, ang, L, W, 10.5, H, 8, "#dfe5ed", depth=0.5, width=0.45)
+            _facade_fins(m, cx, cy, ang, L, W, 10.5, H, 8, "#f5f7fa", depth=0.5, width=0.45)
         return m
     return fr, build
 
 
 def b_flyover_ska(spec):
-    """Flyover Simpang SKA (Jl. Soekarno-Hatta di atas Jl. Tuanku Tambusai): oprit, geladak, pilar, ornamen Melayu, PJU."""
+    """Flyover Simpang SKA (Jl. Soekarno-Hatta di atas Jl. Tuanku Tambusai): oprit, geladak, pilar ganda, ornamen Melayu merah-kuning-hijau, PJU."""
     cx, cz = 3308.0, -1870.0
     fr = Frame([[(cx, cz)]])
     dx, dy = -45.0, 800.0
@@ -228,7 +252,6 @@ def b_flyover_ska(spec):
     def build(lod):
         m = Mesh()
         W, H, thick = 16.5, 6.2, 1.1
-        # Profil memanjang: [s, z_permukaan, is_ramp]
         pts_s = [-360, -180, -100, 0, 100, 180, 360] if lod < 2 else [-360, -180, 180, 360]
         z_of = lambda s: H if abs(s) <= 180 else H * max(0.01, (360 - abs(s)) / 180.0)  # noqa: E731
 
@@ -237,35 +260,38 @@ def b_flyover_ska(spec):
             z0, z1 = z_of(s0), z_of(s1)
             p0 = (ux * s0, uy * s0, z0)
             p1 = (ux * s1, uy * s1, z1)
-            # Badan oprit penuh hingga tanah di ujung; geladak melayang di bentang tengah
             if abs((s0 + s1) * 0.5) > 180:
                 bot0 = max(0.0, z0 * 0.5)
                 bot1 = max(0.0, z1 * 0.5)
-                m.prism((ux * s0, uy * s0, bot0), (ux * s1, uy * s1, bot1), W - 0.8, "#c8ccd4", wz=max(z0, z1))
-            # Permukaan aspal + parapet kiri/kanan + median
+                m.prism((ux * s0, uy * s0, bot0), (ux * s1, uy * s1, bot1), W - 0.8, "#d4d8df", wz=max(z0, z1))
             m.prism(p0, p1, W, "#323640", caps=True, wz=thick)
             for sg in (-1, 1):
                 off = sg * (W * 0.5 - 0.35)
-                m.prism((p0[0] + nx * off, p0[1] + ny * off, z0 + 0.55), (p1[0] + nx * off, p1[1] + ny * off, z1 + 0.55), 0.65, "#e2e6ec", wz=0.95)
+                m.prism((p0[0] + nx * off, p0[1] + ny * off, z0 + 0.55), (p1[0] + nx * off, p1[1] + ny * off, z1 + 0.55), 0.65, "#eceff4", wz=0.95)
                 if abs((s0 + s1) * 0.5) <= 180:
-                    # Ornamen Melayu kuning-emas & hijau di sisi luar bentang tengah
-                    eoff = sg * (W * 0.5 + 0.05)
-                    m.prism((p0[0] + nx * eoff, p0[1] + ny * eoff, z0 - 0.15), (p1[0] + nx * eoff, p1[1] + ny * eoff, z1 - 0.15), 0.18, "#f0b83a", wz=0.42)
-                    m.prism((p0[0] + nx * eoff, p0[1] + ny * eoff, z0 - 0.55), (p1[0] + nx * eoff, p1[1] + ny * eoff, z1 - 0.55), 0.18, "#269956", wz=0.35)
-            m.prism((p0[0], p0[1], z0 + 0.45), (p1[0], p1[1], z1 + 0.45), 0.6, "#d4d8df", wz=0.65)
+                    # Tiga pita warna adat Melayu Riau (Merah, Kuning-Emas, Hijau) sepanjang bentang tengah
+                    eoff = sg * (W * 0.5 + 0.06)
+                    m.prism((p0[0] + nx * eoff, p0[1] + ny * eoff, z0 + 0.45), (p1[0] + nx * eoff, p1[1] + ny * eoff, z1 + 0.45), 0.2, "#c9362b", wz=0.32)
+                    m.prism((p0[0] + nx * eoff, p0[1] + ny * eoff, z0 + 0.05), (p1[0] + nx * eoff, p1[1] + ny * eoff, z1 + 0.05), 0.2, "#f0b83a", wz=0.38)
+                    m.prism((p0[0] + nx * eoff, p0[1] + ny * eoff, z0 - 0.38), (p1[0] + nx * eoff, p1[1] + ny * eoff, z1 - 0.38), 0.2, "#269956", wz=0.34)
+            m.prism((p0[0], p0[1], z0 + 0.45), (p1[0], p1[1], z1 + 0.45), 0.65, "#dde1e8", wz=0.65)
 
-        # Pilar beton T-pier di bentang layang (hindari tepat di tengah simpang s=0)
+        # Pilar kolom ganda berpondasi (lebih ramping & arsitektural)
         for s in (-165, -95, 95, 165):
             px, py = ux * s, uy * s
-            m.box(px, py, 0.0, 3.2, 3.2, H - 0.9, "#b8bec8")
-            m.prism((px - nx * 6.5, py - ny * 6.5, H - 0.8), (px + nx * 6.5, py + ny * 6.5, H - 0.8), 2.2, "#c8cdd6", caps=True, wz=0.9)
+            for sg in (-1, 1):
+                m.box(px + nx * (4.2 * sg), py + ny * (4.2 * sg), 0.0, 2.0, 2.0, H - 0.9, "#bcc2cc")
+            m.prism((px - nx * 6.8, py - ny * 6.8, H - 0.8), (px + nx * 6.8, py + ny * 6.8, H - 0.8), 2.1, "#cfd4dc", caps=True, wz=0.95)
 
         if lod == 0:
+            # Sepasang ornamen selembayung Melayu di puncak bentang tengah (s = 0)
+            for sg in (-1, 1):
+                x_finial(m, nx * (W * 0.52 * sg), ny * (W * 0.52 * sg), H + 1.1, math.atan2(ny, nx), 2.8, "#f0b83a")
             # Tiang PJU ganda di median (kepala gelap agar menyala hangat di malam hari)
             for s in range(-300, 301, 60):
                 px, py, pz = ux * s, uy * s, z_of(s)
-                m.box(px, py, pz + 0.6, 0.35, 0.35, 5.2, "#cfd4dc")
-                m.prism((px - nx * 2.4, py - ny * 2.4, pz + 5.7), (px + nx * 2.4, py + ny * 2.4, pz + 5.7), 0.25, "#cfd4dc", wz=0.22)
+                m.box(px, py, pz + 0.6, 0.32, 0.32, 5.2, "#d8dde5")
+                m.prism((px - nx * 2.4, py - ny * 2.4, pz + 5.7), (px + nx * 2.4, py + ny * 2.4, pz + 5.7), 0.24, "#d8dde5", wz=0.22)
                 for sg in (-1, 1):
                     m.box(px + nx * (2.3 * sg), py + ny * (2.3 * sg), pz + 5.45, 0.8, 0.5, 0.28, "#12151a")
         return m

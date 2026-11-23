@@ -109,18 +109,37 @@ function appendStations(track, structParts, accentParts) {
     const stLen = st.interchange ? 74 : 58;
     const stWidth = dw + (st.interchange ? 8.5 : 6.2);
 
-    // Peron kanan & kiri di samping rel + atap kanopi modern
+    // Peron kanan & kiri di samping rel + dinding kaca peron
     const sideOff = dw * 0.5 + (stWidth - dw) * 0.25;
     const pW = (stWidth - dw) * 0.5;
     structParts.push(makeBox(pW, 1.1, stLen, st.x + nx * sideOff, y + 0.35, st.z + nz * sideOff, yaw, COLOR_PARAPET));
     structParts.push(makeBox(pW, 1.1, stLen, st.x - nx * sideOff, y + 0.35, st.z - nz * sideOff, yaw, COLOR_PARAPET));
-    structParts.push(makeBox(stWidth + 1.4, 0.5, stLen + 2, st.x, y + 5.2, st.z, yaw, COLOR_ROOF));
+    // Kanopi lengkung 3-segmen modern (atap tengah tinggi + sayap miring kiri-kanan)
+    structParts.push(makeBox(stWidth * 0.56, 0.42, stLen + 2.4, st.x, y + 5.75, st.z, yaw, COLOR_ROOF));
+    for (const sg of [-1, 1]) {
+      const wx = st.x + nx * (stWidth * 0.36 * sg);
+      const wz = st.z + nz * (stWidth * 0.36 * sg);
+      const wing = new THREE.BoxGeometry(stWidth * 0.38, 0.32, stLen + 2.2);
+      wing.rotateZ(-0.28 * sg);
+      if (yaw) wing.rotateY(yaw);
+      wing.translate(wx, y + 5.25, wz);
+      structParts.push(paintGeo(wing, COLOR_ROOF));
+      // Tiang penyangga tepi peron
+      for (const dz of [-stLen * 0.38, 0, stLen * 0.38]) {
+        const px = st.x + nx * (stWidth * 0.45 * sg) + sample.ux * dz;
+        const pz = st.z + nz * (stWidth * 0.45 * sg) + sample.uz * dz;
+        structParts.push(makeBox(0.45, 4.4, 0.45, px, y + 2.9, pz, yaw, COLOR_PILLAR));
+      }
+    }
 
-    // Pita warna jalur di keliling kanopi stasiun
-    accentParts.push(makeBox(stWidth + 1.65, 0.42, stLen + 2.2, st.x, y + 4.85, st.z, yaw, lineColor));
+    // Pita warna jalur & skylight kaca di puncak kanopi stasiun
+    accentParts.push(makeBox(stWidth * 0.44, 0.22, stLen + 1.2, st.x, y + 6.02, st.z, yaw, lineColor));
+    for (const sg of [-1, 1]) {
+      accentParts.push(makeBox(0.28, 0.36, stLen + 2.4, st.x + nx * (stWidth * 0.53 * sg), y + 4.82, st.z + nz * (stWidth * 0.53 * sg), yaw, lineColor));
+    }
     if (st.interchange) {
-      // Aksen emas Melayu untuk stasiun hub Living World / SKA
-      accentParts.push(makeBox(stWidth + 1.9, 0.32, 8, st.x, y + 5.55, st.z, yaw, accentColor));
+      // Mahkota emas Melayu untuk stasiun hub Living World / SKA
+      accentParts.push(makeBox(stWidth * 0.65, 0.38, 10, st.x, y + 6.22, st.z, yaw, accentColor));
     }
   }
 }
