@@ -11,7 +11,8 @@ Depan = ke plaza putih luas di timur-tenggara (citra satelit Google Maps).
 [INFERENSI] semua ukuran detail (tinggi kubah ±38 m, menara ±54 m, jumlah ceruk, tata letak 1 utama + 1 depan + 4 samping
 + 4 puncak menara = 10 kubah). 
 Konvensi: DEPAN = -Y Blender (= +Z three.js), origin di tanah pusat jejak, sumbu Z atas (diekspor Y-atas).
-Warna per vertex (tanpa tekstur), datar (low poly). Segitiga: LOD0 ≤ 5 rb, LOD1 ≈ 0,8 rb, LOD2 ≈ 0,2 rb.
+Warna per vertex (tanpa tekstur), datar (low poly). Segitiga: LOD0 ≤ 12 rb (dinaikkan 2026-11-24: bentuk mengikuti
+gambar rujukan Flow: portal runcing tinggi, pilaster, parapet bergerigi, balkon menara), LOD1 ≈ 1,2 rb, LOD2 ≈ 0,3 rb.
 """
 import math
 import os
@@ -26,6 +27,8 @@ C = {
     "plinth": "#b9b09a", "wall": "#dcd1b6", "trim": "#c9d1b0", "plaza": "#e7e4d9", "kolam": "#b4b0a0", "frame": "#c9b57a", "dark": "#2a3b3a",
     "dome": "#3aa391", "dome2": "#2f8f80", "drum": "#ece5d2", "gold": "#d8aa2e", "shaft": "#e2d08e",
     "band": "#3a9a88", "roof": "#9d9a92", "step": "#cfc7b2",
+    # 2026-11-24 (mengikuti gambar rujukan Flow): pilaster terang, pita toska tua, pintu kayu, atap dalam
+    "pil": "#f1e7cc", "band2": "#1f6f66", "door": "#6b4a2a", "roof2": "#c9c0a8",
 }
 
 
@@ -82,11 +85,17 @@ class Mesh:
                 self.poly([(cx, cy, z0 + d), (cx + r * math.cos(a0), cy + r * math.sin(a0), z0 + d),
                            (cx + r * math.cos(a1), cy + r * math.sin(a1), z0 + d)], col)
 
-    def arch(self, nx, ny, px, py, zb, w, zs, col, arcseg=5, off=0.05, rect_only=False):
-        """Panel datar pada dinding berarah normal (nx,ny): bawah di zb, lengkung di atas zs. (px,py) = pusat bawah."""
+    def arch(self, nx, ny, px, py, zb, w, zs, col, arcseg=5, off=0.05, rect_only=False, rise=None):
+        """Panel datar pada dinding berarah normal (nx,ny): bawah di zb, lengkung di atas zs. (px,py) = pusat bawah.
+        rise = tinggi lengkung RUNCING (gaya iwan); None = setengah lingkaran."""
         ux, uy = -ny, nx
         pts = [(-w / 2, zb), (w / 2, zb), (w / 2, zs)]
         if rect_only:
+            pts.append((-w / 2, zs))
+        elif rise:
+            for k in range(1, arcseg):
+                u = 1 - 2 * k / arcseg
+                pts.append(((w / 2) * u, zs + rise * (1 - abs(u)) ** 0.6))
             pts.append((-w / 2, zs))
         else:
             for k in range(1, arcseg):
@@ -123,11 +132,44 @@ def finial(m, cx, cy, z0, s, seg):
     m.revolve(cx, cy, z0, [(0.5 * s, 0), (0.35 * s, 0.5 * s), (0.6 * s, 0.9 * s), (0.2 * s, 2.0 * s), (0, 3.2 * s)], seg, C["gold"])
 
 
+def merlons(m, cx, cy, sx, sy, z, col, step=2.4, w=1.2, t=0.5, h=0.9):
+    """Parapet bergerigi mengelilingi persegi sx x sy (pusat cx, cy) di ketinggian z."""
+    for length, fixed, along_x in ((sx, sy / 2, True), (sy, sx / 2, False)):
+        n = max(2, int(length / step))
+        for i in range(n):
+            u = -length / 2 + (i + 0.5) * length / n
+            for s in (-1, 1):
+                if along_x:
+                    m.box(cx + u, cy + s * (fixed - t / 2), z, w, t, h, col)
+                else:
+                    m.box(cx + s * (fixed - t / 2), cy + u, z, t, w, h, col)
+
+
+def turret(m, cx, cy, z0, zt, r, seg=8):
+    """Menara kecil pengapit portal: batang segi-8, pita toska, kubah kecil + mustika."""
+    m.revolve(cx, cy, z0, [(r, 0), (r, zt - z0)], seg, C["pil"])
+    m.revolve(cx, cy, zt, [(r * 1.35, 0), (r * 1.35, 0.6), (r, 0.6)], seg, C["band"], cap_top=True)
+    dome(m, cx, cy, zt + 0.6, r * 1.15, r * 2.2, seg, 5)
+    finial(m, cx, cy, zt + 0.6 + r * 2.2, 0.5, 4)
+
+
 def minaret(m, cx, cy, lod):
     seg = 8 if lod == 0 else 6 if lod == 1 else 4
     m.box(cx, cy, 0.0, 4.4, 4.4, 7.0, C["trim"]) if lod < 2 else None
     z = 7.0 if lod < 2 else 1.2
     m.revolve(cx, cy, z, [(2.0, 0), (2.0, 35 - z)], seg, C["shaft"], cap_top=False)
+    if lod == 0:
+        # dari gambar rujukan: alas bertingkat, pita toska, balkon melingkar berpagar, jendela lengkung kecil
+        m.box(cx, cy, 0.0, 5.6, 5.6, 3.2, C["plinth"])
+        m.box(cx, cy, 7.0, 4.9, 4.9, 0.5, C["band"])
+        for zb in (14.0, 28.0):
+            m.revolve(cx, cy, zb, [(2.25, 0), (2.25, 0.7)], seg, C["band"])
+        m.revolve(cx, cy, 21.0, [(2.0, 0), (3.2, 0.9), (3.2, 1.1)], seg, C["pil"], cap_top=True)   # balkon melebar
+        m.revolve(cx, cy, 22.1, [(3.2, 0), (3.2, 1.0)], seg, C["trim"])                                # pagar balkon
+        for zb in (9.5, 16.5, 30.0):
+            for k in range(4):
+                a = math.pi / 2 * k + math.pi / 8
+                m.arch(math.cos(a), math.sin(a), 1.9 * math.cos(a), 1.9 * math.sin(a), zb, 0.9, zb + 1.6, C["dark"], arcseg=3, off=0.06)
     if lod < 2:
         m.revolve(cx, cy, 35, [(3.1, 0), (3.1, 1.2), (2.2, 1.2)], seg, C["band"], cap_top=True)
         m.revolve(cx, cy, 36.2, [(1.5, 0), (1.5, 9.8)], seg, C["shaft"])
@@ -153,12 +195,37 @@ def build_lod(lod):
     m.box(0, 0, Z0, BX, BY, ZT - Z0 - 1.0, C["wall"])
     m.box(0, 0, ZT - 1.0, BX + 1.0, BY + 1.0, 1.0, C["trim"])
     # tangga depan
-    steps = 4 if lod == 0 else 2 if lod == 1 else 1
+    steps = 6 if lod == 0 else 2 if lod == 1 else 1
     for k in range(steps):
-        m.box(0, -PY / 2 - 1.2 - k * 1.4, 0, 22 - k * 1.0, 2.8, 0.3 * (steps - k) if lod else 0.3 * (4 - k), C["step"])
+        if lod == 0:   # tangga lebar 30 m, 6 anak tangga sampai setinggi alas
+            m.box(0, -PY / 2 - 0.9 - k * 1.1, 0, 30 - k * 0.8, 2.2, (Z0 / steps) * (steps - k), C["step"])
+        else:
+            m.box(0, -PY / 2 - 1.2 - k * 1.4, 0, 22 - k * 1.0, 2.8, 0.3 * (steps - k), C["step"])
+    if lod == 0:       # pagar rendah di tepi alas (terbuka di depan tangga)
+        m.box(0, PY / 2 - 0.2, Z0, PX, 0.4, 0.9, C["pil"])
+        for sx in (-1, 1):
+            m.box(sx * (PX / 2 - 0.2), 0, Z0, 0.4, PY, 0.9, C["pil"])
+            m.box(sx * 22.75, -PY / 2 + 0.2, Z0, 15.5, 0.4, 0.9, C["pil"])
     # portiko depan
     m.box(0, -BY / 2 - 2.5, Z0, 22, 5, 17 - Z0, C["wall"])
     m.box(0, -BY / 2 - 2.5, 17, 23, 5.6, 1.0, C["trim"])
+    # portal tinggi (pishtaq) menjulang di atas atap, pita toska, gerigi, dua menara kecil pengapit (gambar rujukan)
+    PF = -BY / 2 - 5.8   # muka depan portal
+    if lod < 2:
+        m.box(0, -BY / 2 - 2.9, Z0, 14, 5.8, 21 - Z0, C["pil"])
+        m.box(0, -BY / 2 - 2.9, 21, 14.8, 6.4, 0.7, C["band"])
+    if lod == 0:
+        merlons(m, 0, -BY / 2 - 2.9, 14.8, 6.4, 21.7, C["pil"], step=1.8, w=0.9, t=0.4, h=0.8)
+        for sx in (-1, 1):
+            turret(m, sx * 7.7, PF + 0.2, Z0, 23.0, 1.0)
+            m.box(sx * (BX / 2 + 2.0), 0, Z0, 4.0, 12.0, 10.5 - Z0, C["pil"])          # serambi samping
+            m.box(sx * (BX / 2 + 2.0), 0, 10.5, 4.6, 12.6, 0.6, C["band"])
+            m.arch(sx, 0, sx * (BX / 2 + 4.0), 0, 1.4, 6.4, 5.4, C["frame"], arcseg=8, off=0.04, rise=4.0)
+            m.arch(sx, 0, sx * (BX / 2 + 4.0), 0, 1.5, 5.4, 5.3, C["dark"], arcseg=8, off=0.08, rise=3.5)
+        m.box(0, 0, 8.6, BX + 0.5, BY + 0.5, 0.35, C["frame"])                          # lis tengah
+        m.box(0, 0, ZT - 1.6, BX + 0.3, BY + 0.3, 0.6, C["band"])                       # pita toska di bawah parapet
+        merlons(m, 0, 0, BX + 1.0, BY + 1.0, ZT, C["pil"])
+        m.box(0, 0, ZT + 0.15, BX - 12, BY - 12, 0.08, C["roof2"])
     # ceruk lengkung & jendela
     if lod == 0:
         pw = 3.4
@@ -171,18 +238,28 @@ def build_lod(lod):
                 px, py = (u, ny * BY / 2) if ny else (nx * BX / 2, u)
                 if side == 0 and abs(u) < 14:
                     continue  # tertutup portiko
+                if side >= 2 and abs(u) < 7:
+                    continue  # tertutup serambi samping
                 m.arch(nx, ny, px, py, 2.4, pw + 0.7, 6.4, C["frame"], off=0.04)
                 m.arch(nx, ny, px, py, 2.5, pw, 6.4, C["dark"], off=0.08)
                 m.arch(nx, ny, px, py, 9.2, 2.4, 12.2, C["frame"], off=0.04, rect_only=True)
                 m.arch(nx, ny, px, py, 9.4, 1.9, 12.0, C["dark"], off=0.08, rect_only=True)
-        # lengkung besar portiko
-        m.arch(0, -1, 0, -BY / 2 - 5.0, 2.4, 10.0, 11.0, C["frame"], arcseg=8, off=0.04)
-        m.arch(0, -1, 0, -BY / 2 - 5.0, 2.5, 9.0, 11.0, C["dark"], arcseg=8, off=0.08)
+            for i in range(n + 1):   # pilaster di antara ceruk: relief nyata, memberi bayangan
+                u = -length / 2 + gap * (i + 0.5)
+                if (side == 0 and abs(u) < 12) or (side >= 2 and abs(u) < 7):
+                    continue
+                px, py = (u, ny * (BY / 2 + 0.25)) if ny else (nx * (BX / 2 + 0.25), u)
+                m.box(px, py, Z0, 0.9 if ny else 0.5, 0.5 if ny else 0.9, ZT - 1.0 - Z0, C["pil"])
+        # lengkung runcing besar portal + pintu kayu
+        m.arch(0, -1, 0, PF, 2.2, 11.0, 10.5, C["frame"], arcseg=10, off=0.04, rise=7.0)
+        m.arch(0, -1, 0, PF, 2.4, 9.6, 10.3, C["dark"], arcseg=10, off=0.09, rise=6.4)
+        m.arch(0, -1, 0, PF, 1.3, 4.2, 6.0, C["door"], arcseg=6, off=0.14, rise=2.6)
     elif lod == 1:
         for nx, ny in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
             length = BX if ny else BY
             px, py = (0, ny * BY / 2) if ny else (nx * BX / 2, 0)
             m.arch(nx, ny, px, py, 2.4, length - 12, 8.5, C["dark"], off=0.05, rect_only=True)
+        m.arch(0, -1, 0, PF, 2.4, 9.6, 10.3, C["dark"], arcseg=6, off=0.06, rise=6.4)
     # atap datar
     m.box(0, 0, ZT, BX - 1.0, BY - 1.0, 0.15, C["roof"]) if lod < 2 else None
     # kubah utama
@@ -194,6 +271,9 @@ def build_lod(lod):
             for k in range(12):
                 a = 2 * math.pi * (k + 0.5) / 12
                 m.arch(math.cos(a), math.sin(a), 12.5 * math.cos(a), 12.5 * math.sin(a), ZT + 2.0, 1.8, ZT + 5.0, C["dark"], arcseg=3, off=0.05)
+        if lod == 0:
+            m.revolve(0, 0, ZT, [(12.8, 0), (12.8, 0.6)], 16, C["band2"])
+            m.revolve(0, 0, ZT + 6.6, [(12.9, 0), (12.9, 0.9), (13.7, 0.9)], 24, C["band2"])
         dome(m, 0, 0, ZT + 7.5, 13.5, 16.0, seg_main, rings)
         finial(m, 0, 0, ZT + 23.5, 1.4, 8 if lod == 0 else 5)
     else:
@@ -207,6 +287,8 @@ def build_lod(lod):
             cx, cy = sx * 17.0, sy * 17.0
             if lod < 2:
                 m.revolve(cx, cy, ZT, [(5.2, 0), (5.2, 4.0)], 12 if lod == 0 else 8, C["drum"])
+                if lod == 0:
+                    m.revolve(cx, cy, ZT + 3.4, [(5.45, 0), (5.45, 0.6), (6.1, 0.6)], 12, C["band2"])
                 dome(m, cx, cy, ZT + 4.0, 6.0, 7.5, 16 if lod == 0 else 8, 5 if lod == 0 else 3)
             else:
                 dome(m, cx, cy, ZT, 6.0, 11.0, 6, 3)

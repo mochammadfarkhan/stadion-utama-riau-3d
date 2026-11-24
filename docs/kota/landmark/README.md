@@ -13,8 +13,8 @@ Daftar kandidat + sumber: [../DAFTAR-IKON.md](../DAFTAR-IKON.md). Rujukan foto l
 Jarak kamera → landmark ≈ **1300 m × zoom kota** (zoom 0,4–9). Satu draw call per landmark (hanya satu tingkat yang tampil), histeresis 12%.
 | Tingkat | Dipakai | An-Nur |
 |---|---|---|
-| LOD0 | dist ≤ 1300 m (zoom ≲ 1) | 3.024 segitiga, 209 KB |
-| LOD1 | ≤ 2800 m (zoom ≲ 2,1) | 1.157, 86 KB |
+| LOD0 | dist ≤ 1300 m (zoom ≲ 1) | 5.961 segitiga, 409 KB (2026-11-24: portal runcing, pilaster, parapet bergerigi, balkon menara; mengikuti gambar rujukan Flow) |
+| LOD1 | ≤ 2800 m (zoom ≲ 2,1) | 1.184, 88 KB |
 | LOD2 | lebih jauh | 340, 26 KB |
 
 ## Jembatan Siak (✅ 2026-11-14)

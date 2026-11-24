@@ -13,7 +13,7 @@ const CENTER_CLASSES = new Set(['motorway', 'trunk', 'primary', 'secondary', 'te
 const EDGE_CLASSES = new Set(['motorway', 'trunk', 'primary', 'secondary', 'tertiary']);
 const TREE_ROAD_CLASSES = new Set(['primary', 'secondary', 'tertiary', 'unclassified', 'residential', 'living_street']);
 export const LAMPS = Object.freeze({ spacing: 38, offset: 1.4, maxPerTile: 170, poleH: 6.5 });
-export const TREES = Object.freeze({ spacing: 13, scatter: 17, maxPerTile: 420, rowKeep: 0.72, minH: 6, maxH: 11, half: 250, cell: 20 });
+export const TREES = Object.freeze({ spacing: 9, scatter: 11, maxPerTile: 900, rowKeep: 0.88, minH: 6, maxH: 11, half: 250, cell: 20 });
 
 /** Hash deterministik [0, 1) dari tiga bilangan bulat. */
 export function hash01(a, b, c = 0) {
@@ -169,7 +169,7 @@ export function treePoints(tile, reserved = () => false, { max = TREES.maxPerTil
   };
   const push = (x, z, i, j) => {
     const h = TREES.minH + hash01(seed, i, j) * (TREES.maxH - TREES.minH);
-    out.push({ x, z, h, w: h * (0.7 + hash01(j, i, seed) * 0.25), rot: hash01(i, j, seed + 5) * Math.PI * 2, tint: 0.82 + hash01(seed, j, i) * 0.36 });
+    out.push({ x, z, h, w: h * (0.9 + hash01(j, i, seed) * 0.3), rot: hash01(i, j, seed + 5) * Math.PI * 2, tint: 0.82 + hash01(seed, j, i) * 0.36 });
   };
   roads: for (const [ri, r] of tile.roads.entries()) {
     if (!TREE_ROAD_CLASSES.has(r.cls)) continue;
@@ -201,7 +201,7 @@ export function treePoints(tile, reserved = () => false, { max = TREES.maxPerTil
       const ix = Math.round(gx / grid);
       const iz = Math.round(gz / grid);
       const cluster = 0.5 + 0.5 * Math.sin((cx + gx) / 70 + seed) * Math.cos((cz + gz) / 55 - seed); // gugus: ada rimbun, ada gundul
-      if (hash01(seed, ix, iz + 99) > 0.16 + 0.42 * cluster) continue;
+      if (hash01(seed, ix, iz + 99) > 0.3 + 0.5 * cluster) continue;
       const x = cx + gx + hash01(ix, iz, seed) * grid;
       const z = cz + gz + hash01(iz, ix, seed + 1) * grid;
       if (free(x, z)) push(x, z, ix + 5000, iz + 5000);
@@ -211,8 +211,8 @@ export function treePoints(tile, reserved = () => false, { max = TREES.maxPerTil
 }
 
 const TRUNK_RGB = [0.2, 0.11, 0.06];
-const CROWN_RGB = [0.07, 0.3, 0.05];    // bawah tajuk (gelap)
-const CROWN_TOP_RGB = [0.24, 0.6, 0.1];  // puncak tajuk (terkena matahari): gradasi membuat tajuk terbaca bulat dari udara
+const CROWN_RGB = [0.04, 0.2, 0.04];    // bawah tajuk (gelap)
+const CROWN_TOP_RGB = [0.17, 0.5, 0.08];  // puncak tajuk (terkena matahari): gradasi membuat tajuk terbaca bulat dari udara
 
 /**
  * Geometri pohon satuan (tinggi 1, lebar tajuk ±1): batang prisma 3 sisi + tajuk gerombol (3 ikosahedron; oktahedron
@@ -240,9 +240,9 @@ export function createTreeGeometry() {
   const lump = (g, x, y, z) => gradient(g.scale(1, 0.9, 1).translate(x, y, z).toNonIndexed(), CROWN_RGB, CROWN_TOP_RGB);
   const parts = [
     trunk,
-    lump(new THREE.IcosahedronGeometry(0.36, 0), 0.02, 0.68, 0),
-    lump(new THREE.IcosahedronGeometry(0.29, 0), 0.25, 0.52, 0.07),
-    lump(new THREE.IcosahedronGeometry(0.27, 0), -0.21, 0.5, -0.17),
+    lump(new THREE.IcosahedronGeometry(0.42, 0), 0.02, 0.66, 0),
+    lump(new THREE.IcosahedronGeometry(0.35, 0), 0.27, 0.5, 0.08),
+    lump(new THREE.IcosahedronGeometry(0.33, 0), -0.23, 0.48, -0.19),
   ];
   for (const g of parts) { g.deleteAttribute('uv'); }
   const merged = mergeGeometries(parts, false);
