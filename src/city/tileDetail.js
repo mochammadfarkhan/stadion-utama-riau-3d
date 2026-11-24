@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { pointInPolygon } from '../geo/polygon.js';
+import { createRoofMesh } from './roofs.js';
 
 export const MARKING = Object.freeze({ y: 0.14, dash: 3.5, gap: 5.5, width: 0.5, edgeInset: 0.9, minRoadWidth: 5.5 }); // lebar dilebihkan (aslinya ±0,12 m) agar terbaca dari udara
 const CENTER_CLASSES = new Set(['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential']);
@@ -263,11 +264,17 @@ const col = new THREE.Color();
  * @param {THREE.Object3D} root grup tile (posisi = pusat tile)
  * @param {ReturnType<import('./tileData.js').decodeTileData>} tile
  * @param {{forMesh(name: string): THREE.Material|null}} materials
- * @param {{reserved?: (x: number, z: number) => boolean, trees?: boolean, markings?: boolean}} [opts]
- * @returns {{markings: number, trees: number}}
+ * @param {{reserved?: (x: number, z: number) => boolean, trees?: boolean, markings?: boolean, lamps?: boolean, roofs?: boolean}} [opts]
+ * @returns {{markings: number, trees: number, lamps: number, roofs: number}}
  */
-export function addTileDetail(root, tile, materials, { reserved = () => false, trees = true, markings = true, lamps = true } = {}) {
-  const result = { markings: 0, trees: 0, lamps: 0 };
+export function addTileDetail(root, tile, materials, { reserved = () => false, trees = true, markings = true, lamps = true, roofs = true } = {}) {
+  const result = { markings: 0, trees: 0, lamps: 0, roofs: 0 };
+  const roofMat = roofs ? materials.forMesh('buildings_roofs') : null;
+  const roofMesh = roofMat ? createRoofMesh(tile, roofMat) : null; // atap miring tambahan (roofs.js); bukan detail halus: tetap tampil saat zoom jauh
+  if (roofMesh) {
+    root.add(roofMesh);
+    result.roofs = roofMesh.geometry.attributes.position.count / 3;
+  }
   const { x: cx, z: cz } = tile.center;
   const markMat = materials.forMesh('road_markings');
   if (markings && markMat) {
