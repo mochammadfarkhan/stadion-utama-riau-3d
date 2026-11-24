@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseBuildings, parseRoads, parseTrees } from '../../src/city/farCity.js';
+import { parseBuildings, parseRoads, parseTrees, overLandmark } from '../../src/city/farCity.js';
 
 describe('format biner kota jauh (v2)', () => {
   it('parseBuildings membaca 10 byte/bangunan (desimeter, setengah meter, rotasi, bendera atap pelana)', () => {
@@ -94,5 +94,19 @@ describe('blur maket tanpa pola kisi', () => {
     expect(p.iterations).toBe(3);
     expect(p.step).toBeCloseTo(2.078, 3);
     expect(blurPlan(100).iterations).toBe(4);
+  });
+});
+
+describe('overLandmark (buang kotak jauh di bawah model hero)', () => {
+  const list = [{ x: 100, z: 200 }, { x: 1000, z: 0, clear: 80 }];
+  it('true dalam radius, false di luar, menghormati clear per landmark', () => {
+    expect(overLandmark(102, 200, list)).toBe(true);
+    expect(overLandmark(131, 200, list)).toBe(false);
+    expect(overLandmark(1060, 0, list)).toBe(true);
+    expect(overLandmark(1060, 0, [{ x: 1000, z: 0 }])).toBe(false);
+  });
+  it('landmark bawaan: Mal SKA true; daftar kosong false', () => {
+    expect(overLandmark(3180, -1768)).toBe(true);
+    expect(overLandmark(0, 0, [])).toBe(false);
   });
 });

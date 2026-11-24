@@ -3,8 +3,10 @@
 Proyek hobi: **cepat dan sederhana mengalahkan lengkap**. Bahasa: Indonesia.
 
 ## Workflow (6 langkah)
-1. **Kerjakan langsung sendiri.** Tanpa subagent/agen untuk eksekusi, tanpa dokumen plan. Cukup 1–3 baris niat, lalu mulai. Bila perkiraan > 30 menit, bilang di awal.
-   Pengecualian (user 2026-11-24): sesi utama (Fable) boleh menyebar **agen Opus hanya-baca** untuk riset web atau audit kode paralel; yang menulis kode tetap sesi utama.
+1. **Fable mengorkestrasi, Opus/Sonnet menulis** (keputusan user 2026-11-24, supaya murah). Sesi utama (Fable): memahami masalah, menulis brief, memeriksa hasil, bidikan, commit.
+   Penulisan kode dioper ke agen: **Sonnet** untuk perubahan mekanis yang brief-nya sudah pasti (berkas, fungsi, tes), **Opus** untuk yang butuh rancangan atau lintas berkas; Opus juga untuk riset/audit hanya-baca.
+   Satu agen penulis per kumpulan berkas, brief menyebut berkas:baris + perintah cek + larangan (jangan commit, jangan sentuh berkas user). Tanpa review per task dan tanpa dokumen plan; hasil agen selalu dicek sendiri (diff + lint + tes) sebelum commit.
+   Perubahan di bawah ±10 baris atau dokumen: kerjakan langsung. Bila perkiraan > 30 menit, bilang di awal.
 2. **Baca seperlunya:** `grep` dulu, buka hanya berkas terkait.
 3. **Cek cepat:** `npm run lint` + tes berkas terkait (`node node_modules/vitest/vitest.mjs run <path>`). Suite penuh + `npm run build` hanya sebelum push.
 4. **Lihat hasilnya** bila visual: 1–2 bidikan yang dibaca sendiri; lewati bila bukan visual.

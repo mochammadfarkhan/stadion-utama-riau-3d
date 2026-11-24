@@ -16,6 +16,7 @@ import { NEW as TILE_PALETTE, hexToLinear } from './tilePalette.js';
 import { applyTreeSway } from './treeSway.js';
 import { applyNightGlow } from './nightGlow.js';
 import { createFarLife, parseRivers } from './farLife.js';
+import { LANDMARKS } from './landmarks.js';
 
 const GROUND_Y = -0.4;
 const ROAD_Y = 0.08;
@@ -245,6 +246,14 @@ export function farDetail(distance, kind) {
 const sizeOf = (it, kind) => (kind === 'pohon' ? it.h : it.w * it.d);
 
 const UP = new THREE.Vector3(0, 1, 0);
+/** Radius (m): kotak jauh yang pusatnya dalam radius ini dari pusat landmark dibuang karena sudah diganti model hero. */
+export const LANDMARK_CLEAR = 30;
+
+/** @returns {boolean} true bila (x, z) dunia berada dalam radius bersih salah satu landmark (`l.clear` menimpa radius) */
+export function overLandmark(x, z, list = LANDMARKS, radius = LANDMARK_CLEAR) {
+  return list.some((l) => Math.hypot(x - l.x, z - l.z) < (l.clear ?? radius));
+}
+
 const IDENTITY_Q = new THREE.Quaternion();
 const ROAD_COLOR_OBJECTS = FAR_ROAD_COLORS.map((c) => new THREE.Color(c));
 const hash = (i) => { let h = Math.imul(i + 1, 2654435761); h ^= h >>> 15; return (h >>> 0) / 4294967296; };
@@ -252,7 +261,7 @@ const hash = (i) => { let h = Math.imul(i + 1, 2654435761); h ^= h >>> 15; retur
 /**
  * @param {{scene: THREE.Object3D, baseUrl?: string, fetchBuffer?: (url: string) => Promise<ArrayBuffer>,
  *   fetchJson?: (url: string) => Promise<object>, loadTexture?: (url: string) => Promise<THREE.Texture>,
- *   logger?: {error: Function}}} opts
+ *   logger?: {error: Function}, landmarks?: Array<{x:number, z:number, clear?:number}>}} opts landmarks: kotak dalam radiusnya dibuang (default LANDMARKS)
  * @returns {Promise<{group: THREE.Group, setActive(on: boolean): Promise<void>, stats(): object, dispose(): void}|null>} null bila public/far/ tidak ada
  */
 export async function createFarCity({
@@ -261,6 +270,7 @@ export async function createFarCity({
   fetchJson = (url) => fetch(url).then((r) => { if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`); return r.json(); }),
   loadTexture = (url) => new THREE.TextureLoader().loadAsync(url),
   logger = console,
+  landmarks = LANDMARKS,
 }) {
   let manifest;
   try {
@@ -345,6 +355,7 @@ export async function createFarCity({
     if (bb) {
       const seed = c.ix * 977 + c.iz * 131;
       parseBuildings(bb).forEach((bd, i) => {
+        if (overLandmark(ox + bd.x, oz + bd.z, landmarks)) return; // diganti model hero; indeks i tetap (benih warna)
         const tint = FAR_CLASS_TINT[bd.cls] ?? FAR_CLASS_TINT[0];
         const k = 0.82 + 0.34 * hash(i + seed);
         const wall = FAR_WALL_RATIO[Math.floor(hash(i * 5 + seed) * FAR_WALL_RATIO.length) % FAR_WALL_RATIO.length]; // palet dinding sama dengan tile
