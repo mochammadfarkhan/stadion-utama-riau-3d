@@ -116,7 +116,7 @@ export async function createCity({
     }
   };
   // landmark hero berLOD (landmarks.js): dimuat malas per landmark menurut jarak, tampil juga saat berjalan/bersepeda
-  const landmarks = createLandmarks({ parent: group, baseUrl, loadGltf: gltf, logger });
+  const landmarks = createLandmarks({ parent: group, baseUrl, loadGltf: gltf, logger, collider });
   let transit = null; // jaringan MRT & LRT Pekanbaru (transitLines.js), dibuat saat pratinjau pertama
   let tileMerge = null; // tile digabung per material saat pratinjau di-zoom jauh (tileMerge.js); dibuang saat pratinjau ditutup
   const tileRoots = () => group.children.filter(isTileRoot);

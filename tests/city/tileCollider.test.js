@@ -21,6 +21,17 @@ describe('TileCollider', () => {
     expect(c.isCameraClear(9, 15)).toBe(true);
   });
 
+  it('addBuildings memblok seperti bangunan; removeObstacles melepas; bukan tile', () => {
+    const c = createTileCollider();
+    c.addBuildings('k', [square(0, 0, 10), [[0, 0], [1, 1]], [[NaN, 0], [1, 0], [1, 1]]]);
+    expect(c.isWalkable(5, 5)).toBe(false);
+    expect(c.isCameraClear(5, 5)).toBe(false);
+    expect(c.isWalkable(15, 5)).toBe(true);
+    expect(c.tileCount).toBe(0);
+    c.removeObstacles('k');
+    expect(c.isWalkable(5, 5)).toBe(true);
+  });
+
   it('bangunan yang melintasi batas sel 25 m tetap terdeteksi di semua sel', () => {
     const c = createTileCollider();
     c.addTile('0_0', tile({ buildings: [{ height: 6, ring: square(20, 20, 40) }] }));

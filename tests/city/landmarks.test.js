@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { LANDMARKS, LANDMARK_WALK_RANGE, createLandmarks, landmarkDistance, pickLod } from '../../src/city/landmarks.js';
+import { LANDMARKS, LANDMARK_PASSABLE, LANDMARK_WALK_RANGE, createLandmarks, footprintRing, landmarkDistance, pickLod } from '../../src/city/landmarks.js';
 
 describe('pickLod', () => {
   const lim = [260, 900];
@@ -98,5 +98,50 @@ describe('createLandmarks (muat malas)', () => {
     lm.update({ focus, distance: 10 });
     expect(root('jauh').visible).toBe(false);
     expect(root('dekat').visible).toBe(true);
+  });
+});
+
+describe('footprintRing', () => {
+  it('hull: 4 sudut persegi, titik dalam dibuang', () => {
+    const ring = footprintRing([[0, 0], [10, 0], [10, 10], [0, 10], [5, 5], [3, 7]]);
+    expect(ring).toHaveLength(4);
+    expect(ring.map((p) => p.join()).sort()).toEqual(['0,0', '0,10', '10,0', '10,10']);
+  });
+  it('kurang dari 3 titik → []', () => {
+    expect(footprintRing([[0, 0], [1, 1]])).toEqual([]);
+    expect(footprintRing([])).toEqual([]);
+  });
+});
+
+describe('createLandmarks + collider', () => {
+  const list = [
+    { id: 'gedung', x: 500, z: 100, yaw: 0, files: ['a0.glb', 'a1.glb', 'a2.glb'], lod: [1300, 2800] },
+    { id: 'flyover-ska', x: 600, z: 100, yaw: 0, files: ['b0.glb', 'b1.glb', 'b2.glb'], lod: [1300, 2800] },
+  ];
+  it('mendaftarkan jejak landmark biasa, melewati yang PASSABLE, dan dispose menghapus', async () => {
+    const calls = { add: [], remove: [] };
+    const collider = { addBuildings: (k, r) => calls.add.push([k, r]), removeObstacles: (k) => calls.remove.push(k) };
+    const loadGltf = async () => {
+      const geo = new THREE.BoxGeometry(20, 10, 30);
+      geo.translate(0, 5, 0);
+      const scene = new THREE.Group();
+      scene.add(new THREE.Mesh(geo));
+      return { scene };
+    };
+    const lm = createLandmarks({ parent: new THREE.Group(), loadGltf, list, logger: { error() {} }, collider });
+    expect(LANDMARK_PASSABLE.has('flyover-ska')).toBe(true);
+    lm.setPreview(true);
+    lm.update({ focus: { x: 500, z: 100 }, distance: 10 });
+    await lm.ready;
+    expect(calls.add).toHaveLength(1);
+    const [key, rings] = calls.add[0];
+    expect(key).toBe('landmark:gedung');
+    const xs = rings[0].map((p) => p[0]);
+    const zs = rings[0].map((p) => p[1]);
+    expect([Math.min(...xs), Math.max(...xs)]).toEqual([490, 510]);
+    expect([Math.min(...zs), Math.max(...zs)]).toEqual([85, 115]);
+    expect(lm.stats().colliders).toBe(1);
+    lm.dispose();
+    expect(calls.remove).toEqual(['landmark:gedung']);
   });
 });

@@ -5,7 +5,7 @@
  * - bangunan memblok sepeda (di dalam footprint atau < `clearance` dari dinding) dan kamera;
  * - air memblok sepeda kecuali di atas jalan (jembatan = jalan yang melintasi poligon air);
  * - tile yang belum dimuat = terbuka (spec §5: area tetap dapat dilalui);
- * - rintangan lingkaran (`addObstacles`, mis. kendaraan mangkal) memblok seperti bangunan, terpisah dari tile.
+ * - rintangan lingkaran (`addObstacles`, mis. kendaraan mangkal) dan cincin bangunan (`addBuildings`, mis. landmark) memblok seperti bangunan, terpisah dari tile.
  * `penetration(x, z)` = kedalaman titik di zona terhalang (0 bila walkable), dipakai `createCollider`
  * agar sepeda yang terjebak (tile dimuat di bawahnya) hanya boleh bergerak keluar, tidak menembus.
  * Murni (tanpa three/DOM); memakai pointInPolygon/distanceToRing dari geo/polygon.js.
@@ -108,6 +108,17 @@ export function createTileCollider({ cellSize = TILE_COLLIDER.cellSize, clearanc
     obstacles.set(key, rec);
   };
 
+  /** Cincin bangunan [[x, z]…] (dunia) di bawah satu kunci (mis. landmark); seperti tile tapi lewat `removeObstacles`. */
+  const addBuildings = (key, rings) => {
+    if (obstacles.has(key)) removeObstacles(key);
+    const rec = { cellKeys: new Set(), shapes: [] };
+    for (const ring of rings) {
+      if (ring.length < 3 || !ring.every(([x, z]) => Number.isFinite(x) && Number.isFinite(z))) continue;
+      insert(rec, { kind: 'building', ring, bbox: bboxOf(ring, pad) });
+    }
+    obstacles.set(key, rec);
+  };
+
   /** Daftarkan tile terdekode (decodeTileData); pendaftaran ulang kunci yang sama mengganti. */
   const addTile = (key, tile) => {
     if (tiles.has(key)) removeTile(key);
@@ -122,6 +133,7 @@ export function createTileCollider({ cellSize = TILE_COLLIDER.cellSize, clearanc
     addTile,
     removeTile,
     addObstacles,
+    addBuildings,
     removeObstacles,
     penetration,
     has: (key) => tiles.has(key),

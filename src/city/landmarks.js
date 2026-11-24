@@ -6,8 +6,35 @@
 import * as THREE from 'three';
 import { FACADE_UNIFORMS } from './facade.js';
 import { GENERATED_LANDMARKS } from './landmarks.data.js';
+import { convexHull } from '../geo/polygon.js';
 
 export const LANDMARK_Y = -0.05;
+
+/** Landmark yang dilewati di atas/bawahnya (jembatan, flyover, landasan): tanpa collider. */
+export const LANDMARK_PASSABLE = new Set(['jembatan-siak-1', 'jembatan-siak-3', 'jembatan-siak-4', 'flyover-ska', 'bandara-landasan']);
+
+/** Cincin jejak = convex hull titik `[x, z]`; `[]` bila kurang dari 3 titik sudut. */
+export function footprintRing(points) {
+  const hull = convexHull(points);
+  return hull.length >= 3 ? hull : [];
+}
+
+/** Jejak collider dari mesh: vertex dunia setinggi 1–4 m di atas alas (cadangan: semua di bawah 4 m). */
+function meshFootprint(mesh) {
+  const pos = mesh.geometry.getAttribute('position');
+  const v = new THREE.Vector3();
+  const low = [];
+  const all = [];
+  for (let i = 0; i < pos.count; i += 1) {
+    v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld);
+    const h = v.y - LANDMARK_Y;
+    if (h >= 4) continue;
+    all.push([v.x, v.z]);
+    if (h >= 1) low.push([v.x, v.z]);
+  }
+  const ring = footprintRing(low);
+  return ring.length ? ring : footprintRing(all);
+}
 
 /**
  * Tampilan landmark: siang = kaca biru bergradasi sudut pandang + kusen 3 m pada pita jendela gelap, dinding sedikit lebih jenuh dan gelap di kaki;
@@ -116,7 +143,7 @@ export const LANDMARK_WALK_RANGE = 2200;
  * pratinjau Kota = tanpa batas via `setPreview(true)`). Di luar jangkauan, root disembunyikan.
  * @param {{parent: THREE.Object3D, baseUrl?: string, loadGltf: (url: string) => Promise<{scene: THREE.Object3D}>, logger?: {error: Function}}} o
  */
-export function createLandmarks({ parent, baseUrl = '/', loadGltf, logger = console, list = LANDMARKS }) {
+export function createLandmarks({ parent, baseUrl = '/', loadGltf, logger = console, list = LANDMARKS, collider = null }) {
   const group = new THREE.Group();
   group.name = 'landmark';
   parent.add(group);
@@ -133,6 +160,19 @@ export function createLandmarks({ parent, baseUrl = '/', loadGltf, logger = cons
   const owned = [material];
   let disposed = false;
   let range = LANDMARK_WALK_RANGE;
+
+  const colliderKeys = [];
+  /** Daftarkan jejak dari LOD termuat yang vertex-nya paling sedikit (paling murah dihitung). */
+  const registerCollider = (e) => {
+    const mesh = e.lods.filter(Boolean).sort((a, b) => a.geometry.getAttribute('position').count - b.geometry.getAttribute('position').count)[0];
+    if (!mesh) return;
+    e.root.updateWorldMatrix(true, true);
+    const ring = meshFootprint(mesh);
+    if (ring.length < 3) return;
+    const key = `landmark:${e.def.id}`;
+    collider.addBuildings(key, [ring]);
+    colliderKeys.push(key);
+  };
 
   const load = (e) => {
     e.loading ??= (async () => {
@@ -154,7 +194,9 @@ export function createLandmarks({ parent, baseUrl = '/', loadGltf, logger = cons
         }
       }
       for (const m of e.lods) if (m) { m.visible = false; e.root.add(m); }
-      if (!disposed) group.add(e.root);
+      if (disposed) return;
+      group.add(e.root);
+      if (collider && !LANDMARK_PASSABLE.has(e.def.id)) registerCollider(e);
     })();
     return e.loading;
   };
@@ -186,9 +228,12 @@ export function createLandmarks({ parent, baseUrl = '/', loadGltf, logger = cons
         if (lod !== e.lod || !e.lods.some((m) => m?.visible)) { e.lod = lod; show(e, lod); }
       }
     },
-    stats: () => ({ landmarks: entries.length, loaded: entries.filter((e) => e.loading).length, lod: entries.map((e) => e.lod) }),
+    /** `colliders` = jumlah landmark yang terdaftar di collider kota. */
+    stats: () => ({ landmarks: entries.length, loaded: entries.filter((e) => e.loading).length, lod: entries.map((e) => e.lod), colliders: colliderKeys.length }),
     dispose() {
       disposed = true;
+      for (const k of colliderKeys) collider.removeObstacles(k);
+      colliderKeys.length = 0;
       group.removeFromParent();
       for (const r of owned) r.dispose?.();
     },
