@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { signedArea } from '../../src/geo/polygon.js';
 import {
-  ROOFS, buildingRoof, createRoofMesh, ensureCCW, hipRoof, insetRing, rectFrame, skirtRoof, triNormal,
+  ROOFS, buildingRoof, createRoofMesh, ensureCCW, fieldRoof, hipRoof, insetRing, rectFrame, skirtRoof, triNormal,
 } from '../../src/city/roofs.js';
 
 const rect = (w, l, ang = 0, cx = 0, cz = 0) => {
@@ -63,7 +63,38 @@ describe('skirtRoof', () => {
   });
 });
 
+const U = [[0, 0], [40, 0], [40, 30], [37, 30], [37, 3], [3, 3], [3, 30], [0, 30]]; // lorong sempit 3 m
+const projArea = (tris) => tris.reduce((s, t) => s + Math.abs(signedArea(t.map((p) => [p[0], p[2]]))), 0);
+
+describe('fieldRoof', () => {
+  it('persegi 20×10: puncak, tepi di eaveY, normal ke atas, luas proyeksi 200', () => {
+    const tris = fieldRoof(rect(20, 10), 8);
+    expect(Math.abs(maxY(tris) - (8 + Math.min(5 * ROOFS.pitch, ROOFS.maxRise)))).toBeLessThan(0.3);
+    for (const [x, y, z] of tris.flat()) {
+      if (Math.abs(Math.abs(x) - 10) < 1e-6 || Math.abs(Math.abs(z) - 5) < 1e-6) expect(y).toBeCloseTo(8, 6);
+    }
+    for (const t of tris) expect(triNormal(t)[1]).toBeGreaterThan(0);
+    expect(Math.abs(projArea(tris) - 200) / 200).toBeLessThan(0.01);
+  });
+  it('bentuk U lorong sempit: insetRing null, tetap beratap; CW = CCW', () => {
+    expect(insetRing(ensureCCW(U), 3)).toBeNull();
+    const a = fieldRoof(U, 6);
+    const b = fieldRoof([...U].reverse(), 6);
+    const A = Math.abs(signedArea(U));
+    expect(a.length).toBeGreaterThan(0);
+    expect(Math.abs(projArea(a) - A) / A).toBeLessThan(0.01);
+    expect(Math.abs(projArea(b) - projArea(a))).toBeLessThan(1e-6);
+    for (const t of a) expect(triNormal(t)[1]).toBeGreaterThan(0);
+  });
+});
+
 describe('buildingRoof', () => {
+  it('U sempit → field; L kecil lega → skirt', () => {
+    const f = buildingRoof({ height: 7, ring: U }, 3);
+    expect(f.kind).toBe('field');
+    expect(f.tris.length).toBeGreaterThan(0);
+    expect(buildingRoof({ height: 7, ring: L }, 3).kind).toBe('skirt');
+  });
   it('rumah kecil 10×8 → kosong (pelana dari bake)', () => {
     expect(buildingRoof({ height: 6, ring: rect(10, 8) }, 1).tris).toHaveLength(0);
   });

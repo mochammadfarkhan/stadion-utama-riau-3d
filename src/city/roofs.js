@@ -7,11 +7,14 @@
  * Segitiga = [[x,y,z],[x,y,z],[x,y,z]], urutan putar sehingga normal menghadap atas/keluar.
  */
 import * as THREE from 'three';
-import { cleanRing, orientRing, pointInPolygon, signedArea } from '../geo/polygon.js';
+import {
+  cleanRing, clipPolygonToRect, distanceToRing, orientRing, pointInPolygon, polygonArea, ringBounds, signedArea,
+} from '../geo/polygon.js';
 import { hexToLinear } from './tilePalette.js';
 
 export const ROOFS = Object.freeze({
   skipArea: 150, eave: 0.5, pitch: Math.tan((28 * Math.PI) / 180), maxRise: 4.5, flatAbove: 16, inset: 6.0, minInsetRatio: 0.3,
+  fieldCellMin: 3.5, fieldCellMax: 6, fieldArea: 1500,
 });
 const BAKE_GABLE_TOL = 0.2; // |cos| sudut maksimum yang dipakai bake untuk pelana (tools/citybake/geometry/buildings.js)
 const MIN_AREA = 20;
@@ -167,6 +170,39 @@ export function skirtRoof(ring, eaveY, o = ROOFS) {
   return out;
 }
 
+/**
+ * Atap "medan jarak" untuk poligon sederhana apa pun: tinggi = eaveY + min(jarak ke tepi × pitch, maxRise).
+ * Kisi sel s×s (selaras kelipatan s, sisi bersama persis) dipotong ke poligon lalu ditriangulasi.
+ */
+export function fieldRoof(ring, eaveY, o = ROOFS) {
+  const r = ensureCCW(cleanRing(ring));
+  if (r.length < 3) return [];
+  const s = Math.min(o.fieldCellMax, Math.max(o.fieldCellMin, Math.sqrt(Math.abs(signedArea(r))) / 14));
+  const yAt = (x, z) => eaveY + Math.min(distanceToRing(x, z, r) * o.pitch, o.maxRise);
+  const P = ([x, z]) => [x, yAt(x, z), z];
+  const bb = ringBounds(r);
+  const out = [];
+  for (let gx = Math.floor(bb.minX / s); gx * s < bb.maxX; gx += 1) {
+    for (let gz = Math.floor(bb.minZ / s); gz * s < bb.maxZ; gz += 1) {
+      const rc = { minX: gx * s, maxX: (gx + 1) * s, minZ: gz * s, maxZ: (gz + 1) * s };
+      const corners = [[rc.minX, rc.minZ], [rc.maxX, rc.minZ], [rc.maxX, rc.maxZ], [rc.minX, rc.maxZ]];
+      const inside = corners.every(([x, z]) => pointInPolygon(x, z, r))
+        && distanceToRing((rc.minX + rc.maxX) / 2, (rc.minZ + rc.maxZ) / 2, r) > s * 0.71;
+      const piece = inside ? corners : clipPolygonToRect(r, rc);
+      if (piece.length < 3 || (!inside && polygonArea(piece) < 0.01)) continue;
+      if (piece.length === 3 || piece.length === 4) {
+        const v = piece.map(P);
+        face(out, v[0], v[1], v[2]);
+        if (v.length === 4) face(out, v[0], v[2], v[3]); // potongan 4 titik dari klip persegi selalu cembung
+      } else {
+        const idx = THREE.ShapeUtils.triangulateShape(piece.map(([x, z]) => new THREE.Vector2(x, z)), []);
+        for (const [i, j, k] of idx) face(out, P(piece[i]), P(piece[j]), P(piece[k]));
+      }
+    }
+  }
+  return out;
+}
+
 /** Kotak tanpa alas (4 sisi + tutup) berpusat (x, z), sisi searah u/v. */
 function box(x, z, u, v, [w, l, h], y0) {
   const P = (s, t, y) => [x + u[0] * s + v[0] * t, y, z + u[1] * s + v[1] * t];
@@ -221,7 +257,7 @@ export function rooftopBoxes(ring, eaveY, seed) {
 
 /**
  * Atap tambahan satu gedung → { tris, colors (linear per segitiga), kind }.
- * kind: 'none' (terlalu kecil / pelana bake / tak sah), 'boxes', 'hip', 'skirt'.
+ * kind: 'none' (terlalu kecil / pelana bake), 'invalid', 'boxes', 'hip', 'skirt', 'field' (medan jarak: jejak besar/rumit).
  */
 export function buildingRoof(building, seed, o = ROOFS) {
   const empty = (kind = 'none') => ({ tris: [], colors: [], kind });
@@ -238,7 +274,14 @@ export function buildingRoof(building, seed, o = ROOFS) {
     return { tris, colors, kind: 'boxes' };
   }
   const frame = rectFrame(ring);
-  const tris = frame ? hipRoof(frame, h, o) : skirtRoof(ring, h, o);
+  let kind = 'hip';
+  let tris = [];
+  if (frame) tris = hipRoof(frame, h, o);
+  else {
+    kind = 'skirt';
+    if (area < o.fieldArea) tris = skirtRoof(ring, h, o);
+    if (!tris.length) { kind = 'field'; tris = fieldRoof(ring, h, o); }
+  }
   if (!tris.length) return empty('invalid');
   const base = TERRACOTTA[Math.floor(rnd(seed, 7, 1) * TERRACOTTA.length)];
   const k = 0.92 + rnd(seed, 7, 2) * 0.16;
@@ -247,7 +290,7 @@ export function buildingRoof(building, seed, o = ROOFS) {
     const dark = n[0] + n[2] < -1e-6 ? 0.94 : 1; // sisi menghadap −x/−z sedikit lebih gelap: bubungan terbaca
     return base.map((ch) => ch * k * dark);
   });
-  return { tris, colors, kind: frame ? 'hip' : 'skirt' };
+  return { tris, colors, kind };
 }
 
 /** Satu Mesh `atap` (non-indexed, warna & normal datar per segitiga) untuk semua gedung tile; null bila kosong. */
