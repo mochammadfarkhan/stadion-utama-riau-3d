@@ -115,7 +115,8 @@ export async function createCity({
       for (const c of tile.children) if (TILE_FINE_DETAIL.has(c.name)) c.visible = !hidden;
     }
   };
-  let landmarks = null; // landmark hero berLOD (landmarks.js), dibuat saat pratinjau pertama
+  // landmark hero berLOD (landmarks.js): dimuat malas per landmark menurut jarak, tampil juga saat berjalan/bersepeda
+  const landmarks = createLandmarks({ parent: group, baseUrl, loadGltf: gltf, logger });
   let transit = null; // jaringan MRT & LRT Pekanbaru (transitLines.js), dibuat saat pratinjau pertama
   let tileMerge = null; // tile digabung per material saat pratinjau di-zoom jauh (tileMerge.js); dibuang saat pratinjau ditutup
   const tileRoots = () => group.children.filter(isTileRoot);
@@ -149,7 +150,7 @@ export async function createCity({
           tileMerge.update(wantHidden, tileRoots());
         }
       }
-      if (previewOn && landmarks) landmarks.update({ focus, distance: camDist });
+      landmarks.update({ focus, distance: camDist });
       if (previewOn && transit) transit.update(ctx.time ?? 0);
       const a = groundAnchor(focus);
       ground.position.set(a.x, CITY_GROUND.y, a.z);
@@ -181,8 +182,7 @@ export async function createCity({
       streamer.setPreview(value);
       ground.scale.setScalar(value ? PREVIEW_GROUND_SCALE : 1);
       previewOn = Boolean(value);
-      landmarks ??= createLandmarks({ parent: group, baseUrl, loadGltf: createGltfLoader(), logger });
-      landmarks.setActive(previewOn);
+      landmarks.setPreview(previewOn);
       transit ??= createTransitLines({ parent: group });
       transit.setActive(previewOn);
       if (previewOn) {
@@ -212,7 +212,7 @@ export async function createCity({
       app.removeSystem(system.id);
       for (const w of [...waiters]) settle(w, false);
       farPromise?.then((f) => f?.dispose());
-      landmarks?.dispose();
+      landmarks.dispose();
       transit?.dispose();
       tileMerge?.dispose();
       vehicles.dispose(); // muatan kendaraan yang telat dibuang (tidak dipasang/didaftarkan)

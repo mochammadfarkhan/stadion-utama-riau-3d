@@ -72,44 +72,56 @@ export function landmarkDistance(distance, focus, lm) {
   return Math.hypot(distance, lm.x - focus.x, lm.z - focus.z);
 }
 
+/** Jarak mendatar maks (m) fokus → landmark saat bukan pratinjau (berjalan/bersepeda); kamera pemain far 2500. */
+export const LANDMARK_WALK_RANGE = 2200;
+
 /**
+ * Landmark dimuat malas: GLB sebuah landmark baru diminta saat fokus masuk jangkauan (`LANDMARK_WALK_RANGE`;
+ * pratinjau Kota = tanpa batas via `setPreview(true)`). Di luar jangkauan, root disembunyikan.
  * @param {{parent: THREE.Object3D, baseUrl?: string, loadGltf: (url: string) => Promise<{scene: THREE.Object3D}>, logger?: {error: Function}}} o
  */
 export function createLandmarks({ parent, baseUrl = '/', loadGltf, logger = console, list = LANDMARKS }) {
   const group = new THREE.Group();
   group.name = 'landmark';
-  group.visible = false;
   parent.add(group);
   const material = applyLandmarkNight(new THREE.MeshLambertMaterial({ vertexColors: true }));
   material.name = 'landmark:warna';
-  const entries = list.map((def) => ({ def, lods: [], lod: 0, root: new THREE.Group() }));
+  const entries = list.map((def) => {
+    const root = new THREE.Group();
+    root.name = `landmark:${def.id}`;
+    root.position.set(def.x, LANDMARK_Y, def.z);
+    root.rotation.y = def.yaw;
+    root.visible = false;
+    return { def, lods: [], lod: 0, root, loading: null };
+  });
   const owned = [material];
   let disposed = false;
+  let range = LANDMARK_WALK_RANGE;
 
-  const ready = Promise.all(entries.map(async (e) => {
-    e.root.name = `landmark:${e.def.id}`;
-    e.root.position.set(e.def.x, LANDMARK_Y, e.def.z);
-    e.root.rotation.y = e.def.yaw;
-    for (const file of e.def.files) {
-      try {
-        const gltf = await loadGltf(`${baseUrl}models/landmark/${file}`);
-        let mesh = null;
-        gltf.scene.traverse((o) => { if (o.isMesh && !mesh) mesh = o; });
-        if (!mesh) throw new Error('GLB tanpa mesh');
-        mesh.material = material;
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        mesh.removeFromParent();
-        owned.push(mesh.geometry);
-        e.lods.push(mesh);
-      } catch (err) {
-        logger.error(`Landmark ${e.def.id} ${file} gagal:`, err);
-        e.lods.push(null);
+  const load = (e) => {
+    e.loading ??= (async () => {
+      for (const file of e.def.files) {
+        try {
+          const gltf = await loadGltf(`${baseUrl}models/landmark/${file}`);
+          let mesh = null;
+          gltf.scene.traverse((o) => { if (o.isMesh && !mesh) mesh = o; });
+          if (!mesh) throw new Error('GLB tanpa mesh');
+          mesh.material = material;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          mesh.removeFromParent();
+          owned.push(mesh.geometry);
+          e.lods.push(mesh);
+        } catch (err) {
+          logger.error(`Landmark ${e.def.id} ${file} gagal:`, err);
+          e.lods.push(null);
+        }
       }
-    }
-    for (const m of e.lods) if (m) { m.visible = false; e.root.add(m); }
-    if (!disposed) group.add(e.root);
-  }));
+      for (const m of e.lods) if (m) { m.visible = false; e.root.add(m); }
+      if (!disposed) group.add(e.root);
+    })();
+    return e.loading;
+  };
 
   const show = (e, lod) => {
     // jatuh ke LOD terdekat yang berhasil dimuat
@@ -120,17 +132,25 @@ export function createLandmarks({ parent, baseUrl = '/', loadGltf, logger = cons
   };
 
   return {
-    group, ready,
+    group,
+    /** Promise semua landmark yang sudah diminta dimuat (getter: dihitung saat diakses). */
+    get ready() { return Promise.all(entries.map((e) => e.loading).filter(Boolean)); },
     setActive(on) { group.visible = Boolean(on); },
-    /** Tiap frame saat pratinjau: `focus` {x,z}, `distance` kamera→fokus (m). */
+    /** Pratinjau Kota: jangkauan tanpa batas; selain itu `LANDMARK_WALK_RANGE`. */
+    setPreview(on) { range = on ? Infinity : LANDMARK_WALK_RANGE; },
+    /** Tiap frame: `focus` {x,z}, `distance` kamera→fokus (m). Muat malas landmark yang masuk jangkauan. */
     update({ focus, distance }) {
       if (!group.visible) return;
       for (const e of entries) {
+        if (Math.hypot(e.def.x - focus.x, e.def.z - focus.z) > range) { e.root.visible = false; continue; }
+        e.root.visible = true;
+        if (!e.loading) { load(e); continue; }
+        if (e.lods.length < e.def.files.length) continue; // masih memuat
         const lod = pickLod(landmarkDistance(distance, focus, e.def), e.lod, e.def.lod);
         if (lod !== e.lod || !e.lods.some((m) => m?.visible)) { e.lod = lod; show(e, lod); }
       }
     },
-    stats: () => ({ landmarks: entries.length, lod: entries.map((e) => e.lod) }),
+    stats: () => ({ landmarks: entries.length, loaded: entries.filter((e) => e.loading).length, lod: entries.map((e) => e.lod) }),
     dispose() {
       disposed = true;
       group.removeFromParent();
