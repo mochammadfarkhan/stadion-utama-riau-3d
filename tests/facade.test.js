@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { patchFacadeSource } from '../src/city/facade.js';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { patchFacadeSource, FACADE_UNIFORMS, FACADE_TEX, loadFacadeTextures } from '../src/city/facade.js';
 
 const shader = {
   vertexShader: '#include <common>\n#include <begin_vertex>\n',
@@ -48,5 +48,33 @@ describe('detail tanah', () => {
     expect(out.vertexShader).toContain('vGroundP =');
     expect(out.fragmentShader).toContain('gdVar');
     expect(out.fragmentShader).not.toMatch(/\b(patch|sample|filter|input|output|packed|union)\b\s+\w+\s*=/);
+  });
+});
+
+describe('peta rincian fasad', () => {
+  const initial = { roof: FACADE_UNIFORMS.uRoofTex.value, wall: FACADE_UNIFORMS.uWallTex.value };
+  afterEach(() => { FACADE_UNIFORMS.uRoofTex.value = initial.roof; FACADE_UNIFORMS.uWallTex.value = initial.wall; });
+
+  it('fragmen memuat sampler; nilai awal tekstur netral 1x1', () => {
+    expect(patchFacadeSource(shader, 'wall').fragmentShader).toContain('uniform sampler2D uWallTex;');
+    expect(patchFacadeSource(shader, 'roof').fragmentShader).toContain('texture2D(uRoofTex');
+    expect(initial.roof.image.width).toBe(1);
+    expect(initial.wall.image.height).toBe(1);
+  });
+
+  it('memuat kedua berkas dari <baseUrl>textures/kota/ dan menggantikan uniform', async () => {
+    const urls = [];
+    const loadTexture = async (url) => { urls.push(url); return { url }; };
+    await loadFacadeTextures({ baseUrl: '/x/', loadTexture, logger: { error: vi.fn() } });
+    expect(urls.sort()).toEqual([`/x/${FACADE_TEX.files.roof}`, `/x/${FACADE_TEX.files.wall}`].sort());
+    expect(FACADE_UNIFORMS.uRoofTex.value.url).toBe('/x/textures/kota/genteng.webp');
+    expect(FACADE_UNIFORMS.uWallTex.value.url).toBe('/x/textures/kota/fasad.webp');
+  });
+
+  it('loader menolak: tidak melempar, galat dilog, uniform tetap netral', async () => {
+    const logger = { error: vi.fn() };
+    await expect(loadFacadeTextures({ loadTexture: () => Promise.reject(new Error('x')), logger })).resolves.toBeUndefined();
+    expect(logger.error).toHaveBeenCalled();
+    expect(FACADE_UNIFORMS.uRoofTex.value).toBe(initial.roof);
   });
 });

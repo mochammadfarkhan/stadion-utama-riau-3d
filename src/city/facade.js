@@ -5,9 +5,36 @@
  * Pola dihitung dari posisi dunia + normal, memudar bertahap pada jarak kamera jauh (tidak berdesis di
  * pratinjau kota). Dipasang di material bersama (sekali); tanpa pola di fragmen tanpa kamera dekat → warna asli.
  */
+import * as THREE from 'three';
+
+/** Peta rincian (data linear, pengali ≈ 1 setelah ×2). roofRepeat: meter per ulangan (sengaja besar agar terbaca dari kamera Kota). */
+export const FACADE_TEX = Object.freeze({ roofRepeat: 18, files: { roof: 'textures/kota/genteng.webp', wall: 'textures/kota/fasad.webp' } });
+
+/** Tekstur netral 1×1 (0,5 × 2 = 1): shader aman diambil sampelnya sebelum berkas termuat. */
+const neutralTex = () => {
+  const t = new THREE.DataTexture(new Uint8Array([128, 128, 128, 255]), 1, 1);
+  t.needsUpdate = true;
+  return t;
+};
 
 /** Uniform bersama semua material fasad: kekuatan malam 0..1 (jendela menyala). Ditulis sistem kota tiap frame. */
-export const FACADE_UNIFORMS = { uNight: { value: 0 } };
+export const FACADE_UNIFORMS = { uNight: { value: 0 }, uRoofTex: { value: neutralTex() }, uWallTex: { value: neutralTex() } };
+
+/** Muat peta genteng & fasad ke uniform bersama. Gagal satu berkas → log, uniform itu tetap netral (tak melempar). */
+export function loadFacadeTextures({ baseUrl = '/', loadTexture = (url) => new THREE.TextureLoader().loadAsync(url), logger = console } = {}) {
+  const one = async (key, uniform) => {
+    try {
+      const tex = await loadTexture(`${baseUrl}${FACADE_TEX.files[key]}`);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.colorSpace = THREE.NoColorSpace;
+      tex.anisotropy = 4;
+      uniform.value = tex;
+    } catch (err) {
+      logger.error(`Tekstur fasad ${key} gagal dimuat:`, err);
+    }
+  };
+  return Promise.all([one('roof', FACADE_UNIFORMS.uRoofTex), one('wall', FACADE_UNIFORMS.uWallTex)]).then(() => undefined);
+}
 
 /** Kekuatan malam (0 siang … 1 malam) dari jam 0–24: menyala 17:30→19:00, padam 05:00→06:30. Murni. */
 export function nightFactor(hour) {
@@ -23,10 +50,13 @@ const COMMON_F = [
   'varying vec3 vFacadeN;',
   'varying vec2 vFacadeId;',
   'uniform float uNight;',
+  'uniform sampler2D uRoofTex;',
+  'uniform sampler2D uWallTex;',
   'float facadeHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
 ].join('\n');
 
 /** Fade pola menurut jarak kamera: penuh < 900 m, hilang > 3500 m. */
+const ROOF_REPEAT = FACADE_TEX.roofRepeat.toFixed(1);
 const FADE = 'float facadeFade = 1.0 - smoothstep(900.0, 3500.0, distance(vFacadeP, cameraPosition));';
 
 const WALL_FRAGMENT = [
@@ -40,6 +70,7 @@ const WALL_FRAGMENT = [
   '  float rh = facadeHash(fid);',
   '  vec3 roofC = rh < 0.4 ? vec3(0.527, 0.125, 0.044) : rh < 0.62 ? vec3(0.376, 0.074, 0.037) : rh < 0.84 ? vec3(0.624, 0.195, 0.068) : vec3(0.323, 0.314, 0.292);', // sama dengan tilePalette NEW.roofFlat
   '  diffuseColor.rgb = roofC * (0.85 + 0.3 * facadeHash(fid + 3.1));',
+  `  if (roofC.r > roofC.b * 1.6) diffuseColor.rgb *= mix(1.0, texture2D(uRoofTex, vFacadeP.xz / ${ROOF_REPEAT}).r * 2.0, facadeFade);`,
   '}',
   '#endif',
   'if (abs(fn.y) < 0.5) {',
@@ -67,6 +98,9 @@ const WALL_FRAGMENT = [
   '  col = mix(col, trim, max(frame, sill * fine) * upper * mix(0.55, 1.0, fine));',
   '  col = mix(col, glass, win * upper);',
   '  col = mix(col, trim, 0.6 * fine * step(0.5, fi) * step(fv, 0.05));', // lis antar-lantai
+  // peta fasad menggantikan jendela/bingkai prosedural di lantai berjendela; koordinat kontinu (bukan fu/fv) agar mip tak bergaris di batas bay
+  '  vec3 facadeTex = texture2D(uWallTex, vec2(u / 3.0, v / 3.2)).rgb * 2.0;',
+  '  col = mix(col, diffuseColor.rgb * facadeTex, upper);',
   // lantai dasar: pintu gulung beralur dari tanah + kanopi belang (sebagian kelompok 3 bay) + bayangan di bawah kanopi
   '  float shopWin = step(fv, 0.64) * step(0.08, fu) * step(fu, 0.92);',
   '  vec3 shutter = mix(vec3(0.10, 0.13, 0.17), vec3(0.22, 0.12, 0.09), step(0.6, facadeHash(vec2(ci, 7.0))));',
@@ -90,16 +124,19 @@ const ROOF_FRAGMENT = [
   FADE,
   'vec3 rn = normalize(vFacadeN);',
   'if (facadeFade > 0.01) {',
+  '  float clay = step(diffuseColor.b * 1.6, diffuseColor.r);', // atap kemerahan: pakai peta genteng, bukan pola lama
+  `  diffuseColor.rgb *= mix(1.0, texture2D(uRoofTex, vFacadeP.xz / ${ROOF_REPEAT}).r * 2.0, facadeFade * clay);`,
+  '  float old = facadeFade * (1.0 - clay);',
   '  if (rn.y < 0.95) {', // miring: genteng
   '    float course = smoothstep(0.0, 0.18, fract(vFacadeP.y / 0.45)) * (1.0 - smoothstep(0.82, 1.0, fract(vFacadeP.y / 0.45)));',
-  '    diffuseColor.rgb *= 1.0 - 0.16 * facadeFade * (1.0 - course);',
+  '    diffuseColor.rgb *= 1.0 - 0.16 * old * (1.0 - course);',
   '  } else {', // datar: petak seng
   '    float sheet = facadeHash(floor(vFacadeP.xz / 6.0));',
-  '    diffuseColor.rgb *= 1.0 + (sheet - 0.5) * 0.22 * facadeFade;',
+  '    diffuseColor.rgb *= 1.0 + (sheet - 0.5) * 0.22 * old;',
   // peralatan atap (AC luar / tandon): kotak kecil abu terang di ±8% petak 3 m (arah seni 2026-11-16, seperti gambar target)
   '    vec2 eq = fract(vFacadeP.xz / 3.0);',
   '    float box = step(0.92, facadeHash(floor(vFacadeP.xz / 3.0) + 11.0)) * step(0.25, eq.x) * step(eq.x, 0.7) * step(0.25, eq.y) * step(eq.y, 0.7);',
-  '    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.42, 0.44, 0.46), box * facadeFade);',
+  '    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.42, 0.44, 0.46), box * old);',
   '  }',
   '}',
 ].join('\n');
@@ -141,11 +178,13 @@ export function patchFacadeSource(shader, kind) {
 export function applyFacade(material, kind) {
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uNight = FACADE_UNIFORMS.uNight;
+    shader.uniforms.uRoofTex = FACADE_UNIFORMS.uRoofTex;
+    shader.uniforms.uWallTex = FACADE_UNIFORMS.uWallTex;
     const patched = patchFacadeSource(shader, kind);
     shader.vertexShader = patched.vertexShader;
     shader.fragmentShader = patched.fragmentShader;
   };
-  material.customProgramCacheKey = () => `kota-facade-${kind}-v6`;
+  material.customProgramCacheKey = () => `kota-facade-${kind}-v8`;
   material.needsUpdate = true;
   return material;
 }

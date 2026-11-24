@@ -13,7 +13,7 @@ import { createTileMinimapCache } from './tileMinimap.js';
 import { validateManifest } from './tileData.js';
 import { mountParkedVehicles } from './parkedVehicles.js';
 import { applyGroundHole } from './groundHole.js';
-import { FACADE_UNIFORMS, nightFactor } from './facade.js';
+import { FACADE_UNIFORMS, nightFactor, loadFacadeTextures } from './facade.js';
 import { addTileDetail } from './tileDetail.js';
 import { createFarCity } from './farCity.js';
 import { createLandmarks } from './landmarks.js';
@@ -80,6 +80,7 @@ export async function createCity({
   group.name = 'kota';
   app.scene.add(group);
   const materials = createCityMaterials();
+  loadFacadeTextures({ baseUrl, logger }).catch((err) => logger.error('Tekstur fasad gagal:', err)); // tanpa await: netral dulu, rincian menyusul
   const groundHole = applyGroundHole(materials.ground); // lubang untuk terrain distrik (M1)
   const ground = createCityGround(materials.ground);
   group.add(ground);

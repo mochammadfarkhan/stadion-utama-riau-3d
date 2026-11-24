@@ -21,8 +21,9 @@ export const BAKED = Object.freeze({
 
 /** Palet baru, indeks sejajar BAKED. [INFERENSI] warna ruko/rumah Pekanbaru: cat pastel hangat, genteng & seng. */
 export const NEW = Object.freeze({
-  // F3 2026-11-20 (rujukan city-builder): dinding jenuh beragam: kuning, oranye, toska, merah muda, krem, bata, biru muda, gading
-  walls: Object.freeze(['#f2c14e', '#ec8f45', '#3fb0a3', '#ee8fa6', '#f4dcae', '#d8604a', '#7fc3e3', '#f6eed8']),
+  // 2026-11-24 (rujukan user: video pixel-singapore + gambar Flow): dinding netral hangat (krem, pasir, gading, abu hangat) + aksen persik & biru pucat.
+  // Sebelumnya (F3 2026-11-20) jenuh: '#f2c14e', '#ec8f45', '#3fb0a3', '#ee8fa6', '#f4dcae', '#d8604a', '#7fc3e3', '#f6eed8'.
+  walls: Object.freeze(['#f1e4c3', '#e9d3a8', '#f5efe2', '#e2c79a', '#d9d2c4', '#e8b98c', '#c9dbe3', '#f6eed8']),
   roofFlat: Object.freeze(['#c0633b', '#a54d36', '#cf7a4a', '#9a9893']), // terakota, merah bata, terakota muda, beton (oranye dominan seperti target)
   roofGable: Object.freeze(['#cf6d3f', '#bb5232', '#d98a4a', '#a8623f']), // genteng: sisi teduh tetap terbaca oranye, bukan hitam
   // blok permukiman/niaga = paving krem terang (terbaca seperti trotoar di rujukan); hijau dicerahkan serasi GRASS_TINT; parkir = aspal
