@@ -10,14 +10,41 @@ import { GENERATED_LANDMARKS } from './landmarks.data.js';
 export const LANDMARK_Y = -0.05;
 
 /**
- * Malam: ceruk/jendela gelap (luminans < 0,05) menyala hangat, seluruh permukaan disorot lembut (masjid biasa diterangi lampu sorot).
- * Memakai `uNight` bersama fasad kota (facade.js), diperbarui sistem city.stream tiap frame.
+ * Tampilan landmark: siang = kaca biru bergradasi sudut pandang + kusen 3 m pada pita jendela gelap, dinding sedikit lebih jenuh dan gelap di kaki;
+ * malam = jendela (luminans < 0,05) menyala hangat, seluruh permukaan disorot lembut (masjid biasa diterangi lampu sorot).
+ * Memakai `uNight` bersama fasad kota (facade.js), diperbarui sistem city.stream tiap frame. Tanpa tekstur/draw call baru.
  */
 export function applyLandmarkNight(material) {
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uNight = FACADE_UNIFORMS.uNight;
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vLmP;\nvarying vec3 vLmN;')
+      .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nvLmN = normalize(mat3(modelMatrix) * objectNormal);')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvLmP = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     shader.fragmentShader = `uniform float uNight;
-${shader.fragmentShader}`.replace(
+${shader.fragmentShader}`.replace('#include <common>', '#include <common>\nvarying vec3 vLmP;\nvarying vec3 vLmN;').replace(
+      '#include <color_fragment>',
+      `#include <color_fragment>
+      #ifdef USE_COLOR
+        vec3 lmN = normalize(vLmN);
+        float lmWall = 1.0 - step(0.5, abs(lmN.y));
+        float lmLumD = dot(vColor.rgb, vec3(0.299, 0.587, 0.114));
+        float lmGlass = (1.0 - smoothstep(0.03, 0.06, lmLumD)) * lmWall;
+        float lmDist = distance(vLmP, cameraPosition);
+        vec3 lmV = normalize(cameraPosition - vLmP);
+        float lmFres = pow(1.0 - abs(dot(lmV, lmN)), 2.0);
+        float lmU = dot(vLmP.xz, vec2(-lmN.z, lmN.x));
+        float lmPanel = fract(sin(dot(floor(vec2(lmU / 3.0, vLmP.y / 3.2)), vec2(12.9898, 78.233))) * 43758.5453);
+        vec3 lmGlassC = mix(vec3(0.05, 0.16, 0.32), vec3(0.25, 0.45, 0.70), clamp(0.25 + 0.6 * lmFres + 0.25 * lmPanel, 0.0, 1.0));
+        float lmMull = step(0.93, fract(lmU / 3.0)) * (1.0 - smoothstep(250.0, 700.0, lmDist));
+        lmGlassC = mix(lmGlassC, vec3(0.62, 0.66, 0.70), lmMull);
+        lmGlassC *= (1.0 - 0.85 * uNight);
+        vec3 lmBase = diffuseColor.rgb;
+        float lmGray = dot(lmBase, vec3(0.299, 0.587, 0.114));
+        lmBase = mix(vec3(lmGray), lmBase, 1.25) * mix(1.0, mix(0.70, 1.0, smoothstep(0.0, 7.0, vLmP.y)), lmWall);
+        diffuseColor.rgb = mix(max(lmBase, 0.0), lmGlassC, lmGlass);
+      #endif`,
+    ).replace(
       '#include <emissivemap_fragment>',
       `#include <emissivemap_fragment>
       #ifdef USE_COLOR
@@ -27,7 +54,7 @@ ${shader.fragmentShader}`.replace(
       #endif`,
     );
   };
-  material.customProgramCacheKey = () => 'landmarkNight';
+  material.customProgramCacheKey = () => 'landmarkLook';
   return material;
 }
 
