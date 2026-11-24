@@ -42,6 +42,15 @@ ${shader.fragmentShader}`.replace('#include <common>', '#include <common>\nvaryi
         vec3 lmBase = diffuseColor.rgb;
         float lmGray = dot(lmBase, vec3(0.299, 0.587, 0.114));
         lmBase = mix(vec3(lmGray), lmBase, 1.25) * mix(1.0, mix(0.70, 1.0, smoothstep(0.0, 7.0, vLmP.y)), lmWall);
+        // warna netral (abu/putih) saja yang dihangatkan: kubah, skylight, aksen berwarna tidak tersentuh
+        float lmMax = max(vColor.r, max(vColor.g, vColor.b));
+        float lmNeutral = 1.0 - smoothstep(0.30, 0.48, (lmMax - min(vColor.r, min(vColor.g, vColor.b))) / max(lmMax, 0.001));
+        lmBase = mix(lmBase, lmBase * vec3(1.18, 1.0, 0.70), lmNeutral * lmWall); // dinding: krem hangat, bukan abu kebiruan
+        // atap datar terang di atas tanah: beton hangat + sambungan panel 8 m (memudar 300–900 m); aspal gelap dibiarkan
+        float lmRoof = step(0.5, lmN.y) * step(2.0, vLmP.y) * smoothstep(0.2, 0.35, lmLumD) * lmNeutral;
+        vec2 lmSeam = abs(fract(vLmP.xz / 8.0) - 0.5);
+        float lmLine = step(0.47, max(lmSeam.x, lmSeam.y)) * (1.0 - smoothstep(300.0, 900.0, lmDist));
+        lmBase = mix(lmBase, vec3(0.62, 0.50, 0.38) * (0.75 + 0.5 * lmGray) * (1.0 - 0.18 * lmLine), lmRoof);
         diffuseColor.rgb = mix(max(lmBase, 0.0), lmGlassC, lmGlass);
       #endif`,
     ).replace(
@@ -54,7 +63,7 @@ ${shader.fragmentShader}`.replace('#include <common>', '#include <common>\nvaryi
       #endif`,
     );
   };
-  material.customProgramCacheKey = () => 'landmarkLook';
+  material.customProgramCacheKey = () => 'landmarkLook3';
   return material;
 }
 
