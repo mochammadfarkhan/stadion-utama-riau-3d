@@ -3,6 +3,16 @@
 Tujuan: model bagus dengan putaran sesedikit mungkin. Baca berkas ini saja sebelum membuat/memperbaiki model;
 jangan menjelajah ulang folder `assets-src/`.
 
+## 0. Apakah perubahan ini akan terlihat? (cek dulu, audit 2026-11-24)
+Audit commit `a36fde7`/`89e56c8`: model sampai ke game, tetapi isinya geseran warna ±6% dan detail 0,3–0,6 m, sehingga tak terbedakan di bidikan.
+- **Skala piksel mode Kota:** kamera ±1170 m (zoom 0,9) ≈ 1,9 px per meter. Detail < 2 m ≈ tak terlihat. Yang terlihat: siluet, tinggi, atap, massa besar, warna yang beda ≥ 15–20%.
+- **LOD:** detail kecil hanya di LOD0; mulai zoom ±1,1 yang tampil LOD1 (`src/city/landmarks.data.js`, `lod: [1300, 2800]`). Detail penting harus ada juga di LOD1.
+- **Landmark hanya tampil di pratinjau Kota (tombol K)** (`src/city/landmarks.js`, `group.visible = false`); saat berjalan/bersepeda tidak tampil.
+- **Kotak kota-jauh masih menumpuk** di lokasi landmark di luar tile terperinci (mis. Simpang SKA); `tools/citybake/farbake.mjs` belum menyaring jejak landmark.
+- **Warna diratakan runtime:** satu material Lambert warna-vertex + grading sore mode Kota. Beda warna tipis hilang.
+- **Wajib:** `node tools/shots/landmarkKota.mjs --id <id> --zoom 0.9,1.6 --hour 16.75` sebelum dan sesudah (folder beda), bandingkan. Tak terbedakan = gagal.
+- Bila yang diminta "kota lebih cantik", ungkit terbesar biasanya **cahaya, palet, kabut, AO, bayangan** di kode, lalu **ganti model dengan aset CC0**, baru detail mesh.
+
 ## 1. Pilih sumber (berhenti di pilihan pertama yang cocok)
 1. **Model jadi CC0** lewat Blender MCP: `search_assets` → `import_asset` (Poly Haven, Poly Pizza, Sketchfab berlisensi CC0/CC-BY; catat sumber + lisensi).
 2. **Base mesh yang sudah ada**: karakter mulai dari `assets-src/blender/karakter/sumber/StylisedBaseMesh_Female.fbx` / `_Male.fbx`, lalu ubah bentuk/warna.

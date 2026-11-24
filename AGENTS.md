@@ -4,6 +4,7 @@ Proyek hobi: **cepat dan sederhana mengalahkan lengkap**. Bahasa: Indonesia.
 
 ## Workflow (6 langkah)
 1. **Kerjakan langsung sendiri.** Tanpa subagent/agen untuk eksekusi, tanpa dokumen plan. Cukup 1–3 baris niat, lalu mulai. Bila perkiraan > 30 menit, bilang di awal.
+   Pengecualian (user 2026-11-24): sesi utama (Fable) boleh menyebar **agen Opus hanya-baca** untuk riset web atau audit kode paralel; yang menulis kode tetap sesi utama.
 2. **Baca seperlunya:** `grep` dulu, buka hanya berkas terkait.
 3. **Cek cepat:** `npm run lint` + tes berkas terkait (`node node_modules/vitest/vitest.mjs run <path>`). Suite penuh + `npm run build` hanya sebelum push.
 4. **Lihat hasilnya** bila visual: 1–2 bidikan yang dibaca sendiri; lewati bila bukan visual.
@@ -22,12 +23,15 @@ User ingin folder proyek ini **selalu berada di `main` terbaru** dan semua peker
 
 ## Aturan
 - Fitur baru **langsung aktif** (default), kecuali diminta opt-in; mode lama tetap bisa dipilih.
+- **Perubahan visual harus terlihat dari kamera game.** Sebelum mengerjakan "percantik": bidik *sebelum* dari kamera yang dipakai pemain, sebut apa yang akan beda (siluet, tinggi, warna ≥ 15–20%, cahaya), lalu bidik *sesudah* dengan kamera sama.
+  Bila dua bidikan itu sulit dibedakan, itu **gagal**: jangan di-commit sebagai "percantik", lapor jujur. Rincian di `docs/model/RESEP.md` §0.
+- `docs/superpowers/` = arsip rencana lama (±400 rb kata): **jangan dibaca**, kecualikan dari grep.
 - Tes hanya untuk logika berisiko (matematika, data, collider, bake). Tidak ada tes visual/layout.
 - Fakta mengalahkan gaya: tandai `[INFERENSI]` bila bukan dari sumber; jangan mengarang nama (UKM user = **ERC**, ruang D5).
 - Anggaran: draw call region ≤ 250, tekstur GPU ≤ 70 MB, konten berulang lewat generator + instancing.
 
 ## Teknis singkat
-- **Kartu kerja: `docs/rencana/README.md`** — baca dulu sebelum mengerjakan perbaikan dari kritik; satu kartu (R01…R25) = satu PR, berisi berkas, tes, perintah cek, dan angka lulus. Perbarui status kartu di PR yang sama.
+- **Kartu kerja: `docs/rencana/README.md`** — baca dulu sebelum mengerjakan perbaikan dari kritik; satu kartu (R01…R25) = satu commit di `main`, berisi berkas, tes, perintah cek, dan angka lulus. Perbarui status kartu di commit yang sama.
 - **Rencana Kota: `docs/kota/PLAN.md`** (+ README per fitur di `docs/kota/*/`) — perbarui di akhir tiap sesi yang menyentuh Kota; resep ganti model di `docs/kota/ganti-model/`.
 - **Peta arsitektur: `docs/ARSITEKTUR.md`** — baca dulu sebelum menjelajah; perbarui (termasuk log keputusan) bila menambah lapisan/sistem/region.
 - Koordinat dunia: +X timur, +Z selatan (meter). Lapisan ESLint tidak boleh saling impor lintas (lihat `eslint.config.js`).
