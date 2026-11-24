@@ -134,6 +134,12 @@ def _soft_bands(z0, n, fh, wall, glass="#243547"):
     return out
 
 
+def _tree(m, x, y, z, s=1.0):
+    """Pohon peneduh kecil: batang + tajuk bulat 2 nada (48 segitiga)."""
+    m.prism((x, y, z), (x, y, z + 2.2 * s), 0.35 * s, "#5a3d24")
+    m.revolve(x, y, z + 1.8 * s, [(0.0, 0), (1.7 * s, 1.0 * s), (2.0 * s, 2.2 * s), (1.3 * s, 3.4 * s), (0.0, 4.2 * s)], 6, "#3f8f3a", "#2f7a30")
+
+
 def b_mal_ska(spec):
     """Mal SKA Pekanbaru: cladding Gull Grey, 3 skylight berangka putih, kanopi entrance, pylon simpang."""
     fr = Frame([way(w) for w in spec["ways"]])
@@ -143,9 +149,9 @@ def b_mal_ska(spec):
         w = spec["ways"][0]
         poly = simplify(fr.pts(way(w)), tol(lod))
         H = 5 * 4.5
-        wall, panel, blue, gold, glass = "#e2e5ea", "#cfd5dd", "#1f6feb", "#f0a830", "#7cc0e8"
+        wall, panel, blue, gold, glass = "#e2e5ea", "#cfd5dd", "#1f6feb", "#f0a830", "#4f9fd6"
         m.extrude(poly, 0, 0.35, "#d8d3c8")  # pelataran trotoar mal
-        m.extrude(poly, 0.35, H, wall, roof="#aeb6c0", bands=_soft_bands(0.35, 5, 4.43, wall) if lod == 0 else None)
+        m.extrude(poly, 0.35, H, wall, roof="#978f84", bands=_soft_bands(0.35, 5, 4.43, wall) if lod == 0 else None)  # atap kerikil (gambar rujukan Flow)
         m.extrude(poly, H, H + 1.4, panel)
         m.extrude(poly, H + 1.4, H + 2.0, blue)
 
@@ -155,8 +161,19 @@ def b_mal_ska(spec):
         for k in (-0.28, 0.0, 0.28):
             ux = cx + c * (L * k)
             uy = cy + s * (L * k)
-            m.box(ux, uy, H + 1.4, L * 0.23, W * 0.48, 0.6, "#eef2f6")
+            m.box(ux, uy, H + 1.4, L * 0.23, W * 0.48, 0.6, "#e9e2d0")
             m.hip(ux, uy, ang, L * 0.21, W * 0.44, H + 2.0, 4.2, 0.72, glass)
+            if lod == 0:   # rangka kisi baja skylight: rusuk melintang, gording, balok bubungan
+                Ls, Wd, z0s, top, fr_c = L * 0.21, W * 0.44, H + 2.0, H + 6.2, "#f4f6f8"
+                r = Ls * 0.72 / 2
+                Q = lambda u, v, z: (ux + u * c - v * s, uy + u * s + v * c, z)  # noqa: E731
+                m.prism(Q(-r, 0, top + 0.1), Q(r, 0, top + 0.1), 0.4, fr_c)
+                for i in range(7):
+                    u = -r + 2 * r * i / 6
+                    for sv in (-1, 1):
+                        m.prism(Q(u, sv * Wd / 2, z0s + 0.1), Q(u, 0, top + 0.1), 0.3, fr_c)
+                for sv in (-1, 1):
+                    m.prism(Q(-r - (Ls / 2 - r) * 0.5, sv * Wd / 4, z0s + 2.2), Q(r + (Ls / 2 - r) * 0.5, sv * Wd / 4, z0s + 2.2), 0.3, fr_c)
         # Kanopi main entrance menghadap Simpang SKA (+L/2)
         ex = cx + c * (L * 0.48)
         ey = cy + s * (L * 0.48)
@@ -170,7 +187,49 @@ def b_mal_ska(spec):
         if lod == 0:
             _facade_fins(m, cx, cy, ang, L, W, 3.0, H, 14, panel)
             sign_on_longest(m, poly, H - 3.4, 36, blue, lod)
-            ac_boxes(m, poly, H + 1.4, lod, w)
+            P = lambda u, v, z: (cx + u * c - v * s, cy + u * s + v * c, z)  # noqa: E731
+            quad = lambda u0, u1, v0, v1, z, col: m.poly([P(u0, v0, z), P(u1, v0, z), P(u1, v1, z), P(u0, v1, z)], col)  # noqa: E731
+            # unit AC atap + saluran udara (gambar rujukan Flow): dua lajur di luar skylight
+            for sv in (-1, 1):
+                vv = sv * W * 0.37
+                ends = []
+                for k in (-0.33, -0.11, 0.11, 0.33):
+                    x, y, _ = P(L * k, vv, 0)
+                    if not inside((x, y), poly):
+                        continue
+                    m.box(x, y, H, 3.8, 2.6, 1.8, "#b9bcc0")
+                    m.box(x, y, H + 1.8, 2.6, 1.8, 0.35, "#6f747a")
+                    m.prism(P(L * k, vv, H + 0.7), P(L * k, vv - sv * 3.0, H + 0.7), 0.9, "#c9ccd0", wz=0.7)
+                    ends.append(L * k)
+                if len(ends) > 1:
+                    m.prism(P(min(ends), vv - sv * 3.0, H + 0.7), P(max(ends), vv - sv * 3.0, H + 0.7), 1.0, "#c9ccd0", wz=0.8)
+            # pintu masuk: dinding kaca + tiang kanopi; rangka sudut pylon
+            for v in (-11, -4, 4, 11):
+                m.prism(P(L * 0.48 + 6.0, v, 0.35), P(L * 0.48 + 6.0, v, 6.5), 0.7, "#eef2f6")
+            m.prism(P(L * 0.5 + 0.4, -10, 3.3), P(L * 0.5 + 0.4, 10, 3.3), 0.5, "#2c4a66", wz=5.6)
+            for a, b in ((-1, -1), (-1, 1), (1, -1), (1, 1)):
+                m.prism((px + a * 4.25, py + b * 4.25, H + 1.4), (px + a * 4.25, py + b * 4.25, H + 10.4), 0.5, "#eef2f6")
+            # tapak: pelataran, jalur antar-jemput, parkiran berpetak, pot tanaman, pohon (hanya LOD0; collider memakai LOD2)
+            quad(L / 2 - 2, L / 2 + 30, -W * 0.5, W * 0.5, 0.06, "#d9d2c2")
+            quad(L / 2 + 9, L / 2 + 16, -W * 0.46, W * 0.46, 0.08, "#4a4d55")
+            v0 = W / 2 + 6.0   # parkiran di sisi jalan (+W); sisi -W ditempati Swiss-Belinn
+            quad(-L * 0.38, L * 0.46, v0, v0 + 24.0, 0.05, "#4a4d55")
+            for row in (2.0, 16.0):
+                for i in range(int(L * 0.8 / 2.6)):
+                    u = -L * 0.36 + i * 2.6
+                    quad(u, u + 0.16, v0 + row, v0 + row + 5.0, 0.09, "#e8e8e4")
+            for i in range(9):
+                u = -L * 0.36 + i * L * 0.1
+                x, y, _ = P(u, v0 - 3.0, 0)
+                _tree(m, x, y, 0.35, 1.5)
+                x, y, _ = P(u, v0 + 26.5, 0)
+                _tree(m, x, y, 0.0, 1.4)
+            for v in (-W * 0.36, -W * 0.18, W * 0.18, W * 0.36):
+                x, y, _ = P(L / 2 + 22, v, 0)
+                m.box(x, y, 0.06, 6.0, 2.4, 0.55, "#cfc7b2")
+                m.box(x, y, 0.61, 5.2, 1.6, 0.7, "#3f8f3a")
+                x, y, _ = P(L / 2 + 27, v, 0)
+                _tree(m, x, y, 0.06, 1.4)
         return m
     return fr, build
 
