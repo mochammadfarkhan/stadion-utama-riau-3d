@@ -1,7 +1,7 @@
 /**
  * Peta rincian kota dari gambar Google Flow (assets-src/flow/*.png) → public/textures/kota/*.webp (512², bisa diulang).
  *   node tools/texbake/flowDetail.mjs
- * - genteng: luminans dinormalkan ke rata-rata 0,5 (shader mengalikan ×2 → warna atap per bangunan tetap).
+ * - genteng, paving, rumput: luminans dinormalkan ke rata-rata 0,5 (shader mengalikan ×2 → warna dasar tetap dari vertex).
  * - fasad-bay: warna dibagi warna dinding (rata-rata pojok kiri atas) → dinding ≈ 0,5, kaca tetap gelap kebiruan.
  * Tepi dilebur silang (crossfade) supaya sambungan ulangan tidak terlihat.
  */
@@ -49,17 +49,21 @@ async function save(name, px, w, h) {
 
 mkdirSync(OUT, { recursive: true });
 
-{ // genteng → luminans rata-rata 127,5
-  const g = await load('genteng.png');
-  const s = seamless(g.data, g.w, g.h, 3, 48);
+/** Luminans dinormalkan ke rata-rata 127,5 (pengali ≈ 1 setelah ×2); `contrast` memperkuat simpangan; `margin` = lebar lebur tepi (0 = tanpa). */
+async function detail(src, out, { margin = 48, contrast = 1 } = {}) {
+  const g = await load(src);
+  const s = margin > 0 ? seamless(g.data, g.w, g.h, 3, margin) : g;
   let sum = 0;
   const lum = new Float32Array(s.w * s.h);
   for (let i = 0; i < lum.length; i += 1) { lum[i] = 0.299 * s.data[i * 3] + 0.587 * s.data[i * 3 + 1] + 0.114 * s.data[i * 3 + 2]; sum += lum[i]; }
-  const k = 127.5 / (sum / lum.length);
-  const px = new Float32Array(s.data.length);
-  for (let i = 0; i < lum.length; i += 1) px[i * 3] = px[i * 3 + 1] = px[i * 3 + 2] = lum[i] * k;
-  await save('genteng.webp', px, s.w, s.h);
+  const mean = sum / lum.length;
+  const px = new Float32Array(lum.length * 3);
+  for (let i = 0; i < lum.length; i += 1) px[i * 3] = px[i * 3 + 1] = px[i * 3 + 2] = 127.5 + ((lum[i] - mean) / mean) * 127.5 * contrast;
+  await save(out, px, s.w, s.h);
 }
+await detail('genteng.png', 'genteng.webp');
+await detail('paving.png', 'paving.webp', { margin: 0 }); // tepi gambar sudah tepat di nat: tanpa lebur agar petak tidak buram
+await detail('rumput.png', 'rumput.webp', { contrast: 3 }); // rumput Flow berkontras rendah
 
 { // fasad: bagi warna dinding → dinding ≈ 127,5
   const f = await load('fasad-bay.png');

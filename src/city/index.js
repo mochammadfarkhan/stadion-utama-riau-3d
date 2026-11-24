@@ -30,7 +30,7 @@ export function nextTileDetailHidden(hidden, distance, { hideAt, showAt } = TILE
   if (!Number.isFinite(distance)) return hidden;
   return hidden ? distance > showAt : distance > hideAt;
 }
-import { GROUND_UNIFORMS } from './groundDetail.js';
+import { GROUND_UNIFORMS, loadGroundTextures } from './groundDetail.js';
 import { SWAY_UNIFORMS } from './treeSway.js';
 
 /** Tanah dasar kota: persegi besar di bawah landuse (y −0,05), dipindah per 50 m mengikuti fokus. */
@@ -81,6 +81,7 @@ export async function createCity({
   app.scene.add(group);
   const materials = createCityMaterials();
   loadFacadeTextures({ baseUrl, logger }).catch((err) => logger.error('Tekstur fasad gagal:', err)); // tanpa await: netral dulu, rincian menyusul
+  loadGroundTextures({ baseUrl, logger }).catch((err) => logger.error('Tekstur tanah gagal:', err));
   const groundHole = applyGroundHole(materials.ground); // lubang untuk terrain distrik (M1)
   const ground = createCityGround(materials.ground);
   group.add(ground);
