@@ -7,6 +7,9 @@
  *   v melintang, y tinggi (m). yaw (derajat) relatif ke sumbu panjang.
  *   - { part, at: [[u, v, y, yaw?, skala?], ...] }                      titik satu per satu
  *   - { part, line: { from: [u, v], to: [u, v], y, count, yaw?, skala? } } berjajar rata di satu garis (termasuk kedua ujung)
+ *   - { part, ring: { step, ys: [...], offset?, margin?, minEdge?, maxEdge?, skala? } } berjajar mengikuti KELILING jejak,
+ *     menghadap ke luar, di tiap ketinggian ys (mis. jendela per lantai). Butuh `ring: [[x, y], ...]` di resep = jejak gedung
+ *     dalam denah model (x timur, y utara), bukan (u, v); cetak dari skrip Blender (fr.pts(way(...))).
  * Murni data: tanpa impor.
  */
 export const PART_FILES = Object.freeze({
@@ -39,6 +42,14 @@ export const PART_RECIPES = Object.freeze({
       { part: 'pot', at: [[97.4, -40.2, 0.06, 90], [97.4, -20.1, 0.06, 90], [97.4, 20.1, 0.06, 90], [97.4, 40.2, 0.06, 90]] },
       { part: 'palem', at: [[102.4, -40.2, 0.06, 0], [102.4, -20.1, 0.06, 40], [102.4, 20.1, 0.06, 80], [102.4, 40.2, 0.06, 120]] },
       { part: 'lampu', line: { from: [92.6, -45], to: [92.6, 45], y: 0.06, count: 5 } },
+    ],
+  },
+  // Swiss-Belinn SKA: menara 9 lantai (alas 10,5 m, tinggi lantai 3,6 m). Jendela = potongan di dua sisi panjang;
+  // sisi pendek ditempati balkon dari skrip model.
+  'swiss-belinn-ska': {
+    ring: [[-22.0, 7.2], [-19.2, -13.0], [22.0, -7.9], [19.2, 13.0]],
+    rules: [
+      { part: 'jendela', ring: { step: 3.2, ys: [11.4, 15.0, 18.6, 22.2, 25.8, 29.4, 33.0, 36.6, 40.2], margin: 2.0, minEdge: 30, offset: 0 } },
     ],
   },
 });

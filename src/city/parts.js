@@ -41,17 +41,64 @@ function rulePoints(rule) {
   return [];
 }
 
-/** Resep → Map<part, Array<{x, y, z, rotY, scale}>> (lokal landmark). Data cacat dilewati, tidak melempar. */
+/** Aturan `ring`: potongan di sepanjang keliling poligon jejak `poly` (denah x timur, y utara), menghadap keluar. */
+function ringInstances(poly, r) {
+  if (!r || !Array.isArray(poly) || poly.length < 3 || !poly.every((p) => Array.isArray(p) && fin(p[0]) && fin(p[1]))) return [];
+  const { step, ys } = r;
+  const offset = opt(r.offset, 0.05);
+  const margin = opt(r.margin, 1.5);
+  const minEdge = opt(r.minEdge, 0);
+  const maxEdge = opt(r.maxEdge, Infinity);
+  const scale = opt(r.skala, 1);
+  if (!fin(step) || step <= 0 || !Array.isArray(ys) || ys.length === 0 || !ys.every(fin)) return [];
+  if (!fin(offset) || !fin(margin) || !fin(scale) || scale <= 0 || typeof minEdge !== 'number' || typeof maxEdge !== 'number') return [];
+  let area = 0;
+  poly.forEach(([x, y], i) => { const [x2, y2] = poly[(i + 1) % poly.length]; area += x * y2 - x2 * y; });
+  const pts = area < 0 ? [...poly].reverse() : poly; // berlawanan jarum jam
+  const out = [];
+  pts.forEach(([ax, ay], i) => {
+    const [bx, by] = pts[(i + 1) % pts.length];
+    const Ls = Math.hypot(bx - ax, by - ay);
+    const room = Ls - 2 * margin;
+    if (Ls === 0 || Ls < minEdge || Ls > maxEdge || room < 0) return;
+    const dx = (bx - ax) / Ls;
+    const dy = (by - ay) / Ls;
+    const nx = dy;
+    const ny = -dx;
+    const n = Math.floor(room / step) + 1;
+    const start = margin + (room - (n - 1) * step) / 2;
+    for (let k = 0; k < n; k++) {
+      const d = start + k * step;
+      const px = ax + dx * d + nx * offset;
+      const py = ay + dy * d + ny * offset;
+      for (const y of ys) out.push({ x: px, y, z: -py, rotY: Math.atan2(nx, -ny), scale });
+    }
+  });
+  return out;
+}
+
+/**
+ * Resep → Map<part, Array<{x, y, z, rotY, scale}>> (lokal landmark). Data cacat dilewati, tidak melempar.
+ * Aturan: `at`, `line` (koordinat frame, perlu `frame`) dan `ring` (keliling `recipe.ring`, denah model; tanpa frame).
+ */
 export function expandRecipe(recipe) {
   const out = new Map();
-  if (!recipe || !validFrame(recipe.frame) || !Array.isArray(recipe.rules)) return out;
+  if (!recipe || !Array.isArray(recipe.rules)) return out;
+  const frameOk = validFrame(recipe.frame);
+  const add = (part, p) => {
+    if (!out.has(part)) out.set(part, []);
+    out.get(part).push(p);
+  };
   for (const rule of recipe.rules) {
     if (!rule || typeof rule.part !== 'string') continue;
+    if (rule.ring) {
+      for (const p of ringInstances(recipe.ring, rule.ring)) add(rule.part, p);
+      continue;
+    }
+    if (!frameOk) continue;
     for (const [u, v, y, yaw, scale] of rulePoints(rule)) {
       if (![u, v, y, yaw, scale].every(fin) || scale <= 0) continue;
-      const p = frameToLocal(recipe.frame, u, v, y, yaw);
-      if (!out.has(rule.part)) out.set(rule.part, []);
-      out.get(rule.part).push({ ...p, scale });
+      add(rule.part, { ...frameToLocal(recipe.frame, u, v, y, yaw), scale });
     }
   }
   return out;

@@ -316,7 +316,7 @@ def b_swiss_belinn(spec):
         H = 12 * 3.6
         wall, blue, accent = "#ebe8e0", "#224d8f", "#c94638"
         m.extrude(poly, 0, 10.5, "#dfd9ce", roof=None, bands=_soft_bands(0, 3, 3.5, "#dfd9ce", "#223446") if lod == 0 else None)
-        m.extrude(poly, 10.5, H, wall, roof="#9aa3b0", bands=_soft_bands(10.5, 9, 3.6, wall, "#203347") if lod == 0 else None)
+        m.extrude(poly, 10.5, H, wall, roof="#9aa3b0")   # jendela menara = potongan 'jendela' (aturan ring di src/city/parts.data.js)
         m.extrude(poly, H, H + 2.0, blue)
         m.extrude(poly, H + 2.0, H + 2.6, accent)
         cx, cy, ang, L, W = min_rect(poly)
@@ -324,7 +324,6 @@ def b_swiss_belinn(spec):
         if lod == 0:   # mengikuti gambar rujukan Flow: kisi pilar + pelat, podium, balkon ujung, kanopi, peralatan atap
             c, s = math.cos(ang), math.sin(ang)
             P = lambda u, v, z: (cx + u * c - v * s, cy + u * s + v * c, z)  # noqa: E731
-            _piers(m, poly, 10.5, H, 4.2, 0.5, "#f5f7fa", off=0.3)
             _slabs(m, poly, [10.5 + 3.6 * k - 0.18 for k in range(1, 9)], 0.35, 0.36, "#f5f7fa")
             _slabs(m, poly, [10.2], 0.9, 0.6, "#cfc7b6")                    # tepi podium
             _piers(m, poly, 0.0, 10.2, 6.0, 0.8, "#cfc7b6", off=0.45)

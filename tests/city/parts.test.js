@@ -46,6 +46,49 @@ describe('expandRecipe', () => {
   });
 });
 
+describe('expandRecipe ring', () => {
+  const sq = [[0, 0], [20, 0], [20, 10], [0, 10]];
+  const ring = { step: 5, ys: [3], margin: 2.5, offset: 0.1 };
+  const run = (poly, r) => expandRecipe({ ring: poly, rules: [{ part: 'jendela', ring: r }] }).get('jendela') ?? [];
+  const key = (p) => `${p.x.toFixed(6)},${p.y},${p.z.toFixed(6)},${p.rotY.toFixed(6)}`;
+
+  it('persegi 20×10: 4 + 2 potongan per sisi, terpusat, menghadap keluar', () => {
+    const pts = run(sq, ring);
+    expect(pts).toHaveLength(12);
+    const bawah = pts.filter((p) => Math.abs(p.z - 0.1) < 1e-6).map((p) => p.x).sort((a, b) => a - b);
+    expect(bawah).toHaveLength(4);
+    [2.5, 7.5, 12.5, 17.5].forEach((x, i) => expect(bawah[i]).toBeCloseTo(x, 6));
+    pts.filter((p) => Math.abs(p.z - 0.1) < 1e-6).forEach((p) => expect(p.rotY).toBeCloseTo(0, 6));
+    const kanan = pts.filter((p) => Math.abs(p.x - 20.1) < 1e-6);
+    expect(kanan).toHaveLength(2);
+    kanan.forEach((p) => { expect(p.rotY).toBeCloseTo(Math.PI / 2, 6); expect(p.y).toBe(3); });
+  });
+
+  it('urutan CW memberi himpunan posisi yang sama', () => {
+    const a = run(sq, ring).map(key).sort();
+    const b = run([...sq].reverse(), ring).map(key).sort();
+    expect(b).toEqual(a);
+  });
+
+  it('ys menggandakan, minEdge menyaring sisi pendek, skala diteruskan', () => {
+    expect(run(sq, { ...ring, ys: [3, 6.6] })).toHaveLength(24);
+    const panjang = run(sq, { ...ring, minEdge: 15, skala: 2 });
+    expect(panjang).toHaveLength(8);
+    expect(panjang.every((p) => p.scale === 2)).toBe(true);
+  });
+
+  it('aturan cacat dilewati; aturan sah lain tetap jalan; resep tanpa frame diterima', () => {
+    const map = expandRecipe({ ring: sq, rules: [
+      { part: 'a', ring: { ...ring, step: 0 } }, { part: 'b', ring: { ...ring, ys: [] } },
+      { part: 'c', ring: { ...ring, ys: ['x'] } }, { part: 'd', ring: { ...ring, margin: Infinity } },
+      { part: 'ok', ring },
+    ] });
+    expect([...map.keys()]).toEqual(['ok']);
+    expect(expandRecipe({ ring: [[0, 0], [1, 1]], rules: [{ part: 'a', ring }] }).size).toBe(0);
+    expect(expandRecipe({ ring: [[0, 0], [1, NaN], [2, 2]], rules: [{ part: 'a', ring }] }).size).toBe(0);
+  });
+});
+
 describe('createParts', () => {
   const recipes = {
     satu: { frame: { cx: 0, cy: 0, ang: 0 }, rules: [

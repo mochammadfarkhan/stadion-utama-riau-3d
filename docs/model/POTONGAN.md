@@ -24,6 +24,9 @@ Sunting `PART_RECIPES['<id>'].rules` di `src/city/parts.data.js`:
 - `{ part: 'ac', at: [[u, v, y, yaw, skala], ...] }` — satu per satu.
 - `{ part: 'pohon', line: { from: [u, v], to: [u, v], y, count, yaw, skala } }` — berjajar rata.
 
+- `{ part: 'jendela', ring: { step, ys: [...], margin, minEdge, offset } }` — berjajar mengikuti keliling jejak, menghadap ke luar, di tiap
+  ketinggian `ys` (mis. per lantai). Butuh `ring: [[x, y], ...]` di resep (jejak gedung; cetak `fr.pts(way(...))` dari skrip Blender).
+
 `u` sepanjang sumbu panjang landmark, `v` melintang, `y` tinggi (meter); `yaw` derajat. `frame` landmark diambil dari `min_rect`
 jejaknya di skrip Blender (cetak sekali, salin angkanya).
 
@@ -35,4 +38,4 @@ jejaknya di skrip Blender (cetak sekali, salin angkanya).
 - Bentuk besar (massa gedung, lekuk fasad, kubah) tetap dari skrip landmark.
 - Gedung biasa di 157 tile tidak memakai sistem ini (sudah dilebur saat bake); atapnya ditambah `src/city/roofs.js`.
 - Potongan tidak punya collider.
-- Aturan `ring` (berjajar mengikuti keliling jejak, mis. jendela per lantai) belum ada.
+- Aturan `ring` memakai sisi lurus jejak; pada fasad melengkung potongan mengikuti patahan poligonnya.
