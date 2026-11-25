@@ -61,6 +61,7 @@ export function createTileLoader({
   manifest, baseUrl = '/', parent, materials, collider, minimap = null, weather = null,
   loadGltf = createGltfLoader(), fetchJson: getJson = fetchJson, retries = TILE_RETRIES, backoffMs = TILE_BACKOFF_MS,
   sleep = (ms) => new Promise((r) => setTimeout(r, ms)), onFail = () => {}, logger = console, decorate = null,
+  colliderTile = (tile) => tile, // data tile untuk collider (mis. tanpa gedung yang ditenggelamkan di tapak landmark)
 }) {
   const info = new Map(manifest.tiles.map((t) => [t.key, t]));
   const entries = new Map(); // key → {root, lod, offWet, meshes, triangles}
@@ -160,7 +161,7 @@ export function createTileLoader({
     }
     decorateRoot(built.root, tile, action.lod);
     attach(action.key, built, action.lod);
-    collider.addTile(action.key, tile);
+    collider.addTile(action.key, colliderTile(tile));
     minimap?.add(action.key, tile);
   }
 

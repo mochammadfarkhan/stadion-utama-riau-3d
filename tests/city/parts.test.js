@@ -143,7 +143,8 @@ describe('createParts', () => {
     expect(byName['potongan:ac'].isInstancedMesh).toBe(true);
     expect(byName['potongan:ac'].count).toBe(2);
     expect(byName['potongan:pohon'].count).toBe(3);
-    expect(byName['potongan:ac'].castShadow && byName['potongan:ac'].receiveShadow).toBe(true);
+    expect(byName['potongan:ac'].receiveShadow).toBe(true);
+    expect(byName['potongan:ac'].castShadow).toBe(false); // hanya potongan besar (PART_SHADOW) yang melempar bayangan
     expect(parts.stats()).toEqual({ types: 2, instances: 5 });
   });
 

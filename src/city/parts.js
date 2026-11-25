@@ -4,7 +4,7 @@
  * geometri tiap jenis dimuat sekali dan dibagi antar-landmark.
  */
 import * as THREE from 'three';
-import { PART_FILES, PART_RECIPES } from './parts.data.js';
+import { PART_FILES, PART_RECIPES, PART_SHADOW } from './parts.data.js';
 import { pointInPolygon } from '../geo/polygon.js';
 
 const fin = (n) => typeof n === 'number' && Number.isFinite(n);
@@ -136,7 +136,7 @@ export function expandRecipe(recipe) {
  * @param {{baseUrl?: string, loadGltf: (url: string) => Promise<{scene: THREE.Object3D}>, material: THREE.Material,
  *   files?: Record<string, string>, recipes?: Record<string, object>, logger?: {error: Function}}} o
  */
-export function createParts({ baseUrl = '/', loadGltf, material, files = PART_FILES, recipes = PART_RECIPES, logger = console }) {
+export function createParts({ baseUrl = '/', loadGltf, material, files = PART_FILES, recipes = PART_RECIPES, logger = console, shadows = PART_SHADOW }) {
   const geoms = new Map(); // nama → Promise<BufferGeometry|null>
   const loaded = [];
   const groups = new Map(); // id landmark → Promise<Group>
@@ -179,7 +179,7 @@ export function createParts({ baseUrl = '/', loadGltf, material, files = PART_FI
       if (!geos[i]) return;
       const im = new THREE.InstancedMesh(geos[i], material, pts.length);
       im.name = `potongan:${name}`;
-      im.castShadow = true;
+      im.castShadow = shadows.includes(name);
       im.receiveShadow = true;
       pts.forEach((p, k) => {
         im.setMatrixAt(k, m.compose(pos.set(p.x, p.y, p.z), q.setFromAxisAngle(up, p.rotY), scl.setScalar(p.scale)));

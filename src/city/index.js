@@ -18,6 +18,7 @@ import { addTileDetail } from './tileDetail.js';
 import { createFarCity } from './farCity.js';
 import { createLandmarks, LANDMARKS } from './landmarks.js';
 import { siteReserved } from './parts.js';
+import { clearSiteBuildings, withoutSiteBuildings } from './siteClear.js';
 import { createTransitLines } from './transitLines.js';
 import { createTileMerge, isTileRoot } from './tileMerge.js';
 
@@ -96,7 +97,11 @@ export async function createCity({
   const loader = createTileLoader({
     manifest, baseUrl, parent: group, materials, collider, minimap, weather, fetchJson, logger,
     loadGltf: gltf,
-    decorate: (root, tile, lod) => { if (lod === 0) addTileDetail(root, tile, materials, { reserved: reservedAll }); }, // marka jalan + pohon instans
+    decorate: (root, tile, lod) => {
+      clearSiteBuildings(root, tile, siteHit); // gedung tile di tapak landmark ditenggelamkan (semua LOD)
+      if (lod === 0) addTileDetail(root, withoutSiteBuildings(tile, siteHit), materials, { reserved: reservedAll }); // marka jalan + pohon instans
+    },
+    colliderTile: (tile) => withoutSiteBuildings(tile, siteHit),
     onFail: () => {
       if (warned) return;
       warned = true;

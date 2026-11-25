@@ -320,7 +320,7 @@ export function createRoofMesh(tile, material) {
   g.computeBoundingSphere();
   const mesh = new THREE.Mesh(g, material);
   mesh.name = 'atap';
-  mesh.castShadow = true;
+  mesh.castShadow = false; // dinding tile sudah melempar bayangan; atap tambahan tidak perlu lintasan bayangan sendiri (hemat 1 draw call/tile)
   mesh.receiveShadow = true;
   mesh.matrixAutoUpdate = false;
   mesh.updateMatrix();

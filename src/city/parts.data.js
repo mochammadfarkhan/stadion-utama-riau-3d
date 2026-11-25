@@ -27,6 +27,9 @@ export const PART_FILES = Object.freeze({
   'lampu-taman': 'lampu-taman.glb',
 });
 
+/** Potongan yang melempar bayangan (yang besar saja; tiap jenis berbayangan = +1 draw call di lintasan bayangan). */
+export const PART_SHADOW = Object.freeze(['pohon', 'palem', 'kanopi']);
+
 export const PART_RECIPES = Object.freeze({
   // Masjid Agung An-Nur (an_nur.py): model sejajar sumbu, DEPAN = −y denah; badan 54 × 65 m (dinding di x ±27, y ±32,5),
   // plaza 120 × 110 m di depan (y −36,5 … −146,5), empat kolam di (±28, −64,5) dan (±28, −118,5).
