@@ -38,6 +38,8 @@ User ingin folder proyek ini **selalu berada di `main` terbaru** dan semua peker
 - **Peta arsitektur: `docs/ARSITEKTUR.md`** — baca dulu sebelum menjelajah; perbarui (termasuk log keputusan) bila menambah lapisan/sistem/region.
 - Koordinat dunia: +X timur, +Z selatan (meter). Lapisan ESLint tidak boleh saling impor lintas (lihat `eslint.config.js`).
 - **Model 3D: `docs/model/RESEP.md`** — baca dulu sebelum membuat/memperbaiki model (sumber jadi dulu, maks 3 putaran, skor angka sebelum gambar, tanpa `generate_3d`).
+- **Potongan (model bongkar pasang): `docs/model/POTONGAN.md`** — detail kecil landmark (AC, pohon, lampu, pintu, kanopi…) = GLB kecil di `public/models/potongan/`,
+  disusun lewat daftar di `src/city/parts.data.js`. Menambah/mengganti detail: ubah potongan atau satu baris daftar, **jangan** menambahkannya ke mesh landmark.
 - Blender: `"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --python-expr "import runpy;print(runpy.run_path(r'<skrip>')['build']())"` (atau Blender MCP); skrip di `assets-src/blender/`.
 - Bidikan: `tools/shots/*` (Playwright GPU, `--wait 9000` untuk malam). Port dev 5173.
 - **Ruang uji** `/ruang-uji.html` (dev): cek satu model/karakter/animasi tanpa memuat dunia; bidik `node tools/shots/uji.mjs --q "orang=kasual-pria-g&anim=jalan-p"` atau `--q "model=models/…glb"`.

@@ -237,8 +237,7 @@ def b_mal_ska(spec):
                     x, y, _ = P(L * k, vv, 0)
                     if not inside((x, y), poly):
                         continue
-                    m.box(x, y, H, 3.8, 2.6, 1.8, "#b9bcc0")
-                    m.box(x, y, H + 1.8, 2.6, 1.8, 0.35, "#6f747a")
+                    # unit AC-nya sendiri = potongan 'ac' (src/city/parts.data.js); di sini hanya saluran udaranya
                     m.prism(P(L * k, vv, H + 0.7), P(L * k, vv - sv * 3.0, H + 0.7), 0.9, "#c9ccd0", wz=0.7)
                     ends.append(L * k)
                 if len(ends) > 1:
@@ -258,18 +257,7 @@ def b_mal_ska(spec):
                 for i in range(int(L * 0.8 / 2.6)):
                     u = -L * 0.36 + i * 2.6
                     quad(u, u + 0.16, v0 + row, v0 + row + 5.0, 0.09, "#e8e8e4")
-            for i in range(9):
-                u = -L * 0.36 + i * L * 0.1
-                x, y, _ = P(u, v0 - 3.0, 0)
-                _tree(m, x, y, 0.35, 1.5)
-                x, y, _ = P(u, v0 + 26.5, 0)
-                _tree(m, x, y, 0.0, 1.4)
-            for v in (-W * 0.36, -W * 0.18, W * 0.18, W * 0.36):
-                x, y, _ = P(L / 2 + 22, v, 0)
-                m.box(x, y, 0.06, 6.0, 2.4, 0.55, "#cfc7b2")
-                m.box(x, y, 0.61, 5.2, 1.6, 0.7, "#3f8f3a")
-                x, y, _ = P(L / 2 + 27, v, 0)
-                _tree(m, x, y, 0.06, 1.4)
+            # pohon, pot, lampu, pintu & kanopi parkiran = potongan (src/city/parts.data.js), bukan bagian mesh ini
         return m
     return fr, build
 

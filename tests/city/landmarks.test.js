@@ -99,6 +99,35 @@ describe('createLandmarks (muat malas)', () => {
     expect(root('jauh').visible).toBe(false);
     expect(root('dekat').visible).toBe(true);
   });
+
+  it('partRecipes: root mendapat anak `potongan` yang tampak hanya saat LOD0', async () => {
+    const urls = [];
+    const loadGltf = async (url) => {
+      urls.push(url);
+      const scene = new THREE.Group();
+      scene.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1)));
+      return { scene };
+    };
+    const partRecipes = { dekat: { frame: { cx: 0, cy: 0, ang: 0 }, rules: [{ part: 'ac', at: [[0, 0, 5], [1, 0, 5]] }] } };
+    const lm = createLandmarks({ parent: new THREE.Group(), loadGltf, list, logger: { error() {} }, partRecipes, partFiles: { ac: 'ac.glb' } });
+    lm.update({ focus, distance: 10 });
+    await lm.ready;
+    lm.update({ focus, distance: 10 });
+    const r = lm.group.children.find((c) => c.name === 'landmark:dekat');
+    const parts = r.children.find((c) => c.name === 'potongan');
+    expect(parts).toBeDefined();
+    expect(urls.filter((u) => u.includes('/potongan/'))).toHaveLength(1);
+    expect(parts.visible).toBe(true);
+    lm.update({ focus, distance: 2000 }); // ±2060 m → LOD1
+    expect(parts.visible).toBe(false);
+    lm.update({ focus, distance: 5000 }); // LOD2
+    expect(parts.visible).toBe(false);
+    lm.update({ focus, distance: 10 });
+    expect(parts.visible).toBe(true);
+    expect(lm.stats().parts).toEqual({ types: 1, instances: 2 });
+    lm.dispose();
+    expect(r.children.includes(parts)).toBe(false);
+  });
 });
 
 describe('footprintRing', () => {

@@ -1,0 +1,44 @@
+/**
+ * "Kotak potongan" + "daftar belanja" landmark (lihat docs/model/POTONGAN.md).
+ * - PART_FILES: nama potongan → berkas GLB di public/models/potongan/ (satu mesh, warna per vertex, alas di y=0,
+ *   depan = +Z, satuan meter). Mengganti tampilan satu potongan = mengganti berkasnya; semua pemakai ikut berubah.
+ * - PART_RECIPES: id landmark → { frame, rules }. `frame` = persegi panjang acuan model (denah: x timur, y UTARA = −z three;
+ *   ang = sudut sumbu panjang dari +x, berlawanan jarum jam). Aturan memakai koordinat (u, v): u sepanjang sumbu panjang,
+ *   v melintang, y tinggi (m). yaw (derajat) relatif ke sumbu panjang.
+ *   - { part, at: [[u, v, y, yaw?, skala?], ...] }                      titik satu per satu
+ *   - { part, line: { from: [u, v], to: [u, v], y, count, yaw?, skala? } } berjajar rata di satu garis (termasuk kedua ujung)
+ * Murni data: tanpa impor.
+ */
+export const PART_FILES = Object.freeze({
+  ac: 'ac.glb',
+  pohon: 'pohon.glb',
+  palem: 'palem.glb',
+  lampu: 'lampu.glb',
+  pot: 'pot.glb',
+  kanopi: 'kanopi.glb',
+  pintu: 'pintu.glb',
+  jendela: 'jendela.glb',
+});
+
+export const PART_RECIPES = Object.freeze({
+  // Mal SKA (acuan dari min_rect jejak OSM di bangunan.py: L 150,9 × W 111,6; atap di y 22,5; tepi fasad sisi +v di v ≈ 55,1)
+  'mal-ska': {
+    frame: { cx: -1.926, cy: 0.827, ang: 0.157, L: 150.899, W: 111.646 },
+    rules: [
+      // atap: 8 unit AC di dua lajur luar skylight (saluran udaranya masih dari skrip model)
+      { part: 'ac', line: { from: [-49.8, 41.3], to: [49.8, 41.3], y: 22.5, count: 4 } },
+      { part: 'ac', line: { from: [-49.8, -41.3], to: [49.8, -41.3], y: 22.5, count: 4 } },
+      // parkiran sisi jalan (+v): deret pohon di kedua tepi, lampu di lorong tengah
+      { part: 'pohon', line: { from: [-54.3, 58.8], to: [66.4, 58.8], y: 0.35, count: 9 } },
+      { part: 'pohon', line: { from: [-54.3, 88.3], to: [66.4, 88.3], y: 0, count: 9, skala: 0.9 } },
+      { part: 'lampu', line: { from: [-48, 73.8], to: [60, 73.8], y: 0.05, count: 6, yaw: 90 } },
+      // pintu masuk kedua menghadap parkiran: pintu kaca + kanopi (yaw 180 = depan ke arah +v)
+      { part: 'pintu', at: [[0, 55.2, 0.35, 180]] },
+      { part: 'kanopi', at: [[0, 55.2, 0.35, 180]] },
+      // pelataran depan (+u): pot tanaman, pohon, lampu di tepi jalur antar-jemput
+      { part: 'pot', at: [[97.4, -40.2, 0.06, 90], [97.4, -20.1, 0.06, 90], [97.4, 20.1, 0.06, 90], [97.4, 40.2, 0.06, 90]] },
+      { part: 'palem', at: [[102.4, -40.2, 0.06, 0], [102.4, -20.1, 0.06, 40], [102.4, 20.1, 0.06, 80], [102.4, 40.2, 0.06, 120]] },
+      { part: 'lampu', line: { from: [92.6, -45], to: [92.6, 45], y: 0.06, count: 5 } },
+    ],
+  },
+});

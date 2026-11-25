@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { FACADE_UNIFORMS } from './facade.js';
 import { GENERATED_LANDMARKS } from './landmarks.data.js';
 import { convexHull } from '../geo/polygon.js';
+import { createParts } from './parts.js';
 
 export const LANDMARK_Y = -0.05;
 
@@ -46,8 +47,21 @@ export function applyLandmarkNight(material) {
     shader.uniforms.uNight = FACADE_UNIFORMS.uNight;
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vLmP;\nvarying vec3 vLmN;')
-      .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nvLmN = normalize(mat3(modelMatrix) * objectNormal);')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvLmP = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+      // InstancedMesh (potongan): posisi/normal dunia lewat instanceMatrix, normal dikoreksi untuk skala (seperti facade.js)
+      .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
+vec3 lmObjN = objectNormal;
+#ifdef USE_INSTANCING
+  mat3 lmIm = mat3(instanceMatrix);
+  lmObjN /= vec3(dot(lmIm[0], lmIm[0]), dot(lmIm[1], lmIm[1]), dot(lmIm[2], lmIm[2]));
+  lmObjN = lmIm * lmObjN;
+#endif
+vLmN = normalize(mat3(modelMatrix) * lmObjN);`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+vec4 lmLocal = vec4(transformed, 1.0);
+#ifdef USE_INSTANCING
+  lmLocal = instanceMatrix * lmLocal;
+#endif
+vLmP = (modelMatrix * lmLocal).xyz;`);
     shader.fragmentShader = `uniform float uNight;
 ${shader.fragmentShader}`.replace('#include <common>', '#include <common>\nvarying vec3 vLmP;\nvarying vec3 vLmN;').replace(
       '#include <color_fragment>',
@@ -90,7 +104,7 @@ ${shader.fragmentShader}`.replace('#include <common>', '#include <common>\nvaryi
       #endif`,
     );
   };
-  material.customProgramCacheKey = () => 'landmarkLook3';
+  material.customProgramCacheKey = () => 'landmarkLook4';
   return material;
 }
 
@@ -141,14 +155,17 @@ export const LANDMARK_WALK_RANGE = 2200;
 /**
  * Landmark dimuat malas: GLB sebuah landmark baru diminta saat fokus masuk jangkauan (`LANDMARK_WALK_RANGE`;
  * pratinjau Kota = tanpa batas via `setPreview(true)`). Di luar jangkauan, root disembunyikan.
- * @param {{parent: THREE.Object3D, baseUrl?: string, loadGltf: (url: string) => Promise<{scene: THREE.Object3D}>, logger?: {error: Function}}} o
+ * Potongan (parts.js) dipasang setelah model termuat dan hanya tampak saat LOD0 tampil.
+ * @param {{parent: THREE.Object3D, baseUrl?: string, loadGltf: (url: string) => Promise<{scene: THREE.Object3D}>, logger?: {error: Function},
+ *   partRecipes?: object, partFiles?: object}} o
  */
-export function createLandmarks({ parent, baseUrl = '/', loadGltf, logger = console, list = LANDMARKS, collider = null }) {
+export function createLandmarks({ parent, baseUrl = '/', loadGltf, logger = console, list = LANDMARKS, collider = null, partRecipes, partFiles }) {
   const group = new THREE.Group();
   group.name = 'landmark';
   parent.add(group);
   const material = applyLandmarkNight(new THREE.MeshLambertMaterial({ vertexColors: true }));
   material.name = 'landmark:warna';
+  const parts = createParts({ baseUrl, loadGltf, material, logger, ...(partRecipes && { recipes: partRecipes }), ...(partFiles && { files: partFiles }) });
   const entries = list.map((def) => {
     const root = new THREE.Group();
     root.name = `landmark:${def.id}`;
@@ -196,7 +213,10 @@ export function createLandmarks({ parent, baseUrl = '/', loadGltf, logger = cons
       for (const m of e.lods) if (m) { m.visible = false; e.root.add(m); }
       if (disposed) return;
       group.add(e.root);
-      if (collider && !LANDMARK_PASSABLE.has(e.def.id)) registerCollider(e);
+      if (collider && !LANDMARK_PASSABLE.has(e.def.id)) registerCollider(e); // dari e.lods saja: potongan tak ikut jejak
+      if (!parts.has(e.def.id)) return;
+      e.parts = await parts.attach(e.def.id, e.root);
+      e.parts.visible = e.shown === 0;
     })();
     return e.loading;
   };
@@ -207,6 +227,8 @@ export function createLandmarks({ parent, baseUrl = '/', loadGltf, logger = cons
     while (use > 0 && !e.lods[use]) use -= 1;
     while (use < e.lods.length - 1 && !e.lods[use]) use += 1;
     e.lods.forEach((m, i) => { if (m) m.visible = i === use; });
+    e.shown = e.lods[use] ? use : -1;
+    if (e.parts) e.parts.visible = e.shown === 0;
   };
 
   return {
@@ -229,9 +251,10 @@ export function createLandmarks({ parent, baseUrl = '/', loadGltf, logger = cons
       }
     },
     /** `colliders` = jumlah landmark yang terdaftar di collider kota. */
-    stats: () => ({ landmarks: entries.length, loaded: entries.filter((e) => e.loading).length, lod: entries.map((e) => e.lod), colliders: colliderKeys.length }),
+    stats: () => ({ landmarks: entries.length, loaded: entries.filter((e) => e.loading).length, lod: entries.map((e) => e.lod), colliders: colliderKeys.length, parts: parts.stats() }),
     dispose() {
       disposed = true;
+      parts.dispose();
       for (const k of colliderKeys) collider.removeObstacles(k);
       colliderKeys.length = 0;
       group.removeFromParent();
