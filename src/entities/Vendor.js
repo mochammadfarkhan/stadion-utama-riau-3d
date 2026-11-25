@@ -12,7 +12,7 @@ import { randomVendorOutfit } from './Humanoid.outfits.js';
 import { createFallbackCart } from './Vendor.cart.js';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { createCart } from '../world/props/Cart.js';
-import { mergeByMaterial } from '../engine/mergeByMaterial.js';
+import { mergeVertexColors } from '../engine/mergeVertexColors.js';
 import { makeRng, isFiniteXZ, lerpAngle, clamp, HAS_DOM, flatGround, groundOf } from './util.js';
 
 const LABEL_DISTANCE = 45;
@@ -54,7 +54,7 @@ async function loadCart(kind, banner) {
       const wrap = new THREE.Group();
       wrap.rotation.y = -Math.PI / 2;
       wrap.position.z = REAL_CART_EXTRA_Z;
-      wrap.add(mergeByMaterial(cart));
+      wrap.add(mergeVertexColors(cart));
       return wrap;
     }
   } catch {
@@ -96,7 +96,7 @@ export class VendorGroup {
     const h = createHumanoid(randomVendorOutfit(rng, kind));
     const cartSlot = new THREE.Group();
     cartSlot.position.z = CART_OFFSET_Z;
-    cartSlot.add(mergeByMaterial(createFallbackCart({ kind })));
+    cartSlot.add(mergeVertexColors(createFallbackCart({ kind })));
     root.add(h.group, cartSlot);
     this.group.add(root);
     const entry = { sim, h, root, cartSlot, name, kind, yaw: sim.yaw ?? 0 };
