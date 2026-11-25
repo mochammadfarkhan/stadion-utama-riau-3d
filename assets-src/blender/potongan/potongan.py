@@ -125,7 +125,56 @@ def p_jendela():
     return m
 
 
-PARTS = {"ac": p_ac, "pohon": p_pohon, "palem": p_palem, "lampu": p_lampu, "pot": p_pot, "kanopi": p_kanopi, "pintu": p_pintu, "jendela": p_jendela}
+def _arch(m, y, zb, w, zs, col, seg=6, rise=None):
+    """Panel lengkung tegak menghadap -Y di bidang y: alas zb, mulai lengkung zs (setengah lingkaran, atau runcing bila rise)."""
+    pts = [(-w / 2, zb), (w / 2, zb), (w / 2, zs)]
+    for k in range(1, seg):
+        if rise:
+            u = 1 - 2 * k / seg
+            pts.append(((w / 2) * u, zs + rise * (1 - abs(u)) ** 0.6))
+        else:
+            t = math.pi * k / seg
+            pts.append(((w / 2) * math.cos(t), zs + (w / 2) * math.sin(t)))
+    pts.append((-w / 2, zs))
+    m.poly([(x, y, z) for x, z in pts], col)
+
+
+def p_jendela_lengkung():
+    """Jendela lengkung masjid 3,4 m (punggung di y=0, alas z=0): kusen emas berelief, kaca gelap, tiang tengah, ambang."""
+    m = Mesh()
+    for sx in (-1.9, 1.9):
+        m.box(sx, -0.17, 0.0, 0.42, 0.34, 4.1, "#c9b57a")        # kusen tegak
+    _arch(m, -0.34, 3.9, 4.6, 4.0, "#c9b57a", seg=8)              # kepala lengkung (emas)
+    _arch(m, -0.36, 0.1, 3.4, 4.0, KACA, seg=8)                   # kaca
+    m.box(0, -0.4, 0.1, 0.16, 0.08, 3.9, "#c9b57a")               # tiang tengah
+    m.box(0, -0.4, 2.6, 3.4, 0.08, 0.14, "#c9b57a")               # palang
+    m.box(0, -0.25, -0.2, 4.7, 0.5, 0.2, "#e9e2d0")               # ambang
+    return m
+
+
+def p_air_mancur():
+    """Kolam air mancur segi delapan r 9 m: bibir batu, air, tugu bertingkat, pancuran."""
+    m = Mesh()
+    m.revolve(0, 0, 0, [(9.0, 0), (9.0, 0.55), (8.3, 0.55), (8.3, 0.3)], 8, "#cfc7b2")
+    m.revolve(0, 0, 0.3, [(8.3, 0), (8.3, 0.02)], 8, "#3f9fc8", cap_top=True)       # air
+    m.revolve(0, 0, 0.3, [(2.2, 0), (2.2, 0.7), (1.6, 0.7)], 8, "#cfc7b2", cap_top=True)
+    m.revolve(0, 0, 1.0, [(0.5, 0), (0.4, 1.6), (1.5, 1.9), (1.5, 2.05)], 8, "#e9e2d0", cap_top=True)
+    m.revolve(0, 0, 3.05, [(0.18, 0), (0.1, 1.6), (0.0, 2.2)], 5, "#dff2fb")         # pancuran
+    return m
+
+
+def p_lampu_taman():
+    """Lampu taman 4,6 m: alas, tiang, dua bola lampu krem."""
+    m = Mesh()
+    m.revolve(0, 0, 0, [(0.35, 0), (0.22, 0.5), (0.12, 0.7), (0.09, 4.0)], 6, "#3f4650")
+    m.prism((-0.7, 0, 4.0), (0.7, 0, 4.0), 0.1, "#3f4650")
+    for sx in (-0.7, 0.7):
+        m.revolve(sx, 0, 4.0, [(0.0, 0), (0.3, 0.2), (0.3, 0.5), (0.0, 0.7)], 6, "#f6f0d8")
+    return m
+
+
+PARTS = {"ac": p_ac, "pohon": p_pohon, "palem": p_palem, "lampu": p_lampu, "pot": p_pot, "kanopi": p_kanopi, "pintu": p_pintu, "jendela": p_jendela,
+         "jendela-lengkung": p_jendela_lengkung, "air-mancur": p_air_mancur, "lampu-taman": p_lampu_taman}
 
 
 def build(only=None):

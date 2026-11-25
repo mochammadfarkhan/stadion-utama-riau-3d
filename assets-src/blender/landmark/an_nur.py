@@ -188,7 +188,7 @@ def build_lod(lod):
     m.box(0, 0, 0, PX, PY, Z0, C["plinth"])
     # plaza putih di depan (citra satelit: ±120 m lebar x ±110 m, 4 kolam bintang 2x2)
     m.box(0, -PY / 2 - 55.0, 0, 120.0, 110.0, 0.12, C["plaza"])
-    if lod < 2:
+    if lod == 1:   # LOD0: kolam = potongan 'air-mancur'
         for px in (-28.0, 28.0):
             for py in (-PY / 2 - 28.0, -PY / 2 - 82.0):
                 m.revolve(px, py, 0.12, [(9.0, 0), (9.0, 0.1)], 8, C["kolam"], cap_top=True)
@@ -233,17 +233,7 @@ def build_lod(lod):
             length = BX if ny else BY
             n = int(length / 5.4)
             gap = length / (n + 1)
-            for i in range(n):
-                u = -length / 2 + gap * (i + 1)
-                px, py = (u, ny * BY / 2) if ny else (nx * BX / 2, u)
-                if side == 0 and abs(u) < 14:
-                    continue  # tertutup portiko
-                if side >= 2 and abs(u) < 7:
-                    continue  # tertutup serambi samping
-                m.arch(nx, ny, px, py, 2.4, pw + 0.7, 6.4, C["frame"], off=0.04)
-                m.arch(nx, ny, px, py, 2.5, pw, 6.4, C["dark"], off=0.08)
-                m.arch(nx, ny, px, py, 9.2, 2.4, 12.2, C["frame"], off=0.04, rect_only=True)
-                m.arch(nx, ny, px, py, 9.4, 1.9, 12.0, C["dark"], off=0.08, rect_only=True)
+            # jendela lengkung bawah & jendela atas = potongan 'jendela-lengkung' / 'jendela' (src/city/parts.data.js)
             for i in range(n + 1):   # pilaster di antara ceruk: relief nyata, memberi bayangan
                 u = -length / 2 + gap * (i + 0.5)
                 if (side == 0 and abs(u) < 12) or (side >= 2 and abs(u) < 7):

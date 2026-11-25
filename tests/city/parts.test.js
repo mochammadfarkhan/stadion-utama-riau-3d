@@ -1,6 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { createParts, expandRecipe } from '../../src/city/parts.js';
+import { createParts, expandRecipe, siteReserved } from '../../src/city/parts.js';
+
+describe('siteReserved', () => {
+  const recipes = { a: { site: [[-10, -40], [10, -40], [10, -10], [-10, -10]] } };
+  it('yaw 0: tapak di depan model (+z three)', () => {
+    const f = siteReserved([{ id: 'a', x: 1000, z: 2000, yaw: 0 }], recipes);
+    expect(f(1000, 2025)).toBe(true);
+    expect(f(1000, 1975)).toBe(false);
+    expect(f(1020, 2025)).toBe(false);
+  });
+  it('yaw π/2: tapak ikut berputar', () => {
+    const f = siteReserved([{ id: 'a', x: 1000, z: 2000, yaw: Math.PI / 2 }], recipes);
+    expect(f(1025, 2000)).toBe(true);
+    expect(f(1000, 2025)).toBe(false);
+  });
+  it('tanpa site: selalu false', () => {
+    const f = siteReserved([{ id: 'a', x: 1000, z: 2000, yaw: 0 }, { id: 'b', x: 0, z: 0, yaw: 0 }], { a: {} });
+    expect(f(1000, 2025)).toBe(false);
+  });
+});
 
 describe('expandRecipe', () => {
   const frame = { cx: 10, cy: 20, ang: Math.PI / 2, L: 40, W: 20 };

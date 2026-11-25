@@ -5,9 +5,37 @@
  */
 import * as THREE from 'three';
 import { PART_FILES, PART_RECIPES } from './parts.data.js';
+import { pointInPolygon } from '../geo/polygon.js';
 
 const fin = (n) => typeof n === 'number' && Number.isFinite(n);
 const DEG = Math.PI / 180;
+
+/**
+ * Penanda "jangan taruh pohon/marka di sini": true bila titik dunia (x, z) jatuh di `site` (poligon tapak, denah lokal
+ * x timur, y utara = −z three) salah satu landmark. `landmarks`: larik { id, x, z, yaw }.
+ */
+export function siteReserved(landmarks, recipes = PART_RECIPES) {
+  const sites = [];
+  for (const def of landmarks ?? []) {
+    const site = recipes?.[def.id]?.site;
+    if (!Array.isArray(site) || site.length < 3) continue;
+    let r = 0;
+    for (const p of site) r = Math.max(r, Math.hypot(p[0], p[1]));
+    sites.push({ x: def.x, z: def.z, cos: Math.cos(def.yaw ?? 0), sin: Math.sin(def.yaw ?? 0), r, site });
+  }
+  if (!sites.length) return () => false;
+  return (x, z) => {
+    for (const s of sites) {
+      const dx = x - s.x;
+      const dz = z - s.z;
+      if (Math.abs(dx) > s.r || Math.abs(dz) > s.r) continue;
+      const lx = dx * s.cos - dz * s.sin;
+      const lz = dx * s.sin + dz * s.cos;
+      if (pointInPolygon(lx, -lz, s.site)) return true;
+    }
+    return false;
+  };
+}
 
 /** Titik (u, v, y) di frame denah → koordinat lokal three landmark (x, y, z) + rotY. */
 export function frameToLocal(frame, u, v, y, yawDeg = 0) {

@@ -16,7 +16,8 @@ import { applyGroundHole } from './groundHole.js';
 import { FACADE_UNIFORMS, nightFactor, loadFacadeTextures } from './facade.js';
 import { addTileDetail } from './tileDetail.js';
 import { createFarCity } from './farCity.js';
-import { createLandmarks } from './landmarks.js';
+import { createLandmarks, LANDMARKS } from './landmarks.js';
+import { siteReserved } from './parts.js';
 import { createTransitLines } from './transitLines.js';
 import { createTileMerge, isTileRoot } from './tileMerge.js';
 
@@ -76,6 +77,8 @@ export async function createCity({
     toast('Peta kota gagal dimuat — hanya kawasan stadion', false);
     return null;
   }
+  const siteHit = siteReserved(LANDMARKS); // tapak landmark berpotongan: tanpa pohon acak tile
+  const reservedAll = (x, z) => reserved(x, z) || siteHit(x, z);
   const group = new THREE.Group();
   group.name = 'kota';
   app.scene.add(group);
@@ -93,7 +96,7 @@ export async function createCity({
   const loader = createTileLoader({
     manifest, baseUrl, parent: group, materials, collider, minimap, weather, fetchJson, logger,
     loadGltf: gltf,
-    decorate: (root, tile, lod) => { if (lod === 0) addTileDetail(root, tile, materials, { reserved }); }, // marka jalan + pohon instans
+    decorate: (root, tile, lod) => { if (lod === 0) addTileDetail(root, tile, materials, { reserved: reservedAll }); }, // marka jalan + pohon instans
     onFail: () => {
       if (warned) return;
       warned = true;

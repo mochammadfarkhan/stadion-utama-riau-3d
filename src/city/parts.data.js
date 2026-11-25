@@ -10,6 +10,7 @@
  *   - { part, ring: { step, ys: [...], offset?, margin?, minEdge?, maxEdge?, skala? } } berjajar mengikuti KELILING jejak,
  *     menghadap ke luar, di tiap ketinggian ys (mis. jendela per lantai). Butuh `ring: [[x, y], ...]` di resep = jejak gedung
  *     dalam denah model (x timur, y utara), bukan (u, v); cetak dari skrip Blender (fr.pts(way(...))).
+ * Resep boleh punya `site: [[x, y], ...]` (denah model): tapak tertata; pohon/lampu acak tile tidak dibuat di dalamnya.
  * Murni data: tanpa impor.
  */
 export const PART_FILES = Object.freeze({
@@ -21,9 +22,44 @@ export const PART_FILES = Object.freeze({
   kanopi: 'kanopi.glb',
   pintu: 'pintu.glb',
   jendela: 'jendela.glb',
+  'jendela-lengkung': 'jendela-lengkung.glb',
+  'air-mancur': 'air-mancur.glb',
+  'lampu-taman': 'lampu-taman.glb',
 });
 
 export const PART_RECIPES = Object.freeze({
+  // Masjid Agung An-Nur (an_nur.py): model sejajar sumbu, DEPAN = −y denah; badan 54 × 65 m (dinding di x ±27, y ±32,5),
+  // plaza 120 × 110 m di depan (y −36,5 … −146,5), empat kolam di (±28, −64,5) dan (±28, −118,5).
+  'an-nur': {
+    frame: { cx: 0, cy: 0, ang: 0, L: 1, W: 1 }, // identitas: u = x, v = y denah
+    site: [[-60, -146.5], [60, -146.5], [60, -36.5], [30.5, -36.5], [30.5, 36.5], [-30.5, 36.5], [-30.5, -36.5], [-60, -36.5]],
+    rules: [
+      // jendela lengkung lantai bawah (y 2,4) dan jendela atas (y 9,6) di tiap ceruk antar-pilaster; portal & serambi dilewati
+      { part: 'jendela-lengkung', line: { from: [-22.09, -32.5], to: [-17.18, -32.5], y: 2.4, count: 2 } },
+      { part: 'jendela-lengkung', line: { from: [17.18, -32.5], to: [22.09, -32.5], y: 2.4, count: 2 } },
+      { part: 'jendela-lengkung', line: { from: [-22.09, 32.5], to: [22.09, 32.5], y: 2.4, count: 10, yaw: 180 } },
+      { part: 'jendela-lengkung', line: { from: [-27, -27.5], to: [-27, -7.5], y: 2.4, count: 5, yaw: -90 } },
+      { part: 'jendela-lengkung', line: { from: [-27, 7.5], to: [-27, 27.5], y: 2.4, count: 5, yaw: -90 } },
+      { part: 'jendela-lengkung', line: { from: [27, -27.5], to: [27, -7.5], y: 2.4, count: 5, yaw: 90 } },
+      { part: 'jendela-lengkung', line: { from: [27, 7.5], to: [27, 27.5], y: 2.4, count: 5, yaw: 90 } },
+      { part: 'jendela', line: { from: [-22.09, -32.5], to: [-17.18, -32.5], y: 9.6, count: 2 } },
+      { part: 'jendela', line: { from: [17.18, -32.5], to: [22.09, -32.5], y: 9.6, count: 2 } },
+      { part: 'jendela', line: { from: [-22.09, 32.5], to: [22.09, 32.5], y: 9.6, count: 10, yaw: 180 } },
+      { part: 'jendela', line: { from: [-27, -27.5], to: [-27, -7.5], y: 9.6, count: 5, yaw: -90 } },
+      { part: 'jendela', line: { from: [-27, 7.5], to: [-27, 27.5], y: 9.6, count: 5, yaw: -90 } },
+      { part: 'jendela', line: { from: [27, -27.5], to: [27, -7.5], y: 9.6, count: 5, yaw: 90 } },
+      { part: 'jendela', line: { from: [27, 7.5], to: [27, 27.5], y: 9.6, count: 5, yaw: 90 } },
+      // plaza: air mancur di empat kolam, poros palem, lampu taman, pohon peneduh di tepi, pot di kaki tangga
+      { part: 'air-mancur', at: [[-28, -64.5, 0.12], [28, -64.5, 0.12], [-28, -118.5, 0.12], [28, -118.5, 0.12]] },
+      { part: 'palem', line: { from: [-9, -47], to: [-9, -141], y: 0.12, count: 9 } },
+      { part: 'palem', line: { from: [9, -47], to: [9, -141], y: 0.12, count: 9 } },
+      { part: 'lampu-taman', line: { from: [-45, -44], to: [-45, -140], y: 0.12, count: 7 } },
+      { part: 'lampu-taman', line: { from: [45, -44], to: [45, -140], y: 0.12, count: 7 } },
+      { part: 'pohon', line: { from: [-56, -42], to: [-56, -142], y: 0.12, count: 8 } },
+      { part: 'pohon', line: { from: [56, -42], to: [56, -142], y: 0.12, count: 8 } },
+      { part: 'pot', at: [[-21, -47, 0.12], [21, -47, 0.12]] },
+    ],
+  },
   // Mal SKA (acuan dari min_rect jejak OSM di bangunan.py: L 150,9 × W 111,6; atap di y 22,5; tepi fasad sisi +v di v ≈ 55,1)
   'mal-ska': {
     frame: { cx: -1.926, cy: 0.827, ang: 0.157, L: 150.899, W: 111.646 },
