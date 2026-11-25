@@ -134,6 +134,40 @@ def _soft_bands(z0, n, fh, wall, glass="#243547"):
     return out
 
 
+def _grow(poly, d):
+    """Cincin diperbesar ke luar ±d (skala dari titik berat; cukup untuk pelat/lis tipis)."""
+    cx, cy = centroid(poly)
+    out = []
+    for x, y in poly:
+        r = math.hypot(x - cx, y - cy) or 1e-9
+        out.append((cx + (x - cx) * (r + d) / r, cy + (y - cy) * (r + d) / r))
+    return out
+
+
+def _slabs(m, poly, zs, d, t, col):
+    """Pelat lantai menonjol d meter di tiap ketinggian zs (relief nyata: memberi garis bayangan)."""
+    g = _grow(ccw(poly), d)
+    for z in zs:
+        m.extrude(g, z, z + t, col, roof=col)
+
+
+def _piers(m, poly, z0, z1, step, w, col, off=0.35):
+    """Pilar tegak tiap ±step meter mengikuti keliling cincin (termasuk bagian melengkung), menonjol off."""
+    poly = ccw(poly)
+    carry = step / 2
+    for a, b in zip(poly, poly[1:] + poly[:1]):
+        L = math.dist(a, b)
+        if L < 1e-6:
+            continue
+        dx, dy = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+        u = carry
+        while u <= L:
+            x, y = a[0] + dx * u + dy * off, a[1] + dy * u - dx * off
+            m.prism((x, y, z0), (x, y, z1), w, col)
+            u += step
+        carry = u - L
+
+
 def _tree(m, x, y, z, s=1.0):
     """Pohon peneduh kecil: batang + tajuk bulat 2 nada (48 segitiga)."""
     m.prism((x, y, z), (x, y, z + 2.2 * s), 0.35 * s, "#5a3d24")
@@ -151,7 +185,12 @@ def b_mal_ska(spec):
         H = 5 * 4.5
         wall, panel, blue, gold, glass = "#e2e5ea", "#cfd5dd", "#1f6feb", "#f0a830", "#4f9fd6"
         m.extrude(poly, 0, 0.35, "#d8d3c8")  # pelataran trotoar mal
-        m.extrude(poly, 0.35, H, wall, roof="#978f84", bands=_soft_bands(0.35, 5, 4.43, wall) if lod == 0 else None)  # atap kerikil (gambar rujukan Flow)
+        fh = 4.43
+        ska_bands = [(0.35, 1.1, "#9aa0a8"), (1.1, 3.9, "#243547"), (3.9, 0.35 + fh, wall)]   # lantai dasar: plint + etalase kaca tinggi
+        for k in range(1, 5):
+            z = 0.35 + k * fh
+            ska_bands += [(z, z + 0.36 * fh, wall), (z + 0.36 * fh, z + 0.72 * fh, "#243547"), (z + 0.72 * fh, z + fh, wall)]
+        m.extrude(poly, 0.35, H, wall, roof="#978f84", bands=ska_bands if lod == 0 else None)  # atap kerikil (gambar rujukan Flow)
         m.extrude(poly, H, H + 1.4, panel)
         m.extrude(poly, H + 1.4, H + 2.0, blue)
 
@@ -185,7 +224,8 @@ def b_mal_ska(spec):
         m.box(px, py, H + 1.4, 8.5, 8.5, 9.0, blue)
         m.box(px, py, H + 10.4, 9.2, 9.2, 1.4, gold)
         if lod == 0:
-            _facade_fins(m, cx, cy, ang, L, W, 3.0, H, 14, panel)
+            _piers(m, poly, 0.35, H, 9.0, 0.9, "#f1f3f6")                                   # pilar mengikuti lekuk fasad
+            _slabs(m, poly, [0.35 + k * fh - 0.25 for k in range(1, 5)], 0.5, 0.5, "#f1f3f6")  # pelat lantai menonjol
             sign_on_longest(m, poly, H - 3.4, 36, blue, lod)
             P = lambda u, v, z: (cx + u * c - v * s, cy + u * s + v * c, z)  # noqa: E731
             quad = lambda u0, u1, v0, v1, z, col: m.poly([P(u0, v0, z), P(u1, v0, z), P(u1, v1, z), P(u0, v1, z)], col)  # noqa: E731
@@ -293,8 +333,26 @@ def b_swiss_belinn(spec):
         m.extrude(poly, H + 2.0, H + 2.6, accent)
         cx, cy, ang, L, W = min_rect(poly)
         m.hip(cx, cy, ang, L * 0.72, W * 0.72, H + 2.6, 3.6, 0.5, "#2b62b5")
-        if lod == 0:
-            _facade_fins(m, cx, cy, ang, L, W, 10.5, H, 8, "#f5f7fa", depth=0.5, width=0.45)
+        if lod == 0:   # mengikuti gambar rujukan Flow: kisi pilar + pelat, podium, balkon ujung, kanopi, peralatan atap
+            c, s = math.cos(ang), math.sin(ang)
+            P = lambda u, v, z: (cx + u * c - v * s, cy + u * s + v * c, z)  # noqa: E731
+            _piers(m, poly, 10.5, H, 4.2, 0.5, "#f5f7fa", off=0.3)
+            _slabs(m, poly, [10.5 + 3.6 * k - 0.18 for k in range(1, 9)], 0.35, 0.36, "#f5f7fa")
+            _slabs(m, poly, [10.2], 0.9, 0.6, "#cfc7b6")                    # tepi podium
+            _piers(m, poly, 0.0, 10.2, 6.0, 0.8, "#cfc7b6", off=0.45)
+            for k in range(9):                                              # balkon di kedua ujung
+                z = 10.5 + 3.6 * k + 0.2
+                for su in (-1, 1):
+                    m.prism(P(su * (L / 2 + 0.8), -W * 0.3, z + 0.5), P(su * (L / 2 + 0.8), W * 0.3, z + 0.5), 1.6, "#f5f7fa", wz=1.0)
+            for sv in (-1, 1):                                              # kanopi masuk + tiang di kedua sisi panjang
+                m.prism(P(-7, sv * (W / 2 + 3.2), 4.8), P(7, sv * (W / 2 + 3.2), 4.8), 6.0, blue, wz=0.5)
+                for u in (-6, 6):
+                    m.prism(P(u, sv * (W / 2 + 5.6), 0.0), P(u, sv * (W / 2 + 5.6), 4.6), 0.5, "#eef2f6")
+            hx, hy, _ = P(L * 0.42, 0, 0)
+            m.box(hx, hy, H + 2.6, 4.0, 5.0, 3.0, "#d9d5cc")               # kepala tangga
+            for u in (-0.42, -0.36):
+                ax, ay, _ = P(L * u, 0, 0)
+                m.box(ax, ay, H + 2.6, 2.4, 2.0, 1.5, "#b9bcc0")
         return m
     return fr, build
 
