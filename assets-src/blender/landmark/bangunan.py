@@ -463,29 +463,84 @@ def b_gubernur(spec):
 
 
 def b_soeman(spec):
-    """Perpustakaan Soeman Hs.: badan kaca 6 lantai + atap miring (satu sisi), malam menyala."""
+    """Perpustakaan Soeman Hs.: konsep REHAL (penyangga Al-Qur'an, X) + BUKU TERBUKA.
+    Penampang melintang = V lebar: dua fasad kaca panjang condong keluar, atap dua "halaman" tinggi di tepi luar dan turun
+    ke lembah tengah (skylight), ujung lancip menjorok; dinding ujung bermotif X putih gading. Depan (lobi, tangga) = sisi -v.
+    [INFERENSI] 6 lantai x 4 m, sudut condong, tinggi atap; pintu/kanopi/pohon/lampu = potongan (src/city/parts.data.js)."""
     fr = Frame([way(w) for w in spec["ways"]])
+    poly0 = fr.pts(way(spec["ways"][0]))
+    cx, cy, ang, L, W = min_rect(poly0)
+    print(f"[soeman] frame: {{ cx: {cx:.3f}, cy: {cy:.3f}, ang: {ang:.4f}, L: {L:.3f}, W: {W:.3f} }}")
+    c, s = math.cos(ang), math.sin(ang)
+    P = lambda u, v, z: (cx + u * c - v * s, cy + u * s + v * c, z)  # noqa: E731
+
+    n, H, zb = 6, 24.0, 1.0            # lantai, tinggi atap fasad, puncak podium
+    vb, vt = 0.34 * W, 0.50 * W        # kaki & puncak fasad condong (|v|)
+    vk, zk = vt + 2.5, H + 8.5         # ujung lancip "halaman"
+    zv = H - 1.5                       # lembah tengah atap
+    GL, GL2 = "#1c3140", "#8fb4c9"     # kaca gelap / biru terang (dikenali shader malam)
+    ATAP, GADING, BETON, PELAT = "#a9bccb", "#f4efe0", "#b8bec2", "#e6e8e6"
+    ref = P(0, 0, H / 2)
+
+    def vz(z):
+        return vb + (z - zb) / (H - zb) * (vt - vb)
+
+    def kotak(u0, u1, v0, v1, z0, z1, col, roof=None):
+        m.extrude([P(u0, v0, 0)[:2], P(u1, v0, 0)[:2], P(u1, v1, 0)[:2], P(u0, v1, 0)[:2]], z0, z1, col, roof=roof)
+
+    def half(sv, k=1.0, zc=14.0):
+        """Setengah penampang (v, z) sisi sv (cembung); k = skala terhadap (0, zc) untuk panel kaca."""
+        pts = [(sv * vb, zb), (0, zb), (0, zv), (sv * vk, zk), (sv * vt, H)]
+        return [(v * k, zc + (z - zc) * k) for v, z in pts]
+
+    m = None
 
     def build(lod):
+        nonlocal m
         m = Mesh()
-        poly = simplify(fr.pts(way(spec["ways"][0])), tol(lod))
-        n, fh = 6, 4.0
-        H = n * fh
-        m.extrude(poly, 0, H, "#d6d9d8", roof=None, bands=bands(0, n, fh, "#cfd3d3", "#1c3140") if lod == 0 else None)
-        cx, cy, ang, L, W = min_rect(poly)
-        c, s = math.cos(ang), math.sin(ang)
-        P = lambda u, v, z: (cx + u * c - v * s, cy + u * s + v * c, z)  # noqa: E731
-        zl, zh = H, H + 9.0   # atap miring: rendah di sisi -v, tinggi di sisi +v
-        ref = (cx, cy, H - 3)
-        m.poly_out([P(-L / 2, -W / 2, zl), P(L / 2, -W / 2, zl), P(L / 2, W / 2, zh), P(-L / 2, W / 2, zh)], ref, "#8fb4c9")
-        m.poly_out([P(-L / 2, W / 2, H), P(L / 2, W / 2, H), P(L / 2, W / 2, zh), P(-L / 2, W / 2, zh)], ref, "#1c3140")
-        m.poly_out([P(-L / 2, -W / 2, H), P(-L / 2, W / 2, H), P(-L / 2, W / 2, zh), P(-L / 2, -W / 2, zl)], ref, "#aab4ba")
-        m.poly_out([P(L / 2, -W / 2, H), P(L / 2, W / 2, H), P(L / 2, W / 2, zh), P(L / 2, -W / 2, zl)], ref, "#aab4ba")
-        m.top(poly, H, "#7e8486")
-        if lod == 0:  # sirip vertikal fasad
-            for i in range(1, 14):
-                u = -L / 2 + L * i / 14
-                m.prism(P(u, -W / 2 - 0.4, 2), P(u, -W / 2 - 0.4, H + 4), 0.5, "#c9ced0", wz=0.9)
+        hu = L / 2
+        # 1. podium batu + dua anak tangga lebar di depan (-v)
+        kotak(-hu - 2.5, hu + 2.5, -W / 2 - 2.5, W / 2 + 2.5, 0, zb, BATU, roof=BATU)
+        if lod < 2:
+            for k, zt in enumerate((0.35, 0.7)):
+                kotak(-12, 12, -W / 2 - 2.5 - (2 - k) * 1.5, -W / 2 - 1.5, 0, zt, "#cfc8b6", roof="#cfc8b6")
+        # 2. dua fasad panjang condong keluar ("halaman buku")
+        for sv in (-1, 1):
+            if lod == 0:
+                fh = (H - zb) / n
+                for k in range(n):
+                    z0 = zb + k * fh
+                    for a, b, col in ((z0, z0 + 0.22 * fh, PELAT), (z0 + 0.22 * fh, z0 + fh, GL)):
+                        m.poly_out([P(-hu, sv * vz(a), a), P(hu, sv * vz(a), a), P(hu, sv * vz(b), b), P(-hu, sv * vz(b), b)], ref, col)
+                for i in range(1, 14):          # rusuk tegak putih ikut condong
+                    u = -hu + L * i / 14
+                    m.prism(P(u, sv * (vb + 0.4), zb), P(u, sv * (vt + 0.4), H), 0.7, GADING, wz=0.7)
+            else:
+                m.poly_out([P(-hu, sv * vb, zb), P(hu, sv * vb, zb), P(hu, sv * vt, H), P(-hu, sv * vt, H)], ref, GL)
+            # 3. atap halaman: lembah -> ujung lancip; bidang bawah ujung (tebal "halaman") putih gading
+            m.poly_out([P(-hu, 0, zv), P(hu, 0, zv), P(hu, sv * vk, zk), P(-hu, sv * vk, zk)], ref, ATAP)
+            m.poly_out([P(-hu, sv * vt, H), P(hu, sv * vt, H), P(hu, sv * vk, zk), P(-hu, sv * vk, zk)], ref, GADING)
+            if lod == 0:                        # gording atap: garis "halaman" melintang
+                for i in range(1, 10):
+                    u = -hu + L * i / 10
+                    m.prism(P(u, sv * 2.0, zv + (zk - zv) * 2.0 / vk + 0.25), P(u, sv * (vk - 0.6), zk - (zk - zv) * 0.6 / vk + 0.25), 0.4, GADING, wz=0.3)
+        # 4. dinding ujung (beton + panel kaca) + rehal X menonjol
+        for su in (-1, 1):
+            for sv in (-1, 1):
+                m.poly_out([P(su * hu, v, z) for v, z in half(sv)], ref, BETON)
+                if lod < 2:
+                    m.poly_out([P(su * (hu + 0.06), v, z) for v, z in half(sv, 0.8)], ref, GL)
+                ux = su * (hu + (0.55 if sv < 0 else 0.65))   # dua balok X beda 0,1 m: tidak berimpit di persilangan
+                m.prism(P(ux, sv * vk, zk), P(ux, -sv * vb, zb), 0.9, GADING, caps=lod < 2, wz=1.4)
+        # lembah: skylight memanjang
+        m.prism(P(-hu + 4, 0, H - 0.8), P(hu - 4, 0, H - 0.8), 3.2, GL2, caps=True, wz=2.4)
+        # 5. lobi rendah di tengah depan (-v): kaca + pelat atap datar + 4 kolom
+        if lod < 2:
+            kotak(-8, 8, -vb + 2, -vb - 7, zb, 7.0, GL)
+            kotak(-9.5, 9.5, -vb + 1, -vb - 8.5, 7.0, 7.8, PELAT, roof=PELAT)
+            if lod == 0:
+                for u in (-7.6, -4.2, 4.2, 7.6):   # celah tengah untuk potongan pintu + kanopi
+                    m.prism(P(u, -vb - 7.8, zb), P(u, -vb - 7.8, 7.0), 0.6, GADING)
         return m
     return fr, build
 

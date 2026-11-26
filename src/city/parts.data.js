@@ -83,6 +83,24 @@ export const PART_RECIPES = Object.freeze({
       { part: 'lampu', line: { from: [92.6, -45], to: [92.6, 45], y: 0.06, count: 5 } },
     ],
   },
+  // Perpustakaan Soeman Hs. (b_soeman di bangunan.py: min_rect jejak L 136,7 × W 44,1; ang ≈ π → +u barat, +v selatan).
+  // Depan = sisi −v (utara): podium sampai v −24,6, tangga sampai v −27,6, muka kaca lobi di v −22,0 (y 1,0).
+  'perpustakaan-soeman-hs': {
+    frame: { cx: 0.05, cy: -0.05, ang: 3.1329, L: 136.724, W: 44.109 },
+    // tapak (denah model): podium + halaman depan (+y); pohon acak tile di dalamnya tidak dibuat. Sisi belakang (−y) berbatas
+    // langsung dengan bangunan tetangga dari OSM, jadi tidak ditanami.
+    site: [[-75, -26], [75, -26], [75, 36], [-75, 36]],
+    rules: [
+      // pintu masuk + kanopi di muka lobi (yaw 0 = depan ke arah −v)
+      { part: 'pintu', at: [[0, -22.05, 1.0, 0]] },
+      { part: 'kanopi', at: [[0, -22.05, 1.0, 0]] },
+      // halaman depan: palem kiri-kanan tangga, pot di kaki tangga, lampu taman berjajar
+      { part: 'palem', line: { from: [-16, -27.5], to: [-46, -27.5], y: 0, count: 4 } },
+      { part: 'palem', line: { from: [16, -27.5], to: [46, -27.5], y: 0, count: 4 } },
+      { part: 'pot', at: [[-13, -28.6, 0], [13, -28.6, 0]] },
+      { part: 'lampu-taman', line: { from: [-55, -31.5], to: [55, -31.5], y: 0, count: 6 } },
+    ],
+  },
   // Swiss-Belinn SKA: menara 9 lantai (alas 10,5 m, tinggi lantai 3,6 m). Jendela = potongan di dua sisi panjang;
   // sisi pendek ditempati balkon dari skrip model.
   'swiss-belinn-ska': {

@@ -30,7 +30,7 @@ Skrip: `assets-src/blender/landmark/jembatan.py` → 9 GLB (3 jembatan × 3 LOD)
 Skrip: `assets-src/blender/landmark/bangunan.py` (+ pustaka `lm_common.py`) → 23 landmark × 3 LOD, dari **jejak OSM** (`osm/footprints.json`, diambil Overpass; bisa dibangun ulang tanpa internet). Skrip juga menulis `src/city/landmarks.data.js` (posisi; jangan sunting tangan) yang dimuat `landmarks.js`. Seperti jembatan: koordinat dunia relatif ke titik tengah, yaw 0.
 | Kelompok | Landmark | Cara |
 |---|---|---|
-| Pemerintahan/budaya | Kantor Gubernur Riau + Menara Lancang Kuning (9 lantai, mahkota atap Melayu bertingkat), Perpustakaan Soeman Hs. (kaca 6 lantai + atap miring + sirip), Balai Adat Melayu Riau, Anjung Seni Idrus Tintin, Museum Sang Nila Utama | ekstrusi jejak + atap Melayu/selembayung |
+| Pemerintahan/budaya | Kantor Gubernur Riau + Menara Lancang Kuning (9 lantai, mahkota atap Melayu bertingkat), Perpustakaan Soeman Hs. (rehal + buku terbuka: fasad kaca condong keluar, atap V berujung lancip, X putih di dinding ujung), Balai Adat Melayu Riau, Anjung Seni Idrus Tintin, Museum Sang Nila Utama | ekstrusi jejak + atap Melayu/selembayung |
 | Mal & hotel | Mal SKA, Living World, Ciputra Seraya, Mall Pekanbaru, Plaza Suka Ramai, Plaza Citra, Pasar Bawah, Hotel Furaya, Swiss-Belinn SKA | ekstrusi per lantai (pita kaca gelap = menyala malam), parapet warna merek, plang, kotak AC |
 | Ibadah | Masjid Raya Senapelan | kubah hijau + 1 menara |
 | Tugu | Selais Tiga Sepadan, Zapin 0 KM, Keris, Perjuangan, Bambu Runcing, Pesawat Skyhawk | model kecil di titik node OSM |
