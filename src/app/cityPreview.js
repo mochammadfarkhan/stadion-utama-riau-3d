@@ -165,7 +165,9 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     city?.setPreview(true); // semua tile peta dimuat (LOD0), tanah dasar diperluas
     // Resolusi penuh: adegan pratinjau ringan, dan skala render < 1 membuat atap/jalan buram & bergerigi dari atas.
     app.setPixelCap?.(Infinity);
-    app.setPixelRatio?.(Math.min(window.devicePixelRatio || 1, tier() === 'rendah' ? LOW_TIER_PIXEL_RATIO : MAX_PREVIEW_PIXEL_RATIO));
+    // Batas bawah = setelan Resolusi render pemain (preset Tinggi 1,25×): di monitor DPR 1 kota ikut di-supersample, tidak dipaksa 1×.
+    const wanted = Math.max(window.devicePixelRatio || 1, Number(store.get('graphics.pixelRatio')) || 1);
+    app.setPixelRatio?.(Math.min(wanted, tier() === 'rendah' ? LOW_TIER_PIXEL_RATIO : MAX_PREVIEW_PIXEL_RATIO));
     app.setAdaptiveResolution?.(false);
     if (store.get('camera.kotaMaket')) applyMaket();
     applyGrade();

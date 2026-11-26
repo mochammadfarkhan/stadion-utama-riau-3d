@@ -30,7 +30,7 @@ function loadPlaywright() {
 }
 
 /** Vite (port) + Chromium headless; kembalikan { page, errors, close() }. */
-export async function openSim({ port = Number(process.env.SIM_PORT) || 5176, gpu = process.env.SIM_GPU || 'd3d11', width = 1600, height = 900, beforeGoto = null, query = '' } = {}) {
+export async function openSim({ port = Number(process.env.SIM_PORT) || 5176, gpu = process.env.SIM_GPU || 'd3d11', width = 1600, height = 900, beforeGoto = null, query = '', preset = process.env.SIM_PRESET || 'tinggi' } = {}) {
   const vite = await import(pathToFileURL(join(ROOT, 'node_modules', 'vite', 'dist', 'node', 'index.js')).href);
   const server = await vite.createServer({
     root: ROOT, configFile: join(ROOT, 'vite.config.js'), server: { port, strictPort: true, fs: { strict: false } }, logLevel: 'error',
@@ -46,7 +46,7 @@ export async function openSim({ port = Number(process.env.SIM_PORT) || 5176, gpu
   if (beforeGoto) await beforeGoto(page); // mis. addInitScript untuk menyuntik localStorage
   await page.goto(`http://localhost:${port}/${query}`, { waitUntil: 'load', timeout: 180000 });
   await page.waitForFunction(() => window.__sim?.app && window.__sim.district, null, { timeout: 240000 });
-  await page.evaluate(() => {
+  await page.evaluate((p) => {
     document.getElementById('overlay')?.classList.add('hidden');
     document.body.classList.remove('is-menu'); // MainMenu.hide() tidak dipanggil: HUD harus tetap tampil di bidikan
     const s = window.__sim;
@@ -54,7 +54,9 @@ export async function openSim({ port = Number(process.env.SIM_PORT) || 5176, gpu
     s.store.set('sky.advanceTime', false);
     s.store.set('weather.raining', false);
     s.store.set('camera.mode', 'third');
-  });
+    // Preset dikunci: 'otomatis' diuji-kinerja di tengah bidikan dan bisa turun ke Rendah (resolusi 0,85×, bayangan kasar).
+    if (p) s.store.set('graphics.preset', p);
+  }, preset);
   return {
     page,
     errors,
