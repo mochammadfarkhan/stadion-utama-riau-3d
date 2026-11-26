@@ -3,15 +3,18 @@
  * GTAO bawaan nyaris tak terlihat di skala ini; pass ini estimator gaya Alchemy/SAO sederhana:
  * gelap di kaki gedung, sudut dalam antar-dinding, celah antar gedung rapat, bawah kanopi.
  *
- * - Satu pass layar penuh mode salin: tDiffuse (readBuffer) + kedalaman dari DepthRenderPass.
- * - Posisi view direkonstruksi dari kedalaman (fov/aspect kamera), normal dari tetangga
- *   yang selisih kedalamannya terkecil (aman di tepi siluet).
- * - SAMPLES titik spiral di cakram layar (radius = uRadius meter dunia), diputar per piksel (IGN).
- * - Area tergelap ditarik ke uTint (biru-arang), bukan hitam.
+ * Dua tahap di dalam satu kelas:
+ * 1. Tahap AO: kedalaman dari DepthRenderPass → nilai ao ke aoTarget (8-bit, tanpa depth).
+ *    - Posisi view direkonstruksi dari kedalaman (fov/aspect kamera), normal dari tetangga
+ *      yang selisih kedalamannya terkecil (aman di tepi siluet).
+ *    - SAMPLES titik spiral di cakram layar (radius = uRadius meter dunia), diputar per piksel (IGN).
+ * 2. Tahap komposit: tDiffuse (readBuffer) dikalikan ao yang sudah dihaluskan kotak 4x4 SADAR-KEDALAMAN
+ *    (tap dengan selisih kedalaman besar dibuang, jadi tepi gedung tidak bocor); menghilangkan bintik IGN.
+ *    Area tergelap ditarik ke uTint (biru-arang), bukan hitam.
  *
  * Anti feedback-loop: bila writeBuffer == target adegan (pemilik depthTexture), pass dilewati.
  */
-import { Color, NoBlending, ShaderMaterial, Vector2 } from 'three';
+import { Color, LinearFilter, NoBlending, ShaderMaterial, Vector2, WebGLRenderTarget } from 'three';
 import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 
 const SKY_DEPTH = 0.99999;
@@ -31,7 +34,6 @@ void main() {
 
 const FRAGMENT = /* glsl */ `
 #include <packing>
-uniform sampler2D tDiffuse;
 uniform sampler2D tDepth;
 uniform vec2 uResolution;
 uniform float uNear;
@@ -47,9 +49,6 @@ uniform float uMinPx;
 uniform float uMaxPx;
 uniform float uFadeStart;
 uniform float uFadeEnd;
-uniform float uStrength;
-uniform vec3 uTint;
-uniform float uDebug;
 varying vec2 vUv;
 
 const float SKY = ${SKY_DEPTH.toFixed(5)};
@@ -103,12 +102,55 @@ float occlusion(vec3 p, float depth) {
 }
 
 void main() {
-  vec4 base = texture2D(tDiffuse, vUv);
   float raw = texture2D(tDepth, vUv).x;
   float ao = 1.0;
   if (raw < SKY) {
     vec3 p = viewPos(vUv, raw);
     ao = occlusion(p, -p.z);
+  }
+  gl_FragColor = vec4(ao, ao, ao, 1.0);
+}`;
+
+const FRAGMENT_COMPOSITE = /* glsl */ `
+#include <packing>
+uniform sampler2D tDiffuse;
+uniform sampler2D tAo;
+uniform sampler2D tDepth;
+uniform vec2 uResolution;
+uniform float uNear;
+uniform float uFar;
+uniform float uBlurDepth;
+uniform float uStrength;
+uniform vec3 uTint;
+uniform float uDebug;
+varying vec2 vUv;
+
+const float SKY = ${SKY_DEPTH.toFixed(5)};
+
+float linDepth(float raw) {
+  return -perspectiveDepthToViewZ(raw, uNear, uFar);
+}
+
+void main() {
+  vec4 base = texture2D(tDiffuse, vUv);
+  float raw = texture2D(tDepth, vUv).x;
+  float ao = 1.0;
+  if (raw < SKY) {
+    float dc = linDepth(raw);
+    float aoC = texture2D(tAo, vUv).x;
+    float tol = uBlurDepth * dc;
+    vec2 t = 1.0 / uResolution;
+    float sum = 0.0;
+    float wsum = 0.0;
+    for (int iy = 0; iy < 4; iy++) {
+      for (int ix = 0; ix < 4; ix++) {
+        vec2 uv = vUv + (vec2(float(ix), float(iy)) - 1.5) * t;
+        float w = abs(linDepth(texture2D(tDepth, uv).x) - dc) < tol ? 1.0 : 0.0;
+        sum += w * texture2D(tAo, uv).x;
+        wsum += w;
+      }
+    }
+    ao = wsum > 0.0 ? sum / wsum : aoC;
   }
   if (uDebug > 0.5) {
     gl_FragColor = vec4(vec3(ao), 1.0);
@@ -120,7 +162,7 @@ void main() {
 
 const DEFAULTS = Object.freeze({
   radius: 9, intensity: 1, power: 1.5, bias: 0.0015, strength: 1, tint: 0x5a6a86, samples: 16,
-  minPx: 2, maxPx: 96, fadeStart: 6000, fadeEnd: 9000,
+  minPx: 2, maxPx: 96, fadeStart: 6000, fadeEnd: 9000, blurDepth: 0.02,
 });
 
 export class CityAoPass extends Pass {
@@ -154,9 +196,15 @@ export class CityAoPass extends Pass {
       uStrength: { value: o.strength },
       uTint: { value: new Color(o.tint) }, // hex sRGB → ruang kerja linear
       uDebug: { value: 0 },
+      tAo: { value: null },
+      uBlurDepth: { value: o.blurDepth },
     };
-    this.material = new ShaderMaterial({
-      name: 'CityAoPass',
+    this.aoTarget = new WebGLRenderTarget(1, 1, {
+      depthBuffer: false, minFilter: LinearFilter, magFilter: LinearFilter,
+    });
+    this.uniforms.tAo.value = this.aoTarget.texture;
+    this.aoMaterial = new ShaderMaterial({
+      name: 'CityAoPass.ao',
       uniforms: this.uniforms,
       defines: { SAMPLES: Math.max(1, Math.round(o.samples)) },
       vertexShader: VERTEX,
@@ -165,11 +213,21 @@ export class CityAoPass extends Pass {
       depthTest: false,
       depthWrite: false,
     });
-    this.fsQuad = new FullScreenQuad(this.material);
+    this.compositeMaterial = new ShaderMaterial({
+      name: 'CityAoPass.composite',
+      uniforms: this.uniforms,
+      vertexShader: VERTEX,
+      fragmentShader: FRAGMENT_COMPOSITE,
+      blending: NoBlending,
+      depthTest: false,
+      depthWrite: false,
+    });
+    this.material = this.aoMaterial;
+    this.fsQuad = new FullScreenQuad(this.aoMaterial);
   }
 
   /** Ubah tampilan; hanya kunci yang diberikan. */
-  setLook({ radius, intensity, power, bias, strength, tint, samples } = {}) {
+  setLook({ radius, intensity, power, bias, strength, tint, samples, blurDepth } = {}) {
     const u = this.uniforms;
     if (radius != null) u.uRadius.value = radius;
     if (intensity != null) u.uIntensity.value = intensity;
@@ -177,11 +235,12 @@ export class CityAoPass extends Pass {
     if (bias != null) u.uBias.value = bias;
     if (strength != null) u.uStrength.value = strength;
     if (tint != null) u.uTint.value.set(tint);
+    if (blurDepth != null) u.uBlurDepth.value = blurDepth;
     if (samples != null) {
       const n = Math.max(1, Math.round(samples));
-      if (n !== this.material.defines.SAMPLES) {
-        this.material.defines.SAMPLES = n;
-        this.material.needsUpdate = true;
+      if (n !== this.aoMaterial.defines.SAMPLES) {
+        this.aoMaterial.defines.SAMPLES = n;
+        this.aoMaterial.needsUpdate = true;
       }
     }
   }
@@ -189,6 +248,7 @@ export class CityAoPass extends Pass {
   /** Ukuran efektif (piksel fisik) dari EffectComposer. */
   setSize(width, height) {
     this.uniforms.uResolution.value.set(Math.max(1, width), Math.max(1, height));
+    this.aoTarget.setSize(Math.max(1, Math.round(width)), Math.max(1, Math.round(height)));
   }
 
   render(renderer, writeBuffer, readBuffer) {
@@ -207,12 +267,18 @@ export class CityAoPass extends Pass {
     u.uTanHalfFov.value = Math.tan((cam.fov * Math.PI) / 360);
     u.uAspect.value = cam.aspect;
     u.uProjScale.value = aoProjScale(u.uResolution.value.y, cam.fov);
+    renderer.setRenderTarget(this.aoTarget);
+    this.fsQuad.material = this.aoMaterial;
+    this.fsQuad.render(renderer);
     renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer);
+    this.fsQuad.material = this.compositeMaterial;
     this.fsQuad.render(renderer);
   }
 
   dispose() {
-    this.material.dispose();
+    this.aoMaterial.dispose();
+    this.compositeMaterial.dispose();
+    this.aoTarget.dispose();
     this.fsQuad.dispose();
   }
 }
