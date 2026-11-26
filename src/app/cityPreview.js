@@ -26,7 +26,10 @@ const MAKET = Object.freeze({ hour: 16.75, band: 0.3, falloff: 0.32, radiusScale
 /** Grading khusus pratinjau kota (arah seni 2026-11-16, gambar target user): hangat, jenuh, kontras tegas; dipulihkan saat keluar. */
 const KOTA_GRADE = Object.freeze({ saturation: 1.35, contrast: 1.14, strength: 0.45, highlight: 0xffd49a, shadow: 0x46679a, satKnee: 0.62, satCeil: 0.93, vignette: 0.2 });
 const GRADE_KEYS = Object.freeze(['saturation', 'contrast', 'strength', 'satKnee', 'satCeil', 'vignette', 'highlight', 'shadow']);
-const AUDIO_STEP_S = 0.25;         // jeda pembaruan volume suara (setLevel memakai rampa, tak perlu tiap frame)
+/** Bayangan sudut skala kota (CityAoPass); mati di kualitas rendah. */
+// Nilai hasil 3 putaran bidikan (2026-11-26): intensity < 3 tak terlihat, 8 terlalu gelap + berbintik; bias 0,0008 menjaga atap datar tetap terang.
+const KOTA_AO = Object.freeze({ radius: 12, intensity: 5, power: 1.2, bias: 0.0008, strength: 0.8, samples: 24 });
+const AUDIO_STEP_S = 0.25;        // jeda pembaruan volume suara (setLevel memakai rampa, tak perlu tiap frame)
 const PHOTO_SCALE = 2;          // foto Kota: resolusi ×2 (label & bar disembunyikan lewat body.is-photo)
 const INTRO_ZOOM = 9;          // intro terbang: mulai dari ketinggian ini lalu menukik ke stadion
 const INTRO_END_ZOOM = 0.9;
@@ -171,6 +174,9 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     app.setAdaptiveResolution?.(false);
     if (store.get('camera.kotaMaket')) applyMaket();
     applyGrade();
+    const preset = store.get('graphics.preset');
+    const low = preset === 'rendah' || (preset === 'otomatis' && tier() === 'rendah');
+    if (!low) app.setCityAo?.(KOTA_AO);
     if (store.get('camera.kotaSuara') && audioBus) startSound();
     document.body.classList.add('is-city-preview');
     labels.setVisible(true);
@@ -201,6 +207,7 @@ export function createCityPreview({ app, rig, regions, time, store, hud, city = 
     document.body.classList.remove('is-city-preview');
     restoreMaket();
     restoreGrade();
+    app.setCityAo?.(null);
     stopSound();
     labels.setVisible(false);
     controls.setVisible(false);

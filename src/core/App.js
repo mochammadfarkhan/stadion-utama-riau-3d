@@ -10,6 +10,7 @@ import { FXAAPass } from 'three/addons/postprocessing/FXAAPass.js';
 import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
 import { RENDER, RENDER_LAYERS } from '../config/constants.js';
 import { DepthRenderPass, OutlinePass } from './postprocessing/OutlinePass.js';
+import { CityAoPass } from './postprocessing/CityAoPass.js';
 import { createSystemRunner } from '../engine/SystemRunner.js';
 import { gateSystem } from '../engine/systemGate.js';
 import { createLabelList } from '../engine/hiddenSkip.js';
@@ -179,6 +180,7 @@ export class App {
     this.post.scenePass.scene = scene;
     this.post.scenePass.camera = camera;
     this.post.outlinePass.camera = camera;
+    this.post.cityAoPass.camera = camera;
     const ao = this.post.gtaoPass;
     if (ao) {
       ao.scene = scene;
@@ -270,6 +272,14 @@ export class App {
   setPixelCap(cap) {
     this.pixelCap = cap;
     if (this.pixelWanted) this.setPixelRatio(this.pixelWanted);
+  }
+
+  /** Bayangan sudut skala kota (CityAoPass); null = mati, objek = setLook + nyala. */
+  setCityAo(look = null) {
+    const pass = this.post.cityAoPass;
+    if (look) pass.setLook(look);
+    pass.enabled = Boolean(look);
+    return pass.enabled;
   }
 
   /** Aktif/nonaktifkan garis tepi tipis (outline screen-space). */
@@ -726,6 +736,9 @@ function createComposer(renderer, scene, camera) {
   const composer = new EffectComposer(renderer, createComposerTarget(renderer));
   const scenePass = new DepthRenderPass(scene, camera);
   composer.addPass(scenePass);
+  const cityAoPass = new CityAoPass(camera, scenePass);
+  cityAoPass.enabled = false; // hanya mode Kota (App.setCityAo)
+  composer.addPass(cityAoPass);
   const outlinePass = createOutlinePass(camera, scenePass, renderer.getPixelRatio());
   composer.addPass(outlinePass);
   const vignettePass = new ShaderPass(VignetteShader);
@@ -747,7 +760,7 @@ function createComposer(renderer, scene, camera) {
   const fxaaPass = new FXAAPass(); // sesudah OutputPass: FXAA bekerja pada warna akhir sRGB
   fxaaPass.enabled = false;
   composer.addPass(fxaaPass);
-  return { composer, gtaoPass: null, scenePass, outlinePass, vignettePass, tiltPass, bloomPass, gradingPass, fxaaPass }; // gtaoPass dibuat malas (App.setAO)
+  return { composer, gtaoPass: null, scenePass, cityAoPass, outlinePass, vignettePass, tiltPass, bloomPass, gradingPass, fxaaPass }; // gtaoPass dibuat malas (App.setAO)
 }
 
 /** Render target HDR composer + DepthTexture (ukuran fisik; diperbarui composer.setSize). */
