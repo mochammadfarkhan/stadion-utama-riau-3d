@@ -113,18 +113,6 @@ def b_mal(spec):
     return fr, build
 
 
-def _facade_fins(m, cx, cy, ang, L, W, z0, z1, count, col, depth=0.65, width=0.55):
-    """Tambah sirip vertikal ritmis di dua sisi panjang bangunan."""
-    c, s = math.cos(ang), math.sin(ang)
-    for side in (-1, 1):
-        v = side * (W * 0.5 + depth * 0.4)
-        for i in range(1, count):
-            u = -L * 0.45 + L * 0.9 * (i / count)
-            px = cx + u * c - v * s
-            py = cy + u * s + v * c
-            m.prism((px, py, z0), (px, py, z1), width, col, wz=width)
-
-
 def _soft_bands(z0, n, fh, wall, glass="#243547"):
     """Pita jendela lebih ramping (26% tinggi lantai) agar fasad tidak tampak belang zebra."""
     out = []
@@ -262,46 +250,382 @@ def b_mal_ska(spec):
     return fr, build
 
 
+def _klip_uv(poly, cx, cy, ang, u0, u1, v0, v1):
+    """Cincin poly (x, y) dipotong persegi panjang u0..u1 × v0..v1 di frame (cx, cy, ang) (Sutherland–Hodgman); hasil ccw (x, y)."""
+    c, s = math.cos(ang), math.sin(ang)
+    pts = [((x - cx) * c + (y - cy) * s, -(x - cx) * s + (y - cy) * c) for x, y in poly]
+    for k, lim, sg in ((0, u0, 1), (0, u1, -1), (1, v0, 1), (1, v1, -1)):
+        out = []
+        for i in range(len(pts)):
+            a, b = pts[i - 1], pts[i]
+            ia, ib = sg * (a[k] - lim) >= 0, sg * (b[k] - lim) >= 0
+            if ia != ib:
+                t = (lim - a[k]) / (b[k] - a[k])
+                out.append((a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t))
+            if ib:
+                out.append(b)
+        pts = out
+        if len(pts) < 3:
+            return []
+    return ccw([(cx + u * c - v * s, cy + u * s + v * c) for u, v in pts])
+
+
+def _bawah(m, pts, z, col):
+    """Bidang datar menghadap ke bawah (plafon/pelat bawah)."""
+    n = len(m.f)
+    m.top(pts, z, col)
+    m.f[n:] = [(a, c, b) for a, b, c in m.f[n:]]
+
+
+def _maju(p, n, a, b):
+    """Jarak sepanjang arah n dari titik p sampai garis ab (bisa negatif)."""
+    d = (b[0] - a[0], b[1] - a[1])
+    return ((a[0] - p[0]) * d[1] - (a[1] - p[1]) * d[0]) / (n[0] * d[1] - n[1] * d[0])
+
+
 def b_living_world(spec):
-    """Living World Pekanbaru: fasad modern abu-putih & kaca curtain wall, kanopi megah, atrium berangka."""
+    """Living World Pekanbaru (fakta bersumber: dibuka 2018, Kawan Lama Group + Sinarmas Land, 5 lantai).
+    Arah dari DATA (bukan foto): data-src/overture-kota/jalan.csv + data-src/osm/cincin-utara.json. Jl. Tuanku Tambusai (primer,
+    nama dari OSM way 785056308/820825910 di barat simpang, diteruskan ruas primer Overture ke timur) lewat ±14–19 m di depan
+    sisi UTARA-BARAT LAUT jejak (sisi 63,5 m, normal (−0,33; 0,94)) → MUKA UTAMA = sisi itu. Jalan primer utara-selatan
+    (flyover SKA) ±35 m di barat → muka samping = sisi barat. Di atas tepi muka utama lewat rel layang MRT/LRT
+    (src/city/transitData.js: stasiun MRT Living World di depan sudut barat laut, pilar LRT ±11 m di depan muka utama).
+    Kedalaman kanopi depan dibatasi tepi jalan (lebar primer 14 m, tools/citybake/config.js) dan pilar rel itu; pilon penanda
+    di ujung barat muka utama (ujung timur berada di bawah rel LRT).
+    [INFERENSI] semua bentuk: podium 5 × 4,4 m (etalase kaca + kanopi pelat di sisi jalan, panel putih-abu bernat, bidang sirip
+    kayu, pita hijau merek), curtain wall + kanopi besar + pelataran antar-jemput di tengah muka utama, pilon hijau, atap: skylight
+    atrium memanjang berpelana, dek parkir di belakang, dua teras taman, atap mekanikal + rumah mesin. Unit AC, pintu, palem,
+    pot, lampu, pohon atap = potongan (src/city/parts.data.js)."""
     fr = Frame([way(w) for w in spec["ways"]])
+    base = _lurus(ccw(fr.pts(way(spec["ways"][0]))), 0.7)
+    cx, cy, ang, L, W = min_rect(base)
+    print(f"[living-world] frame: {{ cx: {cx:.3f}, cy: {cy:.3f}, ang: {ang:.4f}, L: {L:.3f}, W: {W:.3f} }}")
+    ca, sa = math.cos(ang), math.sin(ang)
+    P = lambda u, v: (cx + u * ca - v * sa, cy + u * sa + v * ca)  # noqa: E731
+    U = lambda x, y: ((x - cx) * ca + (y - cy) * sa, -(x - cx) * sa + (y - cy) * ca)  # noqa: E731
+
+    WALL, ABU, PLINT, PUTIH, ATAP = "#eceae4", "#d3cfc6", "#9aa0a8", "#f4f3ef", "#b4b8be"
+    KACA, KACA_T, KAYU, KAYU2, HIJAU = "#20303c", "#78cfc6", "#c98548", "#9c6436", "#269956"
+    NAT, GELAP, ASPAL, GARIS, TAMAN = "#cdc9c1", "#3d434c", "#4a4d55", "#e8e8e4", "#5aa854"
+    FH, H = 4.4, 5 * 4.4
+    HP = H + 1.1
+    FRONT, WEST = (-0.332, 0.943), (-1.0, 0.0)
+
+    # --- muka utama dari data: sisi terpanjang (≥ 20 m) yang paling dekat ke Jl. Tuanku Tambusai ---
+    ROAD = (fr.pt(3337.7, -1883.6), fr.pt(3498.4, -1924.0))      # jalur selatan Tambusai (Overture, dunia x, z)
+    PILAR = [fr.pt(3431.0, -1901.7), fr.pt(3402.7, -1894.8)]       # pilar LRT & MRT terdekat (transitData.js)
+    MRT = (fr.pt(3420.0, -1910.0), (0.743, 0.669))                 # pusat stasiun MRT + arah rel (denah)
+    a_f, b_f, LF, NF = min(((a, b, Ls, n) for a, b, Ls, n in _sisi(base) if Ls >= 20),
+                           key=lambda s: _jarak_seg(((s[0][0] + s[1][0]) / 2, (s[0][1] + s[1][1]) / 2), *ROAD))
+    W0 = b_f                                                       # ujung barat muka utama (ccw: timur → barat)
+    E = ((a_f[0] - b_f[0]) / LF, (a_f[1] - b_f[1]) / LF)           # sepanjang muka, barat → timur
+    F = lambda t, d: (W0[0] + E[0] * t + NF[0] * d, W0[1] + E[1] * t + NF[1] * d)  # noqa: E731
+    jalan = lambda t: _maju(F(t, 0), NF, *ROAD) - 7.0                # noqa: E731  jarak muka → tepi jalan
+    print(f"[living-world] muka utama {LF:.1f} m, normal ({NF[0]:.3f}, {NF[1]:.3f}); tepi Tambusai {jalan(0):.1f} m (barat) "
+          f"… {jalan(LF):.1f} m (timur) di depan muka")
+
+    T_PIL, T_CW, T_KAN, T_PEL = (5.5, 12.5), (14.5, 48.5), (11.5, 51.5), (2.0, 60.0)
+    D_CW = 2.5                                                      # tonjolan curtain wall
+    Dk = lambda t: min(14.0, jalan(t) - 1.0)                       # noqa: E731  kanopi: sisakan 1 m ke tepi jalan
+    Dp = lambda t: min(15.0, jalan(t) - 0.2)                       # noqa: E731  pelataran
+    for q in PILAR:
+        tq = (q[0] - W0[0]) * E[0] + (q[1] - W0[1]) * E[1]
+        dq = (q[0] - W0[0]) * NF[0] + (q[1] - W0[1]) * NF[1]
+        print(f"[living-world] pilar rel t {tq:.1f} d {dq:.1f}: kanopi sampai {Dk(tq):.1f}, pelataran {Dp(tq):.1f}")
+    pil = [F(t, d) for t in T_PIL for d in (-6.7, 0.3)]
+    mrt_d = min(abs((p[0] - MRT[0][0]) * MRT[1][1] - (p[1] - MRT[0][1]) * MRT[1][0]) for p in pil)
+    print(f"[living-world] pilon ↔ sumbu MRT {mrt_d:.1f} m (tepi atap stasiun ±8,9 m); kanopi depan {Dk(T_KAN[0]):.1f} → "
+          f"{Dk(T_KAN[1]):.1f} m")
+
+    # --- zona atap (u ke muka utama, v melintang) ---
+    Z_DEK, Z_SKY = (-66.0, 2.0, -62.0, 30.0), (9.0, 30.0, -41.0, 25.0)
+    Z_TAMAN = [(9.0, 30.0, 29.0, 43.0), (9.0, 30.0, -61.0, -45.0)]
+    Z_RAMP, Z_MESIN = (-66.0, -58.0, -20.0, -6.0), (40.0, 50.0, -40.0, -26.0)
+    dalam = _offset(base, -0.9)
+    dek = _klip_uv(dalam, cx, cy, ang, *Z_DEK)
+    tamans = [_klip_uv(_offset(base, -1.5), cx, cy, ang, *z) for z in Z_TAMAN]
+    sky_ok = all(inside(P(u, v), dalam) for u in Z_SKY[:2] for v in Z_SKY[2:])
+    print(f"[living-world] dek {area(dek):.0f} m2 = {area(dek) / area(base):.2f} atap ({area(base):.0f} m2); "
+          f"taman {area(tamans[0]):.0f} + {area(tamans[1]):.0f} m2; skylight di dalam jejak: {sky_ok}")
+
+    def kotak(m, u0, u1, v0, v1, z0, z1, col, roof=None):
+        m.extrude([P(u0, v0), P(u1, v0), P(u1, v1), P(u0, v1)], z0, z1, col, roof=roof or col)
+
+    def lis(m, t, d0, d1, w, z0, z1, col):
+        """Balok tegak di muka utama: lebar w di sekitar t, dari d0 ke d1 meter di depan muka."""
+        m.extrude([F(t - w / 2, d0), F(t + w / 2, d0), F(t + w / 2, d1), F(t - w / 2, d1)], z0, z1, col, roof=col)
+
+    def pada(a, b, n, t0, t1, d0, d1):
+        """Cincin panel menempel di sisi a→b (normal n): t0..t1 meter sepanjang sisi, d0..d1 meter di depannya."""
+        Ls = math.dist(a, b)
+        e = ((b[0] - a[0]) / Ls, (b[1] - a[1]) / Ls)
+        return [(a[0] + e[0] * t + n[0] * d, a[1] + e[1] * t + n[1] * d) for t, d in ((t0, d0), (t1, d0), (t1, d1), (t0, d1))]
+
+    # --- sisi selain muka utama: modul ±18 m bergantian (a) panel + 2 pita jendela, (b) sirip kayu, (c) panel abu aksen ---
+    AKSEN, ALUR, POLA = "#b9bcc0", "#4a4f57", "abac"
+    JENDELA = [(FH, 10.2, WALL), (10.2, 11.8, KACA), (11.8, 19.0, WALL), (19.0, 20.6, KACA), (20.6, HP, WALL)]  # lantai 3 & 5
+    SISI_BARAT = max((s for s in _sisi(base) if s[3][0] * WEST[0] + s[3][1] * WEST[1] > 0.95), key=lambda s: s[2])
+    SISI_BLK = max((s for s in _sisi(base) if s[2] > 40), key=lambda s: -(s[3][0] * ca + s[3][1] * sa))
+    R_T, R_D = (4.0, 66.0), (0.6, 5.6, 5.8, 10.8)    # tanjakan: t sepanjang sisi belakang; jalur dalam d0..d1, luar d2..d3
+
+    def samping(m, lod, a, b, Ls, n, siklus):
+        quad = lambda t0, t1, lo, hi, col, d=0.0: m.poly([(*pada(a, b, n, t0, t1, d, d)[0], lo), (*pada(a, b, n, t0, t1, d, d)[1], lo),  # noqa: E731
+                                                        (*pada(a, b, n, t0, t1, d, d)[1], hi), (*pada(a, b, n, t0, t1, d, d)[0], hi)], col)
+        for lo, hi, col in ((0, 0.5, PLINT), (0.5, 4.0, KACA), (4.0, FH, WALL)):   # etalase kaca gelap menerus
+            quad(0, Ls, lo, hi, col)
+        if Ls > 2.0:                                                                # kanopi pelat gelap menjorok 2 m
+            m.extrude(pada(a, b, n, 0, Ls, 0.05, 2.0), 4.05, 4.35, GELAP, roof=GELAP)
+        papan = (a, b) == SISI_BARAT[:2]
+        k = max(1, round(Ls / 18.0))
+        wm = Ls / k
+        for j in range(k):
+            t0, t1 = j * wm, (j + 1) * wm
+            jenis = "a" if Ls < 9 else POLA[siklus % 4]
+            if papan and j == k // 2:
+                jenis = "c"
+            siklus += 1
+            if jenis == "a":
+                for lo, hi, col in JENDELA:
+                    quad(t0, t1, lo, hi, col)
+            elif jenis == "c":
+                quad(t0, t1, FH, H, AKSEN)
+                quad(t0, t1, H, HP, WALL)
+            else:
+                quad(t0, t1, FH, HP, WALL)
+                s0, s1 = t0 + 0.6, t1 - 0.6
+                m.extrude(pada(a, b, n, s0, s1, 0.05, 0.12), FH + 0.2, H - 0.4, KAYU2 if lod == 0 else KAYU, roof=KAYU2)
+                if lod == 0:
+                    kk = 0.75
+                    while kk < s1 - s0:
+                        m.extrude(pada(a, b, n, s0 + kk - 0.15, s0 + kk + 0.15, 0.17, 0.55), FH + 0.2, H - 0.4, KAYU, roof=KAYU)
+                        kk += 1.5
+            if lod == 0:                                                            # alur nat gelap 0,35 m
+                ts = ([t0] if j else []) + ([(t0 + t1) / 2] if jenis != "b" and wm > 12 else [])
+                for t in ts:
+                    quad(t - 0.175, t + 0.175, FH, H, ALUR, 0.06)
+            if papan and j == k // 2:                                               # papan nama hijau kedua (muka barat)
+                w2 = min(14.0, wm - 2.0) / 2
+                tc = (t0 + t1) / 2
+                m.extrude(pada(a, b, n, tc - w2, tc + w2, 0.1, 0.5), 13.6, 20.8, HIJAU, roof=HIJAU)
+        return siklus
+
+    def tanjakan(m, lod):
+        """Tanjakan parkir dua lajur di luar sisi belakang: lajur luar naik 0 → 11 m (timur → barat), bordes, lajur dalam 11 → 22 m."""
+        a, b, Ls, n = SISI_BLK
+        e = ((b[0] - a[0]) / Ls, (b[1] - a[1]) / Ls)
+        Q = lambda t, d, z: (a[0] + e[0] * t + n[0] * d, a[1] + e[1] * t + n[1] * d, z)  # noqa: E731
+        BETON, PAGAR, LANTAI = "#c9c6bf", "#e6e3dc", "#80838a"
+
+        def pelat(t0, z0, t1, z1, d0, d1, th, top):
+            c = Q((t0 + t1) / 2, (d0 + d1) / 2, (z0 + z1) / 2 - th / 2)
+            atas = [Q(t0, d0, z0), Q(t1, d0, z1), Q(t1, d1, z1), Q(t0, d1, z0)]
+            bawah = [(p[0], p[1], p[2] - th) for p in atas]
+            m.poly_out(atas, c, top)
+            m.poly_out(bawah, c, BETON)
+            for i in range(4):
+                p, q = atas[i], atas[(i + 1) % 4]
+                m.poly_out([p, q, bawah[(i + 1) % 4], bawah[i]], c, BETON)
+
+        t0, t1 = R_T
+        di0, di1, dl0, dl1 = R_D
+        ZL = H / 2
+        pelat(t1, 0.25, t0, ZL, dl0, dl1, 0.5, LANTAI)                # lajur luar (naik ke barat)
+        pelat(t0 - 4.0, ZL, t0, ZL, di0, dl1, 0.5, LANTAI)             # bordes putar
+        pelat(t0, ZL, t1, H + 0.06, di0, di1, 0.5, LANTAI)             # lajur dalam (naik ke timur, masuk dek)
+        if lod == 2:
+            return
+        # parapet 1 m di tepi luar tiap lajur (balok miring)
+        for (ta, za, tb, zb, d) in ((t1, 0.25, t0, ZL, dl1 - 0.15), (t0, ZL, t1, H + 0.06, di1 - 0.15), (t0 - 4.0, ZL, t0, ZL, dl1 - 0.15)):
+            m.prism(Q(ta, d, za + 0.5), Q(tb, d, zb + 0.5), 0.3, PAGAR, caps=True, wz=1.0)
+        m.prism(Q(t0 - 3.85, di0, ZL + 0.5), Q(t0 - 3.85, dl1, ZL + 0.5), 0.3, PAGAR, caps=True, wz=1.0)
+        # kolom penopang: di bawah tepi luar lajur luar, dan di antara lajur untuk lajur dalam
+        zlu = lambda t: 0.25 + (ZL - 0.25) * (t1 - t) / (t1 - t0)       # noqa: E731
+        zda = lambda t: ZL + (H + 0.06 - ZL) * (t - t0) / (t1 - t0)    # noqa: E731
+        st = 10.0 if lod == 0 else 20.0
+        t = t0 - 2.0
+        while t < t1 - 8.0:
+            for d, ztop in ((dl1 - 0.6, zlu(max(t, t0)) - 0.55), (di1 - 0.6, zda(max(t, t0)) - 0.55)):
+                if ztop > 1.0:
+                    p = Q(t, d, 0)
+                    m.extrude([(p[0] - 0.3, p[1] - 0.3), (p[0] + 0.3, p[1] - 0.3), (p[0] + 0.3, p[1] + 0.3), (p[0] - 0.3, p[1] + 0.3)],
+                              0, ztop, BETON, roof=BETON)
+            t += st
+
+    def podium(m, lod):
+        poly = base if lod < 2 else simplify(base, tol(2))
+        if lod == 2:
+            m.extrude(poly, 0, HP, WALL, roof=ATAP)
+            return
+        siklus = 0
+        for a, b, Ls, n in _sisi(poly):
+            depan = n[0] * NF[0] + n[1] * NF[1] > 0.999
+            if not depan:
+                siklus = samping(m, lod, a, b, Ls, n, siklus)
+                continue
+            street = True
+            bnd = [(0, 0.5, PLINT), (0.5, 4.0, KACA), (4.0, FH, WALL)]
+            for lo, hi, col in bnd + [(FH, HP, WALL)]:
+                m.poly([(a[0], a[1], lo), (b[0], b[1], lo), (b[0], b[1], hi), (a[0], a[1], hi)], col)
+            # celah (sepanjang sisi a→b, meter) untuk kanopi keliling & nat: pilon + curtain wall di muka utama
+            # a = ujung timur → t_sisi = LF − t
+            celah = [(LF - T_PIL[1] - 0.3, LF - T_PIL[0] + 0.3), (LF - T_CW[1] - 0.3, LF - T_CW[0] + 0.3)]
+            sirip = [(LF - 62.5, LF - 49.5)]
+            if street:                                     # kanopi pelat keliling (menjorok 2,5 m)
+                ts, t0 = [], 0.0
+                for c0, c1 in sorted(celah):
+                    ts.append((t0, c0))
+                    t0 = c1
+                ts.append((t0, Ls))
+                for t0, t1 in ts:
+                    if t1 - t0 < 2.0:
+                        continue
+                    q = pada(a, b, n, t0, t1, 0.05, 2.5)
+                    m.extrude(q, 4.05, 4.35, "#d9d6cf", roof=PUTIH)
+            for s0, s1 in sirip:                           # bidang sirip kayu (lantai 2–5), menempel di fasad
+                q = pada(a, b, n, s0, s1, 0.05, 0.12)
+                m.extrude(q, FH + 0.2, H - 0.4, KAYU2 if lod == 0 else KAYU, roof=KAYU2)
+                if lod == 0:
+                    k = 0.75
+                    while k < s1 - s0:
+                        q = pada(a, b, n, s0 + k - 0.15, s0 + k + 0.15, 0.17, 0.55)
+                        m.extrude(q, FH + 0.2, H - 0.4, KAYU, roof=KAYU)
+                        k += 1.5
+            if lod == 0:                                   # nat tegak tiap ±9 m (pilaster tipis)
+                cnt = max(1, round(Ls / 9.0))
+                for k in range(1, cnt):
+                    t = Ls * k / cnt
+                    if any(c0 - 0.5 < t < c1 + 0.5 for c0, c1 in celah + sirip):
+                        continue
+                    if depan and LF - 44.5 < t < LF - 18.5:   # papan nama
+                        continue
+                    q = pada(a, b, n, t - 0.25, t + 0.25, 0.05, 0.3)
+                    m.extrude(q, FH, H, NAT, roof=NAT)
+        # pita hijau merek di puncak parapet + parapet (sisi dalam + tutup)
+        luar, inner = _offset(poly, 0.25), _offset(poly, -0.35)
+        m.extrude(luar, HP - 0.6, HP, HIJAU)
+        for (a, b), (ao, bo), (ai, bi) in zip(zip(poly, poly[1:] + poly[:1]), zip(luar, luar[1:] + luar[:1]), zip(inner, inner[1:] + inner[:1])):
+            m.poly([(bi[0], bi[1], H), (ai[0], ai[1], H), (ai[0], ai[1], HP), (bi[0], bi[1], HP)], WALL)
+            m.poly([(ao[0], ao[1], HP), (bo[0], bo[1], HP), (bi[0], bi[1], HP), (ai[0], ai[1], HP)], PUTIH)
+        m.top(poly, H, ATAP)
+
+    def muka(m, lod):
+        """Curtain wall + papan nama + kanopi besar + pelataran antar-jemput + pilon penanda."""
+        ZC = 4 * FH
+        c0, c1 = F(T_CW[0], 0), F(T_CW[1], 0)
+        c2, c3 = F(T_CW[1], D_CW), F(T_CW[0], D_CW)
+        for p, q in ((c1, c2), (c2, c3), (c3, c0)):                  # tiga sisi kaca (sisi belakang = fasad)
+            m.poly([(p[0], p[1], 0), (q[0], q[1], 0), (q[0], q[1], ZC), (p[0], p[1], ZC)], KACA_T)
+        m.top([c0, c1, c2, c3], ZC, PUTIH)
+        # kanopi besar: pelat gelap, plafon kayu, depan sejajar jalan
+        k = [F(T_KAN[0], D_CW + 0.35), F(T_KAN[1], D_CW + 0.35), F(T_KAN[1], Dk(T_KAN[1])), F(T_KAN[0], Dk(T_KAN[0]))]
+        m.extrude(k, 7.6, 8.4, GELAP, roof=GELAP)
+        _bawah(m, k, 7.6, KAYU)
+        # pilon penanda (dari tanah, menjulang 9 m di atas parapet) + bidang hijau di puncak
+        ZT = HP + 9.0
+        pq = [F(T_PIL[0], -6.7), F(T_PIL[1], -6.7), F(T_PIL[1], 0.3), F(T_PIL[0], 0.3)]
+        m.extrude(pq, 0, ZT, PUTIH, roof=PUTIH)
+        m.extrude(_offset(pq, 0.2), HP + 4.0, HP + 8.4, HIJAU, roof=HIJAU)
+        if lod == 2:
+            return
+        tm = (T_CW[0] + T_CW[1]) / 2
+        # papan nama hijau di atas curtain wall
+        q = [F(tm - 12.5, 0.05), F(tm + 12.5, 0.05), F(tm + 12.5, 0.5), F(tm - 12.5, 0.5)]
+        m.extrude(q, ZC + 0.7, H - 0.5, HIJAU, roof=HIJAU)
+        # pelataran antar-jemput (pelat terang 0,2 m)
+        pel = [F(T_PEL[0], 0.05), F(T_PEL[1], 0.05), F(T_PEL[1], Dp(T_PEL[1])), F(T_PEL[0], Dp(T_PEL[0]))]
+        m.extrude(pel, 0, 0.2, "#d8d3c8", roof="#e4e0d6")
+        # 6 kolom ramping di tepi depan kanopi
+        for i in range(6):
+            t = T_KAN[0] + 3.0 + (T_KAN[1] - T_KAN[0] - 6.0) * i / 5
+            lis(m, t, Dk(t) - 1.1, Dk(t) - 0.5, 0.6, 0.2, 7.55, PUTIH)
+        # bilah kayu tegak di muka pilon
+        lis(m, (T_PIL[0] + T_PIL[1]) / 2, 0.35, 0.5, 2.2, FH, HP + 3.6, KAYU)
+        if lod == 0:                                                   # rangka putih curtain wall
+            n_m = round((T_CW[1] - T_CW[0]) / 3.4)
+            for i in range(n_m + 1):
+                lis(m, T_CW[0] + (T_CW[1] - T_CW[0]) * i / n_m, D_CW + 0.05, D_CW + 0.3, 0.25, 0, ZC, PUTIH)
+            for z in (FH, 2 * FH, 3 * FH):
+                q = [F(T_CW[0], D_CW + 0.05), F(T_CW[1], D_CW + 0.05), F(T_CW[1], D_CW + 0.3), F(T_CW[0], D_CW + 0.3)]
+                m.extrude(q, z - 0.15, z + 0.15, PUTIH, roof=PUTIH)
+
+    def atap(m, lod):
+        # skylight atrium memanjang (sumbu sejajar muka utama = v): upstand putih + pelana kaca rendah + rangka
+        u0, u1, v0, v1 = Z_SKY
+        su, sv = (u0 + u1) / 2, (v0 + v1) / 2
+        kotak(m, u0, u1, v0, v1, H, H + 0.9, PUTIH)
+        sx, sy = P(su, sv)
+        Ls, Ws, z0, hs = v1 - v0 - 0.6, u1 - u0 - 0.6, H + 0.9, 3.5
+        m.hip(sx, sy, ang + math.pi / 2, Ls, Ws, z0 + 0.05, hs, 1.0, KACA_T)
+        if lod == 2:
+            return
+        # pilon & papan sudah dari muka(); di sini dek parkir, tanjakan, taman, rumah mesin
+        m.top(dek, H + 0.06, ASPAL)
+        for a, b in zip(dek, dek[1:] + dek[:1]):                       # pagar dek di tepi yang tak menempel parapet
+            mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+            if min(_jarak_seg(mid, p, q) for p, q, _, _ in _sisi(base)) > 2.0:
+                m.prism((a[0], a[1], H + 0.62), (b[0], b[1], H + 0.62), 0.3, PUTIH, caps=True, wz=1.1)
+        kotak(m, *Z_RAMP, H, H + 3.6, "#dcd8cf", roof=ATAP)             # rumah tanjakan
+        ru = Z_RAMP[1] + 0.05
+        m.poly([(*P(ru, Z_RAMP[2] + 2), H + 0.1), (*P(ru, Z_RAMP[3] - 2), H + 0.1), (*P(ru, Z_RAMP[3] - 2), H + 2.9), (*P(ru, Z_RAMP[2] + 2), H + 2.9)], "#2e3136")
+        kotak(m, *Z_MESIN, H, H + 4.5, "#cfc9bf", roof="#c4beb3")      # rumah mesin
+        for tm in tamans:                                              # bak taman bertepi + semak
+            if not tm:
+                continue
+            m.extrude(tm, H, H + 0.5, "#d9d6cf", roof="#d9d6cf")
+            m.top(_offset(tm, -0.4), H + 0.55, TAMAN)
+        if lod == 1:
+            return
+        # rangka skylight: bubungan + gording melintang tiap ±6 m di dua sisi
+        top = z0 + 0.05 + hs + 0.1
+        m.prism((*P(su, v0 + 0.3), top), (*P(su, v1 - 0.3), top), 0.4, PUTIH)
+        n_g = round(Ls / 6.0)
+        for i in range(n_g + 1):
+            v = v0 + 0.3 + Ls * i / n_g
+            for su_ in (u0 + 0.3, u1 - 0.3):
+                m.prism((*P(su_, v), z0 + 0.15), (*P(su, v), top), 0.3, PUTIH)
+        # garis petak parkir: baris tegak lurus u, petak 2,6 × 5 m
+        for ua, ub in ((-65.0, -60.0), (-53.0, -48.0), (-48.0, -43.0), (-36.0, -31.0), (-31.0, -26.0),
+                       (-19.0, -14.0), (-14.0, -9.0), (-3.0, 2.0)):
+            v = Z_DEK[2] + 1.0
+            while v <= Z_DEK[3] - 1.0:
+                pa, pb = P(ua, v), P(ub, v)
+                ramp = Z_RAMP[0] - 1 < ua < Z_RAMP[1] + 1 and Z_RAMP[2] - 1 < v < Z_RAMP[3] + 1
+                if not ramp and inside(pa, dek) and inside(pb, dek):
+                    m.poly([(*P(ua, v - 0.12), H + 0.12), (*P(ub, v - 0.12), H + 0.12), (*P(ub, v + 0.12), H + 0.12),
+                            (*P(ua, v + 0.12), H + 0.12)], GARIS)
+                v += 2.6
+        # semak rendah di taman
+        for (tu0, tu1, tv0, tv1) in Z_TAMAN:
+            for i, (fu, fv) in enumerate(((0.2, 0.25), (0.5, 0.7), (0.8, 0.3), (0.35, 0.8), (0.75, 0.75))):
+                uu, vv = tu0 + (tu1 - tu0) * fu, tv0 + (tv1 - tv0) * fv
+                if inside(P(uu, vv), _offset(base, -3.5)):
+                    kotak(m, uu - 1.2, uu + 1.2, vv - 1.6, vv + 1.6, H + 0.6, H + 1.5, "#3f8f3a" if i % 2 else "#2f7a30")
 
     def build(lod):
         m = Mesh()
-        w = spec["ways"][0]
-        poly = simplify(fr.pts(way(w)), tol(lod))
-        H = 5 * 4.4
-        wall, dark, wood, green, glass = "#eceae4", "#464d57", "#c98548", "#269956", "#78cfc6"
-        m.extrude(poly, 0, 0.35, "#d8d3c8")  # pelataran depan
-        m.extrude(poly, 0.35, H, wall, roof="#b4b8be", bands=_soft_bands(0.35, 5, 4.33, wall, "#20303c") if lod == 0 else None)
-        m.extrude(poly, H, H + 1.5, dark)
-        m.extrude(poly, H + 1.5, H + 2.0, green)
-
-        cx, cy, ang, L, W = min_rect(poly)
-        c, s = math.cos(ang), math.sin(ang)
-        # Atrium skylight bertingkat + rangka putih + teras hijau di atap
-        m.box(cx, cy, H + 1.5, L * 0.48, W * 0.46, 0.8, "#f2f4f7")
-        m.hip(cx, cy, ang, L * 0.44, W * 0.42, H + 2.3, 5.2, 0.68, glass)
-        for sg in (-1, 1):
-            tx = cx + c * (L * 0.33 * sg)
-            ty = cy + s * (L * 0.33 * sg)
-            m.box(tx, ty, H + 1.5, 16.0, W * 0.38, 0.6, "#5aa854")
-        # Kanopi curtain wall & main entrance menghadap Jl. Tuanku Tambusai (-W/2)
-        fx = cx - s * (-W * 0.48)
-        fy = cy + c * (-W * 0.48)
-        m.box(fx, fy, 4.5, 36.0, 8.0, 12.0, "#243b4a")
-        m.box(fx, fy, 7.2, 40.0, 14.0, 1.0, dark)
-        m.box(fx, fy, 8.2, 40.4, 14.4, 0.4, wood)
-        # Menara penanda Living World di sudut barat laut
-        px = cx + c * (-L * 0.36) - s * (-W * 0.36)
-        py = cy + s * (-L * 0.36) + c * (-W * 0.36)
-        m.box(px, py, H + 1.5, 8.5, 8.5, 8.0, dark)
-        m.box(px, py, H + 9.5, 9.0, 9.0, 1.4, green)
-        if lod == 0:
-            _facade_fins(m, cx, cy, ang, L, W, 2.5, H, 12, wood)
-            sign_on_longest(m, poly, H - 3.2, 34, green, lod)
-            ac_boxes(m, poly, H + 1.5, lod, w)
+        podium(m, lod)
+        muka(m, lod)
+        if lod < 2:
+            tanjakan(m, lod)
+        atap(m, lod)
         return m
+
+    # titik potongan (u, v) untuk src/city/parts.data.js
+    def pr(nm, t, d):
+        u, v = U(*F(t, d))
+        print(f"[living-world] {nm}: u {u:.2f} v {v:.2f}")
+    tm = (T_CW[0] + T_CW[1]) / 2
+    pr("pintu (curtain wall)", tm, D_CW + 0.35)
+    for t in (tm - 9.0, tm + 9.0):
+        pr("pot", t, D_CW + 1.8)
+    for t in (3.0, 6.5, 55.5, 59.0):                               # di luar bentang kanopi (11,5–51,5)
+        pr(f"palem t{t:.1f} (pelataran {Dp(t):.1f})", t, min(4.0, Dp(t) - 1.5))
+    for nm, t, d in (("pilon a", T_PIL[0], -6.7), ("pilon b", T_PIL[1], 0.3)):
+        pr(nm, t, d)
+    for t in (9.5, 53.0):
+        pr("lampu", t, Dp(t) - 0.6)
+    for nm, p in (("pel0", F(T_PEL[0], 0.05)), ("pel1", F(T_PEL[1], 0.05)), ("pel2", F(T_PEL[1], Dp(T_PEL[1]))), ("pel3", F(T_PEL[0], Dp(T_PEL[0])))):
+        print(f"[living-world] site {nm}: x {p[0]:.2f} y {p[1]:.2f}")
     return fr, build
 
 

@@ -139,6 +139,25 @@ export const PART_RECIPES = Object.freeze({
       { part: 'palem', at: [[-36.45, 39.13, 0], [-49.2, 26.42, 0, 40], [-26.95, 37, 0, 80], [-16.95, 37, 0, 120]] },
     ],
   },
+  // Living World (b_living_world di bangunan.py, min_rect jejak OSM): +u = muka utama ke Jl. Tuanku Tambusai (utara-barat laut),
+  // fasad depan di u ≈ 70–72; atap di y 22. Pelataran antar-jemput (pelat 0,2 m) di depan muka utama; kanopi besar dari mesh.
+  'living-world': {
+    frame: { cx: -11.821, cy: -3.589, ang: 1.885, L: 143.942, W: 133.407 },
+    site: [[-39.03, 61.71], [15.68, 80.98], [13.36, 87.56], [-43.13, 73.35]], // pelataran depan saja
+    rules: [
+      // unit AC dua lajur di atap mekanikal (antara rumah mesin dan pilon)
+      { part: 'ac', line: { from: [53, -44], to: [53, -12], y: 22, count: 5 } },
+      { part: 'ac', line: { from: [59, -44], to: [59, -12], y: 22, count: 5 } },
+      // pintu kaca di tengah curtain wall (yaw 90 = depan ke arah +u / muka utama); pot di kiri-kanannya
+      { part: 'pintu', at: [[74.04, -23.72, 0.2, 90]] },
+      { part: 'pot', at: [[75.26, -14.69, 0.2, 90], [75.71, -32.69, 0.2, 90]] },
+      // palem di kiri-kanan pelataran (di luar bentang kanopi), lampu di tepi depan (lengan ke arah gedung)
+      { part: 'palem', at: [[74.49, 4.8, 0.2], [74.57, 1.3, 0.2, 60], [75.77, -47.69, 0.2, 30], [75.86, -51.19, 0.2, 90]] },
+      { part: 'lampu', at: [[81.74, -1.53, 0.2, -90], [78.78, -45.11, 0.2, -90]] },
+      // pohon di dua teras taman atap (bak tanam setinggi 0,55 m)
+      { part: 'pohon', at: [[14, 33, 22.55], [25, 39, 22.55, 40], [14, -50, 22.55], [25, -57, 22.55, 70], [19.5, -53, 22.55, 20, 0.9]] },
+    ],
+  },
   // Swiss-Belinn SKA: menara 9 lantai (alas 10,5 m, tinggi lantai 3,6 m). Jendela = potongan di dua sisi panjang;
   // sisi pendek ditempati balkon dari skrip model.
   'swiss-belinn-ska': {
