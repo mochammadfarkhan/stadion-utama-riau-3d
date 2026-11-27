@@ -845,6 +845,318 @@ def b_soeman(spec):
     return fr, build
 
 
+def _lurus(pts, tol=0.3):
+    """Buang titik hampir segaris (jarak < tol ke garis tetangganya) supaya tiap sisi fasad = satu bidang."""
+    out = list(pts)
+    ulang = True
+    while ulang and len(out) > 4:
+        ulang = False
+        for i in range(len(out)):
+            a, b, c = out[i - 1], out[i], out[(i + 1) % len(out)]
+            L = math.dist(a, c) or 1e-9
+            if abs((c[0] - a[0]) * (b[1] - a[1]) - (c[1] - a[1]) * (b[0] - a[0])) / L < tol:
+                out.pop(i)
+                ulang = True
+                break
+    return out
+
+
+def _offset(pts, d):
+    """Cincin ccw digeser d meter ke luar (d < 0 = ke dalam); titik sudut = potongan garis dua sisi tetangganya."""
+    pts = ccw(pts)
+    n = len(pts)
+    lines = []
+    for i in range(n):
+        a, b = pts[i], pts[(i + 1) % n]
+        L = math.dist(a, b) or 1e-9
+        nx, ny = (b[1] - a[1]) / L, -(b[0] - a[0]) / L
+        lines.append(((a[0] + nx * d, a[1] + ny * d), (b[0] - a[0], b[1] - a[1])))
+    out = []
+    for i in range(n):
+        (p, r), (q, s) = lines[i - 1], lines[i]
+        den = r[0] * s[1] - r[1] * s[0]
+        if abs(den) < 1e-9:
+            out.append(q)
+            continue
+        t = ((q[0] - p[0]) * s[1] - (q[1] - p[1]) * s[0]) / den
+        out.append((p[0] + r[0] * t, p[1] + r[1] * t))
+    return out
+
+
+def _sisi(poly):
+    """(a, b, panjang, normal luar) tiap sisi cincin ccw."""
+    for a, b in zip(poly, poly[1:] + poly[:1]):
+        L = math.dist(a, b)
+        if L >= 0.05:
+            yield a, b, L, ((b[1] - a[1]) / L, -(b[0] - a[0]) / L)
+
+
+def _jarak_seg(p, a, b):
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    t = max(0.0, min(1.0, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy or 1e-9)))
+    return math.dist(p, (a[0] + dx * t, a[1] + dy * t))
+
+
+def b_mall_pekanbaru(spec):
+    """Mall Pekanbaru (simpang Jl. Jend. Sudirman × Jl. Teuku Umar) + hotel 8 lantai di atasnya (fakta bersumber).
+    Arah dari DATA (data-src/osm/pusat.json, jalan bernama): Jl. Jend. Sudirman (primary, 3 lajur) lurus utara-selatan ±25 m di
+    BARAT jejak → MUKA UTAMA = sisi barat; Jl. Teuku Umar (tertiary) ±19 m di UTARA. Simpang keduanya di denah (−66, 50) →
+    SUDUT PINTU UTAMA = sudut barat laut jejak (−41,3; 31,2).
+    Podium 5 lantai × 4,6 m mengikuti jejak: etalase kaca + kanopi pelat di sisi jalan, dinding panel bernat, pita aksen di puncak,
+    papan iklan + videotron di muka barat; sudut barat laut dipotong drum kaca 12 sisi (r 11 m, +3 m) bertopi cakram + kanopi
+    lengkung. Atap: dek parkir berpetak (timur) + atap mekanikal dengan skylight atrium dan rumah mesin (barat).
+    Menara hotel 8 × 3,4 m di ujung tenggara (jauh dari drum), mundur ≥ 6 m dari tepi podium.
+    [INFERENSI] semua bentuk, warna papan, letak dek/skylight/menara. Unit AC, pintu, kanopi pintu, pot, lampu, palem = potongan
+    (src/city/parts.data.js)."""
+    fr = Frame([way(w) for w in spec["ways"]])
+    base = _lurus(ccw(fr.pts(way(spec["ways"][0]))))
+    cx, cy, ang, L, W = min_rect(base)
+    print(f"[mall-pekanbaru] frame: {{ cx: {cx:.3f}, cy: {cy:.3f}, ang: {ang:.4f}, L: {L:.3f}, W: {W:.3f} }}")
+    WALL, ACC = spec["wall"], spec["accent"]
+    KACA, KACA2, PUTIH, ABU, ATAP = "#26323a", "#1f2c35", "#eef0f2", "#cdc8bf", "#a8a49c"
+    ASPAL, GARIS, TWALL, TWALL2 = "#4a4d55", "#e8e8e4", "#e9e4da", "#f3efe6"
+    FH, H = 4.6, 5 * 4.6                     # podium 5 lantai
+    HP = H + 1.1                             # puncak parapet
+    FRONT, SIDE = (-1.0, 0.0), (0.0, 1.0)    # normal muka utama (barat, Sudirman) dan muka samping (utara, Teuku Umar)
+    SIMPANG = fr.pt(6465.8, -5375.8)         # simpang Sudirman (way 376230623) × Teuku Umar (way 885344524), dunia (x, z)
+    xs, ys = [p[0] for p in base], [p[1] for p in base]
+    X0, X1, Y0, Y1 = min(xs), max(xs), min(ys), max(ys)
+    C = min(base, key=lambda p: math.dist(p, SIMPANG))                       # sudut pintu utama
+    y_step = max(p[1] for p in base if abs(p[0] - X0) < 0.5 and p[1] < Y1 - 1)  # ujung selatan muka barat (−4,3)
+    xw2 = min(p[0] for p in base if p[1] < y_step - 1)                        # muka barat bagian selatan (−13,4)
+    xne = max(p[0] for p in base if p[1] > Y1 - 1)                            # ujung timur muka utara (34,3)
+    K, RD = 9.0, 11.0                        # potong sudut 9 m, drum r 11 m
+    HD = H + 3.0
+
+    def potong_sudut(poly):
+        i = min(range(len(poly)), key=lambda k: math.dist(poly[k], C))
+        c, a, b = poly[i], poly[i - 1], poly[(i + 1) % len(poly)]
+        ua = ((a[0] - c[0]) / math.dist(a, c), (a[1] - c[1]) / math.dist(a, c))
+        ub = ((b[0] - c[0]) / math.dist(b, c), (b[1] - c[1]) / math.dist(b, c))
+        return poly[:i] + [(c[0] + ua[0] * K, c[1] + ua[1] * K), (c[0] + ub[0] * K, c[1] + ub[1] * K)] + poly[i + 1:], ua, ub
+
+    poly0, ua, ub = potong_sudut(base)
+    D = (C[0] + 6.0 * (ua[0] + ub[0]), C[1] + 6.0 * (ua[1] + ub[1]))        # pusat drum, 6 m masuk dari sudut di kedua sumbu
+    th_c = math.atan2(C[1] - D[1], C[0] - D[0])                              # arah drum → simpang
+
+    def ke_dinding(poly, p, n):
+        """Proyeksi titik p ke sisi berarah n terdekat."""
+        best = None
+        for a, b, Ls, nn in _sisi(poly):
+            if nn[0] * n[0] + nn[1] * n[1] < 0.95:
+                continue
+            t = ((p[0] - a[0]) * (b[0] - a[0]) + (p[1] - a[1]) * (b[1] - a[1])) / (Ls * Ls)
+            if -0.01 <= t <= 1.01:
+                q = (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
+                if best is None or math.dist(p, q) < best[0]:
+                    best = (math.dist(p, q), q, nn)
+        return best[1], best[2]
+
+    # menara hotel: ujung tenggara, mundur 6 m dari tepi timur & selatan; luas ±0,32 × _inner_rect podium
+    iu0, iu1, id0, id1 = _inner_rect(base)
+    A_in = (iu1 - iu0) * (id1 - id0)
+    TX1, TY0, TWd = X1 - 6.1, Y0 + 6.2, 20.8
+    TLn = min(0.32 * A_in / TWd, TX1 - (xw2 + 6.0))
+    TX0, TY1 = TX1 - TLn, TY0 + TWd
+    tring = [(TX0, TY0), (TX1, TY0), (TX1, TY1), (TX0, TY1)]
+    mund = min(min(_jarak_seg(p, a, b) for a, b, _, _ in _sisi(base)) for p in tring)
+    for a, b, _, _ in _sisi(base):
+        for p in (a, b):
+            if TX0 - 6 < p[0] < TX1 + 6 and TY0 - 6 < p[1] < TY1 + 6:
+                mund = min(mund, min(_jarak_seg(p, q, r) for q, r, _, _ in _sisi(tring)))
+    print(f"[mall-pekanbaru] menara {TLn:.1f} x {TWd:.1f} m = {TLn * TWd / A_in:.2f} x inner_rect ({A_in:.0f} m2), "
+          f"mundur min {mund:.1f} m; drum pusat ({D[0]:.1f}, {D[1]:.1f})")
+    FT, NT = 3.4, 8
+    ZT = H + NT * FT
+    ZP = ZT + 1.4
+
+    # dek parkir (timur) + tanjakan; atap mekanikal (barat) dengan skylight + rumah mesin
+    DX0, DX1, DY0, DY1 = -2.0, xne - 0.45, y_step + 0.4, Y1 - 0.6
+    RX0 = DX1 - 6.8
+    SX0, SX1, SY0, SY1 = X0 + 10.0, DX0 - 3.0, y_step + 6.3, y_step + 14.3
+    # papan di dinding: (titik a, titik b, normal, z0, z1, warna, lod1)
+    DOOR_HINT = (X0, y_step + 7.8)
+    U = lambda x, y: ((x - cx) * math.cos(ang) + (y - cy) * math.sin(ang), -(x - cx) * math.sin(ang) + (y - cy) * math.cos(ang))  # noqa: E731
+    dp, _ = ke_dinding(poly0, DOOR_HINT, FRONT)
+    pr = lambda nm, x, y: print(f"[mall-pekanbaru] {nm}: u {U(x, y)[0]:.2f} v {U(x, y)[1]:.2f}")  # noqa: E731
+    pr("pintu samping (muka barat)", dp[0] - 0.05, dp[1])
+    for k, dth in enumerate((-40, 40)):
+        t = th_c + math.radians(dth)
+        pr(f"palem drum {k}", D[0] + 14.0 * math.cos(t), D[1] + 14.0 * math.sin(t))
+    print(f"[mall-pekanbaru] atap mekanikal: skylight x {SX0:.1f}..{SX1:.1f} y {SY0:.1f}..{SY1:.1f}; rumah mesin x "
+          f"{SX0 + 11.3:.1f}..{SX0 + 19.3:.1f} y {Y1 - 13.2:.1f}..{Y1 - 7.2:.1f}; dek x {DX0:.1f}..{DX1:.1f} y {DY0:.1f}..{DY1:.1f}; "
+          f"menara x {TX0:.1f}..{TX1:.1f} y {TY0:.1f}..{TY1:.1f}; atap z {H:.1f}")
+
+    def papan(poly, lod):
+        P0 = [((X0, y_step + 6.3), (X0, y_step + 18.8), FRONT, 7.5, 18.5, KACA2)]          # videotron (menyala malam)
+        if lod == 0:
+            P0 += [((xw2, Y0 + 1.6), (xw2, Y0 + 11.6), FRONT, 8.0, 19.0, "#2c5282"),       # papan iklan biru tua
+                   ((xw2, Y0 + 13.6), (xw2, y_step - 2.3), FRONT, 8.0, 19.0, "#7d2a35")]   # merah marun
+        else:
+            P0 += [((xw2, Y0 + 1.6), (xw2, y_step - 2.3), FRONT, 8.0, 19.0, "#2c5282")]
+        P0 += [((6.0, Y1), (18.0, Y1), SIDE, 7.0, 19.0, "#2f6b4a"),                          # hijau tua (muka Teuku Umar)
+               ((X0 + 17.0, Y1), (X0 + 37.0, Y1), SIDE, 15.5, 19.5, ACC)]                    # papan nama mal
+        out = []
+        for a, b, n, z0, z1, col in P0:
+            pa, nn = ke_dinding(poly, a, n)
+            pb, _ = ke_dinding(poly, b, n)
+            out.append((pa, pb, nn, z0, z1, col))
+        return out
+
+    def podium(m, lod):
+        poly, _, _ = potong_sudut(ccw(simplify(base, tol(lod))))
+        indrum = lambda p: math.dist(p, D) < RD - 0.3  # noqa: E731
+        if lod == 2:
+            m.extrude(poly, 0, HP, WALL, roof=ATAP)
+            return
+        signs = papan(poly, lod)
+        dpt, _ = ke_dinding(poly, DOOR_HINT, FRONT)
+        for a, b, Ls, n in _sisi(poly):
+            if indrum(a) and indrum(b):
+                continue
+            street = n[0] * FRONT[0] + n[1] * FRONT[1] > 0.7 or n[0] * SIDE[0] + n[1] * SIDE[1] > 0.7
+            bnd = [(0, 0.5, "#9aa0a8"), (0.5, 4.0, KACA), (4.0, FH, WALL)] if street else [(0, FH, ABU)]
+            for lo, hi, col in bnd + [(FH, HP, WALL)]:
+                m.poly([(a[0], a[1], lo), (b[0], b[1], lo), (b[0], b[1], hi), (a[0], a[1], hi)], col)
+            if street:                                     # kanopi pelat keliling (celah di pintu samping = potongan kanopi)
+                ts = [(0.0, 1.0)]
+                if _jarak_seg(dpt, a, b) < 0.5:
+                    t = ((dpt[0] - a[0]) * (b[0] - a[0]) + (dpt[1] - a[1]) * (b[1] - a[1])) / (Ls * Ls)
+                    ts = [(0.0, t - 7.6 / Ls), (t + 7.6 / Ls, 1.0)]
+                for t0, t1 in ts:
+                    t0, t1 = max(t0, 0.0), min(t1, 1.0)
+                    if (t1 - t0) * Ls < 1.0:
+                        continue
+                    q0 = (a[0] + (b[0] - a[0]) * t0 + n[0] * 0.05, a[1] + (b[1] - a[1]) * t0 + n[1] * 0.05)
+                    q1 = (a[0] + (b[0] - a[0]) * t1 + n[0] * 0.05, a[1] + (b[1] - a[1]) * t1 + n[1] * 0.05)
+                    m.extrude([q0, q1, (q1[0] + n[0] * 2.45, q1[1] + n[1] * 2.45), (q0[0] + n[0] * 2.45, q0[1] + n[1] * 2.45)],
+                              4.45, 4.8, "#d9d6cf", roof=PUTIH)
+            if lod == 0:                                   # nat tegak tiap ±9 m (pilaster tipis)
+                cnt = max(1, round(Ls / 9.0))
+                for k in range(1, cnt):
+                    p = (a[0] + (b[0] - a[0]) * k / cnt, a[1] + (b[1] - a[1]) * k / cnt)
+                    if math.dist(p, D) < RD + 0.6:
+                        continue
+                    if any(sn[0] * n[0] + sn[1] * n[1] > 0.95 and _jarak_seg(p, sa, sb) < 0.8 for sa, sb, sn, _, _, _ in signs):
+                        continue
+                    q = (p[0] + n[0] * 0.3, p[1] + n[1] * 0.3)
+                    m.extrude([(q[0] - n[1] * 0.3 - n[0] * 0.25, q[1] + n[0] * 0.3 - n[1] * 0.25),
+                               (q[0] + n[1] * 0.3 - n[0] * 0.25, q[1] - n[0] * 0.3 - n[1] * 0.25),
+                               (q[0] + n[1] * 0.3 + n[0] * 0.25, q[1] - n[0] * 0.3 + n[1] * 0.25),
+                               (q[0] - n[1] * 0.3 + n[0] * 0.25, q[1] + n[0] * 0.3 + n[1] * 0.25)], FH, 21.0, "#c4bfb6",
+                              roof="#c4bfb6")
+        # pita aksen menonjol di puncak + parapet (sisi dalam + tutup)
+        m.extrude(_offset(poly, 0.3), 21.0, 22.2, ACC)
+        inner = _offset(poly, -0.35)
+        for (a, b), (ai, bi) in zip(zip(poly, poly[1:] + poly[:1]), zip(inner, inner[1:] + inner[:1])):
+            if indrum(a) and indrum(b):
+                continue
+            m.poly([(bi[0], bi[1], H), (ai[0], ai[1], H), (ai[0], ai[1], HP), (bi[0], bi[1], HP)], WALL)
+            m.poly([(a[0], a[1], HP), (b[0], b[1], HP), (bi[0], bi[1], HP), (ai[0], ai[1], HP)], PUTIH)
+        m.top(poly, H, ATAP)
+        # papan iklan / videotron / papan nama menonjol 0,4 m
+        for pa, pb, n, z0, z1, col in signs:
+            o0, o1 = 0.06, 0.46
+            m.extrude([(pa[0] + n[0] * o0, pa[1] + n[1] * o0), (pb[0] + n[0] * o0, pb[1] + n[1] * o0),
+                       (pb[0] + n[0] * o1, pb[1] + n[1] * o1), (pa[0] + n[0] * o1, pa[1] + n[1] * o1)], z0, z1, col, roof=col)
+        # dek parkir: aspal + garis petak + tanjakan (kerb) di ujung timur
+        quad = lambda x0, x1, y0, y1, z, col: m.poly([(x0, y0, z), (x1, y0, z), (x1, y1, z), (x0, y1, z)], col)  # noqa: E731
+        quad(DX0, DX1, DY0, DY1, H + 0.06, ASPAL)
+        ry0, ry1 = DY0 + 12.0, DY0 + 22.0
+        quad(RX0 + 0.3, DX1 - 0.2, ry0, ry1, H + 0.12, "#2e3136")
+        m.prism((RX0 + 0.3, ry0, H + 0.6), (RX0 + 0.3, ry1, H + 0.6), 0.35, PUTIH, wz=1.0)
+        m.prism((RX0 + 0.3, ry0, H + 0.6), (DX1 - 0.2, ry0, H + 0.6), 0.35, PUTIH, wz=1.0)
+        if lod == 0:
+            for (y0, y1, xe) in ((DY0, DY0 + 5.0, DX1 - 1.0), (ry0, ry1, RX0 - 1.0), (DY1 - 5.0, DY1, DX1 - 1.0)):
+                x = DX0 + 1.0
+                while x <= xe:
+                    quad(x - 0.12, x + 0.12, y0, y1, H + 0.12, GARIS)
+                    x += 2.6
+            quad(DX0 + 1.0, RX0 - 1.0, (ry0 + ry1) / 2 - 0.12, (ry0 + ry1) / 2 + 0.12, H + 0.12, GARIS)
+        # atap mekanikal: skylight atrium memanjang berangka + rumah mesin
+        scx, scy, SL, SW = (SX0 + SX1) / 2, (SY0 + SY1) / 2, SX1 - SX0, SY1 - SY0
+        m.box(scx, scy, H, SL, SW, 0.6, "#e9e2d0")
+        m.hip(scx, scy, 0.0, SL - 0.6, SW - 0.6, H + 0.6, 3.0, 0.7, "#4f9fd6")
+        if lod == 0:
+            r, z0s, top = (SL - 0.6) * 0.7 / 2, H + 0.6, H + 3.6
+            m.prism((scx - r, scy, top + 0.1), (scx + r, scy, top + 0.1), 0.4, PUTIH)
+            for i in range(8):
+                u = -r + 2 * r * i / 7
+                for sv in (-1, 1):
+                    m.prism((scx + u, scy + sv * (SW - 0.6) / 2, z0s + 0.1), (scx + u, scy, top + 0.1), 0.3, PUTIH)
+        m.box(SX0 + 15.3, Y1 - 10.2, H, 8.0, 6.0, 4.0, "#cfc9bf")
+
+    def drum(m, lod):
+        seg = 12 if lod == 0 else 8
+        m.revolve(D[0], D[1], 0, [(RD, 0), (RD, HD)], seg, KACA)
+        m.revolve(D[0], D[1], HD, [(RD + 2.0, 0), (RD + 2.0, 0.8)], seg, PUTIH, cap_top=True)      # topi cakram
+        if lod == 2:
+            return
+        m.revolve(D[0], D[1], H + 0.8, [(RD + 0.3, 0), (RD + 0.3, 1.4)], seg, ACC)                  # pita aksen
+        m.revolve(D[0], D[1], HD + 0.8, [(4.5, 0), (4.5, 3.0)], seg, KACA2)                         # lentera puncak
+        m.revolve(D[0], D[1], HD + 3.8, [(5.5, 0), (5.5, 0.5)], seg, ACC, cap_top=True)
+        if lod == 0:
+            for k in range(1, 5):                                                                      # pelat lantai
+                m.revolve(D[0], D[1], k * FH - 0.25, [(RD + 0.25, 0), (RD + 0.25, 0.5)], seg, PUTIH)
+            for i in range(seg):                                                                       # rusuk tegak
+                t = 2 * math.pi * i / seg
+                p = (D[0] + (RD + 0.1) * math.cos(t), D[1] + (RD + 0.1) * math.sin(t))
+                m.prism((p[0], p[1], 0), (p[0], p[1], H + 0.8), 0.4, PUTIH)
+        # kanopi lengkung besar di depan drum (menghadap simpang)
+        ns = 6 if lod == 0 else 3
+        r0, r1, z0, z1 = RD - 0.3, RD + 7.0, 5.2, 5.8
+        th = [th_c + math.radians(-35 + 70 * i / ns) for i in range(ns + 1)]
+        Pp = lambda r, t, z: (D[0] + r * math.cos(t), D[1] + r * math.sin(t), z)  # noqa: E731
+        refc = Pp((r0 + r1) / 2, th_c, (z0 + z1) / 2)
+        for t0, t1 in zip(th, th[1:]):
+            m.poly_out([Pp(r0, t0, z1), Pp(r1, t0, z1), Pp(r1, t1, z1), Pp(r0, t1, z1)], Pp(r0, t0, z0 - 3), PUTIH)
+            m.poly_out([Pp(r1, t0, z0), Pp(r1, t1, z0), Pp(r1, t1, z1), Pp(r1, t0, z1)], (D[0], D[1], z0), ACC)
+        for t in (th[0], th[-1]):
+            m.poly_out([Pp(r0, t, z0), Pp(r1, t, z0), Pp(r1, t, z1), Pp(r0, t, z1)], refc, PUTIH)
+        if lod == 0:
+            for dt in (-25, 0, 25):
+                t = th_c + math.radians(dt)
+                p = Pp(r1 - 0.8, t, 0)
+                m.prism(p, (p[0], p[1], z0), 0.5, PUTIH)
+
+    def menara(m, lod):
+        if lod == 2:
+            m.extrude(tring, H, ZP, TWALL, roof=ATAP)
+            return
+        bnd = []
+        for k in range(NT):
+            z = H + k * FT
+            bnd += [(z, z + 0.95, TWALL), (z + 0.95, z + 2.85, KACA), (z + 2.85, z + FT, TWALL)]
+        bnd += [(ZT, ZT + 0.5, ACC), (ZT + 0.5, ZP, TWALL)]
+        m.extrude(tring, H, ZP, TWALL, roof=ATAP, bands=bnd)
+        for sx, sy in ((TX0 + 1.3, TY0 + 1.3), (TX1 - 1.3, TY0 + 1.3), (TX1 - 1.3, TY1 - 1.3), (TX0 + 1.3, TY1 - 1.3)):
+            m.box(sx, sy, H, 3.2, 3.2, ZP + 0.4 - H, TWALL2)                                            # sudut masif
+        st = FT if lod == 0 else 2 * FT
+        for (a, b), (nx, ny) in (((TX0, TX1), (0, -1)), ((TX0, TX1), (0, 1))):                          # sirip sisi panjang
+            y = TY0 if ny < 0 else TY1
+            n = max(1, round((b - a - 6.4) / st))
+            for k in range(1, n):
+                x = a + 2.9 + 0.3 + (b - a - 6.4) * k / n
+                m.box(x, y + ny * 0.4, H + 0.2, 0.35, 0.7, ZT - H - 0.2, TWALL2)
+        for (a, b), (nx, ny) in (((TY0, TY1), (-1, 0)), ((TY0, TY1), (1, 0))):                          # sirip sisi pendek
+            x = TX0 if nx < 0 else TX1
+            n = max(1, round((b - a - 6.4) / st))
+            for k in range(1, n):
+                y = a + 2.9 + 0.3 + (b - a - 6.4) * k / n
+                m.box(x + nx * 0.4, y, H + 0.2, 0.7, 0.35, ZT - H - 0.2, TWALL2)
+        # mahkota: rumah lift + papan nama hotel di sisi muka utama (barat)
+        m.box(TX0 + TLn * 0.6, (TY0 + TY1) / 2, ZP, 8.0, 6.0, 4.5, "#d9d5cc")
+        m.box(TX0 + 1.0, (TY0 + TY1) / 2, ZP, 0.6, 14.0, 4.0, ACC)
+
+    def build(lod):
+        m = Mesh()
+        podium(m, lod)
+        drum(m, lod)
+        menara(m, lod)
+        return m
+    return fr, build
+
+
 def b_masjid(spec):
     fr = Frame([way(w) for w in spec["ways"]])
 
@@ -1063,7 +1375,7 @@ SPECS = [
     dict(id="living-world", name="Living World Pekanbaru", fn=b_living_world, ways=[327710042]),
     dict(id="flyover-ska", name="Flyover Simpang SKA", fn=b_flyover_ska),
     dict(id="ciputra-seraya-mall", name="Mal Ciputra Seraya", fn=b_mal, ways=[327709577], wall="#e9dccb", accent="#b5382c", sign=24, **MAL),
-    dict(id="mall-pekanbaru", name="Mall Pekanbaru", fn=b_mal, ways=[465740381], wall="#ddd9d2", accent="#c57a1a", sign=22, **MAL),
+    dict(id="mall-pekanbaru", name="Mall Pekanbaru", fn=b_mall_pekanbaru, ways=[465740381], wall="#ddd9d2", accent="#c57a1a"),
     dict(id="plaza-suka-ramai", name="Plaza Suka Ramai", fn=b_mal, ways=[465325690], wall="#e6ddcc", accent="#7a3b8f", sign=28, **{**MAL, "levels": 3}),
     dict(id="plaza-citra", name="Plaza Citra", fn=b_mal, ways=[318513887], wall="#d9d6cf", accent="#2e7d7a", sign=22, **MAL),
     dict(id="pasar-bawah", name="Pasar Bawah", fn=b_mal, ways=[1253091010], wall="#d9c9a8", accent="#a0482a", sign=20, fh=4.2, levels=4),

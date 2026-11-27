@@ -120,6 +120,25 @@ export const PART_RECIPES = Object.freeze({
       { part: 'pohon', at: [[-46, -36, 0], [-38, -40.5, 0, 0, 0.9], [46, -36, 0], [38, -40.5, 0, 0, 0.9]] },
     ],
   },
+  // Mall Pekanbaru (b_mall_pekanbaru di bangunan.py: min_rect jejak L 82,5 × W 62,4; ang 0 → +u timur, +v utara; u = x + 0,05).
+  // Muka utama = barat (Jl. Sudirman), fasad u −41,3 (v −4,3 … 16); drum kaca di sudut barat laut, pusat (u −35,25, v 25,2).
+  // Atap podium y 23: atap mekanikal barat (skylight v 2…10, rumah mesin v 18…24). Blok padat: tanpa `site`, potongan ≤ 8 m dari jejak.
+  'mall-pekanbaru': {
+    frame: { cx: -0.05, cy: 0, ang: 0, L: 82.5, W: 62.4 },
+    rules: [
+      // unit AC dua lajur di atap mekanikal (di antara skylight, rumah mesin, dan tepi selatan blok utara)
+      { part: 'ac', line: { from: [-21.95, 14], to: [-5.95, 14], y: 23, count: 5 } },
+      { part: 'ac', line: { from: [-29.95, -1.5], to: [-7.95, -1.5], y: 23, count: 5 } },
+      // pintu samping di muka barat, di bawah videotron (yaw −90 = depan ke arah −u / barat)
+      { part: 'pintu', at: [[-41.3, 3.5, 0, -90]] },
+      { part: 'kanopi', at: [[-41.3, 3.5, 0, -90]] },
+      // trotoar muka barat: pot kiri-kanan kanopi, lampu (lengan ke arah gedung)
+      { part: 'pot', at: [[-44.3, -6, 0, -90], [-44.3, 13, 0, -90]] },
+      { part: 'lampu', line: { from: [-48.5, -3], to: [-48.5, 19], y: 0, count: 3, yaw: 90 } },
+      // palem di kiri-kanan kanopi lengkung drum + dua di trotoar Jl. Teuku Umar
+      { part: 'palem', at: [[-36.45, 39.13, 0], [-49.2, 26.42, 0, 40], [-26.95, 37, 0, 80], [-16.95, 37, 0, 120]] },
+    ],
+  },
   // Swiss-Belinn SKA: menara 9 lantai (alas 10,5 m, tinggi lantai 3,6 m). Jendela = potongan di dua sisi panjang;
   // sisi pendek ditempati balkon dari skrip model.
   'swiss-belinn-ska': {
