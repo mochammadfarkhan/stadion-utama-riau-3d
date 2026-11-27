@@ -436,28 +436,328 @@ def b_melayu(spec):
     return fr, build
 
 
+def _rangka(rect, sf):
+    """P(u, d, z) → titik denah model. u = sumbu panjang min_rect, d = sf * v (d positif = sisi DEPAN)."""
+    cx, cy, ang, _, _ = rect
+    c, s = math.cos(ang), math.sin(ang)
+    return lambda u, d, z: (cx + u * c - sf * d * s, cy + u * s + sf * d * c, z)
+
+
+def _kotak_p(m, P, u0, u1, d0, d1, z0, z1, col, roof=None):
+    """Kotak sejajar rangka P (tanpa alas)."""
+    m.extrude([P(u0, d0, 0)[:2], P(u1, d0, 0)[:2], P(u1, d1, 0)[:2], P(u0, d1, 0)[:2]], z0, z1, col, roof=roof)
+
+
+def _panel_d(m, P, u0, u1, d, z0, z1, out, col):
+    """Panel tipis di muka d = konstan, normal ke arah out (+1 / -1 sepanjang d)."""
+    m.poly_out([P(u0, d, z0), P(u1, d, z0), P(u1, d, z1), P(u0, d, z1)], P((u0 + u1) / 2, d - out * 3, (z0 + z1) / 2), col)
+
+
+def _panel_u(m, P, u, d0, d1, z0, z1, out, col):
+    m.poly_out([P(u, d0, z0), P(u, d1, z0), P(u, d1, z1), P(u, d0, z1)], P(u - out * 3, (d0 + d1) / 2, (z0 + z1) / 2), col)
+
+
+def _pelana(m, Q, a0, a1, hw, zw, zr, e, ee, roof, wall, trim, lod, ang_ridge, fin=2.4, ends=(True, True)):
+    """Atap pelana sepanjang sumbu a (bidang tebar layar di a0 dan a1), dinding selebar 2*hw, puncak dinding zw, bubungan zr.
+    Tritisan samping e, ujung ee. wall = warna tebar layar (segitiga); trim = lisplang + selembayung (lod < 2)."""
+    s = (zr - zw) / hw
+    ze = zw - s * e
+    ref = Q((a0 + a1) / 2, 0, zw - 2.0)
+    for sb in (-1, 1):
+        m.poly_out([Q(a0 - ee, sb * (hw + e), ze), Q(a1 + ee, sb * (hw + e), ze), Q(a1 + ee, 0, zr), Q(a0 - ee, 0, zr)], ref, roof)
+    for a, ae, on in ((a0, a0 - ee, ends[0]), (a1, a1 + ee, ends[1])):
+        if not on:
+            continue
+        if wall:
+            m.poly_out([Q(a, -hw, zw), Q(a, hw, zw), Q(a, 0, zr - 0.2)], ref, wall)
+        if trim and lod < 2:
+            for sb in (-1, 1):
+                m.prism(Q(ae, sb * (hw + e), ze), Q(ae, 0, zr), 0.5, trim, wz=0.5)
+            x, y, _ = Q(ae, 0, 0)
+            x_finial(m, x, y, zr - 0.3, ang_ridge, fin, trim)
+
+
+def _inner_rect(pts):
+    """Persegi panjang sejajar sumbu terbesar di dalam cincin pts (tepi calon = koordinat titik sudut)."""
+    us = sorted({round(p[0], 2) for p in pts})
+    ds = sorted({round(p[1], 2) for p in pts})
+    best, e = None, 0.6
+    for i, u0 in enumerate(us):
+        for u1 in us[i + 1:]:
+            for j, d0 in enumerate(ds):
+                for d1 in ds[j + 1:]:
+                    a = (u1 - u0) * (d1 - d0)
+                    if best and a <= best[0]:
+                        continue
+                    cs = [(u0 + e, d0 + e), (u1 - e, d0 + e), (u1 - e, d1 - e), (u0 + e, d1 - e),
+                          ((u0 + u1) / 2, d0 + e), ((u0 + u1) / 2, d1 - e), (u0 + e, (d0 + d1) / 2), (u1 - e, (d0 + d1) / 2)]
+                    if not all(inside(c, pts) for c in cs):
+                        continue
+                    if any(u0 + e < p[0] < u1 - e and d0 + e < p[1] < d1 - e for p in pts):
+                        continue
+                    best = (a, u0 + e, u1 - e, d0 + e, d1 - e)
+    return best[1:]
+
+
+def _edge_d(pts, u):
+    """d terbesar tempat garis u = konstan memotong tepi cincin pts (u, d)."""
+    out = []
+    for (u0, d0), (u1, d1) in zip(pts, pts[1:] + pts[:1]):
+        if (u0 - u) * (u1 - u) <= 0 and abs(u1 - u0) > 1e-6:
+            out.append(d0 + (d1 - d0) * (u - u0) / (u1 - u0))
+    return max(out)
+
+
 def b_gubernur(spec):
-    """Kantor Gubernur (4 lantai, atap Melayu) + Menara Lancang Kuning (9 lantai, mahkota selembayung bertingkat)."""
+    """Kantor Gubernur Riau (sayap 4 lantai) + Menara Lancang Kuning (9 lantai), gaya Melayu Riau.
+    DEPAN = sisi TIMUR (halaman rumput lebar ke Jl. Jend. Sudirman, x ≈ +160 m; jalan & bangunan dari data Overture):
+    di barat sayap ada gedung kantor lain berjarak ±1,5 m, menara ada tepat di selatan sayap.
+    Sayap: podium + tangga, serambi bertiang lantai dasar, pilaster tiap ±6 m, atap limas panjang + tiga paviliun menonjol
+    beratap pelana melintang (tebar layar menghadap depan, lisplang emas, selembayung), paviliun tengah = pintu utama + beranda.
+    Menara: podium 2 lantai mengikuti jejak, badan kaca dengan pilar sudut + rusuk tegak, lantai puncak mundur, mahkota
+    Melayu dua tingkat (limas lebar + pelana tinggi). Selasar beratap pelana bila jarak ≤ 25 m.
+    [INFERENSI] semua bentuk di atas (tanpa foto rujukan); jejak + jumlah lantai menara dari OSM. Pintu/kanopi/pohon/lampu =
+    potongan (src/city/parts.data.js)."""
     fr = Frame([way(w) for w in spec["ways"]])
+    GENTENG, EMAS, KREM, KREM2, TERAS = "#a8472c", "#d8aa2e", "#e6dcc3", "#f4efe0", "#b9b2a3"
+    KACA = "#26323a"
+
+    def front_sign(ang):
+        # v rangka = (-sin, cos); pilih tanda yang mengarah ke TIMUR (+x denah) = halaman depan
+        return 1 if -math.sin(ang) > 0 else -1
+
+    # --- sayap kantor ---
+    poly0 = fr.pts(way(spec["ways"][0]))
+    R0 = min_rect(poly0)
+    cx, cy, ang, L, W = R0
+    sf = front_sign(ang)
+    P = _rangka(R0, sf)
+    print(f"[gubernur] frame sayap: {{ cx: {cx:.3f}, cy: {cy:.3f}, ang: {ang:.4f}, L: {L:.3f}, W: {W:.3f} }} sf={sf} "
+          f"(d+ = v{'+' if sf > 0 else '-'}, arah depan denah = ({-sf * math.sin(ang):.3f}, {sf * math.cos(ang):.3f}))")
+    hu, hw0 = L / 2, W / 2
+    zp, fh = 0.9, 4.2
+    H = zp + 4 * fh
+    ang_d = math.atan2(sf * math.cos(ang), -sf * math.sin(ang))   # arah sumbu d di denah
+    # paviliun: (u tengah, setengah lebar, menonjol, tambahan tinggi)
+    PAV = [(-0.32 * L, 7.0, 4.0, 0.0), (0.0, 10.0, 6.0, fh), (0.32 * L, 7.0, 4.0, 0.0)]
+    porch_d = hw0 + 6.0 + 5.2            # tepi depan beranda paviliun tengah
+    pf = porch_d + 1.5                   # tepi depan teras di depan beranda (awal tangga)
+
+    def free_spans():
+        """Rentang u fasad depan yang tidak tertutup paviliun."""
+        cuts = sorted((uc - pw, uc + pw) for uc, pw, _, _ in PAV)
+        out, u = [], -hu
+        for a, b in cuts:
+            out.append((u, a))
+            u = b
+        out.append((u, hu))
+        return out
+
+    def covered(u):
+        return any(abs(u - uc) < pw + 0.6 for uc, pw, _, _ in PAV)
+
+    # --- menara ---
+    tp0 = fr.pts(way(spec["ways"][1]))
+    RT = min_rect(tp0)
+    sfT = front_sign(RT[2])
+    PT = _rangka(RT, sfT)
+    cT, sT = math.cos(RT[2]), math.sin(RT[2])
+    tud = [((x - RT[0]) * cT + (y - RT[1]) * sT, sfT * (-(x - RT[0]) * sT + (y - RT[1]) * cT)) for x, y in tp0]
+    bu0, bu1, bd0, bd1 = _inner_rect(tud)
+    bu0, bu1, bd0, bd1 = bu0 + 4.0, bu1 - 4.0, bd0 + 4.0, bd1 - 4.0       # podium lebih lebar ±4 m dari badan
+    ubc, dbc, Lb, Wb = (bu0 + bu1) / 2, (bd0 + bd1) / 2, bu1 - bu0, bd1 - bd0
+    de = _edge_d(tud, ubc)                                               # muka depan podium di poros badan
+    fT = 3.8
+    zpod, ztop, TH = 2 * fT, 8 * fT, 9 * fT
+    print(f"[gubernur] menara: rangka ang {RT[2]:.4f} sf={sfT}, badan u {bu0:.1f}..{bu1:.1f} d {bd0:.1f}..{bd1:.1f} "
+          f"({Lb:.1f} x {Wb:.1f} m), muka depan podium d {de:.1f}")
+    # pintu menara (untuk resep potongan, dalam rangka sayap: u, v)
+    tx, ty, _ = PT(ubc, de, 0)
+    tu = (tx - cx) * math.cos(ang) + (ty - cy) * math.sin(ang)
+    tv = -(tx - cx) * math.sin(ang) + (ty - cy) * math.cos(ang)
+    print(f"[gubernur] pintu menara di rangka sayap: u {tu:.2f} v {tv:.2f}; pintu utama sayap: u 0 v {sf * (hw0 + 6.05):.2f}")
+    site = [P(-hu - 2, -hw0 - 0.5, 0), P(hu + 2, -hw0 - 0.5, 0), P(hu + 2, hw0 + 30, 0), P(-hu - 2, hw0 + 30, 0)]
+    print("[gubernur] site:", [[round(x, 1), round(y, 1)] for x, y, _ in site])
+
+    # --- selasar: sinar dari ujung selatan sayap (−u) ke jejak menara ---
+    ax, ay, _ = P(-hu, 0, 0)
+    dx, dy = -math.cos(ang), -math.sin(ang)
+    gap = None
+    for (x0, y0), (x1, y1) in zip(tp0, tp0[1:] + tp0[:1]):
+        ex, ey = x1 - x0, y1 - y0
+        den = dx * ey - dy * ex
+        if abs(den) < 1e-9:
+            continue
+        t = ((x0 - ax) * ey - (y0 - ay) * ex) / den
+        k = ((x0 - ax) * dy - (y0 - ay) * dx) / den
+        if t > 0 and 0 <= k <= 1:
+            gap = t if gap is None else min(gap, t)
+    print(f"[gubernur] jarak sayap-menara: {gap:.1f} m")
+
+    def wing(m, lod):
+        # 1. podium/teras + tangga
+        if lod < 2:
+            ring = [(-hu - 2, -hw0 - 0.5), (hu + 2, -hw0 - 0.5), (hu + 2, hw0 + 2)]
+            for uc, pw, p, _ in sorted(PAV, key=lambda t: -t[0]):
+                dd = pf if p > 5 else hw0 + p + 2
+                ring += [(uc + pw + 2, hw0 + 2), (uc + pw + 2, dd), (uc - pw - 2, dd), (uc - pw - 2, hw0 + 2)]
+            ring.append((-hu - 2, hw0 + 2))
+            m.extrude([P(u, d, 0)[:2] for u, d in ring], 0, zp, BATU, roof=BATU)
+            _kotak_p(m, P, -8, 8, pf - 0.3, pf + 1.6, 0, 0.6, "#cfc8b6", roof="#cfc8b6")
+            _kotak_p(m, P, -9, 9, pf - 0.3, pf + 3.2, 0, 0.3, "#cfc8b6", roof="#cfc8b6")
+        # 2. badan: lantai dasar depan dimundurkan 3 m (serambi), lantai atas penuh
+        if lod == 2:
+            _kotak_p(m, P, -hu, hu, -hw0, hw0, 0, H, KREM)
+        else:
+            _kotak_p(m, P, -hu, hu, -hw0, hw0 - 3.0, zp, zp + fh, KREM)
+            _kotak_p(m, P, -hu, hu, -hw0, hw0, zp + fh, H, KREM)
+            _panel_d(m, P, -hu, hu, hw0 - 3.0 + 0.06, zp + 0.4, zp + fh - 0.5, 1, "#6f6656")   # dinding serambi digelapkan
+        if lod == 0:
+            m.poly_out([P(-hu, hw0 - 3.0, zp + fh), P(hu, hw0 - 3.0, zp + fh), P(hu, hw0, zp + fh), P(-hu, hw0, zp + fh)],
+                       P(0, hw0 - 1.5, zp + fh + 3), "#d9cfb6")                                   # plafon serambi
+            n = max(1, round(L / 6.0))
+            step = L / n
+            for k in range(n + 1):                       # pilaster + kolom serambi
+                u = -hu + k * step
+                _kotak_p(m, P, u - 0.45, u + 0.45, -hw0 - 0.5, -hw0 + 0.2, zp, H, KREM2)
+                if not covered(u):
+                    _kotak_p(m, P, u - 0.45, u + 0.45, hw0 - 0.2, hw0 + 0.5, zp + fh, H, KREM2)
+                    _kotak_p(m, P, u - 0.3, u + 0.3, hw0 - 0.7, hw0 - 0.1, zp, zp + fh, KREM2)
+            for k in range(n):                           # ceruk jendela: pita kaca + ambang terang per lantai
+                u0, u1 = -hu + k * step + 0.9, -hu + (k + 1) * step - 0.9
+                for f in range(4):
+                    z0 = zp + f * fh
+                    _panel_d(m, P, u0, u1, -hw0 - 0.06, z0 + 1.0, z0 + 3.2, -1, KACA)
+                    _panel_d(m, P, u0 - 0.2, u1 + 0.2, -hw0 - 0.06, z0 + 0.7, z0 + 1.0, -1, KREM2)
+                    if f == 0 or covered((u0 + u1) / 2):
+                        continue
+                    _panel_d(m, P, u0, u1, hw0 + 0.06, z0 + 1.0, z0 + 3.2, 1, KACA)
+                    _panel_d(m, P, u0 - 0.2, u1 + 0.2, hw0 + 0.06, z0 + 0.7, z0 + 1.0, 1, KREM2)
+                if not covered((u0 + u1) / 2):           # pintu/jendela kaca di dinding serambi
+                    _panel_d(m, P, u0 + 0.6, u1 - 0.6, hw0 - 3.0 + 0.12, zp + 0.5, zp + 3.0, 1, KACA)
+            for su in (-1, 1):                           # jendela dinding ujung
+                for f in range(4):
+                    z0 = zp + f * fh
+                    _panel_u(m, P, su * (hu + 0.06), -hw0 + 2.5, hw0 - 5.0, z0 + 1.0, z0 + 3.2, su, KACA)
+            for a, b in free_spans():                    # balok serambi
+                if b - a > 1:
+                    _kotak_p(m, P, a, b, hw0 + 0.05, hw0 + 0.35, zp + fh - 0.45, zp + fh + 0.35, KREM2)
+        elif lod == 1:                                   # LOD1: satu pita kaca per lantai per rentang fasad depan
+            for a, b in free_spans():
+                if b - a > 3:
+                    for f in range(1, 4):
+                        _panel_d(m, P, a + 1.2, b - 1.2, hw0 + 0.06, zp + f * fh + 1.0, zp + f * fh + 3.2, 1, KACA)
+        # 3. atap limas panjang
+        m.hip(cx, cy, ang, L + 3.6, W + 3.6, H, 6.5, 0.85, GENTENG)
+        if lod < 2:
+            for sd in (-1, 1):
+                m.prism(P(-hu - 1.8, sd * (hw0 + 1.8), H), P(hu + 1.8, sd * (hw0 + 1.8), H), 0.4, KREM2, wz=0.5)
+        # 4. tiga paviliun melintang
+        for uc, pw, p, extra in PAV:
+            zw = H + extra
+            dfront = hw0 + p
+            center = extra > 0
+            a0 = -hw0 - 0.3 if center else -hw0
+            _kotak_p(m, P, uc - pw, uc + pw, a0 if center else hw0 - 0.3, dfront, zp if lod < 2 else 0, zw, KREM)
+            Q = (lambda uc_: (lambda a, b, z: P(uc_ + b, a, z)))(uc)
+            zr = zw + (10.0 if center else 8.0)
+            _pelana(m, Q, a0, dfront, pw, zw, zr, 1.5, 1.2, GENTENG, KREM2 if lod < 2 else None, EMAS, lod, ang_d, fin=2.6 if center else 2.2)
+            if lod == 0:
+                m.prism(P(uc - pw, dfront + 0.15, zw), P(uc + pw, dfront + 0.15, zw), 0.3, EMAS, wz=0.5)   # pita emas kaki tebar layar
+                for su in (-1, 1):                       # pilaster sudut paviliun
+                    _kotak_p(m, P, uc + su * pw - 0.6, uc + su * pw + 0.6, dfront - 0.6, dfront + 0.4, zp, zw, KREM2)
+            if lod < 2:
+                nfl = 5 if center else 4
+                for f in range(1, nfl):
+                    z0 = zp + f * fh
+                    _panel_d(m, P, uc - pw + 1.6, uc + pw - 1.6, dfront + 0.06, z0 + 1.0, z0 + 3.2, 1, KACA)
+                    _panel_d(m, P, uc - pw + 1.4, uc + pw - 1.4, dfront + 0.06, z0 + 0.7, z0 + 1.0, 1, KREM2)
+                if not center:
+                    _panel_d(m, P, uc - pw + 1.6, uc + pw - 1.6, dfront + 0.06, zp + 1.0, zp + 3.2, 1, KACA)
+            if center and lod < 2:                       # beranda bertiang dua lantai + pelana kecil di depan
+                zb = zp + 2 * fh
+                _kotak_p(m, P, uc - 8, uc + 8, dfront - 0.3, porch_d, zb, zb + 0.6, KREM2, roof=KREM2)
+                for u in (-7.0, -3.5, 3.5, 7.0):
+                    _kotak_p(m, P, uc + u - 0.4, uc + u + 0.4, porch_d - 1.0, porch_d - 0.2, zp, zb, KREM2)
+                _pelana(m, Q, dfront - 0.3, porch_d, 8.0, zb + 0.6, zb + 5.6, 0.8, 0.8, GENTENG, KREM2, EMAS, lod, ang_d,
+                        fin=1.8, ends=(False, True))
+        # 5. selasar ke menara
+        if gap is not None and gap <= 25 and lod < 2:
+            _kotak_p(m, P, -hu - gap - 0.5, -hu + 0.5, -2.5, 2.5, 0, 4.2, KREM)
+            _pelana(m, P, -hu - gap - 0.5, -hu + 0.5, 2.5, 4.2, 6.4, 0.8, 0.0, GENTENG, None, None, lod, ang, ends=(False, False))
+            if lod == 0:
+                for sd in (-1, 1):
+                    _panel_d(m, P, -hu - gap + 0.5, -hu - 0.5, sd * 2.56, 1.2, 3.4, sd, KACA)
+
+    def tower(m, lod):
+        # 1. podium 2 lantai mengikuti jejak + parapet
+        tp = simplify(tp0, tol(lod))
+        m.extrude(tp, 0, zpod, KREM, roof=TERAS, bands=bands(0, 2, fT, KREM, GLASS) if lod == 0 else None)
+        if lod == 0:
+            pr = ccw(tp)
+            inner = _grow(pr, -0.35)
+            m.extrude(pr, zpod, zpod + 1.0, KREM2)
+            for (a, b), (ai, bi) in zip(zip(pr, pr[1:] + pr[:1]), zip(inner, inner[1:] + inner[:1])):
+                m.poly([(bi[0], bi[1], zpod), (ai[0], ai[1], zpod), (ai[0], ai[1], zpod + 1.0), (bi[0], bi[1], zpod + 1.0)], KREM2)
+                m.poly([(a[0], a[1], zpod + 1.0), (b[0], b[1], zpod + 1.0), (bi[0], bi[1], zpod + 1.0), (ai[0], ai[1], zpod + 1.0)], KREM2)
+        # 2. badan kaca + pilar sudut + rusuk tegak + pelat lantai
+        _kotak_p(m, PT, bu0, bu1, bd0, bd1, zpod, ztop if lod < 2 else TH + 0.4, GLASS if lod < 2 else KREM, roof=None if lod < 2 else KREM)
+        if lod < 2:
+            for u0, u1 in ((bu0 - 0.3, bu0 + 2.2), (bu1 - 2.2, bu1 + 0.3)):
+                for d0, d1 in ((bd0 - 0.3, bd0 + 2.2), (bd1 - 2.2, bd1 + 0.3)):
+                    _kotak_p(m, PT, u0, u1, d0, d1, zpod, ztop, KREM2)
+            sp = 3.5 if lod == 0 else 7.0
+            for a, b in ((bu0 + 2.2, bu1 - 2.2),):
+                n = max(1, round((b - a) / sp))
+                for k in range(1, n):
+                    u = a + (b - a) * k / n
+                    for d0, d1 in ((bd1 - 0.1, bd1 + 0.45), (bd0 - 0.45, bd0 + 0.1)):
+                        _kotak_p(m, PT, u - 0.25, u + 0.25, d0, d1, zpod, ztop, KREM2)
+            a, b = bd0 + 2.2, bd1 - 2.2
+            n = max(1, round((b - a) / sp))
+            for k in range(1, n):
+                d = a + (b - a) * k / n
+                for u0, u1 in ((bu1 - 0.1, bu1 + 0.45), (bu0 - 0.45, bu0 + 0.1)):
+                    _kotak_p(m, PT, u0, u1, d - 0.25, d + 0.25, zpod, ztop, KREM2)
+            if lod == 0:
+                for k in range(1, 6):
+                    z = zpod + k * fT
+                    _kotak_p(m, PT, bu0 - 0.12, bu1 + 0.12, bd0 - 0.12, bd1 + 0.12, z - 0.18, z + 0.18, KREM2)
+            # 3. pita emas + lantai puncak dimundurkan 1,5 m
+            _kotak_p(m, PT, bu0 - 0.5, bu1 + 0.5, bd0 - 0.5, bd1 + 0.5, ztop, ztop + 0.7, EMAS, roof=TERAS)
+            _kotak_p(m, PT, bu0 + 1.5, bu1 - 1.5, bd0 + 1.5, bd1 - 1.5, ztop + 0.7, TH + 0.4, KREM)
+            if lod == 0:
+                for sd in (-1, 1):
+                    _panel_d(m, PT, bu0 + 3.0, bu1 - 3.0, dbc + sd * (Wb / 2 - 1.5 + 0.06), ztop + 1.5, TH - 0.4, sd, KACA)
+                for su in (-1, 1):
+                    _panel_u(m, PT, ubc + su * (Lb / 2 - 1.5 + 0.06), bd0 + 3.0, bd1 - 3.0, ztop + 1.5, TH - 0.4, su, KACA)
+        # 4. mahkota Melayu dua tingkat
+        zc = TH + 0.4
+        bx, by, _ = PT(ubc, dbc, 0)
+        L1, W1 = Lb - 3.0 + 6.0, Wb - 3.0 + 6.0
+        m.hip(bx, by, RT[2], L1, W1, zc, 5.0, 0.55, GENTENG)
+        if lod < 2:
+            for sd in (-1, 1):
+                m.prism(PT(ubc - L1 / 2, dbc + sd * W1 / 2, zc), PT(ubc + L1 / 2, dbc + sd * W1 / 2, zc), 0.5, EMAS, wz=0.5)
+            for su in (-1, 1):
+                m.prism(PT(ubc + su * L1 / 2, dbc - W1 / 2, zc), PT(ubc + su * L1 / 2, dbc + W1 / 2, zc), 0.5, EMAS, wz=0.5)
+        an, hw2 = 0.25 * Lb, max(4.0, 0.18 * Wb)
+        if lod < 2:
+            _kotak_p(m, PT, ubc - an, ubc + an, dbc - hw2, dbc + hw2, zc + 2.5, zc + 6.0, KREM2)
+        Q2 = lambda a, b, z: PT(ubc + a, dbc + b, z)  # noqa: E731
+        _pelana(m, Q2, -an, an, hw2, zc + 6.0, zc + 12.0, 1.5, 1.5, GENTENG, KREM2 if lod < 2 else None, EMAS, lod, RT[2], fin=3.0)
+        # 5. kanopi masuk depan (pelat + 4 kolom); pintu = potongan
+        if lod < 2:
+            _kotak_p(m, PT, ubc - 7, ubc + 7, de - 0.3, de + 6.0, 4.6, 5.2, KREM2, roof=KREM2)
+            if lod == 0:
+                _kotak_p(m, PT, ubc - 7.1, ubc + 7.1, de + 5.95, de + 6.2, 4.5, 5.3, EMAS)
+                for u in (-6.0, -3.5, 3.5, 6.0):
+                    _kotak_p(m, PT, ubc + u - 0.3, ubc + u + 0.3, de + 5.0, de + 5.6, 0, 4.6, KREM2)
 
     def build(lod):
         m = Mesh()
-        off, tow = way(spec["ways"][0]), way(spec["ways"][1])
-        poly = simplify(fr.pts(off), tol(lod))
-        H = 4 * 4.2
-        m.extrude(poly, 0, H, "#e6dcc3", roof="#8c3a24", bands=bands(0, 4, 4.2, "#e6dcc3", "#26323a") if lod == 0 else None)
-        cx, cy, ang, L, W = min_rect(poly)
-        for k in (-1, 0, 1):  # tiga atap pelana melintang sepanjang bangunan
-            u = k * L * 0.3
-            m.hip(cx + math.cos(ang) * u, cy + math.sin(ang) * u, ang + math.pi / 2, W + 3, 11.0, H, 7.5, 0.9, "#8c3a24")
-            if lod < 2:
-                for sg in (-1, 1):
-                    x_finial(m, cx + math.cos(ang) * u + math.cos(ang + math.pi / 2) * (W / 2 + 0.5) * sg, cy + math.sin(ang) * u + math.sin(ang + math.pi / 2) * (W / 2 + 0.5) * sg, H + 6.8, ang + math.pi / 2, 2.4, "#d8aa2e")
-        tp = simplify(fr.pts(tow), tol(lod))
-        TH = 9 * 3.8
-        m.extrude(tp, 0, TH, "#d9d3c4", roof="#8a8d8f", bands=bands(0, 9, 3.8, "#d9d3c4", "#1f2c35") if lod == 0 else None)
-        m.extrude(tp, TH, TH + 1.5, "#d8aa2e")
-        top = melayu_roof(m, tp, TH + 1.5, lod, "#7c2f1d", "#d8aa2e", scale=0.8, tiers=2, h1=9.0, eave=3.0)
+        wing(m, lod)
+        tower(m, lod)
         return m
     return fr, build
 

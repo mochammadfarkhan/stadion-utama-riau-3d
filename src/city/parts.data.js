@@ -101,6 +101,25 @@ export const PART_RECIPES = Object.freeze({
       { part: 'lampu-taman', line: { from: [-55, -31.5], to: [55, -31.5], y: 0, count: 6 } },
     ],
   },
+  // Kantor Gubernur Riau (b_gubernur di bangunan.py: min_rect sayap kantor L 102,9 × W 25,3; ang ≈ π/2 → +u utara, +v barat).
+  // Depan = sisi −v (TIMUR, halaman ke Jl. Sudirman): fasad v −12,65, teras paviliun tengah sampai v −25,35 (y 0,9),
+  // tangga (u ±9) sampai v −28,55, muka paviliun tengah v −18,65. Menara di selatan (u < −55); pintunya di (u −108,1, v −37,9).
+  'kantor-gubernur-riau': {
+    frame: { cx: -11.5, cy: 46.65, ang: 1.5621, L: 102.925, W: 25.303 },
+    // tapak (denah model): podium sayap + halaman depan 30 m; sisi barat berbatas gedung kantor lain, tidak ditanami
+    site: [[-25.1, -6.7], [-24.2, 100.2], [31.6, 99.7], [30.7, -7.2]],
+    rules: [
+      // pintu utama + kanopi di muka paviliun tengah (di bawah beranda bertiang); pintu + kanopi kecil menara
+      { part: 'pintu', at: [[0, -18.7, 0.9, 0], [-108.1, -37.9, 0, 0]] },
+      { part: 'kanopi', at: [[0, -18.7, 0.9, 0]] },
+      // halaman depan: palem kiri-kanan tangga, pot di kaki tangga, lampu taman di tepi halaman, pohon di sudut
+      { part: 'palem', line: { from: [-14, -28], to: [-26, -28], y: 0, count: 3 } },
+      { part: 'palem', line: { from: [14, -28], to: [26, -28], y: 0, count: 3 } },
+      { part: 'pot', at: [[-10, -28, 0], [10, -28, 0]] },
+      { part: 'lampu-taman', line: { from: [-48, -40], to: [48, -40], y: 0, count: 7 } },
+      { part: 'pohon', at: [[-46, -36, 0], [-38, -40.5, 0, 0, 0.9], [46, -36, 0], [38, -40.5, 0, 0, 0.9]] },
+    ],
+  },
   // Swiss-Belinn SKA: menara 9 lantai (alas 10,5 m, tinggi lantai 3,6 m). Jendela = potongan di dua sisi panjang;
   // sisi pendek ditempati balkon dari skrip model.
   'swiss-belinn-ska': {
